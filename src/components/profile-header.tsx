@@ -31,7 +31,7 @@ export function ProfileHeader({ user, postCount }: ProfileHeaderProps) {
       </div>
       <div className="mt-4">
         <h1 className="font-semibold">{user.name}</h1>
-        <p className="text-sm text-muted-foreground">@{user.username}</p>
+        <p className="text-sm text-muted-foreground">Ephemeral moments collector.</p>
       </div>
     </header>
   );

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { ProfileHeader } from "@/components/profile-header";
 import { mainUser, posts } from "@/lib/data";
+import { ProfileMenu } from "@/components/profile-menu";
 
 export default function ProfilePage() {
   const userPosts = posts.filter(post => post.user.id === mainUser.id);
@@ -14,6 +15,10 @@ export default function ProfilePage() {
 
   return (
     <div>
+      <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/95 px-4 backdrop-blur-sm">
+        <h1 className="text-lg font-semibold font-headline">@{mainUser.username}</h1>
+        <ProfileMenu />
+      </header>
       <ProfileHeader user={mainUser} postCount={activePosts.length} />
       <main>
         <div className="grid grid-cols-3 gap-0.5">
