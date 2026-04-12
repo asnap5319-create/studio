@@ -240,19 +240,16 @@ service cloud.firestore {
       }
 
       /**
-       * @description Secures user-created posts. Posts are publicly readable by any signed-in user,
-       *              but only the original author can create, update, or delete them.
+       * @description Secures user-created posts (WRITES ONLY). Read access is handled by the collection group rule.
+       *              Only the original author can create, update, or delete them.
        *              Server-managed fields like `viewCount` and `postEarnings` are immutable.
        * @path /users/{userId}/posts/{postId}
-       * @allow (get) Any authenticated user can read a post.
-       * @deny  (update) A user tries to update another user's post.
        * @principle Enforces a "Public Read, Owner-Only Write" access control pattern.
        */
       match /posts/{postId} {
-        allow get, list: if isSignedIn();
-        allow create: if isValidPostCreate(userId); // Fixed: ownerId -> userId
-        allow update: if isExistingOwner(userId) && canUpdatePost(); // Fixed: ownerId -> userId
-        allow delete: if isExistingOwner(userId); // Fixed: ownerId -> userId
+        allow create: if isValidPostCreate(userId);
+        allow update: if isExistingOwner(userId) && canUpdatePost();
+        allow delete: if isExistingOwner(userId);
 
         /**
          * @description Secures comments on a post. Any signed-in user can read or create a comment.
@@ -266,7 +263,7 @@ service cloud.firestore {
           allow get, list: if isSignedIn();
           allow create: if isValidCommentCreate(postId);
           allow update: if isExistingOwner(resource.data.userId);
-          allow delete: if resource != null && (isOwner(resource.data.userId) || isOwner(userId)); // Fixed: postOwnerId -> userId
+          allow delete: if resource != null && (isOwner(resource.data.userId) || isOwner(userId));
         }
 
         /**
@@ -286,18 +283,14 @@ service cloud.firestore {
       }
 
       /**
-       * @description Secures user-created stories. Stories are readable by any signed-in user,
-       *              but only the original author can create, update, or delete them.
+       * @description Secures user-created stories (WRITES ONLY). Read access is handled by the collection group rule.
        * @path /users/{userId}/stories/{storyId}
-       * @allow (get) Any authenticated user can read a story.
-       * @deny  (create) A user tries to create a story under another user's ID.
        * @principle Enforces a "Public Read, Owner-Only Write" access control pattern.
        */
       match /stories/{storyId} {
-        allow get, list: if isSignedIn();
-        allow create: if isValidStoryCreate(userId); // Fixed: ownerId -> userId
-        allow update: if isExistingOwner(userId) && canUpdateStory(); // Fixed: ownerId -> userId
-        allow delete: if isExistingOwner(userId); // Fixed: ownerId -> userId
+        allow create: if isValidStoryCreate(userId);
+        allow update: if isExistingOwner(userId) && canUpdateStory();
+        allow delete: if isExistingOwner(userId);
       }
     }
   }
