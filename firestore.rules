@@ -1,10 +1,28 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read and write access to all documents for any authenticated user.
-    // This is for development purposes and should be secured before production.
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+
+    // Rule for the 'posts' collection group query used by the feed.
+    // It allows any authenticated user to read from any 'posts' subcollection.
+    match /{path=**}/posts/{postId} {
+      allow read: if request.auth != null;
+    }
+
+    // Rule for the 'stories' collection group query used by the stories bar.
+    // It allows any authenticated user to read from any 'stories' subcollection.
+    match /{path=**}/stories/{storyId} {
+      allow read: if request.auth != null;
+    }
+
+    // Users can create, update, and delete documents within their own user space.
+    // This rule is essential for letting users write their own content (posts, stories, etc.).
+    match /users/{userId}/{document=**} {
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Users can read and write their own top-level user document.
+    match /users/{userId} {
+       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
