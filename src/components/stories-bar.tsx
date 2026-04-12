@@ -1,28 +1,31 @@
 'use client';
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { Story, UserProfile } from "@/lib/types";
 import { collectionGroup, query, orderBy, doc, getDoc, Timestamp } from "firebase/firestore";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function StoriesBar() {
     const firestore = useFirestore();
     const [storiesWithUsers, setStoriesWithUsers] = useState<(Story & {user: UserProfile})[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isDerivedLoading, setIsDerivedLoading] = useState(true);
+    const { isUserLoading: isAuthLoading } = useUser();
 
     const storiesQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
+        if (!firestore || isAuthLoading) return null;
         return query(collectionGroup(firestore, 'stories'), orderBy('createdAt', 'desc'));
-    }, [firestore]);
+    }, [firestore, isAuthLoading]);
 
     const { data: stories, isLoading: storiesLoading } = useCollection<Story>(storiesQuery);
 
+    const isLoading = useMemo(() => isDerivedLoading || storiesLoading || isAuthLoading, [isDerivedLoading, storiesLoading, isAuthLoading]);
+
     useEffect(() => {
-        if (storiesLoading) return;
+        if (storiesLoading || isAuthLoading) return;
         if (!stories || !firestore) {
-            setIsLoading(false);
+            setIsDerivedLoading(false);
             return;
         }
 
@@ -44,11 +47,11 @@ export function StoriesBar() {
                 })
             )).filter(Boolean) as (Story & {user: UserProfile})[];
             setStoriesWithUsers(storiesWithUserDetails);
-            setIsLoading(false);
+            setIsDerivedLoading(false);
         };
 
         fetchStoryUsers();
-    }, [stories, firestore, storiesLoading]);
+    }, [stories, firestore, storiesLoading, isAuthLoading]);
     
     if (isLoading) {
         return (

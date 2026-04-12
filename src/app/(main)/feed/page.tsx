@@ -2,10 +2,10 @@
 import { AsnapLogo } from "@/components/icons";
 import { PostCard } from "@/components/post-card";
 import { StoriesBar } from "@/components/stories-bar";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { Post, UserProfile } from "@/lib/types";
 import { collectionGroup, doc, getDoc, orderBy, query, Timestamp } from "firebase/firestore";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 
@@ -13,16 +13,19 @@ export default function FeedPage() {
   const firestore = useFirestore();
   const [postsWithUsers, setPostsWithUsers] = useState<Post[]>([]);
   const [isPostsLoading, setIsPostsLoading] = useState(true);
+  const { isUserLoading: isAuthLoading } = useUser();
 
   const postsQuery = useMemoFirebase(() => {
-      if (!firestore) return null;
+      if (!firestore || isAuthLoading) return null;
       return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'));
-  }, [firestore]);
+  }, [firestore, isAuthLoading]);
 
   const { data: posts, isLoading } = useCollection<Post>(postsQuery);
 
+  const combinedLoading = useMemo(() => isPostsLoading || isLoading || isAuthLoading, [isPostsLoading, isLoading, isAuthLoading]);
+
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || isAuthLoading) return;
     if (!posts || !firestore) {
       setIsPostsLoading(false);
       return;
@@ -54,7 +57,7 @@ export default function FeedPage() {
     };
 
     fetchPostUsers();
-  }, [posts, firestore, isLoading]);
+  }, [posts, firestore, isLoading, isAuthLoading]);
 
   return (
     <div>
@@ -64,7 +67,7 @@ export default function FeedPage() {
       </header>
       <main className="p-0">
         <StoriesBar />
-        {isPostsLoading ? (
+        {combinedLoading ? (
           <div className="space-y-4 p-3">
             <div className="flex items-center gap-3">
               <Skeleton className="h-10 w-10 rounded-full" />
