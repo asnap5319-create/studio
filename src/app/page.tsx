@@ -36,9 +36,13 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, email, password);
       router.push("/feed");
     } catch (error: any) {
+      let friendlyMessage = "An unexpected error occurred. Please try again.";
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+          friendlyMessage = "Invalid credentials. Please check your email and password or sign up.";
+      }
       toast({
         title: "Login Failed",
-        description: error.message,
+        description: friendlyMessage,
         variant: "destructive",
       });
     } finally {
@@ -89,7 +93,7 @@ export default function LoginPage() {
           </div>
           <div className="mt-4 text-center text-sm">
             Don&apos;t have an account?{" "}
-            <Link href="#" className="underline" prefetch={false}>
+            <Link href="/signup" className="underline" prefetch={false}>
               Sign up
             </Link>
           </div>
