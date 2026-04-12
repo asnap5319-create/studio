@@ -1,27 +1,54 @@
-import type { ImagePlaceholder } from './placeholder-images';
+import type { Timestamp } from 'firebase/firestore';
 
-export type User = {
+export type UserProfile = {
   id: string;
-  name: string;
   username: string;
-  avatar: ImagePlaceholder;
-  followers: number;
-  following: number;
+  email: string;
+  profilePictureUrl?: string;
+  bio?: string;
+  totalEarnings: number;
+  followerIds: string[];
+  followingIds: string[];
+  createdAt: Timestamp;
+  updatedAt?: Timestamp;
+};
+
+export type Post = {
+  id:string;
+  userId: string;
+  mediaUrl: string;
+  mediaType: 'image' | 'video';
+  caption?: string;
+  createdAt: Timestamp;
+  expiresAt: Timestamp;
+  viewCount: number;
+  postEarnings: number;
+  user?: UserProfile; 
+  likesCount?: number; 
+  comments?: Comment[];
 };
 
 export type Story = {
   id: string;
-  user: User;
-  image: ImagePlaceholder;
-  createdAt: string; // ISO string
+  userId: string;
+  mediaUrl: string;
+  mediaType: 'image' | 'video';
+  createdAt: Timestamp;
+  expiresAt: Timestamp;
 };
 
-export type Post = {
+export type Comment = {
   id: string;
-  user: User;
-  image: ImagePlaceholder;
-  caption: string;
-  likes: number;
-  comments: { user: User; text: string }[];
-  createdAt: string; // ISO string
+  postId: string;
+  userId: string;
+  content: string;
+  createdAt: Timestamp;
+  user?: UserProfile;
+};
+
+export type Like = {
+  id: string;
+  postId: string;
+  userId:string;
+  createdAt: Timestamp;
 };

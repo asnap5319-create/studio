@@ -6,6 +6,8 @@ import { Sparkles, LoaderCircle, Check } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { collection, serverTimestamp } from 'firebase/firestore';
+import { useUser, useFirestore, addDocumentNonBlocking } from "@/firebase";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,10 +19,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { getAiSuggestions } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 import type { AICaptionAndHashtagSuggestionsOutput } from "@/ai/flows/ai-caption-hashtag-suggestions";
+import { useRouter } from "next/navigation";
 
 const createPostSchema = z.object({
-  image: z.any().refine((files) => files?.length === 1, "Image is required."),
-  caption: z.string().max(2200, "Caption is too long."),
+  image: z.any().refine((files) => files?.length === 1, "Image or video is required."),
+  caption: z.string().max(2200, "Caption is too long.").optional(),
 });
 
 type CreatePostFormValues = z.infer<typeof createPostSchema>;
@@ -30,6 +33,10 @@ export function CreatePostForm() {
   const [aiSuggestions, setAiSuggestions] = useState<AICaptionAndHashtagSuggestionsOutput | null>(null);
   const [isAiLoading, startAiTransition] = useTransition();
   const { toast } = useToast();
+  const router = useRouter();
+
+  const { user } = useUser();
+  const firestore = useFirestore();
 
   const form = useForm<CreatePostFormValues>({
     resolver: zodResolver(createPostSchema),
@@ -61,7 +68,7 @@ export function CreatePostForm() {
     startAiTransition(async () => {
       try {
         const suggestions = await getAiSuggestions({
-          postDescription: caption,
+          postDescription: caption || '',
           imageDataUri: preview || undefined,
         });
         setAiSuggestions(suggestions);
@@ -91,12 +98,50 @@ export function CreatePostForm() {
   };
 
   function onSubmit(data: CreatePostFormValues) {
-    console.log(data);
-    toast({
-      title: "Post Submitted!",
-      description: "Your post is now live for 48 hours.",
-    });
-    // Here you would typically handle form submission to your backend
+    if (!user || !firestore) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to create a post.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.readAsDataURL(data.image[0]);
+    reader.onloadend = () => {
+      const imageDataUrl = reader.result as string;
+      // In a real app, you'd upload this to Cloud Storage and get a URL.
+      // Storing large base64 strings in Firestore is not recommended.
+      const mediaType = data.image[0].type.startsWith('video') ? 'video' : 'image';
+
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 48);
+
+      const newPost = {
+        userId: user.uid,
+        mediaUrl: imageDataUrl,
+        mediaType,
+        caption: data.caption,
+        createdAt: serverTimestamp(),
+        expiresAt: expiresAt,
+        viewCount: 0,
+        postEarnings: 0,
+      };
+
+      const postsCollection = collection(firestore, 'users', user.uid, 'posts');
+      addDocumentNonBlocking(postsCollection, newPost);
+
+      toast({
+        title: "Post Submitted!",
+        description: "Your post is now live for 48 hours.",
+      });
+      
+      form.reset();
+      setPreview(null);
+      setAiSuggestions(null);
+      router.push('/feed');
+    };
   }
 
   return (
@@ -107,16 +152,20 @@ export function CreatePostForm() {
           name="image"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Image</FormLabel>
+              <FormLabel>Image or Video</FormLabel>
               <Card>
                 <CardContent className="p-2">
                   {preview ? (
                     <div className="relative aspect-square w-full">
-                      <Image src={preview} alt="Image preview" fill className="rounded-md object-cover" />
+                       {preview.startsWith('data:video') ? (
+                        <video src={preview} controls className="rounded-md w-full h-full object-cover" />
+                      ) : (
+                        <Image src={preview} alt="Image preview" fill className="rounded-md object-cover" />
+                      )}
                     </div>
                   ) : (
                     <div className="flex aspect-square w-full items-center justify-center rounded-md border-2 border-dashed">
-                      <p className="text-muted-foreground">Image Preview</p>
+                      <p className="text-muted-foreground">Preview</p>
                     </div>
                   )}
                 </CardContent>
@@ -124,7 +173,7 @@ export function CreatePostForm() {
               <FormControl>
                 <Input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,video/*"
                   onChange={(e) => {
                     field.onChange(e.target.files);
                     handleImageChange(e);
