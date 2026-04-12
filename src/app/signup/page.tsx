@@ -54,6 +54,11 @@ export default function SignupPage() {
       );
       const user = userCredential.user;
 
+      // It's good practice to check if the user object exists
+      if (!user) {
+        throw new Error('Failed to create user. Please try again.');
+      }
+
       // Create a user profile document in Firestore
       if (firestore) {
         const userRef = doc(firestore, 'users', user.uid);
