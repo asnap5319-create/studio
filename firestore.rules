@@ -153,6 +153,28 @@ service cloud.firestore {
         && data.postId == postId;
     }
 
+    /**
+     * @description Allows any authenticated user to read from the 'posts' collection group.
+     *              This is necessary for the main feed which aggregates posts from all users.
+     * @path /{path=**}/posts/{postId}
+     * @allow (get, list) Any authenticated user can read posts for the feed.
+     * @principle Enables a global, public feed for all users.
+     */
+    match /{path=**}/posts/{postId} {
+      allow get, list: if isSignedIn();
+    }
+
+    /**
+     * @description Allows any authenticated user to read from the 'stories' collection group.
+     *              This is necessary for the stories bar which shows recent stories from all users.
+     * @path /{path=**}/stories/{storyId}
+     * @allow (get, list) Any authenticated user can read stories.
+     * @principle Enables a global stories reel for all users.
+     */
+    match /{path=**}/stories/{storyId} {
+      allow get, list: if isSignedIn();
+    }
+
 
     /**
      * @description Manages user profile documents. Allows users to create and manage their
