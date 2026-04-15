@@ -8,7 +8,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, Settings, Archive, History, Bookmark } from "lucide-react";
+import { Menu, Settings, Archive, History, Bookmark, LogOut } from "lucide-react";
 import Link from "next/link";
 
 const menuItems = [
@@ -18,7 +18,11 @@ const menuItems = [
   { href: "#", icon: Bookmark, label: "Saved" },
 ];
 
-export function ProfileMenu() {
+interface ProfileMenuProps {
+  onLogout: () => void;
+}
+
+export function ProfileMenu({ onLogout }: ProfileMenuProps) {
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -30,7 +34,7 @@ export function ProfileMenu() {
         <SheetHeader>
           <SheetTitle>Menu</SheetTitle>
         </SheetHeader>
-        <nav className="mt-4">
+        <nav className="mt-4 flex h-[calc(100%-4rem)] flex-col justify-between">
           <ul className="space-y-1">
             {menuItems.map((item) => (
               <li key={item.label}>
@@ -44,6 +48,10 @@ export function ProfileMenu() {
               </li>
             ))}
           </ul>
+          <Button variant="destructive" className="w-full" onClick={onLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Log Out
+          </Button>
         </nav>
       </SheetContent>
     </Sheet>

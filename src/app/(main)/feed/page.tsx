@@ -1,49 +1,59 @@
 'use client';
-import { AsnapLogo } from "@/components/icons";
-import { PostCard } from "@/components/post-card";
-import { StoriesBar } from "@/components/stories-bar";
-import { Post } from "@/lib/types";
-
-const mockPosts: Post[] = [
-    {
-        id: 'p1',
-        userId: '2',
-        mediaUrl: 'https://picsum.photos/seed/101/600/600',
-        mediaType: 'image',
-        caption: 'Beautiful sunset!',
-        createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-        expiresAt: new Date(Date.now() + 47 * 60 * 60 * 1000).toISOString(),
-        user: { id: '2', username: 'sarah', profilePictureUrl: 'https://picsum.photos/seed/2/100/100', followerIds:[], followingIds:[] },
-        likesCount: 120,
-    },
-    {
-        id: 'p2',
-        userId: '3',
-        mediaUrl: 'https://picsum.photos/seed/103/600/600',
-        mediaType: 'image',
-        caption: 'City lights.',
-        createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-        expiresAt: new Date(Date.now() + 43 * 60 * 60 * 1000).toISOString(),
-        user: { id: '3', username: 'tom', profilePictureUrl: 'https://picsum.photos/seed/3/100/100', followerIds:[], followingIds:[] },
-        likesCount: 34,
-    }
-];
+import { VideoCard } from '@/components/video-card';
+import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { Post } from '@/lib/types';
+import { collection, limit, orderBy, query } from 'firebase/firestore';
+import { Loader2 } from 'lucide-react';
+import React from 'react';
 
 export default function FeedPage() {
+  const { firestore, user, isUserLoading } = useFirebase();
+
+  const videosQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(
+      collection(firestore, 'videos'),
+      orderBy('createdAt', 'desc'),
+      limit(10)
+    );
+  }, [firestore]);
+
+  const { data: posts, isLoading: isPostsLoading } = useCollection<Post>(videosQuery);
+  const { data: usersData, isLoading: isUsersLoading } = useCollection(useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]));
+
+  const videos = React.useMemo(() => {
+    if (!posts || !usersData) return [];
+    return posts.map(post => ({
+      ...post,
+      user: usersData.find(u => u.id === post.userId),
+    }));
+  }, [posts, usersData]);
+  
+  const isLoading = isUserLoading || isPostsLoading || isUsersLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center bg-black">
+        <Loader2 className="h-12 w-12 animate-spin text-white" />
+      </div>
+    );
+  }
+  
+  if (!videos || videos.length === 0) {
+    return (
+      <div className="flex h-full items-center justify-center bg-black text-white">
+        <p>No videos yet. Be the first to post!</p>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm">
-        <h1 className="text-2xl font-bold font-headline text-primary">Asnap</h1>
-        <AsnapLogo className="h-8 w-8" />
-      </header>
-      <main className="p-0">
-        <StoriesBar />
-        <div className="space-y-4">
-            {mockPosts.map((post: Post) => (
-              <PostCard key={post.id} post={post} />
-            ))}
+    <div className="relative h-full w-full snap-y snap-mandatory overflow-y-scroll scrollbar-hide">
+      {videos.map((video, index) => (
+        <div key={video.id} className="h-full w-full snap-start snap-always">
+          <VideoCard post={video} />
         </div>
-      </main>
+      ))}
     </div>
   );
 }

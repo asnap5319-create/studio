@@ -5,7 +5,7 @@ import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { useAuth, useFirestore, setDocumentNonBlocking } from '@/firebase';
+import { useAuth, initiateEmailSignIn } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,85 +14,58 @@ import Link from 'next/link';
 import { AsnapLogo } from '@/components/icons';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
-import { Loader2 } from 'lucide-radix';
-import { createUserWithEmailAndPassword, onAuthStateChanged, User } from 'firebase/auth';
-import { doc, serverTimestamp } from 'firebase/firestore';
+import { Loader2 } from 'lucide-react';
+import { onAuthStateChanged, User } from 'firebase/auth';
 
-const signupSchema = z.object({
-  username: z.string().min(3, { message: 'Username must be at least 3 characters.' }).max(20),
+const loginSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
 });
 
-type SignupFormValues = z.infer<typeof signupSchema>;
+type LoginFormValues = z.infer<typeof loginSchema>;
 
-export default function SignupPage() {
+export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const auth = useAuth();
-  const firestore = useFirestore();
   const { toast } = useToast();
 
-  const form = useForm<SignupFormValues>({
-    resolver: zodResolver(signupSchema),
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: '',
       email: '',
       password: '',
     },
   });
 
-  const onSubmit = async (data: SignupFormValues) => {
+  const onSubmit = (data: LoginFormValues) => {
     setIsLoading(true);
     setError(null);
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-      const user = userCredential.user;
-
-      if (!user) {
-        throw new Error("User creation failed.");
-      }
-
-      const userProfile = {
-        id: user.uid,
-        username: data.username,
-        email: data.email,
-        profilePictureUrl: `https://picsum.photos/seed/${user.uid}/100/100`,
-        bio: 'Welcome to A.sanp!',
-        followerIds: [],
-        followingIds: [],
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      };
-
-      const userDocRef = doc(firestore, 'users', user.uid);
-      setDocumentNonBlocking(userDocRef, userProfile, { merge: true });
-
-    } catch (error: any) {
-      setIsLoading(false);
-      const errorMessage = error.code === 'auth/email-already-in-use'
-        ? 'This email is already registered.'
-        : error.message;
-      setError(errorMessage);
-      toast({
-        variant: 'destructive',
-        title: 'Sign Up Failed',
-        description: errorMessage,
-      });
-    }
+    initiateEmailSignIn(auth, data.email, data.password);
   };
   
   React.useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user: User | null) => {
       if (user) {
-        setIsLoading(false);
         toast({
-          title: 'Account Created!',
-          description: "Welcome to A.sanp!",
+          title: 'Login Successful',
+          description: 'Welcome back!',
         });
         router.push('/feed');
       }
+      setIsLoading(false);
+    }, (error) => {
+        setIsLoading(false);
+        const errorMessage = error.code === 'auth/invalid-credential'
+          ? 'Invalid email or password. Please try again.'
+          : error.message;
+        setError(errorMessage);
+        toast({
+          variant: 'destructive',
+          title: 'Login Failed',
+          description: errorMessage,
+        });
     });
 
     return () => unsubscribe();
@@ -103,25 +76,12 @@ export default function SignupPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <AsnapLogo className="mx-auto h-14 w-14" />
-          <CardTitle className="mt-4 text-2xl font-bold">Create an account</CardTitle>
-          <CardDescription>Enter your details to join A.sanp.</CardDescription>
+          <CardTitle className="mt-4 text-2xl font-bold">Log in to A.sanp</CardTitle>
+          <CardDescription>Enter your details below to log in.</CardDescription>
         </CardHeader>
         <FormProvider {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="username"
-                render={({ field }) => (
-                  <FormItem>
-                    <Label>Username</Label>
-                    <FormControl>
-                      <Input placeholder="e.g. snapmaster" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               <FormField
                 control={form.control}
                 name="email"
@@ -152,12 +112,12 @@ export default function SignupPage() {
             <CardFooter className="flex-col">
               {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Sign Up'}
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Log In'}
               </Button>
               <p className="mt-4 text-center text-sm text-muted-foreground">
-                Already have an account?{' '}
-                <Link href="/login" className="font-semibold text-primary hover:underline">
-                  Log in
+                Don&apos;t have an account?{' '}
+                <Link href="/signup" className="font-semibold text-primary hover:underline">
+                  Sign up
                 </Link>
               </p>
             </CardFooter>

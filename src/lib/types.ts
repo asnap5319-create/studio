@@ -1,38 +1,34 @@
+import { FieldValue } from "firebase/firestore";
+
 export type UserProfile = {
   id: string;
   username: string;
+  email: string;
   profilePictureUrl?: string;
   bio?: string;
   followerIds: string[];
   followingIds: string[];
+  createdAt?: FieldValue;
+  updatedAt?: FieldValue;
 };
 
 export type Post = {
   id:string;
   userId: string;
-  mediaUrl: string;
-  mediaType: 'image' | 'video';
+  videoUrl: string;
+  thumbnailUrl: string;
   caption?: string;
-  createdAt: string; // simpler date
-  expiresAt: string; // simpler date
+  likeCount: number;
+  commentCount: number;
+  createdAt: any; // Using `any` for simplicity with Firestore Timestamps
   user?: UserProfile;
-  likesCount?: number;
-  comments?: Comment[];
-};
-
-export type Story = {
-  id: string;
-  userId: string;
-  mediaUrl: string;
-  mediaType: 'image' | 'video';
-  user: UserProfile;
 };
 
 export type Comment = {
   id: string;
   postId: string;
   userId: string;
-  content: string;
-  createdAt: string; // simpler date
+  text: string;
+  createdAt: any;
   user?: UserProfile;
 };

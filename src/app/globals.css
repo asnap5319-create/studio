@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --background: 276 67% 97%;
+    --background: 0 0% 100%;
     --foreground: 274 38% 15%;
     --card: 0 0% 100%;
     --card-foreground: 274 38% 15%;
@@ -80,5 +80,15 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+  }
+  .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
   }
 }
