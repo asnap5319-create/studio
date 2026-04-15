@@ -1,1 +1,335 @@
-{}
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user's public profile within the A.sanp application, storing information not managed by the external authentication system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity. This typically corresponds to the user's ID from the authentication system."
+        },
+        "username": {
+          "type": "string",
+          "description": "A unique, user-chosen handle for identification and mentioning within the app."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address, primarily for display or contact purposes, not for authentication.",
+          "format": "email"
+        },
+        "profileImageUrl": {
+          "type": "string",
+          "description": "URL to the user's profile picture.",
+          "format": "uri"
+        },
+        "bio": {
+          "type": "string",
+          "description": "A short biographical description provided by the user."
+        },
+        "followedUserIds": {
+          "type": "array",
+          "description": "An array of UserProfile IDs that this user is currently following. (Relationship: UserProfile N:N UserProfile)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "followerIds": {
+          "type": "array",
+          "description": "An array of UserProfile IDs that are following this user. (Relationship: UserProfile N:N UserProfile)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user profile was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user profile was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "username",
+        "email",
+        "createdAt"
+      ]
+    },
+    "Video": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Video",
+      "type": "object",
+      "description": "Represents an ephemeral short video post uploaded by a user, which automatically disappears after 48 hours.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Video entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who uploaded this video. (Relationship: UserProfile 1:N Video)"
+        },
+        "videoUrl": {
+          "type": "string",
+          "description": "URL of the video content, typically hosted externally (e.g., Cloudinary).",
+          "format": "uri"
+        },
+        "thumbnailUrl": {
+          "type": "string",
+          "description": "URL of a thumbnail image for the video content.",
+          "format": "uri"
+        },
+        "caption": {
+          "type": "string",
+          "description": "Text description or caption provided by the user for the video."
+        },
+        "hashtags": {
+          "type": "array",
+          "description": "An array of relevant hashtags associated with the video.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the video was posted, used to calculate its 48-hour expiration.",
+          "format": "date-time"
+        },
+        "likeCount": {
+          "type": "number",
+          "description": "The total number of likes this video has received."
+        },
+        "commentCount": {
+          "type": "number",
+          "description": "The total number of comments this video has received."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "videoUrl",
+        "thumbnailUrl",
+        "createdAt"
+      ]
+    },
+    "Story": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Story",
+      "type": "object",
+      "description": "Represents a short-lived photo or video story uploaded by a user, which disappears after 24 hours.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Story entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who uploaded this story. (Relationship: UserProfile 1:N Story)"
+        },
+        "mediaUrl": {
+          "type": "string",
+          "description": "URL of the media content (photo or video) for the story.",
+          "format": "uri"
+        },
+        "mediaType": {
+          "type": "string",
+          "description": "Specifies whether the story media is an 'image' or 'video'.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "caption": {
+          "type": "string",
+          "description": "Optional text overlay or short description for the story."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the story was posted, used to calculate its 24-hour expiration.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "mediaUrl",
+        "mediaType",
+        "createdAt"
+      ]
+    },
+    "Like": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Like",
+      "type": "object",
+      "description": "Represents a user's 'like' interaction on a specific video.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Like entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who performed the like. (Relationship: UserProfile 1:N Like)"
+        },
+        "videoId": {
+          "type": "string",
+          "description": "Reference to the Video that was liked. (Relationship: Video 1:N Like)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the like was recorded.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "videoId",
+        "createdAt"
+      ]
+    },
+    "Comment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Comment",
+      "type": "object",
+      "description": "Represents a text comment made by a user on a specific video.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Comment entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who posted the comment. (Relationship: UserProfile 1:N Comment)"
+        },
+        "videoId": {
+          "type": "string",
+          "description": "Reference to the Video that the comment is on. (Relationship: Video 1:N Comment)"
+        },
+        "text": {
+          "type": "string",
+          "description": "The actual text content of the comment."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the comment was posted.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "videoId",
+        "text",
+        "createdAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores individual user profiles. The document ID (`userId`) must match the Firebase Authentication UID. Includes denormalized 'followedUserIds' and 'followerIds' for profile display. Owner (request.auth.uid) can write, public can read.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user, matching their Firebase Authentication UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/videos/{videoId}",
+        "definition": {
+          "entityName": "Video",
+          "schema": {
+            "$ref": "#/backend/entities/Video"
+          },
+          "description": "A top-level collection for all public video posts. Each document includes 'userId' for authorization independence. Public read access for the main feed, owner (based on userId field) has write access.",
+          "params": [
+            {
+              "name": "videoId",
+              "description": "The unique ID of the video post."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/videos/{videoId}/likes/{likeId}",
+        "definition": {
+          "entityName": "Like",
+          "schema": {
+            "$ref": "#/backend/entities/Like"
+          },
+          "description": "Subcollection for user likes on a specific video. Each like document includes 'userId' for authorization independence. Owner (based on userId field) can create/delete their own like, public can read.",
+          "params": [
+            {
+              "name": "videoId",
+              "description": "The unique ID of the parent video."
+            },
+            {
+              "name": "likeId",
+              "description": "The unique ID of the like interaction."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/videos/{videoId}/comments/{commentId}",
+        "definition": {
+          "entityName": "Comment",
+          "schema": {
+            "$ref": "#/backend/entities/Comment"
+          },
+          "description": "Subcollection for user comments on a specific video. Each comment document includes 'userId' for authorization independence. Owner (based on userId field) can write/delete their own comment, public can read.",
+          "params": [
+            {
+              "name": "videoId",
+              "description": "The unique ID of the parent video."
+            },
+            {
+              "name": "commentId",
+              "description": "The unique ID of the comment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/stories/{storyId}",
+        "definition": {
+          "entityName": "Story",
+          "schema": {
+            "$ref": "#/backend/entities/Story"
+          },
+          "description": "Subcollection for ephemeral stories belonging to a specific user. The 'userId' in the path must match request.auth.uid for write operations. Each story document also contains 'userId' for authorization independence. Owner can write, authenticated users can read.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user, matching their Firebase Authentication UID."
+            },
+            {
+              "name": "storyId",
+              "description": "The unique ID of the story post."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure for 'A.sanp' is designed to meet the requirements for secure user authentication, a dynamic content feed, and interactive features while adhering to core design principles. The primary goal is to ensure Authorization Independence and support efficient Queries as Authorization Policies (QAPs).\n\n1.  **User Profiles (`/users/{userId}`)**: User profiles are stored in a top-level collection `users`. Each document's ID (`userId`) directly corresponds to the Firebase Authentication `uid` of the user. This path-based ownership makes rules for profile management straightforward: `request.auth.uid` must match `{userId}` for write operations. Profile data (like username, profile image, follower/followed IDs) is publicly readable to facilitate profile viewing and discovery, which supports QAPs for displaying user profiles.\n\n2.  **Videos (`/videos/{videoId}`)**: Videos are stored in a top-level `videos` collection. This flat structure enables the \"Reels Feed\" requirement, allowing for efficient global queries (e.g., fetching recent videos for the main feed, ordered by `createdAt`). Authorization Independence is achieved by denormalizing the `userId` of the video uploader directly into each `Video` document. Security rules can then check `resource.data.userId == request.auth.uid` for write operations without needing to perform a `get()` operation on a parent user document. This also supports QAPs for fetching a user's uploaded videos by querying `videos` collection with `where('userId', '==', <uid>)`.\n\n3.  **Likes (`/videos/{videoId}/likes/{likeId}`)**: Likes are implemented as a subcollection under the specific `Video` they apply to. This maintains a clear logical relationship. Authorization Independence is provided by including `userId` (the liker's ID) in each `Like` document. Rules can verify `request.auth.uid == resource.data.userId` for creating or deleting a like, ensuring users can only manage their own likes. The `videoId` from the path provides the context, reinforcing that the like is for that specific video. This structure supports QAPs for listing all users who liked a particular video.\n\n4.  **Comments (`/videos/{videoId}/comments/{commentId}`)**: Similar to likes, comments are a subcollection of `Video`. Each `Comment` document includes the `userId` of the commenter for Authorization Independence, allowing rules to enforce that users can only create, update, or delete their own comments (`request.auth.uid == resource.data.userId`). The `videoId` in the path ensures the comment is tied to the correct video. This structure supports QAPs for fetching all comments for a video.\n\n5.  **Stories (`/users/{userId}/stories/{storyId}`)**: Stories are unique to each user and ephemeral, making them a good candidate for a subcollection under the `UserProfile`. This strongly links stories to their owner. The `{userId}` in the path aligns with the `request.auth.uid` for write operations, ensuring only the owner can manage their stories. The `userId` is also present within the `Story` document itself for redundant verification. This supports QAPs for displaying a user's active stories, and the structural segregation ensures a consistent security posture for all stories belonging to a user.\n\n**Authorization Independence**: Every document that requires ownership or membership for write operations (`UserProfile`, `Video`, `Like`, `Comment`, `Story`) explicitly contains the `userId` of the principal responsible for it (or an equivalent map for collaborative data, though not needed here). This eliminates the need for `get()` calls in security rules to check parent document permissions, making rules simpler, more robust, and less prone to transaction/batching issues.\n\n**QAPs (Queries as Authorization Policies)**: The collection structures enable efficient queries that inherently respect access patterns. For example, fetching the main video feed is a simple `list` on `/videos` (public read). Fetching a user's own videos or stories involves queries on `userId` fields or path parameters, all allowed by the rule structure. The segregation of public content (`/videos`) from user-specific interactions (`/videos/{videoId}/comments`) and ephemeral content (`/users/{userId}/stories`) ensures that different data types can have distinct, homogeneous security postures, simplifying rule logic and improving query performance for authorized access patterns."
+  }
+}

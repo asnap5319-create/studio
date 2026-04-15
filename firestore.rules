@@ -1,9 +1,174 @@
+/**
+ * This Firestore Security Ruleset is designed for the 'A.sanp' short video application.
+ *
+ * Core Philosophy:
+ * The security model employs a hybrid approach. Core user data and ephemeral stories are
+ * stored in user-owned data trees for strict ownership control. Publicly consumable content
+ * like videos, likes, and comments are placed in top-level collections to enable efficient
+ * global querying for features like the main "Reels Feed". For these public collections,
+ * write access is controlled by a denormalized `userId` field within each document, ensuring
+ * that rules remain simple, performant, and do not require expensive cross-document lookups.
+ *
+ * Data Structure:
+ * - /users/{userId}: A user's public profile. Publicly readable for discovery, but only
+ *   the owner can modify their own profile.
+ * - /users/{userId}/stories/{storyId}: User-specific ephemeral stories. Only the owner
+ *   can create or delete them, but any authenticated user can view them.
+ * - /videos/{videoId}: A global collection of all videos. This structure supports the main
+ *   feed. All videos are publicly readable.
+ * - /videos/{videoId}/likes/{likeId}: A subcollection for likes on a video.
+ * - /videos/{videoId}/comments/{commentId}: A subcollection for comments on a video.
+ *
+ * Key Security Decisions:
+ * - Default Public Read Access: To support the social nature of the app, user profiles,
+ *   videos, likes, and comments are publicly readable by default. Stories are an exception,
+ *   requiring authentication to view.
+ * - Strict Owner-Only Writes: All write operations (create, update, delete) are strictly
+ *   limited to the authenticated user who owns the data. This is enforced either by matching
+ *   the document path (`/users/{userId}`) or by checking a `userId` field within the document.
+ * - Immutability of Ownership: Critical relational fields, such as a user's ID or a video's
+ *   `userId`, are enforced as immutable after creation to prevent unauthorized re-assignment
+ *   of ownership.
+ *
+ * Denormalization for Authorization:
+ * Authorization decisions rely on a `userId` field denormalized onto every `Video`, `Like`,
+ * and `Comment` document. This is a deliberate design choice to create simple, fast, and
+ * highly secure rules by avoiding slow and costly `get()` calls to other documents.
+ * For example, a rule on `/videos/{videoId}` can instantly check `resource.data.userId`
+ * without needing to look up the user's profile.
+ *
+ * Structural Segregation:
+ * User-specific, ephemeral content (Stories) is stored in a user subcollection (`/users/{userId}/stories`),
+ * while global, public content (Videos) is in a top-level collection (`/videos`). This separation
+ * allows for distinct and simple security postures for each data type, making rules easier to
+ * manage and queries more performant.
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      // By default, deny all reads and writes
-      allow read, write: if false;
+
+    // --- Helper Functions ---
+
+    /**
+     * Checks if the user is authenticated via Firebase Auth.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the authenticated user's UID matches a specific userId from the path.
+     * This is the primary mechanism for securing user-owned data trees like /users/{userId}.
+     * @param userId The document ID from the path, representing the resource owner.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Validates that the `userId` field of a NEW document being created matches the
+     * authenticated user's UID. This enforces that users can only create documents for themselves.
+     */
+    function isNewDocOwner() {
+      return isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
+    /**
+     * Validates that the `userId` field of an EXISTING document matches the authenticated user's UID.
+     * This is used for update and delete operations to ensure users can only modify their own data.
+     * Also verifies that the document actually exists before allowing the operation.
+     */
+    function isExistingDocOwner() {
+      return isSignedIn() && resource != null && request.auth.uid == resource.data.userId;
+    }
+
+    /**
+     * --- User Profiles ---
+     * @description Defines rules for user profiles. Profiles are publicly readable for
+     *              discovery, but only the owner can create, update, or delete their own profile.
+     * @path /users/{userId}
+     * @allow An unauthenticated user (get) /users/user123 to view their profile.
+     * @allow A signed-in user with auth.uid 'user123' (create) /users/user123 with an `id` field of 'user123'.
+     * @deny A signed-in user with auth.uid 'user456' (update) /users/user123.
+     * @principle Enforces Self-Creation and Ownership based on the document path.
+     */
+    match /users/{userId} {
+      allow get, list: if true;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isOwner(userId) && resource != null && request.resource.data.id == resource.data.id;
+      allow delete: if isOwner(userId) && resource != null;
+
+      /**
+       * --- User Stories ---
+       * @description Defines rules for a user's ephemeral stories. Stories can only be
+       *              created by the user in their own subcollection. Read access is granted
+       *              to any authenticated user, but not the general public.
+       * @path /users/{userId}/stories/{storyId}
+       * @allow A signed-in user with auth.uid 'user456' (get) /users/user123/stories/storyABC.
+       * @allow A signed-in user with auth.uid 'user123' (create) a story under /users/user123.
+       * @deny An unauthenticated user (get) /users/user123/stories/storyABC.
+       * @deny A signed-in user with auth.uid 'user456' (delete) a story under /users/user123.
+       * @principle Restricts access to a user's own data tree, with broader read access for authenticated users.
+       */
+      match /stories/{storyId} {
+        allow get, list: if isSignedIn();
+        allow create: if isOwner(userId) && request.resource.data.userId == userId;
+        allow update: if isOwner(userId) && resource != null && request.resource.data.userId == resource.data.userId;
+        allow delete: if isOwner(userId) && resource != null;
+      }
+    }
+
+    /**
+     * --- Public Videos ---
+     * @description Defines rules for the top-level videos collection. All videos are public
+     *              to allow for a global feed. Writes are restricted to the video's owner,
+     *              which is determined by a denormalized `userId` field on the document.
+     * @path /videos/{videoId}
+     * @allow Any user, including unauthenticated ones, (get) /videos/videoABC.
+     * @allow A signed-in user with auth.uid 'user123' (create) a video document containing `userId: 'user123'`.
+     * @deny A signed-in user with auth.uid 'user456' (delete) a video document where `resource.data.userId` is 'user123'.
+     * @principle Implements the "Public Read with Owner-Only Writes" pattern using a denormalized ownership field.
+     */
+    match /videos/{videoId} {
+      allow get, list: if true;
+      allow create: if isNewDocOwner();
+      allow update: if isExistingDocOwner() && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingDocOwner();
+
+      /**
+       * --- Video Likes ---
+       * @description Defines rules for likes on a video. Likes are public to read.
+       *              A user can only create or delete their own like. Updates are disallowed.
+       * @path /videos/{videoId}/likes/{likeId}
+       * @allow A signed-in user with auth.uid 'user123' (create) a like with `userId: 'user123'`.
+       * @allow A signed-in user with auth.uid 'user123' (delete) their own like.
+       * @deny Any user (update) a like document. Likes are binary (exist or not).
+       * @deny A signed-in user (delete) another user's like.
+       * @principle Enforces document ownership for granular actions like liking a post.
+       */
+      match /likes/{likeId} {
+        allow get, list: if true;
+        allow create: if isNewDocOwner();
+        allow update: if false;
+        allow delete: if isExistingDocOwner();
+      }
+
+      /**
+       * --- Video Comments ---
+       * @description Defines rules for comments on a video. Comments are public to read.
+       *              A user can only create, update, or delete their own comments.
+       * @path /videos/{videoId}/comments/{commentId}
+       * @allow A signed-in user with auth.uid 'user123' (create) a comment with `userId: 'user123'`.
+       * @allow A signed-in user with auth.uid 'user123' (update) their own comment.
+       * @deny A signed-in user (update) a comment where `resource.data.userId` belongs to another user.
+       * @principle Enforces document ownership for user-generated content like comments.
+       */
+      match /comments/{commentId} {
+        allow get, list: if true;
+        allow create: if isNewDocOwner();
+        allow update: if isExistingDocOwner() && request.resource.data.userId == resource.data.userId;
+        allow delete: if isExistingDocOwner();
+      }
     }
   }
 }
