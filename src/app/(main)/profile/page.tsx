@@ -51,32 +51,38 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="bg-background text-foreground">
-      <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/95 px-4 backdrop-blur-sm">
+    <div className="flex h-full flex-col bg-background text-foreground">
+      <header className="flex h-14 shrink-0 items-center justify-between border-b bg-background/95 px-4 backdrop-blur-sm">
         <h1 className="text-lg font-semibold font-headline">@{userProfile.username}</h1>
         <ProfileMenu onLogout={handleLogout} />
       </header>
-      <ProfileHeader user={userProfile} postCount={userPosts?.length || 0} />
-      <main>
+      <main className="flex-1 overflow-y-auto">
+        <ProfileHeader user={userProfile} postCount={userPosts?.length || 0} />
+        
+        <div className="grid grid-cols-2 gap-2 px-4 py-2">
+          <Button variant="secondary" className="w-full font-semibold">Edit Profile</Button>
+          <Button variant="secondary" className="w-full font-semibold">Share Profile</Button>
+        </div>
+
         {userPosts && userPosts.length > 0 ? (
-          <div className="grid grid-cols-3 gap-0.5">
+          <div className="grid grid-cols-3 gap-0.5 pt-2">
             {userPosts.map((post) => (
-              <div key={post.id} className="relative aspect-square">
+              <Link href="#" key={post.id} className="relative block aspect-square">
                 <Image
-                  src={post.videoUrl}
+                  src={post.thumbnailUrl}
                   alt={post.caption || 'user post'}
                   fill
                   className="object-cover"
                 />
-              </div>
+              </Link>
             ))}
           </div>
         ) : (
           <div className="mt-20 flex flex-col items-center justify-center text-center">
-            <p className="text-xl font-bold">No posts yet</p>
-            <p className="mt-2 text-muted-foreground">When you create posts, they'll appear here.</p>
+            <p className="text-xl font-bold">Share your first video</p>
+            <p className="mt-2 text-muted-foreground">When you share videos, they'll appear on your profile.</p>
             <Button asChild className="mt-6">
-                <Link href="/create">Create your first post</Link>
+                <Link href="/create">Share a video</Link>
             </Button>
           </div>
         )}

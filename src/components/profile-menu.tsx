@@ -8,14 +8,12 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, Settings, Archive, History, Bookmark, LogOut } from "lucide-react";
+import { Menu, Settings, Shield, LogOut } from "lucide-react";
 import Link from "next/link";
 
 const menuItems = [
   { href: "#", icon: Settings, label: "Settings" },
-  { href: "#", icon: Archive, label: "Archive" },
-  { href: "#", icon: History, label: "Your Activity" },
-  { href: "#", icon: Bookmark, label: "Saved" },
+  { href: "#", icon: Shield, label: "Privacy" },
 ];
 
 interface ProfileMenuProps {
