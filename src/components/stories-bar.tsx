@@ -1,78 +1,27 @@
 'use client';
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
-import { Story, UserProfile } from "@/lib/types";
-import { collectionGroup, query, orderBy, doc, getDoc, Timestamp } from "firebase/firestore";
-import { useEffect, useMemo, useState } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Story } from "@/lib/types";
+
+const mockStories: Story[] = [
+  { id: 's1', userId: '2', mediaUrl: "https://picsum.photos/seed/11/600/800", mediaType: 'image', user: { id: '2', username: 'sarah', profilePictureUrl: 'https://picsum.photos/seed/2/100/100', followerIds:[], followingIds:[] } },
+  { id: 's2', userId: '3', mediaUrl: "https://picsum.photos/seed/12/600/800", mediaType: 'image', user: { id: '3', username: 'tom', profilePictureUrl: 'https://picsum.photos/seed/3/100/100', followerIds:[], followingIds:[] } },
+  { id: 's3', userId: '4', mediaUrl: "https://picsum.photos/seed/13/600/800", mediaType: 'image', user: { id: '4', username: 'maria', profilePictureUrl: 'https://picsum.photos/seed/4/100/100', followerIds:[], followingIds:[] } },
+  { id: 's4', userId: '5', mediaUrl: "https://picsum.photos/seed/14/600/800", mediaType: 'image', user: { id: '5', username: 'david', profilePictureUrl: 'https://picsum.photos/seed/5/100/100', followerIds:[], followingIds:[] } },
+  { id: 's5', userId: '6', mediaUrl: "https://picsum.photos/seed/15/600/800", mediaType: 'image', user: { id: '6', username: 'chloe', profilePictureUrl: 'https://picsum.photos/seed/6/100/100', followerIds:[], followingIds:[] } },
+];
+
 
 export function StoriesBar() {
-    const firestore = useFirestore();
-    const [storiesWithUsers, setStoriesWithUsers] = useState<(Story & {user: UserProfile})[]>([]);
-    const [isDerivedLoading, setIsDerivedLoading] = useState(true);
-    const { isUserLoading: isAuthLoading } = useUser();
-
-    const storiesQuery = useMemoFirebase(() => {
-        if (!firestore || isAuthLoading) return null;
-        return query(collectionGroup(firestore, 'stories'), orderBy('createdAt', 'desc'));
-    }, [firestore, isAuthLoading]);
-
-    const { data: stories, isLoading: storiesLoading } = useCollection<Story>(storiesQuery);
-
-    const isLoading = useMemo(() => isDerivedLoading || storiesLoading || isAuthLoading, [isDerivedLoading, storiesLoading, isAuthLoading]);
-
-    useEffect(() => {
-        if (storiesLoading || isAuthLoading) return;
-        if (!stories || !firestore) {
-            setIsDerivedLoading(false);
-            return;
-        }
-
-        const twentyFourHoursAgo = new Date();
-        twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
-
-        const fetchStoryUsers = async () => {
-            const storiesWithUserDetails = (await Promise.all(
-                stories
-                .filter(story => (story.createdAt as Timestamp).toDate() > twentyFourHoursAgo)
-                .map(async (story) => {
-                    const userRef = doc(firestore, 'users', story.userId);
-                    const userSnap = await getDoc(userRef);
-                    if (userSnap.exists()) {
-                        const user = { ...userSnap.data(), id: userSnap.id } as UserProfile;
-                        return { ...story, user };
-                    }
-                    return null;
-                })
-            )).filter(Boolean) as (Story & {user: UserProfile})[];
-            setStoriesWithUsers(storiesWithUserDetails);
-            setIsDerivedLoading(false);
-        };
-
-        fetchStoryUsers();
-    }, [stories, firestore, storiesLoading, isAuthLoading]);
-    
-    if (isLoading) {
-        return (
-             <div className="border-b py-3">
-                <div className="flex w-max space-x-4 px-4">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                        <div key={i} className="flex flex-col items-center space-y-1">
-                            <Skeleton className="h-16 w-16 rounded-full" />
-                            <Skeleton className="h-4 w-12" />
-                        </div>
-                    ))}
-                </div>
-            </div>
-        )
+    if (mockStories.length === 0) {
+        return null;
     }
 
     return (
         <div className="border-b py-3">
         <ScrollArea className="w-full whitespace-nowrap">
             <div className="flex w-max space-x-4 px-4">
-            {storiesWithUsers.map((story) => (
+            {mockStories.map((story) => (
                 <div key={story.id} className="flex flex-col items-center space-y-1">
                 <div className="rounded-full p-0.5 bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500">
                     <Avatar className="h-16 w-16 border-2 border-background">

@@ -8,11 +8,10 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, Settings, Archive, History, Bookmark, DollarSign } from "lucide-react";
+import { Menu, Settings, Archive, History, Bookmark } from "lucide-react";
 import Link from "next/link";
 
 const menuItems = [
-  { href: "/earnings", icon: DollarSign, label: "Earnings" },
   { href: "#", icon: Settings, label: "Settings" },
   { href: "#", icon: Archive, label: "Archive" },
   { href: "#", icon: History, label: "Your Activity" },

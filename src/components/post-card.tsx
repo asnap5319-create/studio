@@ -5,7 +5,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Countdown } from "./countdown";
-import { Timestamp } from "firebase/firestore";
 
 type PostCardProps = {
   post: Post;
@@ -16,7 +15,7 @@ export function PostCard({ post }: PostCardProps) {
     return null;
   }
   const expiryDate = new Date(
-    (post.createdAt as Timestamp).toDate().getTime() + 48 * 60 * 60 * 1000
+    new Date(post.createdAt).getTime() + 48 * 60 * 60 * 1000
   ).toISOString();
 
   return (
