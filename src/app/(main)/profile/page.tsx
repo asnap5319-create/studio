@@ -4,7 +4,7 @@ import { ProfileHeader } from "@/components/profile-header";
 import { ProfileMenu } from "@/components/profile-menu";
 import { Post, UserProfile } from "@/lib/types";
 import { useCollection, useDoc, useFirebase, useMemoFirebase } from "@/firebase";
-import { collection, query, where } from "firebase/firestore";
+import { collection, query, where, doc } from "firebase/firestore";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
