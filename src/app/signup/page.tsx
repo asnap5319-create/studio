@@ -14,7 +14,7 @@ import Link from 'next/link';
 import { AsnapLogo } from '@/components/icons';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
-import { Loader2 } from 'lucide-radix';
+import { Loader2 } from 'lucide-react';
 import { createUserWithEmailAndPassword, onAuthStateChanged, User } from 'firebase/auth';
 import { doc, serverTimestamp } from 'firebase/firestore';
 
