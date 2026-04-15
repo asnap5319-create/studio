@@ -53,7 +53,7 @@ export default function ProfilePage() {
   return (
     <div className="flex h-full flex-col bg-background text-foreground">
       <header className="flex h-14 shrink-0 items-center justify-between border-b bg-background/95 px-4 backdrop-blur-sm">
-        <h1 className="text-lg font-semibold font-headline">@{userProfile.username}</h1>
+        <h1 className="text-lg font-semibold font-headline">@{userProfile.username.replace(/\s+/g, '').toLowerCase()}</h1>
         <ProfileMenu onLogout={handleLogout} />
       </header>
       <main className="flex-1 overflow-y-auto">
@@ -79,7 +79,10 @@ export default function ProfilePage() {
           </div>
         ) : (
           <div className="mt-20 flex flex-col items-center justify-center text-center">
-            <p className="text-xl font-bold">Share your first video</p>
+             <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-foreground">
+                <Camera className="h-10 w-10" />
+            </div>
+            <p className="mt-4 text-xl font-bold">Share your first video</p>
             <p className="mt-2 text-muted-foreground">When you share videos, they'll appear on your profile.</p>
             <Button asChild className="mt-6">
                 <Link href="/create">Share a video</Link>

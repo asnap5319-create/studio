@@ -8,13 +8,13 @@ import { useRouter } from 'next/navigation';
 import { useAuth, initiateEmailSignIn } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { AsnapLogo } from '@/components/icons';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Loader2 } from 'lucide-react';
+import React from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 
 const loginSchema = z.object({
@@ -73,57 +73,60 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          <AsnapLogo className="mx-auto h-14 w-14" />
-          <CardTitle className="mt-4 text-2xl font-bold">Log in to A.sanp</CardTitle>
-          <CardDescription>Enter your details below to log in.</CardDescription>
-        </CardHeader>
-        <FormProvider {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <Label>Email</Label>
-                    <FormControl>
-                      <Input type="email" placeholder="you@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <Label>Password</Label>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-            <CardFooter className="flex-col">
-              {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Log In'}
-              </Button>
-              <p className="mt-4 text-center text-sm text-muted-foreground">
-                Don&apos;t have an account?{' '}
-                <Link href="/signup" className="font-semibold text-primary hover:underline">
-                  Sign up
-                </Link>
-              </p>
-            </CardFooter>
-          </form>
-        </FormProvider>
-      </Card>
+      <div className="w-full max-w-sm">
+        <Card className="border-border/40">
+          <CardHeader className="text-center">
+            <AsnapLogo className="mx-auto h-16 w-16" />
+            <CardTitle className="mt-6 font-headline text-3xl">
+              A.sanp
+            </CardTitle>
+          </CardHeader>
+          <FormProvider {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <CardContent className="space-y-3">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input type="email" placeholder="Email" {...field} className="bg-zinc-100/80 dark:bg-zinc-800/80 border-zinc-300/60 dark:border-zinc-700/60"/>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input type="password" placeholder="Password" {...field} className="bg-zinc-100/80 dark:bg-zinc-800/80 border-zinc-300/60 dark:border-zinc-700/60" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 {error && <p className="text-sm text-destructive">{error}</p>}
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Log In'}
+                </Button>
+              </CardContent>
+            </form>
+          </FormProvider>
+        </Card>
+        <Card className="mt-4 border-border/40">
+          <CardContent className="p-4">
+            <p className="text-center text-sm text-muted-foreground">
+              Don&apos;t have an account?{' '}
+              <Link href="/signup" className="font-semibold text-primary hover:underline">
+                Sign up
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
