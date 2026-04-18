@@ -1,3 +1,3 @@
-export default function EarningsPage() {
+export default function Page() {
   return null;
 }

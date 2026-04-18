@@ -1,37 +1,10 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-    
-    match /users/{userId} {
-      allow read;
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update, delete: if isOwner(userId);
-    }
-
-    match /videos/{videoId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
-
-      match /comments/{commentId} {
-        allow read: if isSignedIn();
-        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-        allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
-      }
-
-      match /likes/{likeId} {
-        allow read: if isSignedIn();
-        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-        allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
-      }
+    // This is a default rule. All reads and writes are disabled.
+    // You'll need to define specific rules for your collections.
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
