@@ -74,11 +74,11 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
-        <Card className="border-border/40">
+        <Card className="border-border/40 bg-card">
           <CardHeader className="text-center">
             <AsnapLogo className="mx-auto h-16 w-16" />
-            <CardTitle className="mt-6 font-headline text-3xl">
-              A.sanp
+            <CardTitle className="mt-6 font-headline text-3xl" style={{ textShadow: '0 0 8px hsl(var(--primary))' }}>
+              A.snap
             </CardTitle>
           </CardHeader>
           <FormProvider {...form}>
@@ -90,7 +90,7 @@ export default function LoginPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <Input type="email" placeholder="Email" {...field} className="bg-zinc-100/80 dark:bg-zinc-800/80 border-zinc-300/60 dark:border-zinc-700/60"/>
+                        <Input type="email" placeholder="Email" {...field} className="bg-zinc-900/80 border-zinc-700/60"/>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -102,7 +102,7 @@ export default function LoginPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <Input type="password" placeholder="Password" {...field} className="bg-zinc-100/80 dark:bg-zinc-800/80 border-zinc-300/60 dark:border-zinc-700/60" />
+                        <Input type="password" placeholder="Password" {...field} className="bg-zinc-900/80 border-zinc-700/60" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -116,7 +116,7 @@ export default function LoginPage() {
             </form>
           </FormProvider>
         </Card>
-        <Card className="mt-4 border-border/40">
+        <Card className="mt-4 border-border/40 bg-card">
           <CardContent className="p-4">
             <p className="text-center text-sm text-muted-foreground">
               Don&apos;t have an account?{' '}

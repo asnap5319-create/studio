@@ -59,7 +59,7 @@ export default function SignupPage() {
         username: data.username,
         email: data.email,
         profilePictureUrl: `https://picsum.photos/seed/${user.uid}/100/100`,
-        bio: 'Welcome to A.sanp!',
+        bio: 'Welcome to A.snap!',
         followerIds: [],
         followingIds: [],
         createdAt: serverTimestamp(),
@@ -89,7 +89,7 @@ export default function SignupPage() {
         setIsLoading(false);
         toast({
           title: 'Account Created!',
-          description: "Welcome to A.sanp!",
+          description: "Welcome to A.snap!",
         });
         router.push('/feed');
       }
@@ -101,7 +101,7 @@ export default function SignupPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
-        <Card className="border-border/40">
+        <Card className="border-border/40 bg-card">
           <CardHeader className="text-center px-8">
             <AsnapLogo className="mx-auto h-16 w-16" />
             <CardDescription className="mt-4 text-base font-semibold text-muted-foreground">
@@ -117,7 +117,7 @@ export default function SignupPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <Input type="email" placeholder="Email" {...field} className="bg-zinc-100/80 dark:bg-zinc-800/80 border-zinc-300/60 dark:border-zinc-700/60" />
+                        <Input type="email" placeholder="Email" {...field} className="bg-zinc-900/80 border-zinc-700/60" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -129,7 +129,7 @@ export default function SignupPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <Input placeholder="Full Name" {...field} className="bg-zinc-100/80 dark:bg-zinc-800/80 border-zinc-300/60 dark:border-zinc-700/60" />
+                        <Input placeholder="Full Name" {...field} className="bg-zinc-900/80 border-zinc-700/60" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -141,7 +141,7 @@ export default function SignupPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <Input type="password" placeholder="Password" {...field} className="bg-zinc-100/80 dark:bg-zinc-800/80 border-zinc-300/60 dark:border-zinc-700/60"/>
+                        <Input type="password" placeholder="Password" {...field} className="bg-zinc-900/80 border-zinc-700/60"/>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -155,7 +155,7 @@ export default function SignupPage() {
             </form>
           </FormProvider>
         </Card>
-        <Card className="mt-4 border-border/40">
+        <Card className="mt-4 border-border/40 bg-card">
             <CardContent className="p-4">
                 <p className="text-center text-sm text-muted-foreground">
                     Have an account?{' '}

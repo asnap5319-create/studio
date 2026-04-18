@@ -3,7 +3,7 @@
 import { Post } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
-import { Heart, MessageCircle, Send } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
 import React from 'react';
@@ -67,6 +67,7 @@ export function VideoCard({ post }: VideoCardProps) {
                 <AvatarFallback>{post.user?.username?.[0]}</AvatarFallback>
               </Avatar>
               <p className="font-bold text-shadow">{post.user?.username}</p>
+               <button className="ml-2 rounded-md border border-primary px-3 py-1 text-sm font-semibold text-primary">Follow</button>
             </div>
             <p className="text-shadow-md">{post.caption}</p>
           </div>
@@ -84,6 +85,18 @@ export function VideoCard({ post }: VideoCardProps) {
                 <MessageCircle className="h-7 w-7" />
               </div>
               <span className="text-sm font-semibold">{post.commentCount}</span>
+            </button>
+             <button className="flex flex-col items-center gap-1">
+              <div className="rounded-full bg-black/50 p-3">
+                <Bookmark className="h-7 w-7" />
+              </div>
+              <span className="text-sm font-semibold">Save</span>
+            </button>
+            <button className="flex flex-col items-center gap-1">
+              <div className="rounded-full bg-black/50 p-3">
+                <Send className="h-7 w-7" />
+              </div>
+              <span className="text-sm font-semibold">Share</span>
             </button>
             <button>
               <Avatar className="h-12 w-12 border-2 border-white">

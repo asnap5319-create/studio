@@ -4,7 +4,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserProfile",
       "type": "object",
-      "description": "Represents a user's public profile within the A.sanp application.",
+      "description": "Represents a user's public profile within the A.snap application.",
       "properties": {
         "id": {
           "type": "string",
