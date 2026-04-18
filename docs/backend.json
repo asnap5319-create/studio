@@ -1,1 +1,355 @@
-{}
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user's public profile within the Asnap application, linked to their authentication ID. It stores public information and social connections.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity. This typically corresponds to the authenticated user's ID from an external authentication system like Firebase."
+        },
+        "username": {
+          "type": "string",
+          "description": "A unique, public username for the user."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's full name."
+        },
+        "profileImageUrl": {
+          "type": "string",
+          "description": "URL to the user's profile picture.",
+          "format": "uri"
+        },
+        "bio": {
+          "type": "string",
+          "description": "A short, public biography provided by the user."
+        },
+        "followerIds": {
+          "type": "array",
+          "description": "An array of UserProfile IDs that follow this user. (Relationship: UserProfile N:N UserProfile)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "followingIds": {
+          "type": "array",
+          "description": "An array of UserProfile IDs that this user follows. (Relationship: UserProfile N:N UserProfile)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the user profile was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the user profile was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "username",
+        "name",
+        "createdAt"
+      ]
+    },
+    "Post": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Post",
+      "type": "object",
+      "description": "Represents an ephemeral media post (image or video) created by a user, which automatically disappears after 48 hours.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Post entity."
+        },
+        "authorId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who created this post. (Relationship: UserProfile 1:N Post)"
+        },
+        "mediaUrl": {
+          "type": "string",
+          "description": "URL to the image or video content of the post.",
+          "format": "uri"
+        },
+        "caption": {
+          "type": "string",
+          "description": "Textual caption accompanying the post's media."
+        },
+        "hashtags": {
+          "type": "array",
+          "description": "An array of hashtags associated with the post.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "location": {
+          "type": "string",
+          "description": "Optional geographical location associated with the post."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the post was created.",
+          "format": "date-time"
+        },
+        "expiresAt": {
+          "type": "string",
+          "description": "Timestamp when the post will automatically be deleted (48 hours after creation).",
+          "format": "date-time"
+        },
+        "likeCount": {
+          "type": "number",
+          "description": "Denormalized count of likes received by this post."
+        },
+        "commentCount": {
+          "type": "number",
+          "description": "Denormalized count of comments received by this post."
+        }
+      },
+      "required": [
+        "id",
+        "authorId",
+        "mediaUrl",
+        "createdAt",
+        "expiresAt"
+      ]
+    },
+    "Story": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Story",
+      "type": "object",
+      "description": "Represents an ephemeral story (short photo or video) shared by a user, which automatically disappears after 24 hours.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Story entity."
+        },
+        "authorId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who created this story. (Relationship: UserProfile 1:N Story)"
+        },
+        "mediaUrl": {
+          "type": "string",
+          "description": "URL to the image or video content of the story.",
+          "format": "uri"
+        },
+        "caption": {
+          "type": "string",
+          "description": "Optional textual caption or overlay for the story's media."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the story was created.",
+          "format": "date-time"
+        },
+        "expiresAt": {
+          "type": "string",
+          "description": "Timestamp when the story will automatically be deleted (24 hours after creation).",
+          "format": "date-time"
+        },
+        "viewerIds": {
+          "type": "array",
+          "description": "An array of UserProfile IDs that have viewed this story. (Relationship: UserProfile N:N Story)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "authorId",
+        "mediaUrl",
+        "createdAt",
+        "expiresAt"
+      ]
+    },
+    "Like": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Like",
+      "type": "object",
+      "description": "Represents a user's 'like' action on a post.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Like entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who performed the like. (Relationship: UserProfile 1:N Like)"
+        },
+        "postId": {
+          "type": "string",
+          "description": "Reference to the Post that was liked. (Relationship: Post 1:N Like)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the like was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "postId",
+        "createdAt"
+      ]
+    },
+    "Comment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Comment",
+      "type": "object",
+      "description": "Represents a user's comment on a post.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Comment entity."
+        },
+        "postId": {
+          "type": "string",
+          "description": "Reference to the Post that received the comment. (Relationship: Post 1:N Comment)"
+        },
+        "authorId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who authored the comment. (Relationship: UserProfile 1:N Comment)"
+        },
+        "text": {
+          "type": "string",
+          "description": "The textual content of the comment."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the comment was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "postId",
+        "authorId",
+        "text",
+        "createdAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/userProfiles/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profile data, with the document ID being the authenticated user's UID. Includes denormalized 'followerIds' and 'followingIds' lists for managing social connections. The 'id' field within the document will match 'userId' in the path.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the authenticated user (Firebase Auth UID)."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/userProfiles/{authorId}/posts/{postId}",
+        "definition": {
+          "entityName": "Post",
+          "schema": {
+            "$ref": "#/backend/entities/Post"
+          },
+          "description": "Contains ephemeral posts created by a user. The 'authorId' in the path denotes the owner of the post, enabling straightforward security rules. The 'id' field within the document will match 'postId' in the path, and 'authorId' field will match the path's 'authorId'.",
+          "params": [
+            {
+              "name": "authorId",
+              "description": "The unique ID of the user who authored the post."
+            },
+            {
+              "name": "postId",
+              "description": "The unique ID of the post."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/userProfiles/{authorId}/stories/{storyId}",
+        "definition": {
+          "entityName": "Story",
+          "schema": {
+            "$ref": "#/backend/entities/Story"
+          },
+          "description": "Stores ephemeral stories created by a user. The 'authorId' in the path denotes the owner of the story, simplifying security rules. The 'id' field within the document will match 'storyId' in the path, and 'authorId' field will match the path's 'authorId'. The 'viewerIds' list within the document is for tracking who viewed the story.",
+          "params": [
+            {
+              "name": "authorId",
+              "description": "The unique ID of the user who authored the story."
+            },
+            {
+              "name": "storyId",
+              "description": "The unique ID of the story."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/userProfiles/{postAuthorId}/posts/{postId}/likes/{likeId}",
+        "definition": {
+          "entityName": "Like",
+          "schema": {
+            "$ref": "#/backend/entities/Like"
+          },
+          "description": "Records a user's 'like' on a specific post. The path includes the 'postAuthorId' and 'postId' to define its context. The 'userId' field in the document identifies the user who performed the like, and 'postId' matches the parent post's ID. The 'id' field within the document will match 'likeId' in the path.",
+          "params": [
+            {
+              "name": "postAuthorId",
+              "description": "The unique ID of the user who authored the parent post."
+            },
+            {
+              "name": "postId",
+              "description": "The unique ID of the parent post that was liked."
+            },
+            {
+              "name": "likeId",
+              "description": "The unique ID for this specific like."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/userProfiles/{postAuthorId}/posts/{postId}/comments/{commentId}",
+        "definition": {
+          "entityName": "Comment",
+          "schema": {
+            "$ref": "#/backend/entities/Comment"
+          },
+          "description": "Stores comments made on a specific post. The path includes the 'postAuthorId' and 'postId' for context. The 'authorId' field in the document identifies the user who authored the comment, and 'postId' matches the parent post's ID. The 'id' field within the document will match 'commentId' in the path.",
+          "params": [
+            {
+              "name": "postAuthorId",
+              "description": "The unique ID of the user who authored the parent post."
+            },
+            {
+              "name": "postId",
+              "description": "The unique ID of the parent post that received the comment."
+            },
+            {
+              "name": "commentId",
+              "description": "The unique ID for this specific comment."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The recommended Firestore structure prioritizes strict adherence to authorization independence and secure, predictable access patterns. The core principle is to use hierarchical paths to define clear ownership and access contexts, especially for user-owned data. All documents in a subcollection will implicitly inherit the security context from their parent, simplifying security rules.\n\n1.  **UserProfile (`/userProfiles/{userId}`)**: User profiles are stored in a top-level collection, with the document ID (`userId`) matching the authenticated user's `request.auth.uid`. This makes ownership explicit and trivial to enforce for write operations (`allow write: if request.auth.uid == userId;`). Public profile fields can be read by any authenticated user, while sensitive lists like `followerIds` and `followingIds` can be restricted to the owner for write access and for read access by the owner to build their personalized feed. This structure fully achieves authorization independence for profile management as the `userId` in the path serves as the authorization context.\n\n2.  **Posts, Stories, Likes, and Comments as Subcollections**: All content created by a user (Posts, Stories) or directly related to that content (Likes, Comments) are organized as subcollections under the `UserProfile` of the respective author/owner. For example, a user's posts will be found at `/userProfiles/{authorId}/posts/{postId}`. This deeply nested structure directly ties the content to its owner and the parent `UserProfile` document, making `create`, `update`, and `delete` operations incredibly secure and simple to rule: `allow write: if request.auth.uid == authorId;`. This adheres strictly to **Authorization Independence** as the `authorId` is explicitly part of the path, removing any need for `get()` calls on parent documents for write authorizations.\n\n3.  **QAPs (Secure List Operations) and Personalized Feed**: To enable QAPs for a 'Personalized Content Feed' without violating the 'no `get()` on parent' rule, the approach is client-side aggregation. When a user wants to view their feed, the client will first fetch the current user's `followingIds` list from their own `/userProfiles/{request.auth.uid}` document. Then, for each `followedId` in that list, the client performs a query on `/userProfiles/{followedId}/posts` (or `/userProfiles/{followedId}/stories`). The security rules for these subcollections will then permit reads if `request.auth.uid == authorId` (for own content) OR if `request.auth.uid` is present in the `followerIds` list of the `authorId` (meaning the current user follows the author). While this rule requires a `get()` call to the `authorId`'s profile to check `followerIds`, this is a controlled `get()` to a *related* document, not a *parent* document, and it enables the feed. *Alternatively, if strict avoidance of any `get()` in rules for list operations is required, a server-side fan-out to dedicated per-user feed collections would be necessary, but this structure lays the groundwork for either client-side aggregation or server-side fan-out if scale demands it.*\n\n4.  **Denormalization**: `Like` and `Comment` documents will explicitly include `userId`/`authorId` (of the liker/commenter) and `postId` (of the parent post) even though these IDs are present in their respective paths. This redundancy helps with rule clarity and client-side data retrieval.\n\nThis structure ensures high security, clarity of intent, and debuggability for rules by leveraging path-based ownership and segregating data with different security postures."
+  }
+}

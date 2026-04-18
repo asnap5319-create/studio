@@ -1,10 +1,221 @@
+/**
+ * This ruleset enforces a strict user-ownership security model for a social media application.
+ *
+ * Core Philosophy:
+ * The security model is centered on the principle that users have exclusive write control over their
+ * own data and the content they create. While profiles and content are generally readable by any
+ * authenticated user to facilitate social interaction, all create, update, and delete operations
+ * are rigorously controlled.
+ *
+ * Data Structure:
+ * All data is hierarchically organized under a top-level `userProfiles` collection. Each user's
+ * profile document, identified by their UID, acts as the root for all their associated content.
+ * Posts, stories, and their related sub-collections (likes, comments) are nested within the
+ * author's profile path (e.g., /userProfiles/{authorId}/posts/{postId}). This structure makes
+ * ownership explicit in the document path, leading to simpler and more performant security rules.
+ *
+ * Key Security Decisions:
+ * - User-Scoped Data: All user-generated content is stored in subcollections under their
+ *   /userProfiles/{userId} document, ensuring data is logically and securely partitioned.
+ * - No User Listing: To prevent data scraping and protect user privacy, it is not possible to
+ *   list all documents in the top-level `userProfiles` collection.
+ * - Public Reads, Private Writes: Core content like profiles, posts, and stories are readable
+ *   by any signed-in user, but can only be written to by their respective owners.
+ * - Interaction Permissions: Actions like liking or commenting can be performed by any
+ *   authenticated user, but only the original creator of that like or comment can delete it.
+ *
+ * Denormalization for Authorization:
+ * This ruleset relies heavily on path-based security. By including the owner's ID (e.g., `authorId`)
+ * directly in the path of their content, we can authorize write operations without needing to
+ * perform costly additional reads (`get()` calls) on other documents. We also enforce that documents
+ * contain internal ownership fields (e.g., `authorId` in a post) that match the path, ensuring
+ * relational integrity upon creation and preventing re-association on update.
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // This is a default rule. All reads and writes are disabled.
-    // You'll need to define specific rules for your collections.
-    match /{document=**} {
-      allow read, write: if false;
+
+    // --------------------------------
+    // Helper Functions
+    // --------------------------------
+
+    /**
+     * Checks if a user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the requesting user's UID matches the provided userId from the path.
+     * This is the primary function for verifying resource ownership.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * Checks if a document currently exists in Firestore.
+     * CRITICAL for all update and delete operations to prevent acting on non-existent data.
+     */
+    function isExistingDoc() {
+      return resource != null;
+    }
+
+    /**
+     * Validates a new UserProfile document on creation.
+     * - The creator must be the owner.
+     * - The document's internal 'id' field must match the user's auth UID.
+     */
+    function isValidNewUserProfile(userId) {
+      return isOwner(userId) && request.resource.data.id == userId;
+    }
+
+    /**
+     * Validates a UserProfile document on update.
+     * - The document's internal 'id' field must be immutable to prevent re-assigning ownership.
+     */
+    function isValidUserProfileUpdate() {
+      return request.resource.data.id == resource.data.id;
+    }
+
+    /**
+     * Validates new content (Post, Story) on creation.
+     * - The creator must be the author as defined by the path.
+     * - The document's internal 'authorId' field must match the author's ID in the path.
+     */
+    function isValidNewContent(authorId) {
+      return isOwner(authorId) && request.resource.data.authorId == authorId;
+    }
+
+    /**
+     * Validates content (Post, Story) on update.
+     * - The 'authorId' field must be immutable.
+     */
+    function isValidContentUpdate() {
+      return request.resource.data.authorId == resource.data.authorId;
+    }
+
+    /**
+     * Validates a new Comment document on creation.
+     * - The document's 'authorId' must match the creator's auth UID.
+     * - The document's 'postId' must match the post ID from the path.
+     */
+    function isValidNewComment(postId) {
+      let incomingData = request.resource.data;
+      return incomingData.authorId == request.auth.uid && incomingData.postId == postId;
+    }
+
+    /**
+     * Validates a Comment document on update.
+     * - The 'authorId' and 'postId' fields must be immutable.
+     */
+    function isValidCommentUpdate() {
+      let incomingData = request.resource.data;
+      let existingData = resource.data;
+      return incomingData.authorId == existingData.authorId && incomingData.postId == existingData.postId;
+    }
+
+    /**
+     * Checks if the requester is the author of an existing comment.
+     * Combines an existence check with an ownership check.
+     */
+    function isCommentAuthor() {
+      return isExistingDoc() && request.auth.uid == resource.data.authorId;
+    }
+
+    /**
+     * Validates a new Like document on creation.
+     * - The document's 'userId' must match the creator's auth UID.
+     * - The document's 'postId' must match the post ID from the path.
+     */
+    function isValidNewLike(postId) {
+      let incomingData = request.resource.data;
+      return incomingData.userId == request.auth.uid && incomingData.postId == postId;
+    }
+
+    /**
+     * Checks if the requester is the user who created an existing like.
+     * Combines an existence check with an ownership check.
+     */
+    function isLikeOwner() {
+      return isExistingDoc() && request.auth.uid == resource.data.userId;
+    }
+
+
+    // --------------------------------
+    // Collection Rules
+    // --------------------------------
+
+    /**
+     * @description Manages user profile documents.
+     * @path /userProfiles/{userId}
+     * @allow A user (create)s their own profile with a matching UID.
+     * @deny A user tries to (update) another user's profile.
+     * @principle Enforces Self-Creation and Ownership. Users can only write to their own profile document. Public reads are allowed for signed-in users, but listing all users is denied to prevent scraping.
+     */
+    match /userProfiles/{userId} {
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow create: if isValidNewUserProfile(userId);
+      allow update: if isOwner(userId) && isExistingDoc() && isValidUserProfileUpdate();
+      allow delete: if isOwner(userId) && isExistingDoc();
+
+      /**
+       * @description Manages user-created posts.
+       * @path /userProfiles/{userId}/posts/{postId}
+       * @allow An authenticated user (create)s a post under their own authorId path.
+       * @deny A user tries to (delete) a post owned by another user.
+       * @principle Enforces strict document ownership based on the path. Any signed-in user can read posts, but only the author can write them.
+       */
+      match /posts/{postId} {
+        allow get, list: if isSignedIn();
+        allow create: if isValidNewContent(userId);
+        allow update: if isOwner(userId) && isExistingDoc() && isValidContentUpdate();
+        allow delete: if isOwner(userId) && isExistingDoc();
+
+        /**
+         * @description Manages 'like' documents on posts.
+         * @path /userProfiles/{userId}/posts/{postId}/likes/{likeId}
+         * @allow An authenticated user (create)s a 'like' on any post.
+         * @deny A user tries to (delete) a 'like' they did not create.
+         * @principle Allows any signed-in user to create, but deletion is restricted to the original creator of the 'like'. Updates are disallowed.
+         */
+        match /likes/{likeId} {
+          allow get, list: if isSignedIn();
+          allow create: if isSignedIn() && isValidNewLike(postId);
+          allow update: if false;
+          allow delete: if isLikeOwner();
+        }
+
+        /**
+         * @description Manages comments on posts.
+         * @path /userProfiles/{userId}/posts/{postId}/comments/{commentId}
+         * @allow An authenticated user (create)s a comment on any post.
+         * @deny A user tries to (update) a comment written by someone else.
+         * @principle Any signed-in user can create comments. Editing and deleting is restricted to the original author of the comment.
+         */
+        match /comments/{commentId} {
+          allow get, list: if isSignedIn();
+          allow create: if isSignedIn() && isValidNewComment(postId);
+          allow update: if isCommentAuthor() && isValidCommentUpdate();
+          allow delete: if isCommentAuthor();
+        }
+      }
+
+      /**
+       * @description Manages user-created stories.
+       * @path /userProfiles/{userId}/stories/{storyId}
+       * @allow An authenticated user (create)s a story under their own authorId path.
+       * @deny A user tries to (update) a story owned by another user.
+       * @principle Enforces strict document ownership based on the path. Any signed-in user can read stories, but only the author can write them.
+       */
+      match /stories/{storyId} {
+        allow get, list: if isSignedIn();
+        allow create: if isValidNewContent(userId);
+        allow update: if isOwner(userId) && isExistingDoc() && isValidContentUpdate();
+        allow delete: if isOwner(userId) && isExistingDoc();
+      }
     }
   }
 }
