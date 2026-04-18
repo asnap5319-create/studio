@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
+import { FirebaseClientProvider } from "@/firebase/client-provider";
 
 export const metadata: Metadata = {
   title: "A.snap",
@@ -16,7 +17,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
        <body className={cn("min-h-screen bg-background font-sans antialiased")}>
+        <FirebaseClientProvider>
           {children}
+        </FirebaseClientProvider>
         <Toaster />
       </body>
     </html>

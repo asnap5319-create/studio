@@ -2,17 +2,28 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@/firebase';
 
 export default function Splash() {
   const router = useRouter();
+  const { user, isUserLoading } = useUser();
 
   useEffect(() => {
+    if (isUserLoading) {
+      // Wait while firebase auth state is loading
+      return;
+    }
+
     const timer = setTimeout(() => {
-      router.push('/login');
+      if (user) {
+        router.push('/feed');
+      } else {
+        router.push('/login');
+      }
     }, 2500); // 2.5 second delay
 
     return () => clearTimeout(timer);
-  }, [router]);
+  }, [user, isUserLoading, router]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-black">
