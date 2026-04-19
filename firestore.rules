@@ -1,17 +1,170 @@
+/**
+ * Core Philosophy: This ruleset enforces a social media security model. User-specific data is private to the owner, while content like posts and stories is visible to the owner and their followers. All write operations are strictly restricted to the owner of the data.
+ *
+ * Data Structure: The structure uses top-level collections for primary data types (/users, /posts, /stories) to enable scalable queries. Relational data (comments, likes) are organized in subcollections under their parent post (/posts/{postId}/comments/{commentId}).
+ *
+ * Key Security Decisions:
+ * - User Profile Access: A user can only write to their own profile. To support social features, any authenticated user can read the public-facing data of another user's profile, but listing all users is disabled to prevent data scraping.
+ * - Follower-Based Read Access: Access to posts and stories is granted if the requester is the owner OR if they follow the content's author. This is achieved by checking the `followingIds` array on the requester's own user profile. This is an intentional and performant use of `get()`.
+ * - Write Integrity: All write operations validate that the user ID within the document data matches the authenticated user's ID, ensuring users can only act on their own behalf.
+ *
+ * Denormalization for Authorization: The rules rely on denormalized fields for efficient authorization. The `userId` field is present on all posts, stories, comments, and likes to enable direct ownership checks without needing to access parent documents. The `followingIds` array on the user document is critical for authorizing follower-only read access.
+ *
+ * Structural Segregation: This pattern is not heavily used as the primary entities do not have a private/public draft state. The distinction between private user data and semi-public posts is handled by separate top-level collections.
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId} {
-      allow read: if isSignedIn();
-      allow write: if isOwner(userId);
+
+    // --------------------------------
+    // Helper Functions
+    // --------------------------------
+
+    /**
+     * Checks if a user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
     }
-  }
 
-  function isSignedIn() {
-    return request.auth != null;
-  }
+    /**
+     * Checks if the authenticated user's UID matches the provided userId.
+     * Used for path-based ownership checks.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
 
-  function isOwner(userId) {
-    return request.auth.uid == userId;
+    /**
+     * Checks if the authenticated user is the owner of an existing document.
+     * Used for safe update and delete operations.
+     */
+    function isExistingOwner(docData) {
+      // Fix: The original function had 'docData' as an unused parameter and
+      // directly referenced 'resource.data'. To resolve the 'Unused variable'
+      // warning and make the function consistent with its signature,
+      // it now uses the 'docData' parameter, which is expected to be 'resource.data'
+      // when called in update/delete contexts.
+      return isSignedIn() && docData != null && docData.userId == request.auth.uid;
+    }
+
+    /**
+     * Checks if the authenticated user is the owner based on a `userId` field
+     * inside the document data.
+     */
+    function isDataOwner(docData) {
+      return isSignedIn() && docData.userId == request.auth.uid;
+    }
+
+    /**
+     * Checks if a user is following the author of a given piece of content.
+     * This requires a single `get` call to the requesting user's own profile.
+     */
+    function isFollowerOf(contentAuthorId) {
+      return isSignedIn() && contentAuthorId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.followingIds;
+    }
+
+    /**
+     * Determines if a user can read a post or story.
+     * Access is granted if the user is the owner or follows the author.
+     */
+    function canReadSharedContent(contentData) {
+      return isSignedIn() && (isDataOwner(contentData) || isFollowerOf(contentData.userId));
+    }
+
+    /**
+     * Checks if the user has permission to access the parent post.
+     * This is used to secure subcollections like comments and likes.
+     */
+    function canAccessParentPost(postId) {
+      let postData = get(/databases/$(database)/documents/posts/$(postId)).data;
+      return canReadSharedContent(postData);
+    }
+
+
+    /**
+     * @description Rules for User profile documents.
+     * @path /users/{userId}
+     * @allow (get) Any authenticated user can read a user's public profile.
+     * @allow (create, update, delete) A user can create, update, or delete their own profile document.
+     * @deny (list) Listing all users is disabled to prevent user enumeration and data scraping.
+     * @deny (update) An authenticated user cannot update another user's profile.
+     * @principle Restricts access to a user's own data tree for writes, while allowing public reads for social functionality.
+     */
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isOwner(userId) && resource != null && request.resource.data.id == resource.data.id;
+      allow delete: if isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Rules for ephemeral Post documents.
+     * @path /posts/{postId}
+     * @allow (get, list) A user can read a post if they created it or if they follow the post's author.
+     * @allow (create) An authenticated user can create a new post for themselves.
+     * @allow (update, delete) The author of a post can update or delete it.
+     * @deny (update) A user cannot update a post they do not own.
+     * @deny (get) An unauthenticated user or a non-follower cannot read a post.
+     * @principle Enforces a follower-based visibility model for content and strict ownership for writes.
+     */
+    match /posts/{postId} {
+      allow get, list: if canReadSharedContent(resource.data);
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isExistingOwner(resource.data) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(resource.data);
+    }
+
+    /**
+     * @description Rules for ephemeral Story documents.
+     * @path /stories/{storyId}
+     * @allow (get, list) A user can read a story if they created it or if they follow the story's author.
+     * @allow (create) An authenticated user can create a new story for themselves.
+     * @allow (update, delete) The author of a story can update or delete it.
+     * @deny (update) A user cannot update a story they do not own.
+     * @deny (get) An unauthenticated user or a non-follower cannot read a story.
+     * @principle Enforces a follower-based visibility model for content and strict ownership for writes.
+     */
+    match /stories/{storyId} {
+      allow get, list: if canReadSharedContent(resource.data);
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isExistingOwner(resource.data) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(resource.data);
+    }
+
+    /**
+     * @description Rules for Comment documents, which are subcollections of Posts.
+     * @path /posts/{postId}/comments/{commentId}
+     * @allow (get, list) A user can read comments on a post if they have permission to read the post itself.
+     * @allow (create) A user can comment on a post if they are allowed to view it.
+     * @allow (update, delete) A user can only update or delete their own comments.
+     * @deny (create) A user cannot comment on a post they are not allowed to view.
+     * @deny (delete) A user cannot delete someone else's comment.
+     * @principle Inherits read access from the parent document and enforces ownership for writes on individual subcollection documents.
+     */
+    match /posts/{postId}/comments/{commentId} {
+      allow get, list: if canAccessParentPost(postId);
+      allow create: if canAccessParentPost(postId) && request.resource.data.userId == request.auth.uid && request.resource.data.postId == postId;
+      allow update: if isExistingOwner(resource.data) && request.resource.data.userId == resource.data.userId && request.resource.data.postId == resource.data.postId;
+      allow delete: if isExistingOwner(resource.data);
+    }
+
+    /**
+     * @description Rules for Like documents, which are subcollections of Posts.
+     * @path /posts/{postId}/likes/{likeId}
+     * @allow (get, list) A user can see the likes on a post if they have permission to read the post itself.
+     * @allow (create) A user can like a post they can view, but only by creating a 'like' document with their own UID as the ID.
+     * @allow (delete) A user can remove their own like.
+     * @deny (update) Likes are immutable; they can only be created or deleted.
+     * @deny (create) A user cannot create a like on behalf of another user.
+     * @principle Inherits read access from the parent, enforces ownership for writes, and uses the document ID to ensure a user can only "like" a post once.
+     */
+    match /posts/{postId}/likes/{likeId} {
+      allow get, list: if canAccessParentPost(postId);
+      allow create: if canAccessParentPost(postId) && isOwner(likeId) && request.resource.data.userId == request.auth.uid && request.resource.data.postId == postId;
+      allow update: if false;
+      allow delete: if isOwner(likeId) && resource != null;
+    }
   }
 }
