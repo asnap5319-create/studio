@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useFirebase } from "@/firebase";
 import { doc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
+import { getDownloadURL, ref as storageRef, uploadBytesResumable } from "firebase/storage";
 import { Camera } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -48,52 +48,51 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
-        // 1. Create user
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // 2. Create user profile in Firestore with a placeholder image first
         const userDocRef = doc(firestore, "users", user.uid);
         const userProfile = {
             uid: user.uid,
             name,
             username,
             email: user.email,
-            profileImageUrl: `https://picsum.photos/seed/${user.uid}/400/400`, // Placeholder
+            profileImageUrl: `https://picsum.photos/seed/${user.uid}/400/400`,
             createdAt: serverTimestamp(),
-            bio: "", // Initialize bio as empty
+            bio: "",
         };
         await setDoc(userDocRef, userProfile);
 
-        // 3. If there's an image, upload it in the background
         if (imageFile) {
             const photoRef = storageRef(storage, `profile-images/${user.uid}`);
-            // Don't block signup, let it upload in the background
-            uploadBytes(photoRef, imageFile).then(snapshot => {
-                getDownloadURL(snapshot.ref).then(downloadURL => {
-                    // Update the user document with the real image URL
-                    updateDoc(userDocRef, { profileImageUrl: downloadURL });
-                }).catch(urlError => {
-                    console.error("Error getting download URL: ", urlError);
-                    toast({
+            const uploadTask = uploadBytesResumable(photoRef, imageFile);
+
+            uploadTask.on('state_changed',
+                null, // We don't need to observe progress here for signup
+                (error) => {
+                    // Handle unsuccessful uploads in the background
+                    console.error("Error uploading photo during signup: ", error);
+                     toast({
                         variant: "destructive",
                         title: "Photo Upload Failed",
-                        description: "Your account was created, but the photo could not be saved.",
+                        description: "Your account was created, but the photo could not be uploaded.",
                     });
-                });
-            }).catch(uploadError => {
-                console.error("Error uploading photo: ", uploadError);
-                 toast({
-                    variant: "destructive",
-                    title: "Photo Upload Failed",
-                    description: "Your account was created, but the photo could not be uploaded.",
-                });
-            });
+                },
+                () => {
+                    // Handle successful uploads on complete
+                    getDownloadURL(uploadTask.snapshot.ref).then(downloadURL => {
+                        // Update the user document with the real image URL
+                        updateDoc(userDocRef, { profileImageUrl: downloadURL });
+                    }).catch(urlError => {
+                        console.error("Error getting download URL during signup: ", urlError);
+                    });
+                }
+            );
         }
 
-        // 4. Signup is successful, navigate user
         toast({ title: "Success", description: "Account created successfully!" });
         router.push('/feed');
+
     } catch (error: any) {
         console.error("Error creating account: ", error);
         let errorMessage = "Could not create account. Please try again.";
