@@ -36,12 +36,12 @@ export default function SignupPage() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth || !firestore || !storage) {
-        toast({ title: "Error", description: "Firebase not ready.", variant: "destructive" });
+        toast({ title: "Error", description: "Firebase not ready. Please try again.", variant: "destructive" });
         return;
     };
 
     if (password.length < 6) {
-        toast({ title: "Error", description: "Password must be at least 6 characters long.", variant: "destructive" });
+        toast({ title: "Signup Failed", description: "Password must be at least 6 characters long.", variant: "destructive" });
         return;
     }
 

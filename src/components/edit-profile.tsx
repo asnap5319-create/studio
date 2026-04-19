@@ -51,7 +51,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
     if (!e.target.files || !e.target.files[0]) return;
     
     if (!user || !storage || !firestore) {
-      toast({ variant: 'destructive', title: 'Upload Error', description: 'Could not initialize upload. Please try again.' });
+      toast({ variant: 'destructive', title: 'Upload Error', description: 'Could not initialize upload. You must be logged in.' });
       return;
     }
 
@@ -67,16 +67,18 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         await setDoc(userDocRef, { profileImageUrl: downloadURL }, { merge: true });
         
         toast({ title: 'Profile Photo Updated!', description: 'Your new photo has been saved.' });
-        // No need to call onOpenChange(false) here, let the user decide when to close.
     } catch (error: any) {
-        console.error("!!! UPLOAD FAILED !!!", error);
+        console.error("Error uploading profile photo: ", error);
         toast({ 
             variant: 'destructive', 
             title: 'Upload Failed', 
-            description: error.message || "Could not upload your new profile photo." 
+            description: error.message || "Could not upload your new profile photo. Please check permissions." 
         });
     } finally {
         setIsPhotoUploading(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
     }
   };
 
@@ -94,6 +96,8 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
     const userDocRef = doc(firestore, 'users', user.uid);
 
     try {
+      // Use setDoc with merge to prevent "No document to update" errors
+      // if the document doesn't exist for some reason.
       await setDoc(userDocRef, {
         name,
         username,
