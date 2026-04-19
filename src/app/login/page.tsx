@@ -41,15 +41,20 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!auth) return;
-    window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-      'size': 'invisible',
-      'callback': () => {},
-    });
+    // It's important that this only runs once, so we check if it's already on the window
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+        'callback': () => {
+          // reCAPTCHA solved, allow signInWithPhoneNumber.
+        },
+      });
+    }
   }, [auth]);
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth) {
+    if (!auth || !firestore) {
         toast({ title: "Error", description: "Firebase not initialized.", variant: "destructive" });
         return;
     }
@@ -81,13 +86,18 @@ export default function LoginPage() {
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = "Too many requests. Please try again later.";
       }
+      // Reset the reCAPTCHA so the user can try again.
+      window.recaptchaVerifier.render().then((widgetId) => {
+        // @ts-ignore
+        grecaptcha.reset(widgetId);
+      });
       toast({ title: "Error", description: errorMessage, variant: "destructive" });
     }
   };
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!window.confirmationResult) {
+    if (!window.confirmationResult || !firestore) {
         toast({ title: "Error", description: "Please request an OTP first.", variant: "destructive" });
         return;
     }
@@ -111,7 +121,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-black p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <div id="recaptcha-container"></div>
       <div className="w-full max-w-sm space-y-6 text-center">
         <h1 className="text-5xl font-bold text-primary [filter:drop-shadow(0_0_8px_hsl(var(--primary)))]">
@@ -171,9 +181,13 @@ export default function LoginPage() {
               value={otp}
               onChange={(e) => setOtp(e.target.value)}
               required
+              maxLength={6}
             />
             <Button type="submit" className="w-full h-12 text-lg font-bold">
               Log In
+            </Button>
+            <Button variant="link" onClick={() => setStep('phone')} className="text-primary">
+              Use a different phone number
             </Button>
           </form>
         )}
