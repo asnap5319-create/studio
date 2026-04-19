@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFirebase, useUser } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, setDoc } from 'firebase/firestore';
 import { getDownloadURL, ref as storageRef, uploadBytesResumable, type UploadTask } from "firebase/storage";
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/app/(main)/profile/page';
@@ -124,11 +124,11 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
     const userDocRef = doc(firestore, 'users', user.uid);
 
     try {
-      await updateDoc(userDocRef, {
+      await setDoc(userDocRef, {
         name,
         username,
         bio,
-      });
+      }, { merge: true });
       toast({
         title: 'Profile Updated',
         description: 'Your changes have been saved successfully.',
