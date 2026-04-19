@@ -17,6 +17,7 @@ export type UserProfile = {
     username: string;
     profileImageUrl: string;
     email: string;
+    bio?: string;
 };
 
 export default function ProfilePage() {
@@ -98,7 +99,7 @@ export default function ProfilePage() {
                     <div className="mt-4">
                         <p className="font-bold">{userProfile?.name}</p>
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                            Welcome to A.snap! This is your bio.
+                            {userProfile?.bio || "Welcome to A.snap! Edit your profile to add a bio."}
                         </p>
                     </div>
                     <div className="flex gap-2 mt-4">

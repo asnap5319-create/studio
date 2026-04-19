@@ -43,6 +43,7 @@ export default function SignupPage() {
             email: user.email,
             profileImageUrl: `https://picsum.photos/seed/${user.uid}/400/400`, // Placeholder image
             createdAt: serverTimestamp(),
+            bio: "", // Initialize bio as empty
         };
 
         await setDoc(doc(firestore, "users", user.uid), userProfile);

@@ -32,6 +32,10 @@
           "type": "string",
           "description": "Timestamp when the user profile was created.",
           "format": "date-time"
+        },
+        "bio": {
+          "type": "string",
+          "description": "The user's biography."
         }
       },
       "required": ["uid", "name", "username", "email", "createdAt"]
