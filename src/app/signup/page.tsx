@@ -1,14 +1,15 @@
 'use client';
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useFirebase } from "@/firebase";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
+import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
 import { Camera } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, ChangeEvent } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function SignupPage() {
@@ -16,13 +17,25 @@ export default function SignupPage() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+
   const router = useRouter();
-  const { auth, firestore } = useFirebase();
+  const { auth, firestore, storage } = useFirebase();
   const { toast } = useToast();
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImageFile(file);
+      setImagePreviewUrl(URL.createObjectURL(file));
+    }
+  };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth || !firestore) {
+    if (!auth || !firestore || !storage) {
         toast({ title: "Error", description: "Firebase not ready.", variant: "destructive" });
         return;
     };
@@ -32,16 +45,26 @@ export default function SignupPage() {
         return;
     }
 
+    setIsLoading(true);
+
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
+
+        let profilePhotoUrl = `https://picsum.photos/seed/${user.uid}/400/400`; // Default placeholder
+
+        if (imageFile) {
+            const photoRef = storageRef(storage, `profile-images/${user.uid}`);
+            await uploadBytes(photoRef, imageFile);
+            profilePhotoUrl = await getDownloadURL(photoRef);
+        }
 
         const userProfile = {
             uid: user.uid,
             name,
             username,
             email: user.email,
-            profileImageUrl: `https://picsum.photos/seed/${user.uid}/400/400`, // Placeholder image
+            profileImageUrl: profilePhotoUrl,
             createdAt: serverTimestamp(),
             bio: "", // Initialize bio as empty
         };
@@ -61,6 +84,8 @@ export default function SignupPage() {
             errorMessage = "The password is too weak.";
         }
         toast({ title: "Signup Failed", description: errorMessage, variant: "destructive" });
+    } finally {
+        setIsLoading(false);
     }
   };
 
@@ -76,12 +101,13 @@ export default function SignupPage() {
             <div className="relative">
                 <label htmlFor="photo-upload" className="cursor-pointer">
                     <Avatar className="h-24 w-24 border-2 border-dashed border-border">
+                        <AvatarImage src={imagePreviewUrl} />
                         <AvatarFallback className="bg-transparent">
                             <Camera className="h-10 w-10 text-muted-foreground" />
                         </AvatarFallback>
                     </Avatar>
                 </label>
-                <Input id="photo-upload" type="file" className="hidden" accept="image/*"/>
+                <Input id="photo-upload" type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
             </div>
         </div>
         
@@ -93,6 +119,7 @@ export default function SignupPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            disabled={isLoading}
           />
           <Input 
             type="password" 
@@ -101,6 +128,7 @@ export default function SignupPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            disabled={isLoading}
           />
           <Input 
             type="text" 
@@ -109,6 +137,7 @@ export default function SignupPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
+            disabled={isLoading}
             />
           <Input 
             type="text" 
@@ -117,9 +146,10 @@ export default function SignupPage() {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
+            disabled={isLoading}
           />
-          <Button type="submit" className="w-full h-12 text-lg font-bold">
-            Sign Up
+          <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={isLoading}>
+            {isLoading ? 'Signing up...' : 'Sign Up'}
           </Button>
         </form>
 
