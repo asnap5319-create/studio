@@ -35,6 +35,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
   const [username, setUsername] = useState(userProfile?.username || '');
   const [bio, setBio] = useState(userProfile?.bio || '');
   const [isSaving, setIsSaving] = useState(false);
+  const [isPhotoUploading, setIsPhotoUploading] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -47,13 +48,15 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
   }, [userProfile]);
   
   const handlePhotoUpload = async (e: ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || !e.target.files[0] || !user || !storage || !firestore) {
+    if (!e.target.files || !e.target.files[0]) return;
+    
+    if (!user || !storage || !firestore) {
       toast({ variant: 'destructive', title: 'Upload Error', description: 'Could not initialize upload. Please try again.' });
       return;
     }
 
     const file = e.target.files[0];
-    setIsSaving(true);
+    setIsPhotoUploading(true);
     
     try {
         const photoRef = storageRef(storage, `profile-images/${user.uid}`);
@@ -64,17 +67,16 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         await setDoc(userDocRef, { profileImageUrl: downloadURL }, { merge: true });
         
         toast({ title: 'Profile Photo Updated!', description: 'Your new photo has been saved.' });
-        onOpenChange(false);
-
+        // No need to call onOpenChange(false) here, let the user decide when to close.
     } catch (error: any) {
         console.error("!!! UPLOAD FAILED !!!", error);
-        let description = 'Could not upload your new profile photo.';
-        if (error.code === 'storage/unauthorized') {
-            description = "Permission denied. You may not have access to upload this file.";
-        }
-        toast({ variant: 'destructive', title: 'Upload Failed', description });
+        toast({ 
+            variant: 'destructive', 
+            title: 'Upload Failed', 
+            description: error.message || "Could not upload your new profile photo." 
+        });
     } finally {
-        setIsSaving(false);
+        setIsPhotoUploading(false);
     }
   };
 
@@ -130,9 +132,9 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
                 variant="link" 
                 className="text-primary p-0 h-auto" 
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isSaving}
+                disabled={isSaving || isPhotoUploading}
             >
-                {isSaving ? 'Uploading...' : 'Change profile photo'}
+                {isPhotoUploading ? 'Uploading...' : 'Change profile photo'}
             </Button>
             <Input 
                 type="file" 
@@ -140,17 +142,17 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
                 ref={fileInputRef} 
                 onChange={handlePhotoUpload} 
                 accept="image/png, image/jpeg, image/webp"
-                disabled={isSaving}
+                disabled={isSaving || isPhotoUploading}
             />
           </div>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} disabled={isSaving} />
+              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} disabled={isSaving || isPhotoUploading} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
-              <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} disabled={isSaving} />
+              <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} disabled={isSaving || isPhotoUploading} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="bio">Bio</Label>
@@ -160,16 +162,16 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
                 onChange={(e) => setBio(e.target.value)} 
                 placeholder="Write a little bit about yourself..."
                 className="min-h-[100px]"
-                disabled={isSaving}
+                disabled={isSaving || isPhotoUploading}
               />
             </div>
           </div>
         </div>
         <SheetFooter className="flex-row gap-2">
           <SheetClose asChild>
-            <Button variant="outline" className="flex-1" disabled={isSaving}>Cancel</Button>
+            <Button variant="outline" className="flex-1" disabled={isSaving || isPhotoUploading}>Cancel</Button>
           </SheetClose>
-          <Button onClick={handleSaveChanges} disabled={isSaving} className="flex-1">
+          <Button onClick={handleSaveChanges} disabled={isSaving || isPhotoUploading} className="flex-1">
             {isSaving ? 'Saving...' : 'Save Changes'}
           </Button>
         </SheetFooter>

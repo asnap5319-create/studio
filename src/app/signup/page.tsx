@@ -83,7 +83,7 @@ export default function SignupPage() {
         toast({ title: "Success", description: "Account created successfully!" });
         router.push('/feed');
 
-    } catch (error: any) => {
+    } catch (error: any) {
         console.error("Error creating account: ", error);
         let errorMessage = "Could not create account. Please try again.";
         if (error.code === 'auth/email-already-in-use') {
