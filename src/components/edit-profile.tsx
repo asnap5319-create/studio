@@ -16,10 +16,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFirebase, useUser } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
-import { getDownloadURL, ref as storageRef, uploadBytesResumable } from "firebase/storage";
+import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/app/(main)/profile/page';
-import { Progress } from '@/components/ui/progress';
 
 interface EditProfileSheetProps {
   open: boolean;
@@ -36,7 +35,6 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
   const [username, setUsername] = useState(userProfile?.username || '');
   const [bio, setBio] = useState(userProfile?.bio || '');
   const [isSaving, setIsSaving] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -48,7 +46,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
     }
   }, [userProfile]);
   
-  const handlePhotoUpload = (e: ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0] || !user || !storage || !firestore) {
       toast({ variant: 'destructive', title: 'Upload Error', description: 'Could not initialize upload. Please try again.' });
       return;
@@ -56,51 +54,28 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
 
     const file = e.target.files[0];
     setIsSaving(true);
-    setUploadProgress(0);
+    
+    try {
+        const photoRef = storageRef(storage, `profile-images/${user.uid}`);
+        const snapshot = await uploadBytes(photoRef, file);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        
+        const userDocRef = doc(firestore, 'users', user.uid);
+        await setDoc(userDocRef, { profileImageUrl: downloadURL }, { merge: true });
+        
+        toast({ title: 'Profile Photo Updated!', description: 'Your new photo has been saved.' });
+        onOpenChange(false);
 
-    const photoRef = storageRef(storage, `profile-images/${user.uid}`);
-    const uploadTask = uploadBytesResumable(photoRef, file);
-
-    uploadTask.on('state_changed',
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setUploadProgress(progress);
-        console.log('Upload is ' + progress + '% done');
-      },
-      (error) => {
+    } catch (error: any) {
         console.error("!!! UPLOAD FAILED !!!", error);
         let description = 'Could not upload your new profile photo.';
-        switch (error.code) {
-          case 'storage/unauthorized':
-            description = "Permission denied. Please check your security rules.";
-            break;
-          case 'storage/canceled':
-            description = "Upload was canceled.";
-            break;
-          case 'storage/unknown':
-            description = "An unknown error occurred. Please try again.";
-            break;
+        if (error.code === 'storage/unauthorized') {
+            description = "Permission denied. You may not have access to upload this file.";
         }
         toast({ variant: 'destructive', title: 'Upload Failed', description });
+    } finally {
         setIsSaving(false);
-        setUploadProgress(0);
-      },
-      () => {
-        getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
-          const userDocRef = doc(firestore, 'users', user.uid);
-          await setDoc(userDocRef, { profileImageUrl: downloadURL }, { merge: true });
-          toast({ title: 'Profile Photo Updated!', description: 'Your new photo has been saved.' });
-          setIsSaving(false);
-          setUploadProgress(0);
-          onOpenChange(false); // Close sheet on success
-        }).catch((urlError) => {
-            console.error("Error getting download URL: ", urlError);
-            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not save the new photo.' });
-            setIsSaving(false);
-            setUploadProgress(0);
-        });
-      }
-    );
+    }
   };
 
   const handleSaveChanges = async () => {
@@ -155,9 +130,9 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
                 variant="link" 
                 className="text-primary p-0 h-auto" 
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isSaving && uploadProgress > 0}
+                disabled={isSaving}
             >
-                {isSaving && uploadProgress > 0 ? `Uploading (${Math.round(uploadProgress)}%)...` : 'Change profile photo'}
+                {isSaving ? 'Uploading...' : 'Change profile photo'}
             </Button>
             <Input 
                 type="file" 
@@ -165,9 +140,8 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
                 ref={fileInputRef} 
                 onChange={handlePhotoUpload} 
                 accept="image/png, image/jpeg, image/webp"
-                disabled={isSaving && uploadProgress > 0}
+                disabled={isSaving}
             />
-             {isSaving && uploadProgress > 0 && <Progress value={uploadProgress} className="w-full mt-2" />}
           </div>
           <div className="space-y-4">
             <div className="space-y-2">

@@ -3,9 +3,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useFirebase } from "@/firebase";
-import { doc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { getDownloadURL, ref as storageRef, uploadBytesResumable } from "firebase/storage";
+import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
 import { Camera } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -51,49 +51,39 @@ export default function SignupPage() {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
+        let profileImageUrl = `https://picsum.photos/seed/${user.uid}/400/400`;
+
+        if (imageFile) {
+            try {
+                const photoRef = storageRef(storage, `profile-images/${user.uid}`);
+                const snapshot = await uploadBytes(photoRef, imageFile);
+                profileImageUrl = await getDownloadURL(snapshot.ref);
+            } catch (uploadError: any) {
+                console.error("Error uploading photo during signup: ", uploadError);
+                toast({
+                    variant: "destructive",
+                    title: "Photo Upload Failed",
+                    description: "Your account was created, but the photo could not be uploaded. You can try again from your profile.",
+                });
+            }
+        }
+        
         const userDocRef = doc(firestore, "users", user.uid);
         const userProfile = {
             uid: user.uid,
             name,
             username,
             email: user.email,
-            profileImageUrl: `https://picsum.photos/seed/${user.uid}/400/400`,
+            profileImageUrl,
             createdAt: serverTimestamp(),
             bio: "",
         };
         await setDoc(userDocRef, userProfile);
 
-        if (imageFile) {
-            const photoRef = storageRef(storage, `profile-images/${user.uid}`);
-            const uploadTask = uploadBytesResumable(photoRef, imageFile);
-
-            uploadTask.on('state_changed',
-                null, // We don't need to observe progress here for signup
-                (error) => {
-                    // Handle unsuccessful uploads in the background
-                    console.error("Error uploading photo during signup: ", error);
-                     toast({
-                        variant: "destructive",
-                        title: "Photo Upload Failed",
-                        description: "Your account was created, but the photo could not be uploaded.",
-                    });
-                },
-                () => {
-                    // Handle successful uploads on complete
-                    getDownloadURL(uploadTask.snapshot.ref).then(downloadURL => {
-                        // Update the user document with the real image URL
-                        updateDoc(userDocRef, { profileImageUrl: downloadURL });
-                    }).catch(urlError => {
-                        console.error("Error getting download URL during signup: ", urlError);
-                    });
-                }
-            );
-        }
-
         toast({ title: "Success", description: "Account created successfully!" });
         router.push('/feed');
 
-    } catch (error: any) {
+    } catch (error: any) => {
         console.error("Error creating account: ", error);
         let errorMessage = "Could not create account. Please try again.";
         if (error.code === 'auth/email-already-in-use') {
