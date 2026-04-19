@@ -3,136 +3,39 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { useFirebase } from "@/firebase";
-import { doc, getDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { countries, type Country } from "@/lib/countries";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import parsePhoneNumber from 'libphonenumber-js';
-
-declare global {
-  interface Window {
-    recaptchaVerifier?: RecaptchaVerifier;
-    confirmationResult?: ConfirmationResult;
-  }
-}
-
-function getFlagEmoji(countryCode: string) {
-  if (!countryCode) return '';
-  const codePoints = countryCode
-    .toUpperCase()
-    .split('')
-    .map(char => 127397 + char.charCodeAt(0));
-  return String.fromCodePoint(...codePoints);
-}
 
 export default function LoginPage() {
-  const [nationalNumber, setNationalNumber] = useState("");
-  const [country, setCountry] = useState<Country>(countries.find(c => c.code === 'IN')!);
-  const [otp, setOtp] = useState("");
-  const [step, setStep] = useState('phone');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const router = useRouter();
   const { auth, firestore } = useFirebase();
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (!auth) return;
-
-    // Set up the reCAPTCHA verifier once the auth service is available
-    // We are using the 'normal' size, which shows the "I'm not a robot" checkbox
-    // This is more robust against UI interaction issues.
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'normal', // Use the visible reCAPTCHA
-        'callback': (response) => {
-          // reCAPTCHA solved.
-        },
-        'expired-callback': () => {
-          // Response expired. User needs to solve reCAPTCHA again.
-          toast({ title: "reCAPTCHA Expired", description: "Please verify you are not a robot again.", variant: 'destructive'});
-        }
-      });
-      // Render the verifier
-      window.recaptchaVerifier.render().catch((error) => {
-        toast({ title: "reCAPTCHA Error", description: "Could not render reCAPTCHA. Please refresh the page.", variant: 'destructive'});
-        console.error("reCAPTCHA render error: ", error);
-      });
-    }
-  }, [auth, toast]);
-
-  const handleSendOtp = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth || !firestore) {
-        toast({ title: "Error", description: "Firebase not initialized.", variant: "destructive" });
-        return;
-    }
-    if (!country || !nationalNumber) {
-        toast({ title: "Error", description: "Please select a country and enter your phone number.", variant: "destructive" });
-        return;
-    }
-
-    const phoneNumber = parsePhoneNumber(nationalNumber, country.code as any);
-
-    if (!phoneNumber?.isValid()) {
-      toast({ title: "Invalid Phone Number", description: "Please enter a valid phone number for the selected country.", variant: "destructive" });
+      toast({ title: "Error", description: "Firebase not initialized.", variant: "destructive" });
       return;
     }
 
-    const formattedPhoneNumber = phoneNumber.format('E.164');
-    const appVerifier = window.recaptchaVerifier;
-
-    if (!appVerifier) {
-      toast({ title: "Error", description: "reCAPTCHA not initialized. Please wait a moment.", variant: "destructive" });
-      return;
-    }
-    
     try {
-      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhoneNumber, appVerifier);
-      window.confirmationResult = confirmationResult;
-      setStep('otp');
-      toast({ title: "OTP Sent", description: "Check your phone for the OTP." });
-    } catch (error: any) {
-      console.error("Error sending OTP: ", error);
-      let errorMessage = "Could not send OTP. Please try again later.";
-      if (error.code === 'auth/invalid-phone-number') {
-        errorMessage = "The phone number is not valid.";
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = "Too many requests. Please try again later.";
-      } else if (error.message) {
-        errorMessage = `An error occurred: ${error.code || error.message}`;
-      }
-      toast({ title: "Error", description: errorMessage, variant: "destructive" });
-      // Reset reCAPTCHA after an error
-      window.recaptchaVerifier?.render().catch(console.error);
-    }
-  };
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!window.confirmationResult || !firestore) {
-        toast({ title: "Error", description: "Please request an OTP first.", variant: "destructive" });
-        return;
-    }
-    try {
-      const result = await window.confirmationResult.confirm(otp);
-      const user = result.user;
-      
-      const userDocRef = doc(firestore, "users", user.uid);
-      const userDoc = await getDoc(userDocRef);
-
-      if (userDoc.exists()) {
-        router.push('/feed');
-      } else {
-        router.push('/signup');
-      }
+      await signInWithEmailAndPassword(auth, email, password);
       toast({ title: "Success", description: "Logged in successfully!" });
+      router.push('/feed');
     } catch (error: any) {
-      console.error("Error verifying OTP: ", error);
-      toast({ title: "Error", description: "Invalid OTP. Please try again.", variant: "destructive" });
+      console.error("Error signing in: ", error);
+      let errorMessage = "Could not log in. Please check your credentials.";
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        errorMessage = "Invalid email or password.";
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "Please enter a valid email address.";
+      }
+      toast({ title: "Login Failed", description: errorMessage, variant: "destructive" });
     }
   };
 
@@ -143,71 +46,27 @@ export default function LoginPage() {
           A.snap
         </h1>
         
-        {step === 'phone' && (
-          <form onSubmit={handleSendOtp} className="w-full space-y-4 pt-4">
-            <div className="flex gap-2">
-                <Select
-                    value={country.code}
-                    onValueChange={(code) => {
-                        const newCountry = countries.find(c => c.code === code);
-                        if (newCountry) setCountry(newCountry);
-                    }}
-                >
-                    <SelectTrigger className="h-12 w-[140px]">
-                        <SelectValue placeholder="Country">
-                            <span className="flex items-center gap-2">
-                              {getFlagEmoji(country.code)} {country.dial_code}
-                            </span>
-                        </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <ScrollArea className="h-72">
-                        {countries.map((c) => (
-                            <SelectItem key={c.code} value={c.code}>
-                                <span className="flex items-center gap-2">
-                                    {getFlagEmoji(c.code)} {c.name} ({c.dial_code})
-                                </span>
-                            </SelectItem>
-                        ))}
-                      </ScrollArea>
-                    </SelectContent>
-                </Select>
-                <Input 
-                  type="tel" 
-                  placeholder="Phone number" 
-                  className="h-12 text-base flex-1" 
-                  value={nationalNumber}
-                  onChange={(e) => setNationalNumber(e.target.value.replace(/[^0-9]/g, ''))}
-                  required
-                />
-            </div>
-            {/* The reCAPTCHA will be rendered here */}
-            <div id="recaptcha-container" className="flex justify-center"></div>
-            <Button type="submit" className="w-full h-12 text-lg font-bold">
-              Send OTP
-            </Button>
-          </form>
-        )}
-
-        {step === 'otp' && (
-          <form onSubmit={handleVerifyOtp} className="w-full space-y-4 pt-4">
-            <Input 
-              type="text" 
-              placeholder="Enter OTP" 
-              className="h-12 text-center text-base" 
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              required
-              maxLength={6}
-            />
-            <Button type="submit" className="w-full h-12 text-lg font-bold">
-              Log In
-            </Button>
-            <Button variant="link" onClick={() => setStep('phone')} className="text-primary">
-              Use a different phone number
-            </Button>
-          </form>
-        )}
+        <form onSubmit={handleLogin} className="w-full space-y-4 pt-4">
+          <Input 
+            type="email" 
+            placeholder="Email" 
+            className="h-12 text-base" 
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <Input 
+            type="password" 
+            placeholder="Password" 
+            className="h-12 text-base" 
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <Button type="submit" className="w-full h-12 text-lg font-bold">
+            Log In
+          </Button>
+        </form>
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">

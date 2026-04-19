@@ -2,67 +2,74 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useFirebase, useUser } from "@/firebase";
+import { useFirebase } from "@/firebase";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import { Camera } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function SignupPage() {
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const router = useRouter();
-  const { user, isUserLoading } = useUser();
-  const { firestore } = useFirebase();
+  const { auth, firestore } = useFirebase();
   const { toast } = useToast();
-
-  useEffect(() => {
-    // If auth is loading, wait. If it's done and there's no user, redirect to login.
-    if (!isUserLoading && !user) {
-      router.replace('/login');
-    }
-  }, [user, isUserLoading, router]);
-
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !firestore) {
-        toast({ title: "Error", description: "User not authenticated or Firebase not ready.", variant: "destructive" });
+    if (!auth || !firestore) {
+        toast({ title: "Error", description: "Firebase not ready.", variant: "destructive" });
         return;
     };
 
+    if (password.length < 6) {
+        toast({ title: "Error", description: "Password must be at least 6 characters long.", variant: "destructive" });
+        return;
+    }
+
     try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
         const userProfile = {
             uid: user.uid,
             name,
             username,
-            phoneNumber: user.phoneNumber,
+            email: user.email,
             profileImageUrl: `https://picsum.photos/seed/${user.uid}/400/400`, // Placeholder image
             createdAt: serverTimestamp(),
         };
 
         await setDoc(doc(firestore, "users", user.uid), userProfile);
-        toast({ title: "Success", description: "Profile created successfully!" });
+        
+        toast({ title: "Success", description: "Account created successfully!" });
         router.push('/feed');
     } catch (error: any) {
-        console.error("Error creating profile: ", error);
-        toast({ title: "Error", description: error.message, variant: "destructive" });
+        console.error("Error creating account: ", error);
+        let errorMessage = "Could not create account. Please try again.";
+        if (error.code === 'auth/email-already-in-use') {
+            errorMessage = "This email address is already in use.";
+        } else if (error.code === 'auth/invalid-email') {
+            errorMessage = "Please enter a valid email address.";
+        } else if (error.code === 'auth/weak-password') {
+            errorMessage = "The password is too weak.";
+        }
+        toast({ title: "Signup Failed", description: errorMessage, variant: "destructive" });
     }
   };
-
-  if (isUserLoading || !user) {
-    return <div className="flex min-h-screen flex-col items-center justify-center bg-black text-white"><p>Loading...</p></div>;
-  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-black p-4">
       <div className="w-full max-w-sm space-y-4 text-center">
         <h1 className="text-5xl font-bold text-primary [filter:drop-shadow(0_0_8px_hsl(var(--primary)))]">
-          Complete Profile
+          Create Account
         </h1>
-        <p className="text-muted-foreground">Tell us a bit about yourself.</p>
+        <p className="text-muted-foreground">Join A.snap today.</p>
         
         <div className="flex justify-center pt-4">
             <div className="relative">
@@ -78,6 +85,22 @@ export default function SignupPage() {
         </div>
         
         <form onSubmit={handleSignup} className="w-full space-y-3 pt-2">
+          <Input 
+            type="email" 
+            placeholder="Email" 
+            className="h-12 text-base" 
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <Input 
+            type="password" 
+            placeholder="Password (min. 6 characters)" 
+            className="h-12 text-base" 
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
           <Input 
             type="text" 
             placeholder="Name" 

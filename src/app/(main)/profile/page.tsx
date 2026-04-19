@@ -16,7 +16,7 @@ export type UserProfile = {
     name: string;
     username: string;
     profileImageUrl: string;
-    phoneNumber: string;
+    email: string;
 };
 
 export default function ProfilePage() {

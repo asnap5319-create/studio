@@ -18,9 +18,10 @@
           "type": "string",
           "description": "The user's public username."
         },
-        "phoneNumber": {
+        "email": {
           "type": "string",
-          "description": "The user's phone number."
+          "description": "The user's email address.",
+          "format": "email"
         },
         "profileImageUrl": {
           "type": "string",
@@ -33,11 +34,11 @@
           "format": "date-time"
         }
       },
-      "required": ["uid", "name", "username", "phoneNumber", "createdAt"]
+      "required": ["uid", "name", "username", "email", "createdAt"]
     }
   },
   "auth": {
-    "providers": ["phone"]
+    "providers": ["email"]
   },
   "firestore": {
     "structure": [
