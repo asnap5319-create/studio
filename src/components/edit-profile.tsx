@@ -57,25 +57,33 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
     setUploadProgress(0);
 
     const photoRef = storageRef(storage, `profile-images/${user.uid}`);
+    console.log('Starting upload to:', photoRef.fullPath);
     const uploadTask = uploadBytesResumable(photoRef, file);
     
     uploadTask.on('state_changed', 
       (snapshot) => {
         const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        console.log('Upload is ' + progress + '% done');
         setUploadProgress(progress);
       }, 
       (error) => {
-        console.error("Upload Error:", error);
+        console.error("!!! UPLOAD FAILED !!!", error);
+        console.error("Error Code:", error.code);
+        console.error("Error Message:", error.message);
+        
         let description = 'Could not upload your new profile photo.';
          switch (error.code) {
             case 'storage/unauthorized':
-                description = "Permission denied. You might not have access to upload.";
+                description = "Permission denied. Please check storage security rules.";
                 break;
             case 'storage/canceled':
                 description = 'The upload was canceled.';
                 break;
+            case 'storage/unknown':
+                description = 'An unknown error occurred. Check the console for details.';
+                break;
             default:
-                description = "An unknown error occurred during upload.";
+                description = `An unexpected error occurred: ${error.code}`;
                 break;
         }
         toast({
