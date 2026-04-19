@@ -20,11 +20,15 @@ export function initializeFirebase() {
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
+  // Explicitly provide the storage bucket URL to getStorage.
+  // This can resolve issues where the app's default config is not picked up correctly,
+  // leading to errors like "storage/retry-limit-exceeded".
+  const bucketUrl = `gs://${firebaseConfig.storageBucket}`;
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),
     firestore: getFirestore(firebaseApp),
-    storage: getStorage(firebaseApp)
+    storage: getStorage(firebaseApp, bucketUrl)
   };
 }
 
