@@ -1,5 +1,5 @@
 'use client';
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -40,18 +40,18 @@ export default function ProfilePage() {
         router.push('/login');
     };
 
-    if (isUserLoading || isProfileLoading) {
+    useEffect(() => {
+        if (!isUserLoading && !user) {
+            router.push('/login');
+        }
+    }, [isUserLoading, user, router]);
+
+    if (isUserLoading || isProfileLoading || !user) {
         return (
             <div className="flex h-full flex-col items-center justify-center bg-background text-white">
                 <p>Loading profile...</p>
             </div>
         );
-    }
-
-    if (!user) {
-        // This should be handled by the useUser hook redirecting, but as a fallback
-        router.push('/login');
-        return null;
     }
     
     return (
