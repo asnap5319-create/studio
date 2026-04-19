@@ -16,10 +16,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFirebase, useUser } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
-import { getDownloadURL, ref as storageRef, uploadBytesResumable } from "firebase/storage";
+import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/app/(main)/profile/page';
-import { Progress } from '@/components/ui/progress';
 
 interface EditProfileSheetProps {
   open: boolean;
@@ -36,8 +35,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
   const [username, setUsername] = useState(userProfile?.username || '');
   const [bio, setBio] = useState(userProfile?.bio || '');
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isPhotoUploading, setIsPhotoUploading] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -53,24 +51,32 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
     if (!e.target.files || !e.target.files[0] || !user || !storage || !firestore) return;
 
     const file = e.target.files[0];
-    setIsUploading(true);
-    setUploadProgress(0);
+    setIsPhotoUploading(true);
 
     const photoRef = storageRef(storage, `profile-images/${user.uid}`);
-    console.log('Starting upload to:', photoRef.fullPath);
-    const uploadTask = uploadBytesResumable(photoRef, file);
     
-    uploadTask.on('state_changed', 
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        console.log('Upload is ' + progress + '% done');
-        setUploadProgress(progress);
-      }, 
-      (error) => {
+    uploadBytes(photoRef, file).then((snapshot) => {
+        getDownloadURL(snapshot.ref).then(async (downloadURL) => {
+            const userDocRef = doc(firestore, 'users', user.uid);
+            await updateDoc(userDocRef, {
+                profileImageUrl: downloadURL
+            });
+            toast({
+                title: 'Profile Photo Updated',
+                description: 'Your new photo has been saved.',
+            });
+        }).catch((error) => {
+             console.error('Error getting download URL: ', error);
+             toast({
+                variant: 'destructive',
+                title: 'Save Error',
+                description: 'The photo uploaded, but could not be saved to your profile.',
+            });
+        }).finally(() => {
+            setIsPhotoUploading(false);
+        });
+    }).catch((error) => {
         console.error("!!! UPLOAD FAILED !!!", error);
-        console.error("Error Code:", error.code);
-        console.error("Error Message:", error.message);
-        
         let description = 'Could not upload your new profile photo.';
          switch (error.code) {
             case 'storage/unauthorized':
@@ -91,32 +97,8 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
             title: 'Upload Failed',
             description,
         });
-        setIsUploading(false);
-        setUploadProgress(0);
-      }, 
-      () => {
-        getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
-            const userDocRef = doc(firestore, 'users', user.uid);
-            await updateDoc(userDocRef, {
-                profileImageUrl: downloadURL
-            });
-            toast({
-                title: 'Profile Photo Updated',
-                description: 'Your new photo has been saved.',
-            });
-        }).catch((error) => {
-             console.error('Error saving photo URL: ', error);
-             toast({
-                variant: 'destructive',
-                title: 'Save Error',
-                description: 'The photo uploaded, but could not be saved to your profile.',
-            });
-        }).finally(() => {
-            setIsUploading(false);
-            setUploadProgress(0);
-        });
-      }
-    );
+        setIsPhotoUploading(false);
+    });
   };
 
   const handleSaveChanges = async () => {
@@ -167,14 +149,13 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
               <AvatarImage src={userProfile?.profileImageUrl} />
               <AvatarFallback>{userProfile?.name?.[0]}</AvatarFallback>
             </Avatar>
-            {isUploading && <Progress value={uploadProgress} className="w-[60%]" />}
             <Button 
                 variant="link" 
                 className="text-primary p-0 h-auto" 
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
+                disabled={isPhotoUploading}
             >
-                {isUploading ? `Uploading: ${Math.round(uploadProgress)}%` : 'Change profile photo'}
+                {isPhotoUploading ? `Uploading...` : 'Change profile photo'}
             </Button>
             <Input 
                 type="file" 
@@ -182,17 +163,17 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
                 ref={fileInputRef} 
                 onChange={handlePhotoUpload} 
                 accept="image/png, image/jpeg, image/webp"
-                disabled={isUploading}
+                disabled={isPhotoUploading}
             />
           </div>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} disabled={isUploading} />
+              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} disabled={isPhotoUploading || isSaving} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
-              <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} disabled={isUploading} />
+              <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} disabled={isPhotoUploading || isSaving} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="bio">Bio</Label>
@@ -202,16 +183,16 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
                 onChange={(e) => setBio(e.target.value)} 
                 placeholder="Write a little bit about yourself..."
                 className="min-h-[100px]"
-                disabled={isUploading}
+                disabled={isPhotoUploading || isSaving}
               />
             </div>
           </div>
         </div>
         <SheetFooter className="flex-row gap-2">
           <SheetClose asChild>
-            <Button variant="outline" className="flex-1" disabled={isUploading}>Cancel</Button>
+            <Button variant="outline" className="flex-1" disabled={isPhotoUploading || isSaving}>Cancel</Button>
           </SheetClose>
-          <Button onClick={handleSaveChanges} disabled={isSaving || isUploading} className="flex-1">
+          <Button onClick={handleSaveChanges} disabled={isSaving || isPhotoUploading} className="flex-1">
             {isSaving ? 'Saving...' : 'Save Changes'}
           </Button>
         </SheetFooter>
