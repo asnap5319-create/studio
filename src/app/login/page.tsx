@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from "firebase/auth";
 import { useFirebase } from "@/firebase";
@@ -16,8 +16,8 @@ import parsePhoneNumber from 'libphonenumber-js';
 
 declare global {
   interface Window {
-    recaptchaVerifier: RecaptchaVerifier;
-    confirmationResult: ConfirmationResult;
+    recaptchaVerifier?: RecaptchaVerifier;
+    confirmationResult?: ConfirmationResult;
   }
 }
 
@@ -39,19 +39,6 @@ export default function LoginPage() {
   const { auth, firestore } = useFirebase();
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (!auth) return;
-    // It's important that this only runs once, so we check if it's already on the window
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'invisible',
-        'callback': () => {
-          // reCAPTCHA solved, allow signInWithPhoneNumber.
-        },
-      });
-    }
-  }, [auth]);
-
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth || !firestore) {
@@ -72,9 +59,19 @@ export default function LoginPage() {
 
     const formattedPhoneNumber = phoneNumber.format('E.164');
 
-    const appVerifier = window.recaptchaVerifier;
     try {
-      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhoneNumber, appVerifier);
+      // Ensure the reCAPTCHA container is clean before rendering a new verifier
+      const recaptchaContainer = document.getElementById('recaptcha-container');
+      if (recaptchaContainer) {
+        recaptchaContainer.innerHTML = '';
+      }
+
+      const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+      });
+      window.recaptchaVerifier = verifier;
+
+      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhoneNumber, verifier);
       window.confirmationResult = confirmationResult;
       setStep('otp');
       toast({ title: "OTP Sent", description: "Check your phone for the OTP." });
@@ -85,12 +82,9 @@ export default function LoginPage() {
         errorMessage = "The phone number is not valid.";
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = "Too many requests. Please try again later.";
+      } else if (error.message) {
+        errorMessage = `An error occurred: ${error.code || error.message}`;
       }
-      // Reset the reCAPTCHA so the user can try again.
-      window.recaptchaVerifier.render().then((widgetId) => {
-        // @ts-ignore
-        grecaptcha.reset(widgetId);
-      });
       toast({ title: "Error", description: errorMessage, variant: "destructive" });
     }
   };
