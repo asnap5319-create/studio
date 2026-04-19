@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from "firebase/auth";
 import { useFirebase } from "@/firebase";
@@ -39,6 +39,31 @@ export default function LoginPage() {
   const { auth, firestore } = useFirebase();
   const { toast } = useToast();
 
+  useEffect(() => {
+    if (!auth) return;
+
+    // Set up the reCAPTCHA verifier once the auth service is available
+    // We are using the 'normal' size, which shows the "I'm not a robot" checkbox
+    // This is more robust against UI interaction issues.
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'normal', // Use the visible reCAPTCHA
+        'callback': (response) => {
+          // reCAPTCHA solved.
+        },
+        'expired-callback': () => {
+          // Response expired. User needs to solve reCAPTCHA again.
+          toast({ title: "reCAPTCHA Expired", description: "Please verify you are not a robot again.", variant: 'destructive'});
+        }
+      });
+      // Render the verifier
+      window.recaptchaVerifier.render().catch((error) => {
+        toast({ title: "reCAPTCHA Error", description: "Could not render reCAPTCHA. Please refresh the page.", variant: 'destructive'});
+        console.error("reCAPTCHA render error: ", error);
+      });
+    }
+  }, [auth, toast]);
+
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth || !firestore) {
@@ -58,20 +83,15 @@ export default function LoginPage() {
     }
 
     const formattedPhoneNumber = phoneNumber.format('E.164');
+    const appVerifier = window.recaptchaVerifier;
 
+    if (!appVerifier) {
+      toast({ title: "Error", description: "reCAPTCHA not initialized. Please wait a moment.", variant: "destructive" });
+      return;
+    }
+    
     try {
-      // Ensure the reCAPTCHA container is clean before rendering a new verifier
-      const recaptchaContainer = document.getElementById('recaptcha-container');
-      if (recaptchaContainer) {
-        recaptchaContainer.innerHTML = '';
-      }
-
-      const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'invisible',
-      });
-      window.recaptchaVerifier = verifier;
-
-      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhoneNumber, verifier);
+      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhoneNumber, appVerifier);
       window.confirmationResult = confirmationResult;
       setStep('otp');
       toast({ title: "OTP Sent", description: "Check your phone for the OTP." });
@@ -86,6 +106,8 @@ export default function LoginPage() {
         errorMessage = `An error occurred: ${error.code || error.message}`;
       }
       toast({ title: "Error", description: errorMessage, variant: "destructive" });
+      // Reset reCAPTCHA after an error
+      window.recaptchaVerifier?.render().catch(console.error);
     }
   };
 
@@ -116,7 +138,6 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-      <div id="recaptcha-container"></div>
       <div className="w-full max-w-sm space-y-6 text-center">
         <h1 className="text-5xl font-bold text-primary [filter:drop-shadow(0_0_8px_hsl(var(--primary)))]">
           A.snap
@@ -160,6 +181,8 @@ export default function LoginPage() {
                   required
                 />
             </div>
+            {/* The reCAPTCHA will be rendered here */}
+            <div id="recaptcha-container" className="flex justify-center"></div>
             <Button type="submit" className="w-full h-12 text-lg font-bold">
               Send OTP
             </Button>
