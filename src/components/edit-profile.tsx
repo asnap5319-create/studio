@@ -73,12 +73,12 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       return;
     }
     
-    // TEMPORARY FIX: Hardcoding values to debug env var issue
-    const cloudName = "drtyzhdhr";
-    const uploadPreset = "asnap.upload";
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
     if (!cloudName || !uploadPreset) {
       toast({ title: "Configuration Error", description: "Cloudinary is not configured. Please contact support.", variant: "destructive" });
+      console.error("Cloudinary environment variables NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME or NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET are not set.");
       return;
     }
 

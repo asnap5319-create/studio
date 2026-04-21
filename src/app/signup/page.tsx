@@ -45,12 +45,12 @@ export default function SignupPage() {
       return;
     }
 
-    // TEMPORARY FIX: Hardcoding values to debug env var issue
-    const cloudName = "drtyzhdhr";
-    const uploadPreset = "asnap.upload";
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
     if (!cloudName || !uploadPreset) {
       toast({ title: "Configuration Error", description: "Cloudinary is not configured. Please set environment variables.", variant: "destructive" });
+      console.error("Cloudinary environment variables NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME or NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET are not set.");
       return;
     }
 
@@ -91,13 +91,15 @@ export default function SignupPage() {
 
       setStatusMessage('Saving profile...');
       const userProfile = {
-        uid: user.uid,
+        id: user.uid,
         name,
         username,
         email: user.email,
         profileImageUrl,
         createdAt: serverTimestamp(),
         bio: "",
+        followerIds: [],
+        followingIds: [],
       };
       await setDoc(doc(firestore, "users", user.uid), userProfile);
 
@@ -115,6 +117,8 @@ export default function SignupPage() {
         } else if (error.code === 'auth/weak-password') {
           errorMessage = "The password is too weak.";
         }
+      } else if (error.message.includes('permission')) {
+        errorMessage = "Failed to save profile due to security rules. Please check Firestore rules.";
       }
       toast({ title: "Signup Failed", description: errorMessage, variant: "destructive" });
       setIsLoading(false);

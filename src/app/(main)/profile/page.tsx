@@ -13,11 +13,14 @@ import Image from "next/image";
 
 // Exporting type for use in other components
 export type UserProfile = {
+    id: string;
     name: string;
     username: string;
     profileImageUrl: string;
     email: string;
     bio?: string;
+    followerIds?: string[];
+    followingIds?: string[];
 };
 
 export default function ProfilePage() {
@@ -87,11 +90,11 @@ export default function ProfilePage() {
                                 <p className="text-sm text-muted-foreground">Posts</p>
                             </div>
                             <div className="text-center">
-                                <p className="font-bold text-lg">0</p>
+                                <p className="font-bold text-lg">{userProfile?.followerIds?.length || 0}</p>
                                 <p className="text-sm text-muted-foreground">Followers</p>
                             </div>
                             <div className="text-center">
-                                <p className="font-bold text-lg">0</p>
+                                <p className="font-bold text-lg">{userProfile?.followingIds?.length || 0}</p>
                                 <p className="text-sm text-muted-foreground">Following</p>
                             </div>
                         </div>
