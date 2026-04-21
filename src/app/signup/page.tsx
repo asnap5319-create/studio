@@ -2,10 +2,9 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import { useFirebase } from "@/firebase";
+import { useFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, UserCredential } from "firebase/auth";
 import { Camera } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -57,73 +56,85 @@ export default function SignupPage() {
     setIsLoading(true);
     setStatusMessage('Creating account...');
 
+    let userCredential: UserCredential;
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      let profileImageUrl = `https://picsum.photos/seed/${user.uid}/400/400`;
-
-      if (imageFile) {
-        setStatusMessage('Uploading photo...');
-        const formData = new FormData();
-        formData.append('file', imageFile);
-        formData.append('upload_preset', uploadPreset);
-
-        try {
-            const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-                method: 'POST',
-                body: formData
-            });
-            const data = await response.json();
-            if (data.secure_url) {
-                profileImageUrl = data.secure_url;
-            } else {
-                throw new Error(data.error?.message || 'Cloudinary upload failed.');
-            }
-        } catch (uploadError: any) {
-            console.error('Cloudinary upload error:', uploadError);
-            toast({ title: "Signup Failed", description: `Photo upload failed: ${uploadError.message}`, variant: "destructive" });
-            setIsLoading(false);
-            setStatusMessage('Sign Up');
-            // Consider deleting the created user for better UX, but keeping it simple for now.
-            return;
-        }
-      }
-
-      setStatusMessage('Saving profile...');
-      const userProfile = {
-        id: user.uid,
-        name,
-        username,
-        email: user.email,
-        profileImageUrl,
-        createdAt: serverTimestamp(),
-        bio: "",
-        followerIds: [],
-        followingIds: [],
-      };
-      await setDoc(doc(firestore, "users", user.uid), userProfile);
-
-      toast({ title: "Success", description: "Welcome to A.snap!" });
-      router.push('/feed');
-
+      userCredential = await createUserWithEmailAndPassword(auth, email, password);
     } catch (error: any) {
-      console.error("Error during signup process: ", error);
+      console.error("Error creating auth user: ", error);
       let errorMessage = "Could not create account. Please try again.";
-      if (error.code?.startsWith('auth/')) {
-        if (error.code === 'auth/email-already-in-use') {
-          errorMessage = "This email address is already in use.";
-        } else if (error.code === 'auth/invalid-email') {
-          errorMessage = "Please enter a valid email address.";
-        } else if (error.code === 'auth/weak-password') {
-          errorMessage = "The password is too weak.";
-        }
-      } else if (error.message.includes('permission')) {
-        errorMessage = "Failed to save profile due to security rules. Please check Firestore rules.";
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = "This email address is already in use.";
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "Please enter a valid email address.";
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = "The password is too weak.";
       }
       toast({ title: "Signup Failed", description: errorMessage, variant: "destructive" });
       setIsLoading(false);
       setStatusMessage('Sign Up');
+      return;
     }
+
+    const user = userCredential.user;
+    let profileImageUrl = `https://picsum.photos/seed/${user.uid}/400/400`;
+
+    if (imageFile) {
+      setStatusMessage('Uploading photo...');
+      const formData = new FormData();
+      formData.append('file', imageFile);
+      formData.append('upload_preset', uploadPreset);
+      try {
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (data.secure_url) {
+          profileImageUrl = data.secure_url;
+        } else {
+          throw new Error(data.error?.message || 'Cloudinary upload failed.');
+        }
+      } catch (uploadError: any) {
+        console.error('Cloudinary upload error:', uploadError);
+        toast({ title: "Signup Failed", description: `Photo upload failed: ${uploadError.message}. Profile not saved.`, variant: "destructive" });
+        setIsLoading(false);
+        setStatusMessage('Sign Up');
+        return;
+      }
+    }
+
+    setStatusMessage('Saving profile...');
+    const userProfile = {
+      id: user.uid,
+      name,
+      username,
+      email: user.email,
+      profileImageUrl,
+      createdAt: serverTimestamp(),
+      bio: "",
+      followerIds: [],
+      followingIds: [],
+    };
+    const userDocRef = doc(firestore, "users", user.uid);
+
+    setDoc(userDocRef, userProfile)
+      .then(() => {
+        toast({ title: "Success", description: "Welcome to A.snap!" });
+        router.push('/feed');
+      })
+      .catch((serverError) => {
+        console.error("Firestore setDoc error: ", serverError);
+        const permissionError = new FirestorePermissionError({
+          path: userDocRef.path,
+          operation: 'create',
+          requestResourceData: userProfile,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        
+        toast({ title: "Signup Failed", description: "Failed to save profile due to a database error.", variant: "destructive" });
+        setIsLoading(false);
+        setStatusMessage('Sign Up');
+      });
   };
 
   return (
