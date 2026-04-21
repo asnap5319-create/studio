@@ -24,7 +24,9 @@ export function getSdks(firebaseApp: FirebaseApp) {
     firebaseApp,
     auth: getAuth(firebaseApp),
     firestore: getFirestore(firebaseApp),
-    storage: getStorage(firebaseApp)
+    // By providing the bucket URL directly, we ensure Storage is always correctly initialized,
+    // bypassing any potential ambiguity in the app instance's configuration.
+    storage: getStorage(firebaseApp, firebaseConfig.storageBucket)
   };
 }
 
