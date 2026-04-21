@@ -16,7 +16,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFirebase, useUser } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
-import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
+import { getDownloadURL, ref as storageRef, uploadBytesResumable } from "firebase/storage";
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/app/(main)/profile/page';
 
@@ -47,7 +47,6 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       setUsername(userProfile.username);
       setBio(userProfile.bio || '');
     }
-    // When sheet opens/closes, reset the local preview and file
     if (!open) {
       setImagePreviewUrl(null);
       setImageFile(null);
@@ -57,9 +56,9 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
   const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setImageFile(file); // Store the file object
+      setImageFile(file);
       const localUrl = URL.createObjectURL(file);
-      setImagePreviewUrl(localUrl); // Show preview immediately
+      setImagePreviewUrl(localUrl);
     }
   };
 
@@ -74,22 +73,44 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
     }
 
     setIsSaving(true);
-    const userDocRef = doc(firestore, 'users', user.uid);
 
     try {
-      const dataToUpdate: { name: string; username: string; bio: string; profileImageUrl?: string } = {
-        name,
-        username,
-        bio,
-      };
+      let profileImageUrl = userProfile?.profileImageUrl;
 
       if (imageFile) {
         const photoRef = storageRef(storage, `profile-images/${user.uid}`);
-        const uploadResult = await uploadBytes(photoRef, imageFile);
-        const downloadURL = await getDownloadURL(uploadResult.ref);
-        dataToUpdate.profileImageUrl = downloadURL;
+        const uploadTask = uploadBytesResumable(photoRef, imageFile);
+
+        profileImageUrl = await new Promise<string>((resolve, reject) => {
+          uploadTask.on('state_changed',
+            (snapshot) => {
+              // Not showing progress UI here as per user request
+            },
+            (error) => {
+              console.error("Upload failed:", error);
+              reject(error);
+            },
+            async () => {
+              try {
+                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                resolve(downloadURL);
+              } catch (error) {
+                console.error("Failed to get download URL:", error);
+                reject(error);
+              }
+            }
+          );
+        });
       }
-      
+
+      const userDocRef = doc(firestore, 'users', user.uid);
+      const dataToUpdate = {
+        name,
+        username,
+        bio,
+        profileImageUrl,
+      };
+
       await setDoc(userDocRef, dataToUpdate, { merge: true });
 
       toast({
@@ -101,14 +122,23 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
     } catch (error: any) {
       console.error('Error updating profile: ', error);
       let description = 'Could not update your profile.';
-      if (error.code === 'storage/unauthorized') {
+      switch (error.code) {
+        case 'storage/unauthorized':
           description = "You don't have permission to upload files.";
-      } else if (error.message) {
-        description = error.message;
+          break;
+        case 'storage/retry-limit-exceeded':
+          description = "Connection timed out. Please check your internet connection and try again.";
+          break;
+        case 'storage/canceled':
+          description = "The upload was canceled.";
+          break;
+        default:
+          description = error.message || 'An unknown error occurred.';
+          break;
       }
       toast({
         variant: 'destructive',
-        title: 'Uh oh! Something went wrong.',
+        title: 'Save Failed',
         description,
       });
     } finally {

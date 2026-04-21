@@ -60,7 +60,7 @@ export default function SignupPage() {
         const photoRef = storageRef(storage, `profile-images/${user.uid}`);
         const uploadTask = uploadBytesResumable(photoRef, imageFile);
 
-        await new Promise<void>((resolve, reject) => {
+        profileImageUrl = await new Promise<string>((resolve, reject) => {
           uploadTask.on('state_changed',
             (snapshot) => {
               const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
@@ -68,27 +68,16 @@ export default function SignupPage() {
               setUploadProgress(progress);
             },
             (error) => {
-              console.error("Error uploading photo during signup:", error);
-              toast({
-                variant: "destructive",
-                title: "Photo Upload Failed",
-                description: "Your account was created, but the photo couldn't be uploaded. You can set it from your profile.",
-              });
-              resolve(); // Resolve to proceed with default image
+              console.error("Upload failed during signup:", error);
+              reject(error); // Reject the promise on upload error
             },
             async () => {
               try {
                 const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                profileImageUrl = downloadURL;
-                resolve();
+                resolve(downloadURL);
               } catch (getUrlError) {
                 console.error("Error getting download URL:", getUrlError);
-                toast({
-                  variant: "destructive",
-                  title: "Photo Upload Failed",
-                  description: "Account created, but couldn't get photo URL.",
-                });
-                resolve(); // Resolve to proceed with default image
+                reject(getUrlError); // Reject on failure to get URL
               }
             }
           );
@@ -113,12 +102,23 @@ export default function SignupPage() {
     } catch (error: any) {
       console.error("Error during signup process: ", error);
       let errorMessage = "Could not create account. Please try again.";
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = "This email address is already in use.";
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = "Please enter a valid email address.";
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = "The password is too weak.";
+      if (error.code?.startsWith('auth/')) {
+        if (error.code === 'auth/email-already-in-use') {
+          errorMessage = "This email address is already in use.";
+        } else if (error.code === 'auth/invalid-email') {
+          errorMessage = "Please enter a valid email address.";
+        } else if (error.code === 'auth/weak-password') {
+          errorMessage = "The password is too weak.";
+        }
+      } else if (error.code?.startsWith('storage/')) {
+        switch (error.code) {
+          case 'storage/retry-limit-exceeded':
+            errorMessage = "Photo upload failed. Please check your internet and try signing up again.";
+            break;
+          default:
+            errorMessage = "Account could not be created due to a photo upload error. Please try again.";
+            break;
+        }
       }
       toast({ title: "Signup Failed", description: errorMessage, variant: "destructive" });
       setIsLoading(false);
