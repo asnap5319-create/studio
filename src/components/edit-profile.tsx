@@ -46,9 +46,11 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       setName(userProfile.name);
       setUsername(userProfile.username);
       setBio(userProfile.bio || '');
+      setImagePreviewUrl(userProfile.profileImageUrl); // Set initial preview
     }
     if (!open) {
-      setImagePreviewUrl(null);
+      // Reset preview when sheet closes without saving
+      setImagePreviewUrl(userProfile?.profileImageUrl || null);
       setImageFile(null);
     }
   }, [userProfile, open]);
@@ -80,27 +82,12 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       if (imageFile) {
         const photoRef = storageRef(storage, `profile-images/${user.uid}`);
         const uploadTask = uploadBytesResumable(photoRef, imageFile);
-
-        profileImageUrl = await new Promise<string>((resolve, reject) => {
-          uploadTask.on('state_changed',
-            (snapshot) => {
-              // Not showing progress UI here as per user request
-            },
-            (error) => {
-              console.error("Upload failed:", error);
-              reject(error);
-            },
-            async () => {
-              try {
-                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                resolve(downloadURL);
-              } catch (error) {
-                console.error("Failed to get download URL:", error);
-                reject(error);
-              }
-            }
-          );
-        });
+        
+        // Directly await the upload task. It will throw an error on failure.
+        await uploadTask;
+        
+        // If upload is successful, get the download URL.
+        profileImageUrl = await getDownloadURL(uploadTask.snapshot.ref);
       }
 
       const userDocRef = doc(firestore, 'users', user.uid);
@@ -122,19 +109,23 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
     } catch (error: any) {
       console.error('Error updating profile: ', error);
       let description = 'Could not update your profile.';
-      switch (error.code) {
-        case 'storage/unauthorized':
-          description = "You don't have permission to upload files.";
-          break;
-        case 'storage/retry-limit-exceeded':
-          description = "Connection timed out. Please check your internet connection and try again.";
-          break;
-        case 'storage/canceled':
-          description = "The upload was canceled.";
-          break;
-        default:
-          description = error.message || 'An unknown error occurred.';
-          break;
+      if (error.code?.startsWith('storage/')) {
+        switch (error.code) {
+          case 'storage/unauthorized':
+            description = "You don't have permission to upload files.";
+            break;
+          case 'storage/retry-limit-exceeded':
+            description = "Connection timed out. Please check your internet and try again.";
+            break;
+          case 'storage/canceled':
+            description = "The upload was canceled.";
+            break;
+          default:
+            description = `Upload failed: ${error.message}`;
+            break;
+        }
+      } else {
+        description = error.message || 'An unknown error occurred.';
       }
       toast({
         variant: 'destructive',

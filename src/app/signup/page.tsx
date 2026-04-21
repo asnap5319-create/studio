@@ -60,28 +60,20 @@ export default function SignupPage() {
         const photoRef = storageRef(storage, `profile-images/${user.uid}`);
         const uploadTask = uploadBytesResumable(photoRef, imageFile);
 
-        profileImageUrl = await new Promise<string>((resolve, reject) => {
-          uploadTask.on('state_changed',
-            (snapshot) => {
-              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-              setStatusMessage(`Uploading: ${Math.round(progress)}%`);
-              setUploadProgress(progress);
-            },
-            (error) => {
-              console.error("Upload failed during signup:", error);
-              reject(error); // Reject the promise on upload error
-            },
-            async () => {
-              try {
-                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                resolve(downloadURL);
-              } catch (getUrlError) {
-                console.error("Error getting download URL:", getUrlError);
-                reject(getUrlError); // Reject on failure to get URL
-              }
-            }
-          );
-        });
+        // Listen for state changes to update progress
+        uploadTask.on('state_changed',
+          (snapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            setStatusMessage(`Uploading: ${Math.round(progress)}%`);
+            setUploadProgress(progress);
+          }
+        );
+
+        // Await the task completion. It will throw on error.
+        await uploadTask;
+
+        // Get the URL after the upload is complete
+        profileImageUrl = await getDownloadURL(uploadTask.snapshot.ref);
       }
 
       setStatusMessage('Saving profile...');
