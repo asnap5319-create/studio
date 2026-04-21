@@ -6,7 +6,6 @@ import { Progress } from "@/components/ui/progress";
 import { useFirebase } from "@/firebase";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { getDownloadURL, ref as storageRef, uploadBytesResumable } from "firebase/storage";
 import { Camera } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -22,10 +21,9 @@ export default function SignupPage() {
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState('Sign Up');
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   const router = useRouter();
-  const { auth, firestore, storage } = useFirebase();
+  const { auth, firestore } = useFirebase();
   const { toast } = useToast();
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -38,12 +36,17 @@ export default function SignupPage() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth || !firestore || !storage) {
+    if (!auth || !firestore) {
       toast({ title: "Error", description: "Firebase not ready. Please try again.", variant: "destructive" });
       return;
     }
     if (password.length < 6) {
       toast({ title: "Signup Failed", description: "Password must be at least 6 characters long.", variant: "destructive" });
+      return;
+    }
+
+    if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET) {
+      toast({ title: "Configuration Error", description: "Cloudinary is not configured. Please set environment variables.", variant: "destructive" });
       return;
     }
 
@@ -57,23 +60,29 @@ export default function SignupPage() {
 
       if (imageFile) {
         setStatusMessage('Uploading photo...');
-        const photoRef = storageRef(storage, `profile-images/${user.uid}`);
-        const uploadTask = uploadBytesResumable(photoRef, imageFile);
+        const formData = new FormData();
+        formData.append('file', imageFile);
+        formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
 
-        // Listen for state changes to update progress
-        uploadTask.on('state_changed',
-          (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            setStatusMessage(`Uploading: ${Math.round(progress)}%`);
-            setUploadProgress(progress);
-          }
-        );
-
-        // Await the task completion. It will throw on error.
-        await uploadTask;
-
-        // Get the URL after the upload is complete
-        profileImageUrl = await getDownloadURL(uploadTask.snapshot.ref);
+        try {
+            const response = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            if (data.secure_url) {
+                profileImageUrl = data.secure_url;
+            } else {
+                throw new Error(data.error?.message || 'Cloudinary upload failed.');
+            }
+        } catch (uploadError: any) {
+            console.error('Cloudinary upload error:', uploadError);
+            toast({ title: "Signup Failed", description: `Photo upload failed: ${uploadError.message}`, variant: "destructive" });
+            setIsLoading(false);
+            setStatusMessage('Sign Up');
+            // Consider deleting the created user for better UX, but keeping it simple for now.
+            return;
+        }
       }
 
       setStatusMessage('Saving profile...');
@@ -102,20 +111,10 @@ export default function SignupPage() {
         } else if (error.code === 'auth/weak-password') {
           errorMessage = "The password is too weak.";
         }
-      } else if (error.code?.startsWith('storage/')) {
-        switch (error.code) {
-          case 'storage/retry-limit-exceeded':
-            errorMessage = "Photo upload failed. Please check your internet and try signing up again.";
-            break;
-          default:
-            errorMessage = "Account could not be created due to a photo upload error. Please try again.";
-            break;
-        }
       }
       toast({ title: "Signup Failed", description: errorMessage, variant: "destructive" });
       setIsLoading(false);
       setStatusMessage('Sign Up');
-      setUploadProgress(null);
     }
   };
 
@@ -181,7 +180,6 @@ export default function SignupPage() {
           <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={isLoading}>
             {statusMessage}
           </Button>
-          {uploadProgress !== null && <Progress value={uploadProgress} className="w-full" />}
         </form>
 
         <p className="px-8 text-center text-xs text-muted-foreground">

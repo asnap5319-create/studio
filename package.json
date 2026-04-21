@@ -36,6 +36,7 @@
     "firebase": "^10.12.2",
     "lucide-react": "^0.475.0",
     "next": "15.5.9",
+    "next-cloudinary": "^6.6.2",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "tailwind-merge": "^3.0.1",

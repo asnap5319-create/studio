@@ -16,7 +16,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFirebase, useUser } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
-import { getDownloadURL, ref as storageRef, uploadBytesResumable } from "firebase/storage";
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/app/(main)/profile/page';
 
@@ -27,7 +26,7 @@ interface EditProfileSheetProps {
 }
 
 export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfileSheetProps) {
-  const { firestore, storage } = useFirebase();
+  const { firestore } = useFirebase();
   const { user } = useUser();
   const { toast } = useToast();
 
@@ -65,12 +64,17 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
   };
 
   const handleSaveChanges = async () => {
-    if (!user || !firestore || !storage) {
+    if (!user || !firestore) {
       toast({
         variant: 'destructive',
         title: 'Error',
         description: 'You must be logged in to edit your profile.',
       });
+      return;
+    }
+    
+    if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET) {
+      toast({ title: "Configuration Error", description: "Cloudinary is not configured. Please contact support.", variant: "destructive" });
       return;
     }
 
@@ -80,14 +84,21 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       let profileImageUrl = userProfile?.profileImageUrl;
 
       if (imageFile) {
-        const photoRef = storageRef(storage, `profile-images/${user.uid}`);
-        const uploadTask = uploadBytesResumable(photoRef, imageFile);
+        const formData = new FormData();
+        formData.append('file', imageFile);
+        formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
         
-        // Directly await the upload task. It will throw an error on failure.
-        await uploadTask;
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
         
-        // If upload is successful, get the download URL.
-        profileImageUrl = await getDownloadURL(uploadTask.snapshot.ref);
+        if (data.secure_url) {
+            profileImageUrl = data.secure_url;
+        } else {
+            throw new Error(data.error?.message || 'Cloudinary upload failed.');
+        }
       }
 
       const userDocRef = doc(firestore, 'users', user.uid);
@@ -108,29 +119,10 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
 
     } catch (error: any) {
       console.error('Error updating profile: ', error);
-      let description = 'Could not update your profile.';
-      if (error.code?.startsWith('storage/')) {
-        switch (error.code) {
-          case 'storage/unauthorized':
-            description = "You don't have permission to upload files.";
-            break;
-          case 'storage/retry-limit-exceeded':
-            description = "Connection timed out. Please check your internet and try again.";
-            break;
-          case 'storage/canceled':
-            description = "The upload was canceled.";
-            break;
-          default:
-            description = `Upload failed: ${error.message}`;
-            break;
-        }
-      } else {
-        description = error.message || 'An unknown error occurred.';
-      }
       toast({
         variant: 'destructive',
         title: 'Save Failed',
-        description,
+        description: error.message || 'Could not update your profile.',
       });
     } finally {
       setIsSaving(false);
