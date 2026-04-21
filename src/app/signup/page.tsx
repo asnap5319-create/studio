@@ -45,7 +45,11 @@ export default function SignupPage() {
       return;
     }
 
-    if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET) {
+    // TEMPORARY FIX: Hardcoding values to debug env var issue
+    const cloudName = "drtyzhdhr";
+    const uploadPreset = "asnap.upload";
+
+    if (!cloudName || !uploadPreset) {
       toast({ title: "Configuration Error", description: "Cloudinary is not configured. Please set environment variables.", variant: "destructive" });
       return;
     }
@@ -62,10 +66,10 @@ export default function SignupPage() {
         setStatusMessage('Uploading photo...');
         const formData = new FormData();
         formData.append('file', imageFile);
-        formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
+        formData.append('upload_preset', uploadPreset);
 
         try {
-            const response = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
+            const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
                 method: 'POST',
                 body: formData
             });
