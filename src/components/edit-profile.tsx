@@ -14,9 +14,10 @@ import {
   SheetClose,
 } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Progress } from '@/components/ui/progress';
 import { useFirebase, useUser } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
-import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
+import { getDownloadURL, ref as storageRef, uploadBytesResumable } from "firebase/storage";
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/app/(main)/profile/page';
 
@@ -35,9 +36,10 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
   const [username, setUsername] = useState(userProfile?.username || '');
   const [bio, setBio] = useState(userProfile?.bio || '');
   const [isSaving, setIsSaving] = useState(false);
-  const [isPhotoUploading, setIsPhotoUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isPhotoUploading = uploadProgress !== null && uploadProgress < 100;
 
   useEffect(() => {
     if (userProfile) {
@@ -47,7 +49,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
     }
   }, [userProfile]);
   
-  const handlePhotoUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;
     
     if (!user || !storage || !firestore) {
@@ -56,30 +58,60 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
     }
 
     const file = e.target.files[0];
-    setIsPhotoUploading(true);
+    setUploadProgress(0);
     
-    try {
-        const photoRef = storageRef(storage, `profile-images/${user.uid}`);
-        const snapshot = await uploadBytes(photoRef, file);
-        const downloadURL = await getDownloadURL(snapshot.ref);
-        
-        const userDocRef = doc(firestore, 'users', user.uid);
-        await setDoc(userDocRef, { profileImageUrl: downloadURL }, { merge: true });
-        
-        toast({ title: 'Profile Photo Updated!', description: 'Your new photo has been saved.' });
-    } catch (error: any) {
-        console.error("Error uploading profile photo: ", error);
-        toast({ 
-            variant: 'destructive', 
-            title: 'Upload Failed', 
-            description: error.message || "Could not upload your new profile photo. Please check permissions." 
-        });
-    } finally {
-        setIsPhotoUploading(false);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
+    const photoRef = storageRef(storage, `profile-images/${user.uid}`);
+    const uploadTask = uploadBytesResumable(photoRef, file);
+
+    uploadTask.on('state_changed',
+        (snapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            setUploadProgress(progress);
+        },
+        (error) => {
+            console.error("Error uploading profile photo: ", error);
+            let description = "Could not upload your new photo.";
+            switch (error.code) {
+                case 'storage/unauthorized':
+                    description = "You don't have permission to upload files.";
+                    break;
+                case 'storage/canceled':
+                    description = "The upload was canceled.";
+                    break;
+                case 'storage/retry-limit-exceeded':
+                    description = "Connection timed out. Please check your internet and try again.";
+                    break;
+                default:
+                    description = "An unknown error occurred, please try again.";
+                    break;
+            }
+            toast({ 
+                variant: 'destructive', 
+                title: 'Upload Failed', 
+                description
+            });
+            setUploadProgress(null);
+        },
+        () => {
+            getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
+                const userDocRef = doc(firestore, 'users', user.uid);
+                await setDoc(userDocRef, { profileImageUrl: downloadURL }, { merge: true });
+                toast({ title: 'Profile Photo Updated!', description: 'Your new photo has been saved.' });
+                setUploadProgress(null);
+                 if (fileInputRef.current) {
+                  fileInputRef.current.value = '';
+                }
+            }).catch((error) => {
+                 console.error("Error getting download URL: ", error);
+                 toast({ 
+                    variant: 'destructive', 
+                    title: 'Upload Failed', 
+                    description: "Photo uploaded but couldn't be saved to your profile." 
+                });
+                setUploadProgress(null);
+            });
         }
-    }
+    );
   };
 
   const handleSaveChanges = async () => {
@@ -96,8 +128,6 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
     const userDocRef = doc(firestore, 'users', user.uid);
 
     try {
-      // Use setDoc with merge to prevent "No document to update" errors
-      // if the document doesn't exist for some reason.
       await setDoc(userDocRef, {
         name,
         username,
@@ -110,10 +140,14 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       onOpenChange(false);
     } catch (error: any) {
       console.error('Error updating profile: ', error);
+      let description = 'Could not update your profile.';
+      if (error.message) {
+        description = error.message;
+      }
       toast({
         variant: 'destructive',
         title: 'Uh oh! Something went wrong.',
-        description: error.message || 'Could not update your profile.',
+        description,
       });
     } finally {
       setIsSaving(false);
@@ -132,14 +166,23 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
               <AvatarImage src={userProfile?.profileImageUrl} />
               <AvatarFallback>{userProfile?.name?.[0]}</AvatarFallback>
             </Avatar>
-            <Button 
-                variant="link" 
-                className="text-primary p-0 h-auto" 
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isSaving || isPhotoUploading}
-            >
-                {isPhotoUploading ? 'Uploading...' : 'Change profile photo'}
-            </Button>
+            
+            {uploadProgress !== null ? (
+              <div className="w-full text-center px-4">
+                <Progress value={uploadProgress} className="w-full mb-2" />
+                <p className="text-sm text-muted-foreground">Uploading: {Math.round(uploadProgress)}%</p>
+              </div>
+            ) : (
+              <Button 
+                  variant="link" 
+                  className="text-primary p-0 h-auto" 
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isSaving}
+              >
+                  Change profile photo
+              </Button>
+            )}
+
             <Input 
                 type="file" 
                 className="hidden" 

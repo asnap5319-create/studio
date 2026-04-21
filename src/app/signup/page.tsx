@@ -2,10 +2,11 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { useFirebase } from "@/firebase";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
+import { getDownloadURL, ref as storageRef, uploadBytesResumable } from "firebase/storage";
 import { Camera } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -20,6 +21,8 @@ export default function SignupPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('Sign Up');
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   const router = useRouter();
   const { auth, firestore, storage } = useFirebase();
@@ -36,66 +39,91 @@ export default function SignupPage() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth || !firestore || !storage) {
-        toast({ title: "Error", description: "Firebase not ready. Please try again.", variant: "destructive" });
-        return;
-    };
-
+      toast({ title: "Error", description: "Firebase not ready. Please try again.", variant: "destructive" });
+      return;
+    }
     if (password.length < 6) {
-        toast({ title: "Signup Failed", description: "Password must be at least 6 characters long.", variant: "destructive" });
-        return;
+      toast({ title: "Signup Failed", description: "Password must be at least 6 characters long.", variant: "destructive" });
+      return;
     }
 
     setIsLoading(true);
+    setStatusMessage('Creating account...');
 
     try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      let profileImageUrl = `https://picsum.photos/seed/${user.uid}/400/400`;
 
-        let profileImageUrl = `https://picsum.photos/seed/${user.uid}/400/400`;
+      if (imageFile) {
+        setStatusMessage('Uploading photo...');
+        const photoRef = storageRef(storage, `profile-images/${user.uid}`);
+        const uploadTask = uploadBytesResumable(photoRef, imageFile);
 
-        if (imageFile) {
-            try {
-                const photoRef = storageRef(storage, `profile-images/${user.uid}`);
-                const snapshot = await uploadBytes(photoRef, imageFile);
-                profileImageUrl = await getDownloadURL(snapshot.ref);
-            } catch (uploadError: any) {
-                console.error("Error uploading photo during signup: ", uploadError);
+        await new Promise<void>((resolve, reject) => {
+          uploadTask.on('state_changed',
+            (snapshot) => {
+              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+              setStatusMessage(`Uploading: ${Math.round(progress)}%`);
+              setUploadProgress(progress);
+            },
+            (error) => {
+              console.error("Error uploading photo during signup:", error);
+              toast({
+                variant: "destructive",
+                title: "Photo Upload Failed",
+                description: "Your account was created, but the photo couldn't be uploaded. You can set it from your profile.",
+              });
+              resolve(); // Resolve to proceed with default image
+            },
+            async () => {
+              try {
+                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                profileImageUrl = downloadURL;
+                resolve();
+              } catch (getUrlError) {
+                console.error("Error getting download URL:", getUrlError);
                 toast({
-                    variant: "destructive",
-                    title: "Photo Upload Failed",
-                    description: "Your account was created, but the photo could not be uploaded. You can try again from your profile.",
+                  variant: "destructive",
+                  title: "Photo Upload Failed",
+                  description: "Account created, but couldn't get photo URL.",
                 });
+                resolve(); // Resolve to proceed with default image
+              }
             }
-        }
-        
-        const userDocRef = doc(firestore, "users", user.uid);
-        const userProfile = {
-            uid: user.uid,
-            name,
-            username,
-            email: user.email,
-            profileImageUrl,
-            createdAt: serverTimestamp(),
-            bio: "",
-        };
-        await setDoc(userDocRef, userProfile);
+          );
+        });
+      }
 
-        toast({ title: "Success", description: "Account created successfully!" });
-        router.push('/feed');
+      setStatusMessage('Saving profile...');
+      const userProfile = {
+        uid: user.uid,
+        name,
+        username,
+        email: user.email,
+        profileImageUrl,
+        createdAt: serverTimestamp(),
+        bio: "",
+      };
+      await setDoc(doc(firestore, "users", user.uid), userProfile);
+
+      toast({ title: "Success", description: "Welcome to A.snap!" });
+      router.push('/feed');
 
     } catch (error: any) {
-        console.error("Error creating account: ", error);
-        let errorMessage = "Could not create account. Please try again.";
-        if (error.code === 'auth/email-already-in-use') {
-            errorMessage = "This email address is already in use.";
-        } else if (error.code === 'auth/invalid-email') {
-            errorMessage = "Please enter a valid email address.";
-        } else if (error.code === 'auth/weak-password') {
-            errorMessage = "The password is too weak.";
-        }
-        toast({ title: "Signup Failed", description: errorMessage, variant: "destructive" });
-    } finally {
-        setIsLoading(false);
+      console.error("Error during signup process: ", error);
+      let errorMessage = "Could not create account. Please try again.";
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = "This email address is already in use.";
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "Please enter a valid email address.";
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = "The password is too weak.";
+      }
+      toast({ title: "Signup Failed", description: errorMessage, variant: "destructive" });
+      setIsLoading(false);
+      setStatusMessage('Sign Up');
+      setUploadProgress(null);
     }
   };
 
@@ -117,7 +145,7 @@ export default function SignupPage() {
                         </AvatarFallback>
                     </Avatar>
                 </label>
-                <Input id="photo-upload" type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                <Input id="photo-upload" type="file" className="hidden" accept="image/*" onChange={handleFileChange} disabled={isLoading}/>
             </div>
         </div>
         
@@ -159,8 +187,9 @@ export default function SignupPage() {
             disabled={isLoading}
           />
           <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={isLoading}>
-            {isLoading ? 'Signing up...' : 'Sign Up'}
+            {statusMessage}
           </Button>
+          {uploadProgress !== null && <Progress value={uploadProgress} className="w-full" />}
         </form>
 
         <p className="px-8 text-center text-xs text-muted-foreground">
