@@ -4,14 +4,27 @@ import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore'
-import { getStorage } from 'firebase/storage';
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
-  // Always initialize with the explicit config to ensure all services have the necessary properties.
-  // This is more robust for development environments.
   if (!getApps().length) {
-    const firebaseApp = initializeApp(firebaseConfig);
+    // Important! initializeApp() is called without any arguments because Firebase App Hosting
+    // integrates with the initializeApp() function to provide the environment variables needed to
+    // populate the FirebaseOptions in production. It is critical that we attempt to call initializeApp()
+    // without arguments.
+    let firebaseApp;
+    try {
+      // Attempt to initialize via Firebase App Hosting environment variables
+      firebaseApp = initializeApp();
+    } catch (e) {
+      // Only warn in production because it's normal to use the firebaseConfig to initialize
+      // during development
+      if (process.env.NODE_ENV === "production") {
+        console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
+      }
+      firebaseApp = initializeApp(firebaseConfig);
+    }
+
     return getSdks(firebaseApp);
   }
 
@@ -20,15 +33,10 @@ export function initializeFirebase() {
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
-  // Explicitly provide the storage bucket URL to getStorage.
-  // This can resolve issues where the app's default config is not picked up correctly,
-  // leading to errors like "storage/retry-limit-exceeded".
-  const bucketUrl = `gs://${firebaseConfig.storageBucket}`;
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp),
-    storage: getStorage(firebaseApp, bucketUrl)
+    firestore: getFirestore(firebaseApp)
   };
 }
 
