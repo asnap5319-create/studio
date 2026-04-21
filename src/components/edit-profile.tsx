@@ -38,6 +38,8 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
   const [isSaving, setIsSaving] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isPhotoUploading = uploadProgress !== null && uploadProgress < 100;
 
@@ -47,7 +49,11 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       setUsername(userProfile.username);
       setBio(userProfile.bio || '');
     }
-  }, [userProfile]);
+    // When sheet opens/closes, reset the local preview
+    if (!open) {
+      setImagePreviewUrl(null);
+    }
+  }, [userProfile, open]);
   
   const handlePhotoUpload = (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;
@@ -58,6 +64,10 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
     }
 
     const file = e.target.files[0];
+    
+    const localUrl = URL.createObjectURL(file);
+    setImagePreviewUrl(localUrl);
+
     setUploadProgress(0);
     
     const photoRef = storageRef(storage, `profile-images/${user.uid}`);
@@ -91,6 +101,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
                 description
             });
             setUploadProgress(null);
+            setImagePreviewUrl(null); // Revert preview
         },
         () => {
             getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
@@ -101,6 +112,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
                  if (fileInputRef.current) {
                   fileInputRef.current.value = '';
                 }
+                setImagePreviewUrl(null); // Clear local preview so it uses the new prop from Firestore
             }).catch((error) => {
                  console.error("Error getting download URL: ", error);
                  toast({ 
@@ -109,6 +121,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
                     description: "Photo uploaded but couldn't be saved to your profile." 
                 });
                 setUploadProgress(null);
+                setImagePreviewUrl(null); // Revert preview
             });
         }
     );
@@ -163,7 +176,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         <div className="py-8 px-4 space-y-6">
           <div className="flex flex-col items-center gap-4">
             <Avatar className="h-24 w-24">
-              <AvatarImage src={userProfile?.profileImageUrl} />
+              <AvatarImage src={imagePreviewUrl ?? userProfile?.profileImageUrl} />
               <AvatarFallback>{userProfile?.name?.[0]}</AvatarFallback>
             </Avatar>
             
