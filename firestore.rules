@@ -1,7 +1,7 @@
 /**
- * Core Philosophy: This ruleset enforces a social media security model centered on user ownership and follower-based visibility.
- * User profiles are public, but user-generated content like posts and stories are only visible to the owner and their followers.
- * This model prioritizes performant, secure queries by using denormalized data structures for follower relationships and personalized feeds.
+ * Core Philosophy: This ruleset enforces a social media security model centered on user ownership and public readability for authenticated users.
+ * User profiles are public, but user-generated content like posts and stories are visible to any signed-in user, fostering a "global feed" or "discover" experience.
+ * This model prioritizes performant, secure queries by ensuring read rules are not overly complex while maintaining strict ownership for all write operations.
  *
  * Data Structure:
  * - /users/{userId}: Core user profile data.
@@ -13,7 +13,7 @@
  *
  * Key Security Decisions:
  * - Public Profiles: User profiles in `/users` can be read by anyone, but only modified by the owner. This supports features like user search.
- * - Follower-Gated Content: Access to posts, stories, comments, and likes is granted only to the content owner or users who follow them. This is achieved with a highly performant `exists()` check against the `/user_followers` collection, avoiding slow and costly `get()` calls.
+ * - Authenticated-User-Gated Content: Access to posts, stories, comments, and likes is granted to any authenticated user. This supports a global feed.
  * - Strict Ownership for Writes: All write operations (create, update, delete) are strictly limited to the document owner (e.g., post author, commenter, liker). An exception is made for post owners, who can moderate (delete) comments on their own posts.
  * - Read-Only Feeds: The personalized feed collections (`/user_feeds` and `/user_story_feeds`) are client-side read-only to prevent tampering. All writes must be handled by a trusted backend service.
  * - Relational Integrity: On creation, rules validate that ownership fields within documents (e.g., `post.userId`) match the user ID in the path, ensuring data consistency. These fields are immutable on update.
@@ -93,15 +93,15 @@ service cloud.firestore {
       // ------------------------------------------------------------------------
 
       /**
-       * @description Manages user posts, which are visible to the owner and their followers.
+       * @description Manages user posts, which are visible to any signed-in user.
        * @path /users/{userId}/posts/{postId}
-       * @allow (get, list) The post owner or their followers can read posts.
+       * @allow (get, list) Any authenticated user can read posts to enable a global feed.
        * @allow (create) An authenticated user can create a post for themselves.
        * @deny (update) An authenticated user cannot update a post they do not own.
-       * @principle Enforces follower-based read access and strict ownership for all writes.
+       * @principle Enforces public read access for signed-in users and strict ownership for all writes.
        */
-      match /posts/{postId} { // Corrected: postId captures the post ID. userId (from parent) is the post owner.
-        allow get, list: if canViewContent(userId);
+      match /posts/{postId} { 
+        allow get, list: if isSignedIn();
         allow create: if isOwner(userId) && request.resource.data.userId == userId;
         allow update: if isOwnerOfExistingDoc(resource.data.userId) && request.resource.data.userId == resource.data.userId;
         allow delete: if isOwnerOfExistingDoc(resource.data.userId);
@@ -109,14 +109,14 @@ service cloud.firestore {
         /**
          * @description Manages comments on a specific post.
          * @path /users/{userId}/posts/{postId}/comments/{commentId}
-         * @allow (get, list) Anyone who can see the post can also see its comments.
-         * @allow (create) An authenticated user can create a comment on a post they can view.
+         * @allow (get, list) Anyone who is signed in can see the comments on a post.
+         * @allow (create) An authenticated user can create a comment on any post.
          * @allow (delete) A user can delete their own comment, or the post owner can delete any comment on their post.
          * @deny (update) A user who is not the comment author cannot update a comment.
          * @principle Inherits read access from the parent post and allows owner/moderator deletion.
          */
         match /comments/{commentId} {
-          allow get, list: if canViewContent(userId); // userId is the post owner
+          allow get, list: if isSignedIn(); 
           allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && request.resource.data.postId == postId;
           allow update: if isOwnerOfExistingDoc(resource.data.userId) && request.resource.data.userId == resource.data.userId;
           allow delete: if isExistingDoc() && (isOwner(resource.data.userId) || isOwner(userId)); // resource.data.userId is comment owner, userId is post owner
@@ -125,13 +125,13 @@ service cloud.firestore {
         /**
          * @description Manages likes on a specific post.
          * @path /users/{userId}/posts/{postId}/likes/{likeId}
-         * @allow (get, list) Anyone who can see the post can also see its likes.
-         * @allow (create, delete) An authenticated user can like/unlike a post they can view.
+         * @allow (get, list) Anyone who is signed in can see the likes on a post.
+         * @allow (create, delete) An authenticated user can like/unlike any post.
          * @deny (update) Likes are not updatable.
-         * @principle Inherits read access from the parent post and enforces strict ownership for creating/deleting the like.
+         * @principle Enforces strict ownership for creating/deleting the like.
          */
         match /likes/{likeId} {
-          allow get, list: if canViewContent(userId); // userId is the post owner
+          allow get, list: if isSignedIn();
           allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && request.resource.data.postId == postId;
           allow update: if false;
           allow delete: if isOwnerOfExistingDoc(resource.data.userId);
@@ -143,15 +143,15 @@ service cloud.firestore {
       // ------------------------------------------------------------------------
 
       /**
-       * @description Manages user stories, which are visible to the owner and their followers.
+       * @description Manages user stories, which are visible to any signed-in user.
        * @path /users/{userId}/stories/{storyId}
-       * @allow (get, list) The story owner or their followers can read stories.
+       * @allow (get, list) Any authenticated user can read stories.
        * @allow (create) An authenticated user can create a story for themselves.
        * @deny (delete) A user cannot delete a story they do not own.
-       * @principle Enforces follower-based read access and strict ownership for all writes.
+       * @principle Enforces public read access and strict ownership for all writes.
        */
-      match /stories/{storyId} { // Corrected: storyId captures the story ID. userId (from parent) is the story owner.
-        allow get, list: if canViewContent(userId);
+      match /stories/{storyId} { 
+        allow get, list: if isSignedIn();
         allow create: if isOwner(userId) && request.resource.data.userId == userId;
         allow update: if isOwnerOfExistingDoc(resource.data.userId) && request.resource.data.userId == resource.data.userId;
         allow delete: if isOwnerOfExistingDoc(resource.data.userId);
