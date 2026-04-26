@@ -3,14 +3,28 @@ import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
-import { collection, doc, query, orderBy } from "firebase/firestore";
-import { MoreVertical, Settings, Shield, LogOut, Grid3x3, Clapperboard } from "lucide-react";
+import { collection, doc, query, orderBy, deleteDoc } from "firebase/firestore";
+import { MoreVertical, Settings, Shield, LogOut, Grid3x3, Clapperboard, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
 import Image from "next/image";
 import type { Post } from "@/models/post";
+import { PostCard } from "@/components/post-card";
+import { useToast } from "@/hooks/use-toast";
 
 // Exporting type for use in other components
 export type UserProfile = {
@@ -28,8 +42,10 @@ export default function ProfilePage() {
     const router = useRouter();
     const { user, isUserLoading } = useUser();
     const { firestore, auth } = useFirebase();
+    const { toast } = useToast();
     
     const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
+    const [selectedPost, setSelectedPost] = useState<Post | null>(null);
 
     const userProfileRef = useMemoFirebase(() => {
         if (!firestore || !user) return null;
@@ -50,6 +66,34 @@ export default function ProfilePage() {
         if (!auth) return;
         await signOut(auth);
         router.push('/login');
+    };
+
+    const handleDeletePost = async () => {
+        if (!firestore || !user || !selectedPost) {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Could not delete the post. Please try again.",
+            });
+            return;
+        }
+
+        try {
+            const postRef = doc(firestore, 'users', user.uid, 'posts', selectedPost.id);
+            await deleteDoc(postRef);
+            toast({
+                title: "Post Deleted",
+                description: "Your post has been removed successfully.",
+            });
+            setSelectedPost(null); // Close the dialog
+        } catch (error) {
+            console.error("Error deleting post:", error);
+            toast({
+                variant: "destructive",
+                title: "Deletion Failed",
+                description: "There was a problem deleting your post.",
+            });
+        }
     };
 
     useEffect(() => {
@@ -133,7 +177,7 @@ export default function ProfilePage() {
                     ) : posts && posts.length > 0 ? (
                         <div className="grid grid-cols-3 gap-0.5">
                             {posts.map((post) => (
-                                <div key={post.id} className="aspect-square bg-secondary relative">
+                                <button key={post.id} className="aspect-square bg-secondary relative focus:outline-none" onClick={() => setSelectedPost(post)}>
                                     {post.mediaUrl.includes('video') ? (
                                         <video
                                             src={post.mediaUrl}
@@ -150,7 +194,7 @@ export default function ProfilePage() {
                                             className="object-cover"
                                         />
                                     )}
-                                </div>
+                                </button>
                             ))}
                         </div>
                     ) : (
@@ -167,6 +211,39 @@ export default function ProfilePage() {
                 onOpenChange={setIsEditSheetOpen}
                 userProfile={userProfile}
             />
+
+            <Dialog open={!!selectedPost} onOpenChange={(isOpen) => !isOpen && setSelectedPost(null)}>
+                <DialogContent className="p-0 border-0 bg-black/80 w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center">
+                    {selectedPost && (
+                        <div className="relative w-full h-full">
+                            <PostCard post={selectedPost} />
+                            
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" size="icon" className="absolute top-4 right-4 z-10">
+                                        <Trash2 className="h-5 w-5" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This action cannot be undone. This will permanently delete your
+                                            post from our servers.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDeletePost} className="bg-destructive hover:bg-destructive/90">
+                                            Delete
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
