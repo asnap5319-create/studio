@@ -1,7 +1,7 @@
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collectionGroup, query, orderBy, Timestamp } from 'firebase/firestore';
+import { collectionGroup } from 'firebase/firestore';
 import { PostCard } from '@/components/post-card';
 import type { Post } from '@/models/post';
 
@@ -12,10 +12,9 @@ export default function FeedPage() {
   const postsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     // Query the 'posts' collection group to get posts from all users
-    return query(
-      collectionGroup(firestore, 'posts'),
-      orderBy('createdAt', 'desc')
-    );
+    // The orderBy clause has been removed as a diagnostic step to test if a missing
+    // composite index was causing the permission errors.
+    return collectionGroup(firestore, 'posts');
   }, [firestore]);
 
   const { data: posts, isLoading, error } = useCollection<Post>(postsQuery);
