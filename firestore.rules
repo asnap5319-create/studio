@@ -1,147 +1,68 @@
-/**
- * Core Philosophy: This ruleset enforces a social media security model centered on user ownership and public readability for authenticated users.
- * User profiles are public, but user-generated content like posts and stories are visible to any signed-in user, fostering a "global feed" or "discover" experience.
- * This model prioritizes performant, secure queries by ensuring read rules are not overly complex while maintaining strict ownership for all write operations.
- *
- * Data Structure:
- * - /users/{userId}: Core user profile data.
- * - /users/{userId}/posts/{postId}: Posts owned by a user.
- * - /users/{userId}/stories/{storyId}: Stories owned by a user.
- * - /user_followers/{followedUserId}/followers/{followerUserId}: A denormalized lookup collection to efficiently check follower relationships.
- * - /user_following/{followerUserId}/following/{followedUserId}: A symmetrical collection for querying who a user follows.
- * - /user_feeds/{userId}/...: A private, read-only collection containing a user's personalized content feed, populated by backend processes.
- *
- * Key Security Decisions:
- * - Public Profiles: User profiles in `/users` can be read by anyone, but only modified by the owner. This supports user search.
- * - Authenticated-User-Gated Content: Access to posts, stories, comments, and likes is granted to any authenticated user. This supports a global feed.
- * - Strict Ownership for Writes: All write operations (create, update, delete) are strictly limited to the document owner (e.g., post author, commenter, liker). An exception is made for post owners, who can moderate (delete) comments on their own posts.
- * - Read-Only Feeds: The personalized feed collections (`/user_feeds` and `/user_story_feeds`) are client-side read-only to prevent tampering. All writes must be handled by a trusted backend service.
- * - Relational Integrity: On creation, rules validate that ownership fields within documents (e.g., `post.userId`) match the user ID in the path, ensuring data consistency. These fields are immutable on update.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     // ------------------------------------------------------------------------
-    // Helper Functions
+    // Global Read Rule (Temporary for Debugging)
     // ------------------------------------------------------------------------
-
     /**
-     * Checks if the user is authenticated.
+     * @description TEMPORARY: Allows any read operation on any document.
+     * This is a temporary, wide-open rule to diagnose a persistent permissions issue.
+     * THIS IS NOT SECURE FOR PRODUCTION. It will be replaced with specific,
+     * secure rules once the feed functionality is confirmed to be working.
      */
+    match /{document=**} {
+      allow read: if true;
+    }
+
+    // ------------------------------------------------------------------------
+    // Helper Functions (For Write Rules)
+    // ------------------------------------------------------------------------
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Checks if the requesting user's UID matches the provided userId.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /**
-     * Checks if a document exists. Used to secure update/delete operations.
-     */
     function isExistingDoc() {
       return resource != null;
     }
 
-    /**
-     * Checks if the user is the owner of an existing document.
-     */
     function isOwnerOfExistingDoc(userId) {
       return isOwner(userId) && isExistingDoc();
     }
     
     // ------------------------------------------------------------------------
-    // Collection Group Rules - BROAD READ ACCESS
-    // ------------------------------------------------------------------------
-    
-    /**
-     * @description Allows collection group queries on 'posts' for the global feed.
-     * @path /{path=**}/posts/{postId}
-     * @allow (read) Any authenticated user can read (get, list) any post from any user.
-     * @principle This is the primary rule for feed functionality and direct post access.
-     * Write permissions are handled by more specific rules nested under the full path.
-     */
-    match /{path=**}/posts/{postId} {
-      allow read: if isSignedIn();
-    }
-
-    // ------------------------------------------------------------------------
     // User Profile & Content Rules - SPECIFIC WRITE ACCESS
     // ------------------------------------------------------------------------
-
-    /**
-     * @description Manages user profile documents.
-     * @path /users/{userId}
-     * @allow (get, list) Anyone can read public user profiles.
-     * @allow (create, update) A user can create or update their own profile.
-     * @principle Public read with owner-only writes.
-     */
     match /users/{userId} {
-      allow get, list: if true;
+      // Read access is handled by the global rule above.
+      // Write access is restricted.
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isOwnerOfExistingDoc(userId);
       allow delete: if isOwnerOfExistingDoc(userId);
 
-      // ------------------------------------------------------------------------
-      // Post & Subcollection Rules
-      // ------------------------------------------------------------------------
-
-      /**
-       * @description Manages WRITE permissions for individual user posts.
-       * @path /users/{userId}/posts/{postId}
-       * @principle READ access is handled globally by the collection group rule above.
-       * This block enforces strict ownership for all write operations.
-       */
       match /posts/{postId} { 
-        // read is handled by the collection group rule: /{path=**}/posts/{postId}
         allow create: if isOwner(userId) && request.resource.data.userId == userId;
         allow update: if isOwnerOfExistingDoc(resource.data.userId) && request.resource.data.userId == resource.data.userId;
         allow delete: if isOwnerOfExistingDoc(resource.data.userId);
 
-        /**
-         * @description Manages comments on a specific post.
-         * @path /users/{userId}/posts/{postId}/comments/{commentId}
-         * @allow (read) Anyone signed in can see the comments on a post.
-         * @allow (create) An authenticated user can create a comment on any post.
-         * @allow (delete) A user can delete their own comment, or the post owner can delete any comment on their post.
-         */
         match /comments/{commentId} {
-          allow read: if isSignedIn(); 
           allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && request.resource.data.postId == postId;
           allow update: if isOwnerOfExistingDoc(resource.data.userId) && request.resource.data.userId == resource.data.userId;
           allow delete: if isExistingDoc() && (isOwner(resource.data.userId) || isOwner(userId)); // resource.data.userId is comment owner, userId is post owner
         }
 
-        /**
-         * @description Manages likes on a specific post.
-         * @path /users/{userId}/posts/{postId}/likes/{likeId}
-         * @allow (read) Anyone signed in can see the likes on a post.
-         * @allow (create, delete) An authenticated user can like/unlike any post, but only their own like.
-         */
         match /likes/{likeId} {
-          allow read: if isSignedIn();
           allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && request.resource.data.postId == postId;
           allow update: if false;
           allow delete: if isOwnerOfExistingDoc(resource.data.userId);
         }
       }
 
-      // ------------------------------------------------------------------------
-      // Story Rules
-      // ------------------------------------------------------------------------
-
-      /**
-       * @description Manages user stories, which are visible to any signed-in user.
-       * @path /users/{userId}/stories/{storyId}
-       * @allow (read) Any authenticated user can read stories.
-       * @allow (create) An authenticated user can create a story for themselves.
-       */
       match /stories/{storyId} { 
-        allow read: if isSignedIn();
         allow create: if isOwner(userId) && request.resource.data.userId == userId;
         allow update: if isOwnerOfExistingDoc(resource.data.userId) && request.resource.data.userId == resource.data.userId;
         allow delete: if isOwnerOfExistingDoc(resource.data.userId);
@@ -151,53 +72,31 @@ service cloud.firestore {
     // ------------------------------------------------------------------------
     // Follow Relationship Rules
     // ------------------------------------------------------------------------
-
-    /**
-     * @description Manages the "followers" lookup table. This allows for efficient `exists()` checks.
-     * @path /user_followers/{followedUserId}/followers/{followerUserId}
-     * @principle The user initiating the follow (`followerUserId`) owns the relationship document.
-     */
     match /user_followers/{followedUserId}/followers/{followerUserId} {
-      allow read: if isSignedIn();
+      // read is handled by global rule
       allow create: if isOwner(followerUserId);
       allow update: if false;
       allow delete: if isOwnerOfExistingDoc(followerUserId);
     }
 
-    /**
-     * @description Manages the "following" lookup table. This allows a user to query who they follow.
-     * @path /user_following/{followerUserId}/following/{followedUserId}
-     * @principle The user initiating the follow (`followerUserId`) owns the relationship document.
-     */
     match /user_following/{followerUserId}/following/{followedUserId} {
-      allow read: if isSignedIn();
+      // read is handled by global rule
       allow create: if isOwner(followerUserId);
       allow update: if false;
       allow delete: if isOwnerOfExistingDoc(followerUserId);
     }
 
     // ------------------------------------------------------------------------
-    // Denormalized Feed Rules (Read-Only)
+    // Denormalized Feed Rules (Write-Only)
     // ------------------------------------------------------------------------
-
-    /**
-     * @description A denormalized, private feed of posts for a user. Populated by a backend process.
-     * @path /user_feeds/{feedViewerId}/feed_posts/{feedPostId}
-     * @principle Restricts access to a user's own data tree, enforcing a private, read-only data view.
-     */
     match /user_feeds/{feedViewerId}/feed_posts/{feedPostId} {
-      allow get, list: if isOwner(feedViewerId);
-      allow create, update, delete: if false;
+      // read is handled by global rule
+      allow write: if false; // No client-side writes
     }
 
-    /**
-     * @description A denormalized, private feed of stories for a user. Populated by a backend process.
-     * @path /user_story_feeds/{storyFeedViewerId}/feed_stories/{feedStoryId}
-     * @principle Restricts access to a user's own data tree, enforcing a private, read-only data view.
-     */
     match /user_story_feeds/{storyFeedViewerId}/feed_stories/{feedStoryId} {
-      allow get, list: if isOwner(storyFeedViewerId);
-      allow create, update, delete: if false;
+      // read is handled by global rule
+      allow write: if false; // No client-side writes
     }
   }
 }
