@@ -13,7 +13,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, query, orderBy, deleteDoc } from "firebase/firestore";
@@ -46,6 +45,8 @@ export default function ProfilePage() {
     
     const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
     const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [postToDelete, setPostToDelete] = useState<Post | null>(null);
 
     const userProfileRef = useMemoFirebase(() => {
         if (!firestore || !user) return null;
@@ -69,7 +70,7 @@ export default function ProfilePage() {
     };
 
     const handleDeletePost = async () => {
-        if (!firestore || !user || !selectedPost) {
+        if (!firestore || !user || !postToDelete) {
             toast({
                 variant: "destructive",
                 title: "Error",
@@ -79,13 +80,12 @@ export default function ProfilePage() {
         }
 
         try {
-            const postRef = doc(firestore, 'users', user.uid, 'posts', selectedPost.id);
+            const postRef = doc(firestore, 'users', user.uid, 'posts', postToDelete.id);
             await deleteDoc(postRef);
             toast({
                 title: "Post Deleted",
                 description: "Your post has been removed successfully.",
             });
-            setSelectedPost(null); // Close the dialog
         } catch (error) {
             console.error("Error deleting post:", error);
             toast({
@@ -93,6 +93,12 @@ export default function ProfilePage() {
                 title: "Deletion Failed",
                 description: "There was a problem deleting your post.",
             });
+        } finally {
+            setIsDeleteDialogOpen(false);
+            setPostToDelete(null);
+            if (selectedPost && selectedPost.id === postToDelete?.id) {
+                setSelectedPost(null);
+            }
         }
     };
 
@@ -177,24 +183,48 @@ export default function ProfilePage() {
                     ) : posts && posts.length > 0 ? (
                         <div className="grid grid-cols-3 gap-0.5">
                             {posts.map((post) => (
-                                <button key={post.id} className="aspect-square bg-secondary relative focus:outline-none" onClick={() => setSelectedPost(post)}>
-                                    {post.mediaUrl.includes('video') ? (
-                                        <video
-                                            src={post.mediaUrl}
-                                            className="w-full h-full object-cover"
-                                            muted
-                                            loop
-                                            playsInline
-                                        />
-                                    ) : (
-                                        <Image 
-                                            src={post.mediaUrl}
-                                            alt="User post"
-                                            fill
-                                            className="object-cover"
-                                        />
-                                    )}
-                                </button>
+                                <div key={post.id} className="aspect-square bg-secondary relative group">
+                                    <button className="w-full h-full block focus:outline-none" onClick={() => setSelectedPost(post)}>
+                                        {post.mediaUrl.includes('video') ? (
+                                            <video
+                                                src={post.mediaUrl}
+                                                className="w-full h-full object-cover"
+                                                muted
+                                                loop
+                                                playsInline
+                                            />
+                                        ) : (
+                                            <Image 
+                                                src={post.mediaUrl}
+                                                alt="User post"
+                                                fill
+                                                className="object-cover"
+                                            />
+                                        )}
+                                    </button>
+                                    <div className="absolute top-1 right-1 z-10">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/50 hover:bg-black/75 text-white">
+                                                    <MoreVertical className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent>
+                                                <DropdownMenuItem 
+                                                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                                                    onSelect={(e) => {
+                                                        e.preventDefault();
+                                                        setPostToDelete(post);
+                                                        setIsDeleteDialogOpen(true);
+                                                    }}
+                                                >
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    <span>Delete</span>
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+                                </div>
                             ))}
                         </div>
                     ) : (
@@ -219,34 +249,29 @@ export default function ProfilePage() {
                             <DialogTitle className="sr-only">{`Post by ${userProfile?.username}: ${selectedPost.caption || 'No caption'}`}</DialogTitle>
                             <div className="relative w-full h-full">
                                 <PostCard post={selectedPost} />
-                                
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="destructive" size="icon" className="absolute top-4 right-4 z-10">
-                                            <Trash2 className="h-5 w-5" />
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                This action cannot be undone. This will permanently delete your
-                                                post from our servers.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction onClick={handleDeletePost} className="bg-destructive hover:bg-destructive/90">
-                                                Delete
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
                             </div>
                         </>
                     )}
                 </DialogContent>
             </Dialog>
+
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete your
+                            post from our servers.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setPostToDelete(null)}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeletePost} className="bg-destructive hover:bg-destructive/90">
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 }
