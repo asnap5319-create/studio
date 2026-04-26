@@ -183,26 +183,31 @@ export default function ProfilePage() {
                     ) : posts && posts.length > 0 ? (
                         <div className="grid grid-cols-3 gap-0.5">
                             {posts.map((post) => (
-                                <div key={post.id} className="aspect-square bg-secondary relative group">
-                                    <button className="w-full h-full block focus:outline-none" onClick={() => setSelectedPost(post)}>
-                                        {post.mediaUrl.includes('video') ? (
-                                            <video
-                                                src={post.mediaUrl}
-                                                className="w-full h-full object-cover"
-                                                muted
-                                                loop
-                                                playsInline
-                                            />
-                                        ) : (
-                                            <Image 
-                                                src={post.mediaUrl}
-                                                alt="User post"
-                                                fill
-                                                className="object-cover"
-                                            />
-                                        )}
-                                    </button>
-                                    <div className="absolute top-1 right-1 z-10">
+                                <div 
+                                    key={post.id} 
+                                    className="aspect-square bg-secondary relative group cursor-pointer"
+                                    onClick={() => setSelectedPost(post)}
+                                >
+                                    {post.mediaUrl.includes('video') ? (
+                                        <video
+                                            src={post.mediaUrl}
+                                            className="w-full h-full object-cover"
+                                            muted
+                                            loop
+                                            playsInline
+                                        />
+                                    ) : (
+                                        <Image 
+                                            src={post.mediaUrl}
+                                            alt="User post"
+                                            fill
+                                            className="object-cover"
+                                        />
+                                    )}
+                                    <div 
+                                        className="absolute top-1 right-1 z-10"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                                 <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/50 hover:bg-black/75 text-white">
@@ -212,8 +217,7 @@ export default function ProfilePage() {
                                             <DropdownMenuContent>
                                                 <DropdownMenuItem 
                                                     className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                                                    onSelect={(e) => {
-                                                        e.preventDefault();
+                                                    onSelect={() => {
                                                         setPostToDelete(post);
                                                         setIsDeleteDialogOpen(true);
                                                     }}
