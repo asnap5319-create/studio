@@ -69,6 +69,20 @@ service cloud.firestore {
     function canViewContent(ownerId) {
       return isOwner(ownerId) || isFollower(ownerId);
     }
+    
+    // ------------------------------------------------------------------------
+    // Collection Group Rules
+    // ------------------------------------------------------------------------
+    
+    /**
+     * @description Allows collection group queries on 'posts' for the global feed.
+     * @path /{path=**}/posts/{postId}
+     * @allow (get, list) Any authenticated user can read any post.
+     * @principle This is crucial for the main feed functionality.
+     */
+    match /{path=**}/posts/{postId} {
+      allow get, list: if isSignedIn();
+    }
 
     // ------------------------------------------------------------------------
     // User Profile Rules
