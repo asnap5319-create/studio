@@ -3,13 +3,14 @@ import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
-import { doc } from "firebase/firestore";
-import { MoreVertical, Settings, Shield, LogOut, Grid3x3 } from "lucide-react";
+import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
+import { collection, doc, query, orderBy } from "firebase/firestore";
+import { MoreVertical, Settings, Shield, LogOut, Grid3x3, Clapperboard } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
 import Image from "next/image";
+import type { Post } from "@/models/post";
 
 // Exporting type for use in other components
 export type UserProfile = {
@@ -37,6 +38,14 @@ export default function ProfilePage() {
 
     const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
 
+    const userPostsQuery = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        const postsCollectionRef = collection(firestore, 'users', user.uid, 'posts');
+        return query(postsCollectionRef, orderBy('createdAt', 'desc'));
+    }, [firestore, user]);
+
+    const { data: posts, isLoading: arePostsLoading } = useCollection<Post>(userPostsQuery);
+
     const handleLogout = async () => {
         if (!auth) return;
         await signOut(auth);
@@ -59,7 +68,7 @@ export default function ProfilePage() {
     
     return (
         <>
-            <div className="h-full bg-background text-white">
+            <div className="h-full bg-background text-white overflow-y-auto">
                 <div className="p-4">
                     <div className="flex items-center justify-between">
                         <h1 className="text-xl font-bold">{userProfile?.username || 'Profile'}</h1>
@@ -86,7 +95,7 @@ export default function ProfilePage() {
                         </Avatar>
                         <div className="flex items-center justify-around flex-1">
                             <div className="text-center">
-                                <p className="font-bold text-lg">0</p>
+                                <p className="font-bold text-lg">{posts?.length || 0}</p>
                                 <p className="text-sm text-muted-foreground">Posts</p>
                             </div>
                             <div className="text-center">
@@ -115,19 +124,42 @@ export default function ProfilePage() {
                     <div className="flex justify-center p-2 border-b border-border">
                         <Grid3x3 className="text-primary"/>
                     </div>
-                    <div className="grid grid-cols-3 gap-0.5">
-                        {/* Placeholder for reels grid - using 9 placeholders */}
-                        {Array.from({ length: 9 }).map((_, i) => (
-                            <div key={i} className="aspect-square bg-secondary relative">
-                                <Image 
-                                    src={`https://picsum.photos/seed/${user?.uid}-${i}/300/300`}
-                                    alt="User Reel"
-                                    fill
-                                    className="object-cover"
-                                />
-                            </div>
-                        ))}
-                    </div>
+                    {arePostsLoading ? (
+                         <div className="grid grid-cols-3 gap-0.5">
+                            {Array.from({ length: 3 }).map((_, i) => (
+                                <div key={i} className="aspect-square bg-secondary animate-pulse"></div>
+                            ))}
+                        </div>
+                    ) : posts && posts.length > 0 ? (
+                        <div className="grid grid-cols-3 gap-0.5">
+                            {posts.map((post) => (
+                                <div key={post.id} className="aspect-square bg-secondary relative">
+                                    {post.mediaUrl.includes('video') ? (
+                                        <video
+                                            src={post.mediaUrl}
+                                            className="w-full h-full object-cover"
+                                            muted
+                                            loop
+                                            playsInline
+                                        />
+                                    ) : (
+                                        <Image 
+                                            src={post.mediaUrl}
+                                            alt="User post"
+                                            fill
+                                            className="object-cover"
+                                        />
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center p-10 text-center">
+                            <Clapperboard className="w-16 h-16 text-muted-foreground mb-4"/>
+                            <h3 className="text-lg font-bold">No Posts Yet</h3>
+                            <p className="text-muted-foreground">When you create posts, they'll appear here.</p>
+                        </div>
+                    )}
                 </div>
             </div>
             <EditProfileSheet 
