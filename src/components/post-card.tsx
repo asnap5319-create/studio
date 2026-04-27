@@ -35,7 +35,7 @@ export function PostCard({ post }: PostCardProps) {
           className="object-contain w-full h-full"
           autoPlay
           loop
-          muted
+          controls
           playsInline
         />
       ) : (
