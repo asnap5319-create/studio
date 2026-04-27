@@ -74,16 +74,14 @@ service cloud.firestore {
     // ------------------------------------------------------------------------
     match /user_followers/{followedUserId}/followers/{followerUserId} {
       // read is handled by global rule
-      allow create: if isOwner(followerUserId);
-      allow update: if false;
-      allow delete: if isOwnerOfExistingDoc(followerUserId);
+      // Allow write if the user performing the action is the follower.
+      allow write: if request.auth.uid == followerUserId;
     }
 
     match /user_following/{followerUserId}/following/{followedUserId} {
       // read is handled by global rule
-      allow create: if isOwner(followerUserId);
-      allow update: if false;
-      allow delete: if isOwnerOfExistingDoc(followerUserId);
+      // Allow write if the user performing the action is the follower.
+      allow write: if request.auth.uid == followerUserId;
     }
 
     // ------------------------------------------------------------------------
