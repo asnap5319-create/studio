@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import type { Post } from '@/models/post';
 import type { UserProfile } from '@/app/(main)/profile/page';
 import { useDoc, useFirebase, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, updateDoc, increment } from 'firebase/firestore';
 import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
@@ -13,14 +13,15 @@ import { Skeleton } from './ui/skeleton';
 
 interface PostCardProps {
   post: Post;
-  // This prop will be used later for scroll-based autoplay
-  isInView?: boolean;
 }
 
-export function PostCard({ post, isInView = true }: PostCardProps) {
+export function PostCard({ post }: PostCardProps) {
   const { firestore } = useFirebase();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const viewCounted = useRef(false);
 
+  const [isInView, setIsInView] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [showVolumeIcon, setShowVolumeIcon] = useState(false);
 
@@ -40,43 +41,76 @@ export function PostCard({ post, isInView = true }: PostCardProps) {
     videoRef.current.muted = currentlyMuted;
     setIsMuted(currentlyMuted);
 
-    // Show volume icon feedback
     setShowVolumeIcon(true);
     setTimeout(() => {
       setShowVolumeIcon(false);
     }, 800);
   };
+  
+  // Observer to check if the card is in view
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // This component is considered "in view" if it's intersecting.
+        // For the main feed, this is fine. For profile dialog, it's always intersecting.
+        setIsInView(entry.isIntersecting);
+      },
+      { threshold: 0.7 } // At least 70% of the post needs to be visible
+    );
 
-  // Effect for scroll-based play/pause
-   useEffect(() => {
-    if (videoRef.current) {
+    const currentCardRef = cardRef.current;
+    if (currentCardRef) {
+      observer.observe(currentCardRef);
+    }
+
+    return () => {
+      if (currentCardRef) {
+        observer.unobserve(currentCardRef);
+      }
+    };
+  }, []);
+
+  // Effect for video playback and view counting
+  useEffect(() => {
+    const videoElement = videoRef.current;
+    if (videoElement) {
       if (isInView) {
-        const playPromise = videoRef.current.play();
+        const playPromise = videoElement.play();
         if (playPromise !== undefined) {
           playPromise.catch(error => {
-            // Autoplay with sound was likely blocked.
             if (error.name === "NotAllowedError") {
               console.log("Autoplay with sound was prevented. Playing muted.");
-              // Mute video and update state, then try playing again
-              if (videoRef.current) {
-                videoRef.current.muted = true;
-                setIsMuted(true);
-                videoRef.current.play();
-              }
+              videoElement.muted = true;
+              setIsMuted(true);
+              videoElement.play();
             } else {
               console.error("Video play failed:", error);
             }
           });
         }
       } else {
-        videoRef.current.pause();
+        videoElement.pause();
+        videoElement.currentTime = 0; // Optional: Reset video on scroll away
       }
     }
-  }, [isInView]);
+
+    // Increment view count only once when it comes into view
+    if (isInView && firestore && !viewCounted.current) {
+      viewCounted.current = true; // Mark as attempting to count to prevent re-triggering
+      const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
+      updateDoc(postRef, {
+          viewCount: increment(1)
+      }).catch((error) => {
+          console.error("Error updating view count: ", error);
+          viewCounted.current = false; // Allow retry if it fails
+      });
+    }
+
+  }, [isInView, firestore, post.id, post.userId]);
 
   return (
     // The main container for the post, handles clicks for muting
-    <div className="relative w-full h-full bg-black rounded-lg overflow-hidden" onClick={toggleMute}>
+    <div ref={cardRef} className="relative w-full h-full bg-black rounded-lg overflow-hidden" onClick={toggleMute}>
       
       {/* Media Display */}
       {isVideo ? (
@@ -84,7 +118,6 @@ export function PostCard({ post, isInView = true }: PostCardProps) {
           ref={videoRef}
           src={post.mediaUrl}
           className="object-cover w-full h-full"
-          autoPlay
           loop
           playsInline
           muted={isMuted}

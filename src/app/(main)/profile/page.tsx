@@ -15,7 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
-import { collection, doc, query, orderBy, deleteDoc, updateDoc, increment } from "firebase/firestore";
+import { collection, doc, query, orderBy, deleteDoc } from "firebase/firestore";
 import { MoreVertical, Settings, Shield, LogOut, Grid3x3, Clapperboard, Trash2, Play } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
@@ -47,18 +47,6 @@ export default function ProfilePage() {
     const [selectedPost, setSelectedPost] = useState<Post | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [postToDelete, setPostToDelete] = useState<Post | null>(null);
-
-    useEffect(() => {
-        if (selectedPost && firestore && user) {
-            const postRef = doc(firestore, 'users', selectedPost.userId, 'posts', selectedPost.id);
-            updateDoc(postRef, {
-                viewCount: increment(1)
-            }).catch((error) => {
-                console.error("Error updating view count: ", error);
-                // Not a critical error to show to user
-            });
-        }
-    }, [selectedPost, firestore, user]);
 
     const userProfileRef = useMemoFirebase(() => {
         if (!firestore || !user) return null;
@@ -297,5 +285,3 @@ export default function ProfilePage() {
         </>
     );
 }
-
-    
