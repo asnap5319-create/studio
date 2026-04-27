@@ -21,7 +21,7 @@ export function PostCard({ post, isInView = true }: PostCardProps) {
   const { firestore } = useFirebase();
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [showVolumeIcon, setShowVolumeIcon] = useState(false);
 
   const authorRef = useMemoFirebase(() => {
@@ -51,7 +51,23 @@ export function PostCard({ post, isInView = true }: PostCardProps) {
    useEffect(() => {
     if (videoRef.current) {
       if (isInView) {
-        videoRef.current.play().catch(error => console.log("Autoplay was prevented. User may need to interact first."));
+        const playPromise = videoRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            // Autoplay with sound was likely blocked.
+            if (error.name === "NotAllowedError") {
+              console.log("Autoplay with sound was prevented. Playing muted.");
+              // Mute video and update state, then try playing again
+              if (videoRef.current) {
+                videoRef.current.muted = true;
+                setIsMuted(true);
+                videoRef.current.play();
+              }
+            } else {
+              console.error("Video play failed:", error);
+            }
+          });
+        }
       } else {
         videoRef.current.pause();
       }
@@ -71,7 +87,7 @@ export function PostCard({ post, isInView = true }: PostCardProps) {
           autoPlay
           loop
           playsInline
-          muted // Start muted, control via state
+          muted={isMuted}
         />
       ) : (
         <Image
