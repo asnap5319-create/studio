@@ -46,7 +46,11 @@ service cloud.firestore {
 
       match /posts/{postId} { 
         allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        allow update: if isOwnerOfExistingDoc(resource.data.userId) && request.resource.data.userId == resource.data.userId;
+        // Allow owner to update their own post, OR allow any signed in user to increment the view count.
+        allow update: if (isOwner(resource.data.userId) && request.resource.data.userId == resource.data.userId) ||
+                       (isSignedIn() &&
+                        request.resource.data.viewCount == resource.data.viewCount + 1 &&
+                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount']));
         allow delete: if isOwnerOfExistingDoc(resource.data.userId);
 
         match /comments/{commentId} {
