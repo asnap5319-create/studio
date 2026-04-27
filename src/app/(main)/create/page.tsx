@@ -102,6 +102,7 @@ export default function CreatePostPage() {
             expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48 hours from now
             likeCount: 0,
             commentCount: 0,
+            viewCount: 0,
         };
 
         await addDoc(postCollectionRef, newPost);
@@ -179,3 +180,5 @@ export default function CreatePostPage() {
     </div>
   );
 }
+
+    

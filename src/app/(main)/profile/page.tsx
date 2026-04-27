@@ -15,8 +15,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
-import { collection, doc, query, orderBy, deleteDoc } from "firebase/firestore";
-import { MoreVertical, Settings, Shield, LogOut, Grid3x3, Clapperboard, Trash2 } from "lucide-react";
+import { collection, doc, query, orderBy, deleteDoc, updateDoc, increment } from "firebase/firestore";
+import { MoreVertical, Settings, Shield, LogOut, Grid3x3, Clapperboard, Trash2, Play } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -47,6 +47,18 @@ export default function ProfilePage() {
     const [selectedPost, setSelectedPost] = useState<Post | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [postToDelete, setPostToDelete] = useState<Post | null>(null);
+
+    useEffect(() => {
+        if (selectedPost && firestore && user) {
+            const postRef = doc(firestore, 'users', selectedPost.userId, 'posts', selectedPost.id);
+            updateDoc(postRef, {
+                viewCount: increment(1)
+            }).catch((error) => {
+                console.error("Error updating view count: ", error);
+                // Not a critical error to show to user
+            });
+        }
+    }, [selectedPost, firestore, user]);
 
     const userProfileRef = useMemoFirebase(() => {
         if (!firestore || !user) return null;
@@ -204,9 +216,15 @@ export default function ProfilePage() {
                                             className="object-cover"
                                         />
                                     )}
+                                    <div className="absolute bottom-1 left-1 flex items-center gap-1 text-white text-xs font-bold bg-black/40 rounded px-1 py-0.5">
+                                        <Play className="h-3 w-3 fill-white" />
+                                        <span>{post.viewCount || 0}</span>
+                                    </div>
                                     <div 
                                         className="absolute top-1 right-1 z-10"
-                                        onClick={(e) => e.stopPropagation()}
+                                        onClick={(e) => {
+                                            e.stopPropagation(); // Prevents the dialog from opening
+                                        }}
                                     >
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
@@ -279,3 +297,5 @@ export default function ProfilePage() {
         </>
     );
 }
+
+    

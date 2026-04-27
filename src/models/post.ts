@@ -10,4 +10,7 @@ export interface Post {
   expiresAt: Timestamp;
   likeCount: number;
   commentCount: number;
+  viewCount: number;
 }
+
+    
