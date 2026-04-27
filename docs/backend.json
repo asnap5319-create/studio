@@ -37,20 +37,6 @@
           "type": "string",
           "description": "Timestamp when the user's profile was last updated.",
           "format": "date-time"
-        },
-        "followerIds": {
-          "type": "array",
-          "description": "An array of User IDs who follow this user. (Relationship: User N:N User)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "followingIds": {
-          "type": "array",
-          "description": "An array of User IDs that this user follows. (Relationship: User N:N User)",
-          "items": {
-            "type": "string"
-          }
         }
       },
       "required": [

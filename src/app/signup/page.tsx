@@ -112,8 +112,6 @@ export default function SignupPage() {
       profileImageUrl,
       createdAt: serverTimestamp(),
       bio: "",
-      followerIds: [],
-      followingIds: [],
     };
     const userDocRef = doc(firestore, "users", user.uid);
 
@@ -217,3 +215,5 @@ export default function SignupPage() {
     </div>
   );
 }
+
+    

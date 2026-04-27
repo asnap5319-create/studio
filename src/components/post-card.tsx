@@ -2,14 +2,17 @@
 
 import { useState, useRef, useEffect } from 'react';
 import type { Post } from '@/models/post';
-import type { UserProfile } from '@/app/(main)/profile/page';
-import { useDoc, useFirebase, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, increment } from 'firebase/firestore';
+import type { UserProfile } from '@/models/user';
+import { useDoc, useFirebase, useMemoFirebase, useUser } from '@/firebase';
+import { doc, updateDoc, increment, writeBatch, serverTimestamp } from 'firebase/firestore';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
 import { Heart, MessageCircle, Send, Volume2, VolumeX } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+
 
 interface PostCardProps {
   post: Post;
@@ -17,13 +20,17 @@ interface PostCardProps {
 
 export function PostCard({ post }: PostCardProps) {
   const { firestore } = useFirebase();
+  const { user } = useUser();
+  const { toast } = useToast();
   const videoRef = useRef<HTMLVideoElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const viewCounted = useRef(false);
 
   const [isInView, setIsInView] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); // Start muted, try to autoplay with sound later
   const [showVolumeIcon, setShowVolumeIcon] = useState(false);
+
+  const isOwnPost = user?.uid === post.userId;
 
   const authorRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -31,6 +38,14 @@ export function PostCard({ post }: PostCardProps) {
   }, [firestore, post.userId]);
 
   const { data: author, isLoading: isAuthorLoading } = useDoc<UserProfile>(authorRef);
+  
+  const followCheckRef = useMemoFirebase(() => {
+      if (!firestore || !user || isOwnPost) return null;
+      return doc(firestore, 'user_followers', post.userId, 'followers', user.uid);
+  }, [firestore, user, isOwnPost, post.userId]);
+
+  const { data: followCheck } = useDoc(followCheckRef);
+  const isFollowing = !!followCheck;
 
   const isVideo = post.mediaUrl.includes('.mp4') || post.mediaUrl.includes('.mov') || post.mediaUrl.includes('video');
 
@@ -47,15 +62,45 @@ export function PostCard({ post }: PostCardProps) {
     }, 800);
   };
   
-  // Observer to check if the card is in view
+  const handleFollowToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!firestore || !user || isOwnPost) {
+        toast({ variant: "destructive", title: "Error", description: "You must be logged in to follow users."});
+        return;
+    };
+
+    const batch = writeBatch(firestore);
+    const followedUserId = post.userId;
+    const followerUserId = user.uid;
+
+    const followerDocRef = doc(firestore, 'user_followers', followedUserId, 'followers', followerUserId);
+    const followingDocRef = doc(firestore, 'user_following', followerUserId, 'following', followedUserId);
+
+    if (isFollowing) { // Action: Unfollow
+        batch.delete(followerDocRef);
+        batch.delete(followingDocRef);
+    } else { // Action: Follow
+        batch.set(followerDocRef, { createdAt: serverTimestamp() });
+        batch.set(followingDocRef, { createdAt: serverTimestamp() });
+    }
+
+    try {
+        await batch.commit();
+        toast({
+            title: isFollowing ? `Unfollowed ${author?.username}` : `Following ${author?.username}`,
+        });
+    } catch (error) {
+        console.error("Error toggling follow:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not complete the action.' });
+    }
+  };
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        // This component is considered "in view" if it's intersecting.
-        // For the main feed, this is fine. For profile dialog, it's always intersecting.
         setIsInView(entry.isIntersecting);
       },
-      { threshold: 0.7 } // At least 70% of the post needs to be visible
+      { threshold: 0.7 }
     );
 
     const currentCardRef = cardRef.current;
@@ -70,19 +115,19 @@ export function PostCard({ post }: PostCardProps) {
     };
   }, []);
 
-  // Effect for video playback and view counting
   useEffect(() => {
     const videoElement = videoRef.current;
     if (videoElement) {
       if (isInView) {
+        videoElement.muted = false;
+        setIsMuted(false);
         const playPromise = videoElement.play();
         if (playPromise !== undefined) {
           playPromise.catch(error => {
             if (error.name === "NotAllowedError") {
-              console.log("Autoplay with sound was prevented. Playing muted.");
               videoElement.muted = true;
               setIsMuted(true);
-              videoElement.play();
+              videoElement.play().catch(console.error);
             } else {
               console.error("Video play failed:", error);
             }
@@ -90,29 +135,26 @@ export function PostCard({ post }: PostCardProps) {
         }
       } else {
         videoElement.pause();
-        videoElement.currentTime = 0; // Optional: Reset video on scroll away
+        videoElement.currentTime = 0;
       }
     }
 
-    // Increment view count only once when it comes into view
     if (isInView && firestore && !viewCounted.current) {
-      viewCounted.current = true; // Mark as attempting to count to prevent re-triggering
+      viewCounted.current = true; 
       const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
       updateDoc(postRef, {
           viewCount: increment(1)
       }).catch((error) => {
           console.error("Error updating view count: ", error);
-          viewCounted.current = false; // Allow retry if it fails
+          viewCounted.current = false;
       });
     }
 
   }, [isInView, firestore, post.id, post.userId]);
 
   return (
-    // The main container for the post, handles clicks for muting
     <div ref={cardRef} className="relative w-full h-full bg-black rounded-lg overflow-hidden" onClick={toggleMute}>
       
-      {/* Media Display */}
       {isVideo ? (
         <video
           ref={videoRef}
@@ -120,7 +162,6 @@ export function PostCard({ post }: PostCardProps) {
           className="object-cover w-full h-full"
           loop
           playsInline
-          muted={isMuted}
         />
       ) : (
         <Image
@@ -132,7 +173,6 @@ export function PostCard({ post }: PostCardProps) {
         />
       )}
 
-      {/* Mute/Unmute Icon Overlay */}
       {showVolumeIcon && isVideo && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
           <div className="p-4 rounded-full bg-black/50">
@@ -141,7 +181,6 @@ export function PostCard({ post }: PostCardProps) {
         </div>
       )}
 
-      {/* Information and Actions Overlay */}
       <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent text-white" onClick={(e) => e.stopPropagation()}>
         {isAuthorLoading ? (
             <div className="flex items-center gap-2">
@@ -151,18 +190,27 @@ export function PostCard({ post }: PostCardProps) {
         ) : (
           author && (
             <div className="flex items-center gap-2 mb-2">
-              <Avatar className="h-10 w-10 border-2 border-primary">
-                <AvatarImage src={author.profileImageUrl} />
-                <AvatarFallback>{author.name[0]}</AvatarFallback>
-              </Avatar>
-              <p className="font-bold text-sm">{author.username}</p>
+              <Link href={`/profile/${author.id}`} className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                <Avatar className="h-10 w-10 border-2 border-primary">
+                  <AvatarImage src={author.profileImageUrl} />
+                  <AvatarFallback>{author.name?.[0]}</AvatarFallback>
+                </Avatar>
+                <p className="font-bold text-sm">{author.username}</p>
+              </Link>
+              {!isOwnPost && (
+                <>
+                  <span className="text-muted-foreground mx-1">·</span>
+                  <Button variant="link" className="p-0 h-auto text-primary font-bold text-sm" onClick={handleFollowToggle}>
+                    {isFollowing ? 'Following' : 'Follow'}
+                  </Button>
+                </>
+              )}
             </div>
           )
         )}
         <p className="text-sm mt-2">{post.caption}</p>
       </div>
       
-      {/* Side action buttons */}
       <div className="absolute right-2 bottom-24 flex flex-col gap-4" onClick={(e) => e.stopPropagation()}>
             <Button variant="ghost" size="icon" className="text-white h-12 w-12 flex flex-col">
                 <Heart className="h-8 w-8" />
@@ -179,3 +227,5 @@ export function PostCard({ post }: PostCardProps) {
     </div>
   );
 }
+
+    
