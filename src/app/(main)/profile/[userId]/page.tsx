@@ -17,7 +17,7 @@ import {
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp } from "firebase/firestore";
 import { MoreVertical, Settings, Shield, LogOut, Grid3x3, Clapperboard, Trash2, Play, UserPlus, UserCheck } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
 import Image from "next/image";
@@ -26,8 +26,9 @@ import type { UserProfile } from "@/models/user";
 import { PostCard } from "@/components/post-card";
 import { useToast } from "@/hooks/use-toast";
 
-export default function ProfilePage({ params }: { params: { userId: string } }) {
-    const { userId } = params;
+export default function ProfilePage() {
+    const params = useParams();
+    const userId = params.userId as string;
     const router = useRouter();
     const { user, isUserLoading } = useUser();
     const { firestore, auth } = useFirebase();
@@ -344,5 +345,3 @@ export default function ProfilePage({ params }: { params: { userId: string } }) 
         </>
     );
 }
-
-    
