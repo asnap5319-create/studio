@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import type { Post } from '@/models/post';
 import type { UserProfile } from '@/models/user';
 import { useDoc, useFirebase, useMemoFirebase, useUser } from '@/firebase';
-import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection } from 'firebase/firestore';
+import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection, setDoc, deleteDoc } from 'firebase/firestore';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
@@ -12,7 +12,7 @@ import { Button } from './ui/button';
 import { Heart, MessageCircle, Send, Volume2, VolumeX } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-
+import { cn } from '@/lib/utils';
 
 interface PostCardProps {
   post: Post;
@@ -25,10 +25,12 @@ export function PostCard({ post }: PostCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const viewCounted = useRef(false);
+  const lastTapRef = useRef<number>(0);
 
   const [isInView, setIsInView] = useState(false);
-  const [isMuted, setIsMuted] = useState(false); // Start unmuted by default
+  const [isMuted, setIsMuted] = useState(false);
   const [showVolumeIcon, setShowVolumeIcon] = useState(false);
+  const [showBigHeart, setShowBigHeart] = useState(false);
 
   const isOwnPost = user?.uid === post.userId;
 
@@ -47,6 +49,14 @@ export function PostCard({ post }: PostCardProps) {
   const { data: followCheck } = useDoc(followCheckRef);
   const isFollowing = !!followCheck;
 
+  const likeRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', post.userId, 'posts', post.id, 'likes', user.uid);
+  }, [firestore, user, post.userId, post.id]);
+
+  const { data: likeData } = useDoc(likeRef);
+  const isLiked = !!likeData;
+
   const isVideo = post.mediaUrl.includes('.mp4') || post.mediaUrl.includes('.mov') || post.mediaUrl.includes('video');
 
   const toggleMute = () => {
@@ -60,6 +70,75 @@ export function PostCard({ post }: PostCardProps) {
     setTimeout(() => {
       setShowVolumeIcon(false);
     }, 800);
+  };
+
+  const handleLike = async () => {
+    if (!firestore || !user) {
+        toast({ variant: "destructive", title: "Error", description: "Login to like posts." });
+        return;
+    }
+
+    // Always show animation for feedback
+    setShowBigHeart(true);
+    setTimeout(() => setShowBigHeart(false), 1000);
+
+    if (isLiked) return; // Prevent double increments
+
+    const batch = writeBatch(firestore);
+    const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
+    const likeDocRef = doc(firestore, 'users', post.userId, 'posts', post.id, 'likes', user.uid);
+
+    batch.update(postRef, { likeCount: increment(1) });
+    batch.set(likeDocRef, { userId: user.uid, createdAt: serverTimestamp() });
+
+    if (post.userId !== user.uid) {
+        const notificationRef = doc(collection(firestore, 'users', post.userId, 'notifications'));
+        batch.set(notificationRef, {
+            type: 'like',
+            senderId: user.uid,
+            recipientId: post.userId,
+            postId: post.id,
+            read: false,
+            createdAt: serverTimestamp(),
+        });
+    }
+
+    try {
+        await batch.commit();
+    } catch (e) {
+        console.error("Error liking post:", e);
+    }
+  };
+
+  const handleUnlike = async () => {
+    if (!firestore || !user || !isLiked) return;
+
+    const batch = writeBatch(firestore);
+    const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
+    const likeDocRef = doc(firestore, 'users', post.userId, 'posts', post.id, 'likes', user.uid);
+
+    batch.update(postRef, { likeCount: increment(-1) });
+    batch.delete(likeDocRef);
+
+    try {
+        await batch.commit();
+    } catch (e) {
+        console.error("Error unliking post:", e);
+    }
+  };
+
+  const handleTap = (e: React.MouseEvent) => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+    
+    if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
+      // Double tap -> Like
+      handleLike();
+    } else {
+      // Single tap -> Mute/Unmute
+      toggleMute();
+    }
+    lastTapRef.current = now;
   };
   
   const handleFollowToggle = async (e: React.MouseEvent) => {
@@ -76,14 +155,13 @@ export function PostCard({ post }: PostCardProps) {
     const followerDocRef = doc(firestore, 'user_followers', followedUserId, 'followers', followerUserId);
     const followingDocRef = doc(firestore, 'user_following', followerUserId, 'following', followedUserId);
 
-    if (isFollowing) { // Action: Unfollow
+    if (isFollowing) {
         batch.delete(followerDocRef);
         batch.delete(followingDocRef);
-    } else { // Action: Follow
+    } else {
         batch.set(followerDocRef, { createdAt: serverTimestamp() });
         batch.set(followingDocRef, { createdAt: serverTimestamp() });
         
-        // Add notification to the batch
         const notificationRef = doc(collection(firestore, 'users', followedUserId, 'notifications'));
         batch.set(notificationRef, {
             type: 'follow',
@@ -133,16 +211,10 @@ export function PostCard({ post }: PostCardProps) {
         const playPromise = videoElement.play();
         if (playPromise !== undefined) {
           playPromise.catch(error => {
-            // Autoplay was prevented.
-            // This can happen if the user hasn't interacted with the page yet.
-            // We'll mute the video and try playing again.
             if (error.name === "NotAllowedError") {
-              console.log("Autoplay with sound was prevented. Muting and retrying.");
               videoElement.muted = true;
               setIsMuted(true);
               videoElement.play().catch(console.error);
-            } else {
-              console.error("Video play failed:", error);
             }
           });
         }
@@ -158,7 +230,6 @@ export function PostCard({ post }: PostCardProps) {
       updateDoc(postRef, {
           viewCount: increment(1)
       }).catch((error) => {
-          console.error("Error updating view count: ", error);
           viewCounted.current = false;
       });
     }
@@ -166,7 +237,7 @@ export function PostCard({ post }: PostCardProps) {
   }, [isInView, firestore, post.id, post.userId, isMuted]);
 
   return (
-    <div ref={cardRef} className="relative w-full h-full bg-black rounded-lg overflow-hidden" onClick={toggleMute}>
+    <div ref={cardRef} className="relative w-full h-full bg-black rounded-lg overflow-hidden group" onClick={handleTap}>
       
       {isVideo ? (
         <video
@@ -186,15 +257,22 @@ export function PostCard({ post }: PostCardProps) {
         />
       )}
 
+      {/* Big Heart Animation Overlay */}
+      {showBigHeart && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+          <Heart className="w-32 h-32 text-primary fill-primary animate-heart-pop" />
+        </div>
+      )}
+
       {showVolumeIcon && isVideo && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none z-20">
           <div className="p-4 rounded-full bg-black/50">
             {isMuted ? <VolumeX size={48} className="text-white" /> : <Volume2 size={48} className="text-white" />}
           </div>
         </div>
       )}
 
-      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent text-white" onClick={(e) => e.stopPropagation()}>
+      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent text-white z-10" onClick={(e) => e.stopPropagation()}>
         {isAuthorLoading ? (
             <div className="flex items-center gap-2">
                 <Skeleton className="h-10 w-10 rounded-full" />
@@ -224,14 +302,19 @@ export function PostCard({ post }: PostCardProps) {
         <p className="text-sm mt-2">{post.caption}</p>
       </div>
       
-      <div className="absolute right-2 bottom-24 flex flex-col gap-4" onClick={(e) => e.stopPropagation()}>
-            <Button variant="ghost" size="icon" className="text-white h-12 w-12 flex flex-col">
-                <Heart className="h-8 w-8" />
-                <span className="text-xs">{post.likeCount}</span>
+      <div className="absolute right-2 bottom-24 flex flex-col gap-4 z-10" onClick={(e) => e.stopPropagation()}>
+            <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-white h-12 w-12 flex flex-col group/btn"
+                onClick={isLiked ? handleUnlike : handleLike}
+            >
+                <Heart className={cn("h-8 w-8 transition-colors", isLiked ? "fill-primary text-primary" : "text-white")} />
+                <span className="text-xs font-bold">{post.likeCount}</span>
             </Button>
             <Button variant="ghost" size="icon" className="text-white h-12 w-12 flex flex-col">
                 <MessageCircle className="h-8 w-8" />
-                <span className="text-xs">{post.commentCount}</span>
+                <span className="text-xs font-bold">{post.commentCount}</span>
             </Button>
             <Button variant="ghost" size="icon" className="text-white h-12 w-12">
                 <Send className="h-8 w-8" />
