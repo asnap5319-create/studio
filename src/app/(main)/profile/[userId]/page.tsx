@@ -106,6 +106,16 @@ export default function ProfilePage() {
         } else { // Action: Follow
             batch.set(followerDocRef, { createdAt: serverTimestamp() });
             batch.set(followingDocRef, { createdAt: serverTimestamp() });
+            
+            // Add notification to the batch
+            const notificationRef = doc(collection(firestore, 'users', followedUserId, 'notifications'));
+            batch.set(notificationRef, {
+                type: 'follow',
+                senderId: followerUserId,
+                recipientId: followedUserId,
+                read: false,
+                createdAt: serverTimestamp(),
+            });
         }
 
         try {
@@ -244,32 +254,32 @@ export default function ProfilePage() {
                                 <div 
                                     key={post.id} 
                                     className="aspect-square bg-secondary relative group cursor-pointer"
-                                    onClick={() => setSelectedPost(post)}
                                 >
-                                    {post.mediaUrl.includes('video') ? (
-                                        <video
-                                            src={post.mediaUrl}
-                                            className="w-full h-full object-cover"
-                                            muted
-                                            loop
-                                            playsInline
-                                        />
-                                    ) : (
-                                        <Image 
-                                            src={post.mediaUrl}
-                                            alt="User post"
-                                            fill
-                                            className="object-cover"
-                                        />
-                                    )}
-                                    <div className="absolute bottom-1 left-1 flex items-center gap-1 text-white text-xs font-bold bg-black/40 rounded px-1 py-0.5">
-                                        <Play className="h-3 w-3 fill-white" />
-                                        <span>{post.viewCount || 0}</span>
+                                    <div className='w-full h-full' onClick={() => setSelectedPost(post)}>
+                                        {post.mediaUrl.includes('video') ? (
+                                            <video
+                                                src={post.mediaUrl}
+                                                className="w-full h-full object-cover"
+                                                muted
+                                                loop
+                                                playsInline
+                                            />
+                                        ) : (
+                                            <Image 
+                                                src={post.mediaUrl}
+                                                alt="User post"
+                                                fill
+                                                className="object-cover"
+                                            />
+                                        )}
+                                        <div className="absolute bottom-1 left-1 flex items-center gap-1 text-white text-xs font-bold bg-black/40 rounded px-1 py-0.5">
+                                            <Play className="h-3 w-3 fill-white" />
+                                            <span>{post.viewCount || 0}</span>
+                                        </div>
                                     </div>
                                      {isOwnProfile && (
                                         <div 
                                             className="absolute top-1 right-1 z-10"
-                                            onClick={(e) => e.stopPropagation()}
                                         >
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>

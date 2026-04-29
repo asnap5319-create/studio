@@ -215,6 +215,56 @@
         "userId",
         "createdAt"
       ]
+    },
+    "Notification": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Notification",
+      "type": "object",
+      "description": "Represents an in-app notification for a user, triggered by events like follows, likes, or comments.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Notification entity."
+        },
+        "recipientId": {
+          "type": "string",
+          "description": "The ID of the user who receives the notification."
+        },
+        "senderId": {
+          "type": "string",
+          "description": "The ID of the user who triggered the notification (e.g., the follower)."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of notification.",
+          "enum": [
+            "follow",
+            "like",
+            "comment"
+          ]
+        },
+        "read": {
+          "type": "boolean",
+          "description": "Indicates whether the notification has been read by the recipient."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the notification was created.",
+          "format": "date-time"
+        },
+        "postId": {
+          "type": "string",
+          "description": "Optional ID of the post related to the notification (for likes and comments)."
+        }
+      },
+      "required": [
+        "id",
+        "recipientId",
+        "senderId",
+        "type",
+        "read",
+        "createdAt"
+      ]
     }
   },
   "auth": {
@@ -237,6 +287,26 @@
             {
               "name": "userId",
               "description": "The unique identifier of the user, corresponding to `request.auth.uid`."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/notifications/{notificationId}",
+        "definition": {
+          "entityName": "Notification",
+          "schema": {
+            "$ref": "#/backend/entities/Notification"
+          },
+          "description": "Stores notifications for a specific user. Read access is restricted to the owner (`userId`). Write access for creation is granted to the sender.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user receiving the notification."
+            },
+            {
+              "name": "notificationId",
+              "description": "The unique identifier of the notification."
             }
           ]
         }
@@ -413,4 +483,3 @@
     "reasoning": "The recommended Firestore structure for Asnap prioritizes Authorization Independence and QAP-compliant list operations by employing structural segregation, path-based ownership, and strategic denormalization. Each core entity has a dedicated collection, and subcollections are used to enforce natural hierarchies and ownership.\n\n**Authorization Independence:**\n1.  **Users:** The `/users/{userId}` path ensures that a user's profile data (`userId`) directly corresponds to `request.auth.uid` for write operations, making authorization self-contained for the user's own profile.\n2.  **Follower/Following Relationships:** Instead of relying on potentially large arrays within the `User` document, dedicated subcollections `/user_followers/{followedUserId}/followers/{followerUserId}` and `/user_following/{followerUserId}/following/{followedUserId}` are used. This allows for efficient `exists()` checks in security rules to determine if one user follows another, completely avoiding `get()` calls to other documents for this common authorization check. The `followedUserId` and `followerUserId` are denormalized into the path and implicitly into the document structure, making authorization of these records independent.\n3.  **Posts and Stories:** Documents in `/users/{postOwnerId}/posts/{postId}` and `/users/{storyOwnerId}/stories/{storyId}` include `userId` (owner) as a denormalized field. For writes, `request.auth.uid` must match both the path parameter (`postOwnerId` or `storyOwnerId`) and the denormalized `userId` field, ensuring strict ownership without needing to `get()` a parent document. For reads, the `exists()` check on the `/user_followers` collection is used, which does not break atomic operations as per the mandate.\n4.  **Comments and Likes:** These are nested under their respective posts: `/users/{postOwnerId}/posts/{postId}/comments/{commentId}` and `/users/{postOwnerId}/posts/{postId}/likes/{likeId}`. Each `Comment` document includes the `userId` of the commenter, and each `Like` document includes the `userId` of the liker (recommended `likeId` is `request.auth.uid`). This denormalizes the commenter/liker ownership to the document itself. The `postOwnerId` and `postId` are available directly in the path. For writes, `request.auth.uid` must match the denormalized `userId`. The existence of the parent post can be checked using `exists()` without violating atomicity for the comment/like operation itself.\n5.  **User Feeds:** The core solution for personalized feeds is total denormalization into `/user_feeds/{feedViewerId}/feed_posts/{feedPostId}` and `/user_story_feeds/{storyFeedViewerId}/feed_stories/{feedStoryId}`. Each document in these collections contains a full snapshot of the original post/story content required for display, along with `originalPostId` and `originalPostOwnerId`. The authorization for reading these documents is simply `request.auth.uid == feedViewerId`, which is entirely self-contained and requires no `get()` calls.\n\n**QAP (Rules are not Filters) Support:**\n1.  **User Profiles:** `/users/{userId}` allows for direct `get` requests for specific user profiles and `list` requests across the collection for public profile information (e.g., username search), relying on client-side queries and server-side rules based on available fields.\n2.  **Personalized Content Feeds:** The `/user_feeds/{feedViewerId}/feed_posts` and `/user_story_feeds/{storyFeedViewerId}/feed_stories` collections are explicitly designed for QAPs. Users fetch their own feed by querying `db.collection('user_feeds').doc(request.auth.uid).collection('feed_posts')`. Security rules can simply enforce `allow read: if feedViewerId == request.auth.uid`. This allows for efficient, paginated list operations without the need for complex, unindexable filters within security rules, as the feed is pre-computed and delivered.\n3.  **Owner-Specific Content:** Paths like `/users/{postOwnerId}/posts` or `/users/{storyOwnerId}/stories` allow `list` operations to retrieve all posts/stories by a specific user. The security rules ensure that `request.auth.uid` matches `postOwnerId` or `storyOwnerId` for write/delete, and allows read access if `request.auth.uid` is the owner or follows the owner using the efficient `exists()` check.\n4.  **Comments and Likes:** `list` operations for comments and likes of a specific post (`/users/{postOwnerId}/posts/{postId}/comments` or `/users/{postOwnerId}/posts/{postId}/likes`) are QAP-compliant. The security rules ensure that the user has appropriate access (owner, commenter/liker, or follower of post owner) to the parent post before allowing listing of its subcollections. This avoids filtering by complex criteria in rules."
   }
 }
-    

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import type { Post } from '@/models/post';
 import type { UserProfile } from '@/models/user';
 import { useDoc, useFirebase, useMemoFirebase, useUser } from '@/firebase';
-import { doc, updateDoc, increment, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection } from 'firebase/firestore';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
@@ -27,7 +27,7 @@ export function PostCard({ post }: PostCardProps) {
   const viewCounted = useRef(false);
 
   const [isInView, setIsInView] = useState(false);
-  const [isMuted, setIsMuted] = useState(true); // Start muted, try to autoplay with sound later
+  const [isMuted, setIsMuted] = useState(false); // Start unmuted by default
   const [showVolumeIcon, setShowVolumeIcon] = useState(false);
 
   const isOwnPost = user?.uid === post.userId;
@@ -82,6 +82,16 @@ export function PostCard({ post }: PostCardProps) {
     } else { // Action: Follow
         batch.set(followerDocRef, { createdAt: serverTimestamp() });
         batch.set(followingDocRef, { createdAt: serverTimestamp() });
+        
+        // Add notification to the batch
+        const notificationRef = doc(collection(firestore, 'users', followedUserId, 'notifications'));
+        batch.set(notificationRef, {
+            type: 'follow',
+            senderId: followerUserId,
+            recipientId: followedUserId,
+            read: false,
+            createdAt: serverTimestamp(),
+        });
     }
 
     try {
@@ -119,12 +129,15 @@ export function PostCard({ post }: PostCardProps) {
     const videoElement = videoRef.current;
     if (videoElement) {
       if (isInView) {
-        videoElement.muted = false;
-        setIsMuted(false);
+        videoElement.muted = isMuted;
         const playPromise = videoElement.play();
         if (playPromise !== undefined) {
           playPromise.catch(error => {
+            // Autoplay was prevented.
+            // This can happen if the user hasn't interacted with the page yet.
+            // We'll mute the video and try playing again.
             if (error.name === "NotAllowedError") {
+              console.log("Autoplay with sound was prevented. Muting and retrying.");
               videoElement.muted = true;
               setIsMuted(true);
               videoElement.play().catch(console.error);
@@ -150,7 +163,7 @@ export function PostCard({ post }: PostCardProps) {
       });
     }
 
-  }, [isInView, firestore, post.id, post.userId]);
+  }, [isInView, firestore, post.id, post.userId, isMuted]);
 
   return (
     <div ref={cardRef} className="relative w-full h-full bg-black rounded-lg overflow-hidden" onClick={toggleMute}>
@@ -227,5 +240,3 @@ export function PostCard({ post }: PostCardProps) {
     </div>
   );
 }
-
-    

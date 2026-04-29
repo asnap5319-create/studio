@@ -70,6 +70,13 @@ service cloud.firestore {
         allow update: if isOwnerOfExistingDoc(resource.data.userId) && request.resource.data.userId == resource.data.userId;
         allow delete: if isOwnerOfExistingDoc(resource.data.userId);
       }
+      
+      match /notifications/{notificationId} {
+        // A user can only read, update (to mark as read), or delete their own notifications.
+        allow read, update, delete: if isOwner(userId);
+        // Any signed-in user can create a notification, as long as they are the sender specified in the document.
+        allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
+      }
     }
 
     // ------------------------------------------------------------------------
