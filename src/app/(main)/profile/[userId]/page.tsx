@@ -28,7 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function ProfilePage() {
     const params = useParams();
-    const userId = params.userId as string;
+    const userId = params?.userId as string;
     const router = useRouter();
     const { user, isUserLoading } = useUser();
     const { firestore, auth } = useFirebase();
@@ -42,14 +42,14 @@ export default function ProfilePage() {
     const isOwnProfile = user?.uid === userId;
 
     const userProfileRef = useMemoFirebase(() => {
-        if (!firestore) return null;
+        if (!firestore || !userId) return null;
         return doc(firestore, 'users', userId);
     }, [firestore, userId]);
 
     const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
 
     const userPostsQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
+        if (!firestore || !userId) return null;
         const postsCollectionRef = collection(firestore, 'users', userId, 'posts');
         return query(postsCollectionRef, orderBy('createdAt', 'desc'));
     }, [firestore, userId]);
@@ -57,19 +57,19 @@ export default function ProfilePage() {
     const { data: posts, isLoading: arePostsLoading } = useCollection<Post>(userPostsQuery);
 
     const followersQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
+        if (!firestore || !userId) return null;
         return collection(firestore, 'user_followers', userId, 'followers');
     }, [firestore, userId]);
     const { data: followersData } = useCollection(followersQuery);
 
     const followingQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
+        if (!firestore || !userId) return null;
         return collection(firestore, 'user_following', userId, 'following');
     }, [firestore, userId]);
     const { data: followingData } = useCollection(followingQuery);
 
     const followCheckRef = useMemoFirebase(() => {
-        if (!firestore || !user || isOwnProfile) return null;
+        if (!firestore || !user || !userId || isOwnProfile) return null;
         return doc(firestore, 'user_followers', userId, 'followers', user.uid);
     }, [firestore, user, userId, isOwnProfile]);
     const { data: followCheck } = useDoc(followCheckRef);
@@ -88,8 +88,8 @@ export default function ProfilePage() {
     };
 
     const handleFollowToggle = async () => {
-        if (!firestore || !user || isOwnProfile) {
-            toast({ variant: "destructive", title: "Error", description: "You must be logged in to follow users."});
+        if (!firestore || !user || isOwnProfile || !userId) {
+            toast({ variant: "destructive", title: "Error", description: "Could not complete follow action."});
             return;
         };
 
@@ -134,7 +134,7 @@ export default function ProfilePage() {
             toast({
                 variant: "destructive",
                 title: "Error",
-                description: "Could not delete the post. Please try again.",
+                description: "Could not delete the post.",
             });
             return;
         }
@@ -280,6 +280,7 @@ export default function ProfilePage() {
                                      {isOwnProfile && (
                                         <div 
                                             className="absolute top-1 right-1 z-10"
+                                            onClick={(e) => e.stopPropagation()}
                                         >
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>

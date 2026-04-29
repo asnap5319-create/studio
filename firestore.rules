@@ -3,20 +3,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ------------------------------------------------------------------------
-    // Global Read Rule (Temporary for Debugging)
-    // ------------------------------------------------------------------------
-    /**
-     * @description TEMPORARY: Allows any read operation on any document.
-     * This is a temporary, wide-open rule to diagnose a persistent permissions issue.
-     * THIS IS NOT SECURE FOR PRODUCTION. It will be replaced with specific,
-     * secure rules once the feed functionality is confirmed to be working.
-     */
-    match /{document=**} {
-      allow read: if true;
-    }
-
-    // ------------------------------------------------------------------------
-    // Helper Functions (For Write Rules)
+    // Helper Functions
     // ------------------------------------------------------------------------
     function isSignedIn() {
       return request.auth != null;
@@ -29,82 +16,93 @@ service cloud.firestore {
     function isExistingDoc() {
       return resource != null;
     }
-
-    function isOwnerOfExistingDoc(userId) {
-      return isOwner(userId) && isExistingDoc();
-    }
     
     // ------------------------------------------------------------------------
-    // User Profile & Content Rules - SPECIFIC WRITE ACCESS
+    // User Profile & Content Rules
     // ------------------------------------------------------------------------
     match /users/{userId} {
-      // Read access is handled by the global rule above.
-      // Write access is restricted.
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwnerOfExistingDoc(userId);
-      allow delete: if isOwnerOfExistingDoc(userId);
+      // Profiles are public to read
+      allow read: if true;
+      
+      // Only owner can edit their own profile
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
 
+      // Posts subcollection
       match /posts/{postId} { 
+        // Posts are public to read
+        allow read: if true;
+        
+        // Only owner can create
         allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        // Allow owner to update their own post, OR allow any signed in user to increment the view count.
-        allow update: if (isOwner(resource.data.userId) && request.resource.data.userId == resource.data.userId) ||
-                       (isSignedIn() &&
+        
+        // Allow owner to update OR allow any signed-in user to increment viewCount
+        allow update: if isOwner(userId) || 
+                       (isSignedIn() && 
                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount']));
-        allow delete: if isOwnerOfExistingDoc(resource.data.userId);
+        
+        // Only owner can delete
+        allow delete: if isOwner(userId);
 
+        // Comments and Likes
         match /comments/{commentId} {
-          allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && request.resource.data.postId == postId;
-          allow update: if isOwnerOfExistingDoc(resource.data.userId) && request.resource.data.userId == resource.data.userId;
-          allow delete: if isExistingDoc() && (isOwner(resource.data.userId) || isOwner(userId)); // resource.data.userId is comment owner, userId is post owner
+          allow read: if true;
+          allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+          allow update: if isOwner(resource.data.userId);
+          allow delete: if isSignedIn() && (request.auth.uid == resource.data.userId || isOwner(userId));
         }
 
         match /likes/{likeId} {
-          allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && request.resource.data.postId == postId;
-          allow update: if false;
-          allow delete: if isOwnerOfExistingDoc(resource.data.userId);
+          allow read: if true;
+          allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+          allow delete: if isOwner(resource.data.userId);
         }
       }
 
       match /stories/{storyId} { 
+        allow read: if true;
         allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        allow update: if isOwnerOfExistingDoc(resource.data.userId) && request.resource.data.userId == resource.data.userId;
-        allow delete: if isOwnerOfExistingDoc(resource.data.userId);
+        allow update, delete: if isOwner(userId);
       }
       
       match /notifications/{notificationId} {
-        // A user can only read, update (to mark as read), or delete their own notifications.
+        // Only recipient can read/manage their notifications
         allow read, update, delete: if isOwner(userId);
-        // Any signed-in user can create a notification, as long as they are the sender specified in the document.
+        // Any signed-in user can trigger a notification (e.g. following someone)
         allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
       }
+    }
+
+    // ------------------------------------------------------------------------
+    // Collection Group Matches (Crucial for Global Feed)
+    // ------------------------------------------------------------------------
+    match /{path=**}/posts/{postId} {
+      allow read: if true;
+    }
+    match /{path=**}/stories/{storyId} {
+      allow read: if true;
     }
 
     // ------------------------------------------------------------------------
     // Follow Relationship Rules
     // ------------------------------------------------------------------------
     match /user_followers/{followedUserId}/followers/{followerUserId} {
-      // read is handled by global rule
-      // Allow write if the user performing the action is the follower.
+      allow read: if true;
       allow write: if request.auth.uid == followerUserId;
     }
 
     match /user_following/{followerUserId}/following/{followedUserId} {
-      // read is handled by global rule
-      // Allow write if the user performing the action is the follower.
+      allow read: if true;
       allow write: if request.auth.uid == followerUserId;
     }
-
+    
     // ------------------------------------------------------------------------
-    // Denormalized Feed Rules (Write-Only)
+    // Feed Snapshots (Populated by backend)
     // ------------------------------------------------------------------------
     match /user_feeds/{feedViewerId}/feed_posts/{feedPostId} {
-      // read is handled by global rule
-      allow write: if false; // No client-side writes
-    }
-
-    match /user_story_feeds/{storyFeedViewerId}/feed_stories/{feedStoryId} {
-      // read is handled by global rule
-      allow write: if false; // No client-side writes
+      allow read: if isOwner(feedViewerId);
+      allow write: if false;
     }
   }
 }
