@@ -13,6 +13,8 @@ import { Heart, MessageCircle, Send, Volume2, VolumeX } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
+import { CommentSection } from './comment-section';
 
 interface PostCardProps {
   post: Post;
@@ -31,6 +33,7 @@ export function PostCard({ post }: PostCardProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [showVolumeIcon, setShowVolumeIcon] = useState(false);
   const [showBigHeart, setShowBigHeart] = useState(false);
+  const [isCommentSheetOpen, setIsCommentSheetOpen] = useState(false);
 
   const isOwnPost = user?.uid === post.userId;
 
@@ -291,9 +294,9 @@ export function PostCard({ post }: PostCardProps) {
               {!isOwnPost && (
                 <>
                   <span className="text-muted-foreground mx-1">·</span>
-                  <Button variant="link" className="p-0 h-auto text-primary font-bold text-sm" onClick={handleFollowToggle}>
+                  <button className="p-0 h-auto text-primary font-bold text-sm bg-transparent border-none cursor-pointer" onClick={handleFollowToggle}>
                     {isFollowing ? 'Following' : 'Follow'}
-                  </Button>
+                  </button>
                 </>
               )}
             </div>
@@ -312,10 +315,19 @@ export function PostCard({ post }: PostCardProps) {
                 <Heart className={cn("h-8 w-8 transition-colors", isLiked ? "fill-primary text-primary" : "text-white")} />
                 <span className="text-xs font-bold">{post.likeCount}</span>
             </Button>
-            <Button variant="ghost" size="icon" className="text-white h-12 w-12 flex flex-col">
-                <MessageCircle className="h-8 w-8" />
-                <span className="text-xs font-bold">{post.commentCount}</span>
-            </Button>
+            
+            <Sheet open={isCommentSheetOpen} onOpenChange={setIsCommentSheetOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="text-white h-12 w-12 flex flex-col">
+                    <MessageCircle className="h-8 w-8" />
+                    <span className="text-xs font-bold">{post.commentCount}</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="h-[70vh] p-0 rounded-t-xl overflow-hidden border-border bg-background">
+                <CommentSection postId={post.id} postOwnerId={post.userId} />
+              </SheetContent>
+            </Sheet>
+
             <Button variant="ghost" size="icon" className="text-white h-12 w-12">
                 <Send className="h-8 w-8" />
             </Button>
