@@ -6,11 +6,13 @@ import { collectionGroup, query, orderBy } from 'firebase/firestore';
 import { PostCard } from '@/components/post-card';
 import type { Post } from '@/models/post';
 import Link from 'next/link';
-import { Heart, Database, AlertCircle } from 'lucide-react';
+import { Heart, Database, RefreshCw, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 
 export default function FeedPage() {
   const { firestore } = useFirebase();
+  const router = useRouter();
 
   const postsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -18,6 +20,11 @@ export default function FeedPage() {
   }, [firestore]);
 
   const { data: posts, isLoading, error } = useCollection<Post>(postsQuery);
+
+  const handleRefresh = () => {
+    router.refresh();
+    window.location.reload();
+  };
 
   if (isLoading) {
     return (
@@ -35,22 +42,26 @@ export default function FeedPage() {
         <div className="p-4 bg-primary/10 rounded-full mb-6">
           <Database className="h-16 w-16 text-primary" />
         </div>
-        <h2 className="text-3xl font-bold mb-4">बधाई हो, आप वायरल होने वाले हैं!</h2>
-        <p className="text-muted-foreground mb-8 text-lg">
-          Bhai, is app ko sabhi users ke video dikhane ke liye ek 'Index' chahiye. 
-          Niche diye gaye link par click karein aur <strong>'Create Index'</strong> button daba dein.
+        <h2 className="text-3xl font-bold mb-4">बस थोड़ा सा इंतज़ार, भाई!</h2>
+        <p className="text-muted-foreground mb-6 text-lg">
+          आपने 'Create Index' पर क्लिक कर दिया है, यह बहुत अच्छी बात है! 
+          अब Google के सर्वर इंडेक्स बना रहे हैं। इसमें <strong>2 से 5 मिनट</strong> का समय लगता है।
         </p>
         
-        <div className="w-full p-4 bg-secondary/50 rounded-xl border border-border text-xs font-mono text-left mb-8 break-all overflow-hidden">
-          {error.message}
-        </div>
+        <div className="flex flex-col gap-4 w-full">
+            <Button onClick={handleRefresh} className="w-full py-6 text-lg font-bold flex gap-2">
+                <RefreshCw className="h-5 w-5" />
+                अभी चेक करें (Refresh Now)
+            </Button>
+            
+            <p className="text-sm text-muted-foreground italic">
+                अगर रिफ्रेश करने पर भी यही दिख रहा है, तो 2 मिनट और रुकें।
+            </p>
 
-        <Button asChild className="w-full py-6 text-lg font-bold">
-           <Link href="https://console.firebase.google.com/v1/r/project/studio-8111746683-c1e57/firestore/indexes?create_exemption=Clxwcm9qZWN0cy9zdHVkaW8tODExMTc0NjY4My1jMWU1Ny9kYXRhYmFzZXMvKGRlZmF1bHQpL2NvbGxlY3Rpb25Hcm91cHMvcG9zdHMvZmllbGRzL2NyZWF0ZWRBdBACGg0KCWNyZWF0ZWRBdBAC" target="_blank">
-            अभी इंडेक्स बनाएँ (Create Index Now)
-           </Link>
-        </Button>
-        <p className="mt-4 text-sm text-muted-foreground italic">Index banne mein 2-3 minute lag sakte hain.</p>
+            <div className="mt-8 p-4 bg-secondary/30 rounded-xl border border-border text-[10px] font-mono text-left opacity-50 break-all overflow-hidden max-h-24">
+                {error.message}
+            </div>
+        </div>
       </div>
     );
   }
@@ -72,6 +83,7 @@ export default function FeedPage() {
                 <AlertCircle className="h-12 w-12 text-destructive mb-2" />
                 <h2 className="text-xl font-bold text-destructive">Could not load feed</h2>
                 <p className="text-muted-foreground">{error.message}</p>
+                <Button onClick={handleRefresh} variant="outline" className="mt-4">Try Again</Button>
             </div>
         )}
         {!isLoading && !error && (!posts || posts.length === 0) && (
