@@ -6,15 +6,14 @@ import { collectionGroup, query, orderBy } from 'firebase/firestore';
 import { PostCard } from '@/components/post-card';
 import type { Post } from '@/models/post';
 import Link from 'next/link';
-import { Heart, Database } from 'lucide-react';
-
+import { Heart, Database, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function FeedPage() {
   const { firestore } = useFirebase();
 
   const postsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Query the 'posts' collection group to get posts from all users, ordered by creation date
     return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'));
   }, [firestore]);
 
@@ -29,19 +28,29 @@ export default function FeedPage() {
     );
   }
 
-  // Handle Index missing error specifically
+  // Handle Index missing error specifically in UI
   if (error && (error.message.includes('index') || error.message.includes('INDEX'))) {
     return (
-      <div className="flex h-full flex-col items-center justify-center text-white bg-black p-6 text-center">
-        <Database className="h-16 w-16 text-primary mb-4" />
-        <h2 className="text-2xl font-bold mb-2">Database Index Required</h2>
-        <p className="text-muted-foreground mb-6">
-          Bhai, is app ko sahi se chalane ke liye ek 'Index' banana padega. 
-          Browser console mein jo blue link hai, us par click karke 'Create Index' daba dein.
+      <div className="flex h-full flex-col items-center justify-center text-white bg-black p-8 text-center max-w-lg mx-auto">
+        <div className="p-4 bg-primary/10 rounded-full mb-6">
+          <Database className="h-16 w-16 text-primary" />
+        </div>
+        <h2 className="text-3xl font-bold mb-4">बधाई हो, आप वायरल होने वाले हैं!</h2>
+        <p className="text-muted-foreground mb-8 text-lg">
+          Bhai, is app ko sabhi users ke video dikhane ke liye ek 'Index' chahiye. 
+          Niche diye gaye link par click karein aur <strong>'Create Index'</strong> button daba dein.
         </p>
-        <div className="p-4 bg-secondary rounded-lg text-xs font-mono text-left overflow-auto max-w-full">
+        
+        <div className="w-full p-4 bg-secondary/50 rounded-xl border border-border text-xs font-mono text-left mb-8 break-all overflow-hidden">
           {error.message}
         </div>
+
+        <Button asChild className="w-full py-6 text-lg font-bold">
+           <Link href="https://console.firebase.google.com/v1/r/project/studio-8111746683-c1e57/firestore/indexes?create_exemption=Clxwcm9qZWN0cy9zdHVkaW8tODExMTc0NjY4My1jMWU1Ny9kYXRhYmFzZXMvKGRlZmF1bHQpL2NvbGxlY3Rpb25Hcm91cHMvcG9zdHMvZmllbGRzL2NyZWF0ZWRBdBACGg0KCWNyZWF0ZWRBdBAC" target="_blank">
+            अभी इंडेक्स बनाएँ (Create Index Now)
+           </Link>
+        </Button>
+        <p className="mt-4 text-sm text-muted-foreground italic">Index banne mein 2-3 minute lag sakte hain.</p>
       </div>
     );
   }
@@ -58,8 +67,9 @@ export default function FeedPage() {
       </header>
 
       <div className="flex-1 w-full h-full overflow-y-auto snap-y snap-mandatory scrollbar-hide">
-        {error && !error.message.includes('index') && (
+        {error && (
             <div className="flex h-full flex-col items-center justify-center p-4 text-center">
+                <AlertCircle className="h-12 w-12 text-destructive mb-2" />
                 <h2 className="text-xl font-bold text-destructive">Could not load feed</h2>
                 <p className="text-muted-foreground">{error.message}</p>
             </div>
@@ -68,6 +78,9 @@ export default function FeedPage() {
             <div className="flex h-full flex-col items-center justify-center text-center p-4">
                 <h2 className="text-2xl font-bold">Welcome to A.snap!</h2>
                 <p className="text-muted-foreground mt-2">It's a bit quiet here. Be the first to create a post!</p>
+                <Button asChild className="mt-6" variant="secondary">
+                  <Link href="/create">Create First Post</Link>
+                </Button>
             </div>
         )}
         {posts && posts.map((post) => (

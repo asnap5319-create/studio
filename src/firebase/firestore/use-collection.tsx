@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -75,24 +76,30 @@ export function useCollection<T = any>(
       (err: FirestoreError) => {
         console.error("Firestore hook error:", err);
         
-        let path: string = 'unknown';
-        if (memoizedTargetRefOrQuery.type === 'collection') {
-          path = (memoizedTargetRefOrQuery as CollectionReference).path;
+        // Handle Permission Denied specifically
+        if (err.code === 'permission-denied') {
+            let path: string = 'unknown';
+            if (memoizedTargetRefOrQuery.type === 'collection') {
+            path = (memoizedTargetRefOrQuery as CollectionReference).path;
+            } else {
+            const internal = memoizedTargetRefOrQuery as unknown as InternalQuery;
+            path = internal._query?.path?.canonicalString() || 'collection-group';
+            }
+
+            const contextualError = new FirestorePermissionError({
+            operation: 'list',
+            path,
+            });
+
+            setError(contextualError);
+            errorEmitter.emit('permission-error', contextualError);
         } else {
-          const internal = memoizedTargetRefOrQuery as unknown as InternalQuery;
-          path = internal._query?.path?.canonicalString() || 'collection-group';
+            // Other errors (like missing index) are just set to state
+            setError(err);
         }
-
-        const contextualError = new FirestorePermissionError({
-          operation: 'list',
-          path,
-        });
-
-        setError(contextualError);
+        
         setData(null);
         setIsLoading(false);
-
-        errorEmitter.emit('permission-error', contextualError);
       }
     );
 
