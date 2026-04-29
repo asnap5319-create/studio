@@ -32,10 +32,8 @@ export default function NotificationsPage() {
     return (
         <div className="flex h-full flex-col text-white bg-background">
              <header className="flex items-center p-4 border-b border-border sticky top-0 bg-background z-10">
-                <Link href="/feed" legacyBehavior>
-                  <a className='p-2 -ml-2'>
+                <Link href="/feed" className='p-2 -ml-2'>
                     <ArrowLeft />
-                  </a>
                 </Link>
                 <h1 className="text-xl font-bold mx-auto pr-8">Notifications</h1>
             </header>

@@ -33,10 +33,8 @@ export default function FeedPage() {
             <h1 className="text-2xl font-bold text-primary font-sans" style={{filter: 'drop-shadow(0 0 5px hsl(var(--primary)))'}}>
                 A.snap
             </h1>
-            <Link href="/notifications" legacyBehavior>
-                <a aria-label="Notifications" className="relative">
-                    <Heart className="h-7 w-7 text-white" />
-                </a>
+            <Link href="/notifications" aria-label="Notifications" className="relative">
+                <Heart className="h-7 w-7 text-white" />
             </Link>
       </header>
 
