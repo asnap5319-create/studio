@@ -1,13 +1,13 @@
 "use client";
 
-import { Home, PlusSquare, Compass, CircleUser } from "lucide-react";
+import { Home, PlusSquare, Search, CircleUser } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/feed", label: "Home", icon: Home },
-  { href: "/discover", label: "Discover", icon: Compass },
+  { href: "/discover", label: "Search", icon: Search },
   { href: "/create", label: "Upload", icon: PlusSquare },
   { href: "/profile", label: "Profile", icon: CircleUser },
 ];
