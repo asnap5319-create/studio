@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, serverTimestamp, doc } from 'firebase/firestore';
-import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { Message } from '@/models/message';
 import type { Chat } from '@/models/chat';
 import type { UserProfile } from '@/models/user';
@@ -73,11 +74,14 @@ export default function ChatPage() {
       createdAt: serverTimestamp(),
     });
 
-    updateDocumentNonBlocking(chatDocRef, {
+    // We use setDocumentNonBlocking with merge: true to ensure the chat document
+    // exists even if the initial creation from the profile page hasn't finished.
+    setDocumentNonBlocking(chatDocRef, {
       lastMessage: text,
       lastMessageAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-    });
+      participants: chat?.participants || [user.uid, (chatId as string).replace(user.uid, '').replace('_', '')],
+    }, { merge: true });
   };
 
   if (!user) return null;
@@ -88,7 +92,7 @@ export default function ChatPage() {
         <button onClick={() => router.back()} className="p-2 -ml-2">
           <ArrowLeft />
         </button>
-        {otherUser && (
+        {otherUser ? (
           <Link href={`/profile/${otherUser.id}`} className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
               <AvatarImage src={otherUser.profileImageUrl} />
@@ -99,6 +103,11 @@ export default function ChatPage() {
               <span className="text-[10px] text-green-500">Active now</span>
             </div>
           </Link>
+        ) : (
+          <div className="flex items-center gap-3 animate-pulse">
+             <div className="h-10 w-10 rounded-full bg-secondary" />
+             <div className="h-4 w-20 bg-secondary rounded" />
+          </div>
         )}
       </header>
 

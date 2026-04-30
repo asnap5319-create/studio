@@ -8,8 +8,9 @@ import type { UserProfile } from '@/models/user';
 import { useDoc } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
-import { ArrowLeft, MessageSquare } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Database, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { Button } from '@/components/ui/button';
 
 function ChatItem({ chat, currentUserId }: { chat: Chat; currentUserId: string }) {
   const { firestore } = useFirebase();
@@ -63,7 +64,11 @@ export default function InboxPage() {
     );
   }, [firestore, user]);
 
-  const { data: chats, isLoading } = useCollection<Chat>(chatsQuery);
+  const { data: chats, isLoading, error } = useCollection<Chat>(chatsQuery);
+
+  const handleRefresh = () => {
+    window.location.reload();
+  };
 
   return (
     <div className="flex h-full flex-col text-white bg-background max-w-lg mx-auto border-x border-border">
@@ -75,6 +80,23 @@ export default function InboxPage() {
       </header>
 
       <div className="flex-1 overflow-y-auto">
+        {error && (error.message.includes('index') || error.message.includes('INDEX')) && (
+            <div className="m-4 p-6 bg-primary/10 rounded-xl border border-primary/20 text-center">
+                <Database className="h-12 w-12 text-primary mx-auto mb-4" />
+                <h3 className="font-bold text-lg mb-2">चैट लोड नहीं हो रही?</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                    इनबॉक्स देखने के लिए Google को एक इंडेक्स चाहिए। नीचे दिए गए लिंक पर क्लिक करें और 'Create Index' दबाएं।
+                </p>
+                <Button variant="default" onClick={handleRefresh} className="w-full gap-2">
+                    <RefreshCw className="h-4 w-4" />
+                    बनाने के बाद रिफ्रेश करें
+                </Button>
+                <div className="mt-4 text-[10px] opacity-30 break-all font-mono">
+                    {error.message}
+                </div>
+            </div>
+        )}
+
         {isLoading ? (
           <div className="p-4 space-y-4">
              {[1,2,3,4].map(i => (
@@ -93,7 +115,7 @@ export default function InboxPage() {
               <ChatItem key={chat.id} chat={chat} currentUserId={user?.uid || ''} />
             ))}
           </div>
-        ) : (
+        ) : !error && (
           <div className="flex flex-col items-center justify-center h-[60vh] text-center opacity-50 px-10">
             <MessageSquare className="h-20 w-20 mb-4" />
             <h2 className="text-xl font-bold">No Messages Yet</h2>
