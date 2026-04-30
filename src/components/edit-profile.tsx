@@ -45,12 +45,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       setName(userProfile.name);
       setUsername(userProfile.username);
       setBio(userProfile.bio || '');
-      setImagePreviewUrl(userProfile.profileImageUrl); // Set initial preview
-    }
-    if (!open) {
-      // Reset preview when sheet closes without saving
-      setImagePreviewUrl(userProfile?.profileImageUrl || null);
-      setImageFile(null);
+      setImagePreviewUrl(userProfile.profileImageUrl);
     }
   }, [userProfile, open]);
   
@@ -73,12 +68,16 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       return;
     }
     
+    if (!username.trim()) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Username is required.' });
+        return;
+    }
+
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
     if (!cloudName || !uploadPreset) {
-      toast({ title: "Configuration Error", description: "Cloudinary is not configured. Please contact support.", variant: "destructive" });
-      console.error("Cloudinary environment variables NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME or NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET are not set.");
+      toast({ title: "Configuration Error", description: "Cloudinary is not configured.", variant: "destructive" });
       return;
     }
 
@@ -107,10 +106,10 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
 
       const userDocRef = doc(firestore, 'users', user.uid);
       const dataToUpdate = {
-        name,
-        username,
-        username_lowercase: username.toLowerCase(),
-        bio,
+        name: name.trim(),
+        username: username.trim(),
+        username_lowercase: username.trim().toLowerCase(), // Crucial for case-insensitive search
+        bio: bio.trim(),
         profileImageUrl,
       };
 
@@ -144,7 +143,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
           <div className="flex flex-col items-center gap-4">
             <Avatar className="h-24 w-24">
               <AvatarImage src={imagePreviewUrl ?? userProfile?.profileImageUrl} />
-              <AvatarFallback>{userProfile?.name?.[0]}</AvatarFallback>
+              <AvatarFallback>{userProfile?.name?.[0]?.toUpperCase()}</AvatarFallback>
             </Avatar>
             
             <Button 
@@ -156,7 +155,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
                 Change profile photo
             </Button>
             
-            <Input 
+            <input 
                 type="file" 
                 className="hidden" 
                 ref={fileInputRef} 
