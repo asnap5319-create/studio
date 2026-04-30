@@ -24,7 +24,7 @@ export function NotificationItem({ notification }: { notification: Notification 
             <div className="flex items-center space-x-4 p-4 border-b border-border">
                 <Skeleton className="h-12 w-12 rounded-full" />
                 <div className="space-y-2">
-                    <Skeleton className="h-4 w-[250px]" />
+                    <Skeleton className="h-4 w-48" />
                 </div>
             </div>
         );
@@ -33,6 +33,8 @@ export function NotificationItem({ notification }: { notification: Notification 
     if (!sender) return null;
 
     let message = '';
+    let extraContent = null;
+
     switch (notification.type) {
         case 'follow':
             message = 'started following you.';
@@ -41,7 +43,12 @@ export function NotificationItem({ notification }: { notification: Notification 
             message = 'liked your post.';
             break;
         case 'comment':
-            message = 'commented on your post.';
+            message = 'commented on your post:';
+            extraContent = notification.content ? (
+                <p className="mt-1 p-2 bg-secondary/50 rounded-md text-sm italic text-muted-foreground border-l-2 border-primary">
+                    "{notification.content}"
+                </p>
+            ) : null;
             break;
         default:
             break;
@@ -53,18 +60,30 @@ export function NotificationItem({ notification }: { notification: Notification 
 
 
     return (
-        <div className="flex items-center gap-3 p-4 border-b border-border last:border-b-0">
-            <Link href={`/profile/${sender.id}`}>
-                <Avatar className="h-12 w-12">
+        <div className="flex items-start gap-3 p-4 border-b border-border last:border-b-0 hover:bg-secondary/20 transition-colors">
+            <Link href={`/profile/${sender.id}`} onClick={(e) => e.stopPropagation()}>
+                <Avatar className="h-12 w-12 border-2 border-border">
                     <AvatarImage src={sender.profileImageUrl} />
-                    <AvatarFallback>{sender.name?.[0]}</AvatarFallback>
+                    <AvatarFallback className="bg-primary/10 text-primary">{sender.username?.[0]?.toUpperCase()}</AvatarFallback>
                 </Avatar>
             </Link>
-            <p className="flex-1 text-sm">
-                <Link href={`/profile/${sender.id}`} className="font-bold hover:underline">{sender.username}</Link>
-                {' '}{message}
-                <span className="text-xs text-muted-foreground ml-2">{timeAgo}</span>
-            </p>
+            <div className="flex-1">
+                <div className="flex flex-col">
+                    <p className="text-sm">
+                        <Link href={`/profile/${sender.id}`} className="font-bold hover:underline">{sender.username}</Link>
+                        {' '}{message}
+                    </p>
+                    {extraContent}
+                    <span className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider">{timeAgo}</span>
+                </div>
+            </div>
+            {notification.postId && (
+                 <Link href={`/feed`} className="shrink-0">
+                    <div className="h-12 w-12 bg-secondary rounded overflow-hidden flex items-center justify-center">
+                         <Skeleton className="h-full w-full" />
+                    </div>
+                 </Link>
+            )}
         </div>
     );
 }

@@ -16,7 +16,7 @@ interface CommentSectionProps {
 }
 
 export function CommentSection({ postId, postOwnerId }: CommentSectionProps) {
-  const { user } = useUser();
+  const { user } = user();
   const { firestore } = useFirebase();
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,12 +35,13 @@ export function CommentSection({ postId, postOwnerId }: CommentSectionProps) {
     e.preventDefault();
     if (!user || !firestore || !newComment.trim() || isSubmitting) return;
 
+    const commentText = newComment.trim();
     setIsSubmitting(true);
     try {
       const commentData = {
         userId: user.uid,
         postId: postId,
-        content: newComment.trim(),
+        content: commentText,
         createdAt: serverTimestamp(),
         likeCount: 0,
       };
@@ -52,12 +53,12 @@ export function CommentSection({ postId, postOwnerId }: CommentSectionProps) {
       await updateDoc(postRef, { commentCount: increment(1) });
 
       if (user.uid !== postOwnerId) {
-          const notificationRef = doc(collection(firestore, 'users', postOwnerId, 'notifications'));
           await addDoc(collection(firestore, 'users', postOwnerId, 'notifications'), {
               type: 'comment',
               senderId: user.uid,
               recipientId: postOwnerId,
               postId: postId,
+              content: commentText, // Save the actual comment content
               read: false,
               createdAt: serverTimestamp(),
           });
@@ -74,7 +75,7 @@ export function CommentSection({ postId, postOwnerId }: CommentSectionProps) {
   return (
     <div className="flex flex-col h-full bg-background text-foreground">
       <div className="p-4 border-b border-border text-center">
-        <h3 className="font-bold">Comments</h3>
+        <h3 className="font-bold text-lg">Comments</h3>
       </div>
 
       <ScrollArea className="flex-1 p-4">
@@ -117,4 +118,9 @@ export function CommentSection({ postId, postOwnerId }: CommentSectionProps) {
       </div>
     </div>
   );
+}
+
+function user() {
+    const { user, isUserLoading, userError } = useUser();
+    return { user, isUserLoading, userError };
 }

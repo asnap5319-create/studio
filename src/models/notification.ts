@@ -8,4 +8,5 @@ export interface Notification {
   read: boolean;
   createdAt: Timestamp;
   postId?: string;
+  content?: string; // Stores the actual comment text for comment notifications
 }
