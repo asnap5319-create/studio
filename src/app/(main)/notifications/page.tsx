@@ -1,13 +1,14 @@
+
 'use client';
 
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy, writeBatch, doc } from 'firebase/firestore';
 import type { Notification } from '@/models/notification';
 import { NotificationItem } from '@/components/notification-item';
 import { Skeleton } from '@/components/ui/skeleton';
 import { HeartCrack, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { useEffect } from 'react';
 
 export default function NotificationsPage() {
     const { user, isUserLoading } = useUser();
@@ -19,6 +20,22 @@ export default function NotificationsPage() {
     }, [firestore, user]);
 
     const { data: notifications, isLoading } = useCollection<Notification>(notificationsQuery);
+
+    // Mark notifications as read when this page is opened
+    useEffect(() => {
+        if (!firestore || !user || !notifications || notifications.length === 0) return;
+
+        const unreadNotifications = notifications.filter(n => !n.read);
+        if (unreadNotifications.length === 0) return;
+
+        const batch = writeBatch(firestore);
+        unreadNotifications.forEach(n => {
+            const notificationRef = doc(firestore, 'users', user.uid, 'notifications', n.id);
+            batch.update(notificationRef, { read: true });
+        });
+
+        batch.commit().catch(err => console.error("Error marking notifications as read:", err));
+    }, [firestore, user, notifications]);
 
     const renderSkeleton = () => (
       <div className="flex items-center space-x-4 p-4">

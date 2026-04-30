@@ -1,10 +1,11 @@
 
 'use client';
 
-import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collectionGroup, query, orderBy } from 'firebase/firestore';
+import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
+import { collectionGroup, query, orderBy, collection } from 'firebase/firestore';
 import { PostCard } from '@/components/post-card';
 import type { Post } from '@/models/post';
+import type { Notification } from '@/models/notification';
 import Link from 'next/link';
 import { Heart, Database, RefreshCw, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,14 +13,26 @@ import { useRouter } from 'next/navigation';
 
 export default function FeedPage() {
   const { firestore } = useFirebase();
+  const { user } = useUser();
   const router = useRouter();
 
+  // Query for posts
   const postsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'));
   }, [firestore]);
 
   const { data: posts, isLoading, error } = useCollection<Post>(postsQuery);
+
+  // Query for unread notifications to show red dot
+  const notificationsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    // We fetch recent notifications and check for 'read' status in JS to avoid index requirement for 'where'
+    return query(collection(firestore, 'users', user.uid, 'notifications'), orderBy('createdAt', 'desc'));
+  }, [firestore, user]);
+
+  const { data: notifications } = useCollection<Notification>(notificationsQuery);
+  const hasUnread = notifications?.some(n => !n.read);
 
   const handleRefresh = () => {
     router.refresh();
@@ -74,6 +87,9 @@ export default function FeedPage() {
             </h1>
             <Link href="/notifications" aria-label="Notifications" className="relative hover:scale-110 transition-transform">
                 <Heart className="h-7 w-7 text-white" />
+                {hasUnread && (
+                  <span className="absolute top-0 right-0 h-3 w-3 bg-red-500 rounded-full border-2 border-black animate-pulse" />
+                )}
             </Link>
       </header>
 
