@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -240,21 +241,33 @@ export default function ProfilePage() {
                         <Grid3x3 className="text-primary"/>
                     </div>
                     <div className="grid grid-cols-3 gap-0.5">
-                        {posts?.map((post) => (
-                            <div key={post.id} className="aspect-square bg-secondary relative cursor-pointer" onClick={() => setSelectedPost(post)}>
-                                <Image src={post.mediaUrl} alt="User post" fill className="object-cover" />
-                                <div className="absolute bottom-1 left-1 flex items-center gap-1 text-white text-[10px] bg-black/40 rounded px-1">
-                                    <Play className="h-3 w-3 fill-white" />
-                                    <span>{post.viewCount || 0}</span>
+                        {posts?.map((post) => {
+                            const isVideo = post.mediaUrl.includes('.mp4') || post.mediaUrl.includes('.mov') || post.mediaUrl.includes('video') || post.mediaUrl.includes('cloudinary');
+                            return (
+                                <div key={post.id} className="aspect-square bg-secondary relative cursor-pointer group" onClick={() => setSelectedPost(post)}>
+                                    {isVideo ? (
+                                        <video 
+                                            src={post.mediaUrl} 
+                                            className="w-full h-full object-cover"
+                                            muted
+                                            playsInline
+                                        />
+                                    ) : (
+                                        <Image src={post.mediaUrl} alt="" fill className="object-cover" />
+                                    )}
+                                    <div className="absolute bottom-1 left-1 flex items-center gap-1 text-white text-[10px] bg-black/40 rounded px-1">
+                                        <Play className="h-3 w-3 fill-white" />
+                                        <span>{post.viewCount || 0}</span>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             </div>
             {isOwnProfile && userProfile && <EditProfileSheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen} userProfile={userProfile} />}
             <Dialog open={!!selectedPost} onOpenChange={(isOpen) => !isOpen && setSelectedPost(null)}>
-                <DialogContent className="p-0 border-0 bg-black/80 w-full max-w-lg h-screen sm:h-[90vh]">
+                <DialogContent className="p-0 border-0 bg-black/80 w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center">
                     {selectedPost && (
                         <>
                             <DialogTitle className="sr-only">Post Details by {userProfile?.username}</DialogTitle>
