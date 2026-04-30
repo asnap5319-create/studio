@@ -5,16 +5,19 @@ import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, collectionGroup, query, orderBy, where, limit } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search as SearchIcon, Play, X } from 'lucide-react';
+import { Search as SearchIcon, Play, X, Database, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import type { UserProfile } from '@/models/user';
 import type { Post } from '@/models/post';
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { PostCard } from "@/components/post-card";
+import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 
 export default function SearchPage() {
   const { firestore } = useFirebase();
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
 
@@ -26,9 +29,9 @@ export default function SearchPage() {
 
   const { data: posts, isLoading: isPostsLoading } = useCollection<Post>(explorePostsQuery);
 
-  // Query for users based on search (case-insensitive)
+  // Query for users based on search (case-insensitive search using the pre-calculated lowercase field)
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore || searchQuery.length < 2) return null;
+    if (!firestore || searchQuery.length < 1) return null;
     const lowerQuery = searchQuery.toLowerCase();
     return query(
       collection(firestore, 'users'),
@@ -38,7 +41,12 @@ export default function SearchPage() {
     );
   }, [firestore, searchQuery]);
 
-  const { data: searchResults, isLoading: isSearching } = useCollection<UserProfile>(usersQuery);
+  const { data: searchResults, isLoading: isSearching, error: searchError } = useCollection<UserProfile>(usersQuery);
+
+  const handleRefresh = () => {
+    router.refresh();
+    window.location.reload();
+  };
 
   return (
     <div className="flex h-full flex-col bg-background text-white overflow-hidden">
@@ -64,8 +72,27 @@ export default function SearchPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-hide">
+        {/* Search Error (Index missing handling) */}
+        {searchError && searchError.message.includes('index') && (
+            <div className="mx-4 p-4 bg-primary/10 rounded-xl border border-primary/20 text-center mb-6">
+                <Database className="h-8 w-8 text-primary mx-auto mb-2" />
+                <h3 className="font-bold text-sm mb-1">Index banana padega!</h3>
+                <p className="text-xs text-muted-foreground mb-3">
+                    Search kaam nahi kar raha kyunki index nahi bana hai. 
+                    Niche link par click karke 'Create Index' dabayein.
+                </p>
+                <Button variant="outline" size="sm" onClick={handleRefresh} className="w-full gap-2">
+                    <RefreshCw className="h-3 w-3" />
+                    Bane ke baad refresh karein
+                </Button>
+                <div className="mt-4 text-[10px] opacity-50 break-all text-left font-mono">
+                    {searchError.message}
+                </div>
+            </div>
+        )}
+
         {/* Search Results */}
-        {searchQuery.length >= 2 && (
+        {searchQuery.length >= 1 && !searchError && (
           <div className="px-4 pb-4 animate-in fade-in slide-in-from-top-2 duration-200">
             <h2 className="text-sm font-bold text-muted-foreground mb-4 uppercase tracking-wider">Search Results</h2>
             {isSearching ? (
