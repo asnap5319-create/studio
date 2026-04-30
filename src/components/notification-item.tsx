@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import Link from 'next/link';
 import { Skeleton } from './ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
+import { doc } from 'firebase/firestore';
 
 export function NotificationItem({ notification }: { notification: Notification }) {
     const { firestore } = useFirebase();
@@ -29,7 +30,7 @@ export function NotificationItem({ notification }: { notification: Notification 
         );
     }
 
-    if (!sender) return null; // Or some fallback UI
+    if (!sender) return null;
 
     let message = '';
     switch (notification.type) {
@@ -64,7 +65,6 @@ export function NotificationItem({ notification }: { notification: Notification 
                 {' '}{message}
                 <span className="text-xs text-muted-foreground ml-2">{timeAgo}</span>
             </p>
-            {/* Can add post thumbnail here for like/comment */}
         </div>
     );
 }
