@@ -8,7 +8,7 @@ import type { UserProfile } from '@/models/user';
 import { useDoc } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
-import { ArrowLeft, MessageSquare, Database, RefreshCw } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Database, RefreshCw, ExternalLink } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 
@@ -70,6 +70,9 @@ export default function InboxPage() {
     window.location.reload();
   };
 
+  // Extract link from Firebase error message if available
+  const indexLink = error?.message?.match(/https:\/\/console\.firebase\.google\.com[^\s]*/)?.[0];
+
   return (
     <div className="flex h-full flex-col text-white bg-background max-w-lg mx-auto border-x border-border">
       <header className="flex items-center p-4 border-b border-border sticky top-0 bg-background/80 backdrop-blur-md z-10">
@@ -85,13 +88,23 @@ export default function InboxPage() {
                 <Database className="h-12 w-12 text-primary mx-auto mb-4" />
                 <h3 className="font-bold text-lg mb-2">चैट लोड नहीं हो रही?</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                    इनबॉक्स देखने के लिए Google को एक इंडेक्स चाहिए। नीचे दिए गए लिंक पर क्लिक करें और 'Create Index' दबाएं।
+                    इनबॉक्स देखने के लिए Google को एक इंडेक्स चाहिए। नीचे दिए गए बटन पर क्लिक करें और 'Create Index' दबाएं।
                 </p>
-                <Button variant="default" onClick={handleRefresh} className="w-full gap-2">
-                    <RefreshCw className="h-4 w-4" />
-                    बनाने के बाद रिफ्रेश करें
-                </Button>
-                <div className="mt-4 text-[10px] opacity-30 break-all font-mono text-left bg-black p-2 rounded">
+                <div className="flex flex-col gap-3">
+                    {indexLink && (
+                        <Button asChild className="w-full gap-2 font-bold" variant="default">
+                            <a href={indexLink} target="_blank" rel="noopener noreferrer">
+                                <ExternalLink className="h-4 w-4" />
+                                1. यहाँ क्लिक करें (Create Index)
+                            </a>
+                        </Button>
+                    )}
+                    <Button variant="outline" onClick={handleRefresh} className="w-full gap-2">
+                        <RefreshCw className="h-4 w-4" />
+                        2. इंडेक्स बनाने के बाद रिफ्रेश करें
+                    </Button>
+                </div>
+                <div className="mt-4 text-[10px] opacity-30 break-all font-mono text-left bg-black p-2 rounded max-h-32 overflow-y-auto">
                     {error.message}
                 </div>
             </div>
