@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -9,7 +10,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
-import { Heart, MessageCircle, Send, Volume2, VolumeX } from 'lucide-react';
+import { Heart, MessageCircle, Send, Volume2, VolumeX, Share2 } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -60,7 +61,7 @@ export function PostCard({ post }: PostCardProps) {
   const { data: likeData } = useDoc(likeRef);
   const isLiked = !!likeData;
 
-  const isVideo = post.mediaUrl.includes('.mp4') || post.mediaUrl.includes('.mov') || post.mediaUrl.includes('video');
+  const isVideo = post.mediaUrl.includes('.mp4') || post.mediaUrl.includes('.mov') || post.mediaUrl.includes('video') || post.mediaUrl.includes('cloudinary');
 
   const toggleMute = () => {
     if (!isVideo || !videoRef.current) return;
@@ -81,11 +82,10 @@ export function PostCard({ post }: PostCardProps) {
         return;
     }
 
-    // Always show animation for feedback
     setShowBigHeart(true);
     setTimeout(() => setShowBigHeart(false), 1000);
 
-    if (isLiked) return; // Prevent double increments
+    if (isLiked) return;
 
     const batch = writeBatch(firestore);
     const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
@@ -135,10 +135,8 @@ export function PostCard({ post }: PostCardProps) {
     const DOUBLE_TAP_DELAY = 300;
     
     if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
-      // Double tap -> Like
       handleLike();
     } else {
-      // Single tap -> Mute/Unmute
       toggleMute();
     }
     lastTapRef.current = now;
@@ -186,6 +184,23 @@ export function PostCard({ post }: PostCardProps) {
     }
   };
 
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Check out this video on A.snap',
+          text: post.caption,
+          url: window.location.origin + '/feed',
+        });
+      } catch (err) {
+        console.log('Error sharing:', err);
+      }
+    } else {
+      toast({ title: "Sharing not supported", description: "Link copied to clipboard!" });
+      navigator.clipboard.writeText(window.location.origin + '/feed');
+    }
+  };
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -217,7 +232,7 @@ export function PostCard({ post }: PostCardProps) {
             if (error.name === "NotAllowedError") {
               videoElement.muted = true;
               setIsMuted(true);
-              videoElement.play().catch(console.error);
+              videoElement.play().catch(() => {});
             }
           });
         }
@@ -232,7 +247,7 @@ export function PostCard({ post }: PostCardProps) {
       const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
       updateDoc(postRef, {
           viewCount: increment(1)
-      }).catch((error) => {
+      }).catch(() => {
           viewCounted.current = false;
       });
     }
@@ -240,13 +255,13 @@ export function PostCard({ post }: PostCardProps) {
   }, [isInView, firestore, post.id, post.userId, isMuted]);
 
   return (
-    <div ref={cardRef} className="relative w-full h-full bg-black rounded-lg overflow-hidden group" onClick={handleTap}>
+    <div ref={cardRef} className="relative w-full h-full bg-black overflow-hidden" onClick={handleTap}>
       
       {isVideo ? (
         <video
           ref={videoRef}
           src={post.mediaUrl}
-          className="object-cover w-full h-full"
+          className="object-contain w-full h-full"
           loop
           playsInline
         />
@@ -255,12 +270,11 @@ export function PostCard({ post }: PostCardProps) {
           src={post.mediaUrl}
           alt={post.caption || 'User post'}
           fill
-          className="object-cover"
+          className="object-contain"
           priority
         />
       )}
 
-      {/* Big Heart Animation Overlay */}
       {showBigHeart && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
           <Heart className="w-32 h-32 text-primary fill-primary animate-heart-pop" />
@@ -268,14 +282,14 @@ export function PostCard({ post }: PostCardProps) {
       )}
 
       {showVolumeIcon && isVideo && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none z-20">
-          <div className="p-4 rounded-full bg-black/50">
-            {isMuted ? <VolumeX size={48} className="text-white" /> : <Volume2 size={48} className="text-white" />}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+          <div className="p-5 rounded-full bg-black/40 backdrop-blur-sm">
+            {isMuted ? <VolumeX size={40} className="text-white" /> : <Volume2 size={40} className="text-white" />}
           </div>
         </div>
       )}
 
-      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent text-white z-10" onClick={(e) => e.stopPropagation()}>
+      <div className="absolute bottom-0 left-0 right-0 p-4 pb-20 bg-gradient-to-t from-black/90 via-black/40 to-transparent text-white z-10" onClick={(e) => e.stopPropagation()}>
         {isAuthorLoading ? (
             <div className="flex items-center gap-2">
                 <Skeleton className="h-10 w-10 rounded-full" />
@@ -283,57 +297,61 @@ export function PostCard({ post }: PostCardProps) {
             </div>
         ) : (
           author && (
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-3 mb-3">
               <Link href={`/profile/${author.id}`} className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                <Avatar className="h-10 w-10 border-2 border-primary">
+                <Avatar className="h-11 w-11 border-2 border-primary ring-2 ring-black/50">
                   <AvatarImage src={author.profileImageUrl} />
                   <AvatarFallback>{author.name?.[0]}</AvatarFallback>
                 </Avatar>
-                <p className="font-bold text-sm">{author.username}</p>
+                <p className="font-bold text-[15px] drop-shadow-lg">{author.username}</p>
               </Link>
               {!isOwnPost && (
-                <>
-                  <span className="text-muted-foreground mx-1">·</span>
-                  <button className="p-0 h-auto text-primary font-bold text-sm bg-transparent border-none cursor-pointer" onClick={handleFollowToggle}>
-                    {isFollowing ? 'Following' : 'Follow'}
-                  </button>
-                </>
+                <button className="px-3 py-1 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full text-xs font-bold transition-colors" onClick={handleFollowToggle}>
+                  {isFollowing ? 'Following' : 'Follow'}
+                </button>
               )}
             </div>
           )
         )}
-        <p className="text-sm mt-2">{post.caption}</p>
+        <p className="text-sm line-clamp-2 drop-shadow-md pr-12">{post.caption}</p>
       </div>
       
-      <div className="absolute right-2 bottom-24 flex flex-col gap-4 z-10" onClick={(e) => e.stopPropagation()}>
-            <Button 
-                variant="ghost" 
-                size="icon" 
-                className="text-white h-12 w-12 flex flex-col group/btn"
-                onClick={isLiked ? handleUnlike : handleLike}
-            >
-                <Heart className={cn("h-8 w-8 transition-colors", isLiked ? "fill-primary text-primary" : "text-white")} />
-                <span className="text-xs font-bold">{post.likeCount}</span>
-            </Button>
-            
-            <Sheet open={isCommentSheetOpen} onOpenChange={setIsCommentSheetOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-white h-12 w-12 flex flex-col">
-                    <MessageCircle className="h-8 w-8" />
-                    <span className="text-xs font-bold">{post.commentCount}</span>
+      <div className="absolute right-3 bottom-24 flex flex-col gap-6 z-10" onClick={(e) => e.stopPropagation()}>
+            <div className="flex flex-col items-center">
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="text-white h-12 w-12 hover:bg-transparent"
+                    onClick={isLiked ? handleUnlike : handleLike}
+                >
+                    <Heart className={cn("h-9 w-9 transition-all active:scale-125", isLiked ? "fill-primary text-primary" : "text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]")} />
                 </Button>
-              </SheetTrigger>
-              <SheetContent side="bottom" className="h-[70vh] p-0 rounded-t-xl overflow-hidden border-border bg-background">
-                <SheetHeader className="sr-only">
-                  <SheetTitle>Comments on {author?.username}&apos;s post</SheetTitle>
-                </SheetHeader>
-                <CommentSection postId={post.id} postOwnerId={post.userId} />
-              </SheetContent>
-            </Sheet>
+                <span className="text-xs font-bold mt-1 drop-shadow-md">{post.likeCount}</span>
+            </div>
+            
+            <div className="flex flex-col items-center">
+                <Sheet open={isCommentSheetOpen} onOpenChange={setIsCommentSheetOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon" className="text-white h-12 w-12 hover:bg-transparent">
+                        <MessageCircle className="h-9 w-9 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-2xl overflow-hidden border-border bg-background">
+                    <SheetHeader className="sr-only">
+                      <SheetTitle>Comments</SheetTitle>
+                    </SheetHeader>
+                    <CommentSection postId={post.id} postOwnerId={post.userId} />
+                  </SheetContent>
+                </Sheet>
+                <span className="text-xs font-bold mt-1 drop-shadow-md">{post.commentCount}</span>
+            </div>
 
-            <Button variant="ghost" size="icon" className="text-white h-12 w-12">
-                <Send className="h-8 w-8" />
-            </Button>
+            <div className="flex flex-col items-center">
+                <Button variant="ghost" size="icon" className="text-white h-12 w-12 hover:bg-transparent" onClick={handleShare}>
+                    <Share2 className="h-9 w-9 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+                </Button>
+                <span className="text-xs font-bold mt-1 drop-shadow-md">Share</span>
+            </div>
       </div>
     </div>
   );

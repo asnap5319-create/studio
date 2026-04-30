@@ -42,7 +42,7 @@ export default function FeedPage() {
     return (
       <div className="flex h-full flex-col items-center justify-center text-white bg-black">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary mb-4"></div>
-        <p>Loading your feed...</p>
+        <p className="font-medium">Loading your feed...</p>
       </div>
     );
   }
@@ -74,18 +74,18 @@ export default function FeedPage() {
 
   return (
     <div className="h-full w-full max-w-lg mx-auto flex flex-col text-white bg-black">
-       <header className="flex items-center justify-between p-4 bg-black/50 backdrop-blur-md sticky top-0 z-20 shrink-0">
-            <h1 className="text-2xl font-bold text-primary font-sans" style={{filter: 'drop-shadow(0 0 5px hsl(var(--primary)))'}}>
+       <header className="flex items-center justify-between p-4 bg-black/60 backdrop-blur-lg sticky top-0 z-20 shrink-0 border-b border-white/5">
+            <h1 className="text-2xl font-black text-primary italic tracking-tighter" style={{filter: 'drop-shadow(0 0 8px hsl(var(--primary)))'}}>
                 A.snap
             </h1>
-            <div className="flex items-center gap-4">
-                <Link href="/notifications" aria-label="Notifications" className="relative hover:scale-110 transition-transform">
+            <div className="flex items-center gap-5">
+                <Link href="/notifications" aria-label="Notifications" className="relative hover:scale-110 transition-transform active:scale-95">
                     <Heart className="h-7 w-7 text-white" />
                     {hasUnread && (
-                      <span className="absolute top-0 right-0 h-3 w-3 bg-red-500 rounded-full border-2 border-black animate-pulse" />
+                      <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 bg-red-600 rounded-full border-2 border-black animate-pulse" />
                     )}
                 </Link>
-                <Link href="/messages" aria-label="Messages" className="hover:scale-110 transition-transform">
+                <Link href="/messages" aria-label="Messages" className="hover:scale-110 transition-transform active:scale-95">
                     <Send className="h-7 w-7 text-white -rotate-12" />
                 </Link>
             </div>
@@ -93,10 +93,13 @@ export default function FeedPage() {
 
       <div className="flex-1 w-full h-full overflow-y-auto snap-y snap-mandatory scrollbar-hide">
         {!isLoading && !error && (!posts || posts.length === 0) && (
-            <div className="flex h-full flex-col items-center justify-center text-center p-4">
+            <div className="flex h-full flex-col items-center justify-center text-center p-6">
+                <div className="w-20 h-20 bg-secondary/50 rounded-full flex items-center justify-center mb-6">
+                  <Heart className="w-10 h-10 text-muted-foreground opacity-30" />
+                </div>
                 <h2 className="text-2xl font-bold">Welcome to A.snap!</h2>
-                <p className="text-muted-foreground mt-2">It's a bit quiet here. Be the first to create a post!</p>
-                <Button asChild className="mt-6" variant="secondary">
+                <p className="text-muted-foreground mt-2 max-w-[250px]">इट्स ए बिट क्वाइट हियर। बी द फर्स्ट टू क्रिएट ए पोस्ट!</p>
+                <Button asChild className="mt-8 px-8 py-6 text-lg font-bold" variant="default">
                   <Link href="/create">Create First Post</Link>
                 </Button>
             </div>
