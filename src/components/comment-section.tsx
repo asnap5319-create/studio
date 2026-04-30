@@ -16,7 +16,7 @@ interface CommentSectionProps {
 }
 
 export function CommentSection({ postId, postOwnerId }: CommentSectionProps) {
-  const { user } = user();
+  const { user } = useUser();
   const { firestore } = useFirebase();
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,7 +58,7 @@ export function CommentSection({ postId, postOwnerId }: CommentSectionProps) {
               senderId: user.uid,
               recipientId: postOwnerId,
               postId: postId,
-              content: commentText, // Save the actual comment content
+              content: commentText,
               read: false,
               createdAt: serverTimestamp(),
           });
@@ -118,9 +118,4 @@ export function CommentSection({ postId, postOwnerId }: CommentSectionProps) {
       </div>
     </div>
   );
-}
-
-function user() {
-    const { user, isUserLoading, userError } = useUser();
-    return { user, isUserLoading, userError };
 }
