@@ -3,28 +3,45 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, orderBy, serverTimestamp, doc } from 'firebase/firestore';
-import { addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, query, orderBy, serverTimestamp, doc, deleteDoc } from 'firebase/firestore';
+import { addDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { Message } from '@/models/message';
 import type { Chat } from '@/models/chat';
 import type { UserProfile } from '@/models/user';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Send, Play } from 'lucide-react';
+import { ArrowLeft, Send, Play, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import Image from 'next/image';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from '@/hooks/use-toast';
 
 export default function ChatPage() {
   const { chatId } = useParams();
   const { user } = useUser();
   const { firestore } = useFirebase();
   const router = useRouter();
+  const { toast } = useToast();
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // States for long-press delete
+  const [msgToDelete, setMsgToDelete] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const pressTimer = useRef<NodeJS.Timeout | null>(null);
 
   const chatRef = useMemoFirebase(() => {
     if (!firestore || !chatId) return null;
@@ -81,6 +98,44 @@ export default function ChatPage() {
     }, { merge: true });
   };
 
+  const handleLongPress = (messageId: string, senderId: string) => {
+    // Only allow owner to delete their own messages
+    if (senderId !== user?.uid) return;
+
+    pressTimer.current = setTimeout(() => {
+      setMsgToDelete(messageId);
+      setIsDeleteDialogOpen(true);
+      // Haptic feedback if available
+      if (window.navigator && window.navigator.vibrate) {
+        window.navigator.vibrate(50);
+      }
+    }, 600); // 600ms hold to trigger
+  };
+
+  const cancelPress = () => {
+    if (pressTimer.current) {
+      clearTimeout(pressTimer.current);
+      pressTimer.current = null;
+    }
+  };
+
+  const confirmDeleteMessage = async () => {
+    if (!firestore || !chatId || !msgToDelete) return;
+
+    const messageDocRef = doc(firestore, 'chats', chatId as string, 'messages', msgToDelete);
+    
+    try {
+      deleteDocumentNonBlocking(messageDocRef);
+      toast({ title: "Message Deleted" });
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      toast({ variant: "destructive", title: "Error", description: "Could not delete message." });
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setMsgToDelete(null);
+    }
+  };
+
   if (!user) return null;
 
   return (
@@ -112,7 +167,7 @@ export default function ChatPage() {
         ref={scrollRef}
         className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth"
       >
-        {messages?.map((msg, index) => {
+        {messages?.map((msg) => {
           const isMine = msg.senderId === user.uid;
           const isSharedPost = !!msg.sharedPostId;
 
@@ -120,15 +175,20 @@ export default function ChatPage() {
             <div 
               key={msg.id} 
               className={cn(
-                "flex flex-col max-w-[80%]",
+                "flex flex-col max-w-[80%] group relative",
                 isMine ? "ml-auto items-end" : "mr-auto items-start"
               )}
+              onPointerDown={() => handleLongPress(msg.id, msg.senderId)}
+              onPointerUp={cancelPress}
+              onPointerLeave={cancelPress}
+              onTouchStart={() => handleLongPress(msg.id, msg.senderId)}
+              onTouchEnd={cancelPress}
             >
               {isSharedPost ? (
                 <Link 
                   href="/feed"
                   className={cn(
-                    "rounded-2xl overflow-hidden border border-border shadow-lg transition-transform active:scale-95 group",
+                    "rounded-2xl overflow-hidden border border-border shadow-lg transition-transform active:scale-95 group/post",
                     isMine ? "bg-primary/20" : "bg-secondary/40"
                   )}
                 >
@@ -150,7 +210,7 @@ export default function ChatPage() {
                          className="object-cover"
                        />
                      )}
-                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
+                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/post:opacity-100 transition-opacity bg-black/20">
                         <Play className="h-10 w-10 text-white fill-white/20" />
                      </div>
                   </div>
@@ -161,7 +221,7 @@ export default function ChatPage() {
               ) : (
                 <div 
                   className={cn(
-                    "px-4 py-2 rounded-2xl text-sm break-words",
+                    "px-4 py-2 rounded-2xl text-sm break-words transition-opacity active:opacity-70",
                     isMine 
                       ? "bg-primary text-white rounded-tr-none" 
                       : "bg-secondary text-white rounded-tl-none"
@@ -198,6 +258,29 @@ export default function ChatPage() {
           </Button>
         </form>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="max-w-[300px] rounded-2xl border-border bg-background text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-center">Delete Message?</AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-xs">
+              This message will be deleted for everyone in this chat.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+            <AlertDialogAction 
+              onClick={confirmDeleteMessage}
+              className="bg-destructive hover:bg-destructive/90 text-white font-bold rounded-xl h-11"
+            >
+              Delete
+            </AlertDialogAction>
+            <AlertDialogCancel className="bg-secondary border-none hover:bg-secondary/80 text-white rounded-xl h-11 m-0">
+              Cancel
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
