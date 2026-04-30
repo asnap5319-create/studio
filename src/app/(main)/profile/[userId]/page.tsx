@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -129,7 +128,7 @@ export default function ProfilePage() {
         }
     };
 
-    const handleMessageClick = async () => {
+    const handleMessageClick = () => {
         if (!firestore || !user || !userId || isOwnProfile) return;
 
         // Generate a deterministic chat ID (sort UIDs to ensure same ID regardless of who starts)
@@ -137,16 +136,18 @@ export default function ProfilePage() {
         const chatId = participants.join('_');
 
         const chatRef = doc(firestore, 'chats', chatId);
-        const chatSnap = await getDoc(chatRef);
+        
+        // Use setDoc with merge: true to ensure the chat document exists without overwriting anything else
+        // We don't await this because we want to navigate immediately for a fast UX
+        setDoc(chatRef, {
+            id: chatId,
+            participants,
+            updatedAt: serverTimestamp(),
+        }, { merge: true }).catch(err => {
+            console.error("Error ensuring chat exists:", err);
+        });
 
-        if (!chatSnap.exists()) {
-            await setDoc(chatRef, {
-                id: chatId,
-                participants,
-                updatedAt: serverTimestamp(),
-            });
-        }
-
+        // Navigate immediately
         router.push(`/messages/${chatId}`);
     };
 
@@ -168,6 +169,7 @@ export default function ProfilePage() {
     if (isUserLoading || isProfileLoading) {
         return (
             <div className="flex h-full flex-col items-center justify-center bg-background text-white">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary mb-4"></div>
                 <p>Loading profile...</p>
             </div>
         );
@@ -198,7 +200,7 @@ export default function ProfilePage() {
                     <div className="flex items-center gap-4">
                         <Avatar className="h-20 w-20 md:h-24 md:w-24 border-2 border-primary">
                             <AvatarImage src={userProfile?.profileImageUrl} />
-                            <AvatarFallback>{userProfile?.name?.[0]}</AvatarFallback>
+                            <AvatarFallback>{userProfile?.name?.[0]?.toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <div className="flex items-center justify-around flex-1 text-center">
                             <div>
@@ -255,7 +257,7 @@ export default function ProfilePage() {
                 <DialogContent className="p-0 border-0 bg-black/80 w-full max-w-lg h-screen sm:h-[90vh]">
                     {selectedPost && (
                         <>
-                            <DialogTitle className="sr-only">Post Details</DialogTitle>
+                            <DialogTitle className="sr-only">Post Details by {userProfile?.username}</DialogTitle>
                             <PostCard post={selectedPost} />
                         </>
                     )}
