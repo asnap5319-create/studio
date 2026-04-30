@@ -91,7 +91,7 @@ export default function InboxPage() {
                     <RefreshCw className="h-4 w-4" />
                     बनाने के बाद रिफ्रेश करें
                 </Button>
-                <div className="mt-4 text-[10px] opacity-30 break-all font-mono">
+                <div className="mt-4 text-[10px] opacity-30 break-all font-mono text-left bg-black p-2 rounded">
                     {error.message}
                 </div>
             </div>
