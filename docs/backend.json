@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -14,6 +15,10 @@
           "type": "string",
           "description": "The unique display name chosen by the user."
         },
+        "username_lowercase": {
+          "type": "string",
+          "description": "Lowercase version of the username for search purposes."
+        },
         "email": {
           "type": "string",
           "description": "The user's email address, used for account recovery and notifications.",
@@ -23,7 +28,7 @@
           "type": "string",
           "description": "A short biographical description provided by the user for their profile."
         },
-        "profilePictureUrl": {
+        "profileImageUrl": {
           "type": "string",
           "description": "URL to the user's profile picture.",
           "format": "uri"
@@ -58,7 +63,7 @@
         },
         "userId": {
           "type": "string",
-          "description": "Reference to the User who created the post. (Relationship: User 1:N Post)"
+          "description": "Reference to the User who created the post."
         },
         "mediaUrl": {
           "type": "string",
@@ -83,16 +88,16 @@
         },
         "expiresAt": {
           "type": "string",
-          "description": "Timestamp when the post is scheduled to be automatically deleted (48 hours after creation).",
+          "description": "Timestamp when the post is scheduled to be automatically deleted.",
           "format": "date-time"
         },
         "likeCount": {
           "type": "number",
-          "description": "The total number of likes this post has received. (Denormalized count)"
+          "description": "The total number of likes this post has received."
         },
         "commentCount": {
           "type": "number",
-          "description": "The total number of comments this post has received. (Denormalized count)"
+          "description": "The total number of comments this post has received."
         },
         "viewCount": {
           "type": "number",
@@ -107,164 +112,50 @@
         "expiresAt"
       ]
     },
-    "Story": {
+    "Chat": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Story",
+      "title": "Chat",
       "type": "object",
-      "description": "Represents a short-lived photo or video story shared by a user, disappearing after 24 hours.",
+      "description": "Represents a direct messaging conversation between users.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Story entity."
+          "description": "Unique identifier for the Chat."
         },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User who created the story. (Relationship: User 1:N Story)"
+        "participants": {
+          "type": "array",
+          "description": "Array of user IDs involved in the chat.",
+          "items": { "type": "string" }
         },
-        "mediaUrl": {
+        "lastMessage": {
           "type": "string",
-          "description": "URL to the image or video content of the story.",
-          "format": "uri"
+          "description": "The text content of the last message sent."
         },
-        "caption": {
+        "lastMessageAt": {
           "type": "string",
-          "description": "Optional text overlay on the story."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the story was created.",
+          "description": "Timestamp of the last message.",
           "format": "date-time"
         },
-        "expiresAt": {
+        "updatedAt": {
           "type": "string",
-          "description": "Timestamp when the story is scheduled to be automatically deleted (24 hours after creation).",
+          "description": "Timestamp when the chat was last updated.",
           "format": "date-time"
         }
       },
-      "required": [
-        "id",
-        "userId",
-        "mediaUrl",
-        "createdAt",
-        "expiresAt"
-      ]
+      "required": ["id", "participants"]
     },
-    "Comment": {
+    "Message": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Comment",
+      "title": "Message",
       "type": "object",
-      "description": "Represents a user's comment on a post.",
+      "description": "Represents a single message within a chat.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Comment entity."
-        },
-        "postId": {
-          "type": "string",
-          "description": "Reference to the Post this comment belongs to. (Relationship: Post 1:N Comment)"
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User who made the comment. (Relationship: User 1:N Comment)"
-        },
-        "content": {
-          "type": "string",
-          "description": "The textual content of the comment."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the comment was created.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "senderId": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "postId",
-        "userId",
-        "content",
-        "createdAt"
-      ]
-    },
-    "Like": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Like",
-      "type": "object",
-      "description": "Represents a user's 'like' reaction to a post.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Like entity."
-        },
-        "postId": {
-          "type": "string",
-          "description": "Reference to the Post that was liked. (Relationship: Post 1:N Like)"
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User who liked the post. (Relationship: User 1:N Like)"
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the like was recorded.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "postId",
-        "userId",
-        "createdAt"
-      ]
-    },
-    "Notification": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Notification",
-      "type": "object",
-      "description": "Represents an in-app notification for a user, triggered by events like follows, likes, or comments.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Notification entity."
-        },
-        "recipientId": {
-          "type": "string",
-          "description": "The ID of the user who receives the notification."
-        },
-        "senderId": {
-          "type": "string",
-          "description": "The ID of the user who triggered the notification (e.g., the follower)."
-        },
-        "type": {
-          "type": "string",
-          "description": "The type of notification.",
-          "enum": [
-            "follow",
-            "like",
-            "comment"
-          ]
-        },
-        "read": {
-          "type": "boolean",
-          "description": "Indicates whether the notification has been read by the recipient."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the notification was created.",
-          "format": "date-time"
-        },
-        "postId": {
-          "type": "string",
-          "description": "Optional ID of the post related to the notification (for likes and comments)."
-        }
-      },
-      "required": [
-        "id",
-        "recipientId",
-        "senderId",
-        "type",
-        "read",
-        "createdAt"
-      ]
+      "required": ["id", "senderId", "text", "createdAt"]
     }
   },
   "auth": {
@@ -279,207 +170,27 @@
         "path": "/users/{userId}",
         "definition": {
           "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores individual user profiles. The `id` field within the document must match the `userId` in the path and `request.auth.uid`. Can be read by anyone for public profile data, but write access is restricted to the owner.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user, corresponding to `request.auth.uid`."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/User" },
+          "description": "Stores user profiles."
         }
       },
       {
-        "path": "/users/{userId}/notifications/{notificationId}",
+        "path": "/chats/{chatId}",
         "definition": {
-          "entityName": "Notification",
-          "schema": {
-            "$ref": "#/backend/entities/Notification"
-          },
-          "description": "Stores notifications for a specific user. Read access is restricted to the owner (`userId`). Write access for creation is granted to the sender.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user receiving the notification."
-            },
-            {
-              "name": "notificationId",
-              "description": "The unique identifier of the notification."
-            }
-          ]
+          "entityName": "Chat",
+          "schema": { "$ref": "#/backend/entities/Chat" },
+          "description": "Stores chat metadata."
         }
       },
       {
-        "path": "/user_followers/{followedUserId}/followers/{followerUserId}",
+        "path": "/chats/{chatId}/messages/{messageId}",
         "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Represents a follower relationship, allowing efficient `exists()` checks to determine if `followerUserId` follows `followedUserId`. Used for authorization independence in read rules for posts/stories. Document content can be minimal (e.g., `{ createdAt: Timestamp }`).",
-          "params": [
-            {
-              "name": "followedUserId",
-              "description": "The unique identifier of the user being followed."
-            },
-            {
-              "name": "followerUserId",
-              "description": "The unique identifier of the user who is following."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/user_following/{followerUserId}/following/{followedUserId}",
-        "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Represents a 'following' relationship, allowing a user to efficiently query who they follow. Document content can be minimal (e.g., `{ createdAt: Timestamp }`). This is a symmetrical relationship to `user_followers` for easier lookup.",
-          "params": [
-            {
-              "name": "followerUserId",
-              "description": "The unique identifier of the user who is doing the following."
-            },
-            {
-              "name": "followedUserId",
-              "description": "The unique identifier of the user being followed."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{postOwnerId}/posts/{postId}",
-        "definition": {
-          "entityName": "Post",
-          "schema": {
-            "$ref": "#/backend/entities/Post"
-          },
-          "description": "Stores individual ephemeral posts created by a user. The `userId` field within the document must match `postOwnerId` in the path. Includes denormalized 'userId' for authorization independence. Accessible by the post owner and their followers.",
-          "params": [
-            {
-              "name": "postOwnerId",
-              "description": "The unique identifier of the user who owns this post."
-            },
-            {
-              "name": "postId",
-              "description": "The unique identifier of the post."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{storyOwnerId}/stories/{storyId}",
-        "definition": {
-          "entityName": "Story",
-          "schema": {
-            "$ref": "#/backend/entities/Story"
-          },
-          "description": "Stores individual ephemeral stories created by a user. The `userId` field within the document must match `storyOwnerId` in the path. Includes denormalized 'userId' for authorization independence. Accessible by the story owner and their followers.",
-          "params": [
-            {
-              "name": "storyOwnerId",
-              "description": "The unique identifier of the user who owns this story."
-            },
-            {
-              "name": "storyId",
-              "description": "The unique identifier of the story."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{postOwnerId}/posts/{postId}/comments/{commentId}",
-        "definition": {
-          "entityName": "Comment",
-          "schema": {
-            "$ref": "#/backend/entities/Comment"
-          },
-          "description": "Stores comments for a specific post. The `userId` field within the document (commenter ID) must match `request.auth.uid` for write/delete access. Includes denormalized `postId` and `userId` for authorization independence. Access is granted if `request.auth.uid` is the `postOwnerId`, `commenterUserId`, or follows `postOwnerId`.",
-          "params": [
-            {
-              "name": "postOwnerId",
-              "description": "The unique identifier of the user who owns the parent post."
-            },
-            {
-              "name": "postId",
-              "description": "The unique identifier of the parent post."
-            },
-            {
-              "name": "commentId",
-              "description": "The unique identifier of the comment."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{postOwnerId}/posts/{postId}/likes/{likeId}",
-        "definition": {
-          "entityName": "Like",
-          "schema": {
-            "$ref": "#/backend/entities/Like"
-          },
-          "description": "Stores 'likes' for a specific post. The `userId` field within the document (liker ID) must match `request.auth.uid` for write/delete access. It is recommended that `likeId` is set to `request.auth.uid` to ensure uniqueness per user per post. Includes denormalized `postId` and `userId` for authorization independence. Access is granted if `request.auth.uid` is the `postOwnerId`, `likerUserId`, or follows `postOwnerId`.",
-          "params": [
-            {
-              "name": "postOwnerId",
-              "description": "The unique identifier of the user who owns the parent post."
-            },
-            {
-              "name": "postId",
-              "description": "The unique identifier of the parent post."
-            },
-            {
-              "name": "likeId",
-              "description": "The unique identifier of the like, recommended to be the `userId` of the liker."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/user_feeds/{feedViewerId}/feed_posts/{feedPostId}",
-        "definition": {
-          "entityName": "Post",
-          "schema": {
-            "$ref": "#/backend/entities/Post"
-          },
-          "description": "A denormalized feed of posts for each user. Each document contains a snapshot of a post from a followed user, including `originalPostId` and `originalPostOwnerId`. This collection is read-only by the `feedViewerId` and populated by a backend process to ensure QAP compliance for the personalized content feed.",
-          "params": [
-            {
-              "name": "feedViewerId",
-              "description": "The unique identifier of the user to whom this feed belongs."
-            },
-            {
-              "name": "feedPostId",
-              "description": "The unique identifier of the post item within the feed (could be the `originalPostId`)."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/user_story_feeds/{storyFeedViewerId}/feed_stories/{feedStoryId}",
-        "definition": {
-          "entityName": "Story",
-          "schema": {
-            "$ref": "#/backend/entities/Story"
-          },
-          "description": "A denormalized feed of stories for each user. Each document contains a snapshot of a story from a followed user, including `originalStoryId` and `originalStoryOwnerId`. This collection is read-only by the `storyFeedViewerId` and populated by a backend process to ensure QAP compliance for interactive story sharing.",
-          "params": [
-            {
-              "name": "storyFeedViewerId",
-              "description": "The unique identifier of the user to whom this story feed belongs."
-            },
-            {
-              "name": "feedStoryId",
-              "description": "The unique identifier of the story item within the feed (could be the `originalStoryId`)."
-            }
-          ]
+          "entityName": "Message",
+          "schema": { "$ref": "#/backend/entities/Message" },
+          "description": "Stores messages within a chat."
         }
       }
     ],
-    "reasoning": "The recommended Firestore structure for Asnap prioritizes Authorization Independence and QAP-compliant list operations by employing structural segregation, path-based ownership, and strategic denormalization. Each core entity has a dedicated collection, and subcollections are used to enforce natural hierarchies and ownership.\n\n**Authorization Independence:**\n1.  **Users:** The `/users/{userId}` path ensures that a user's profile data (`userId`) directly corresponds to `request.auth.uid` for write operations, making authorization self-contained for the user's own profile.\n2.  **Follower/Following Relationships:** Instead of relying on potentially large arrays within the `User` document, dedicated subcollections `/user_followers/{followedUserId}/followers/{followerUserId}` and `/user_following/{followerUserId}/following/{followedUserId}` are used. This allows for efficient `exists()` checks in security rules to determine if one user follows another, completely avoiding `get()` calls to other documents for this common authorization check. The `followedUserId` and `followerUserId` are denormalized into the path and implicitly into the document structure, making authorization of these records independent.\n3.  **Posts and Stories:** Documents in `/users/{postOwnerId}/posts/{postId}` and `/users/{storyOwnerId}/stories/{storyId}` include `userId` (owner) as a denormalized field. For writes, `request.auth.uid` must match both the path parameter (`postOwnerId` or `storyOwnerId`) and the denormalized `userId` field, ensuring strict ownership without needing to `get()` a parent document. For reads, the `exists()` check on the `/user_followers` collection is used, which does not break atomic operations as per the mandate.\n4.  **Comments and Likes:** These are nested under their respective posts: `/users/{postOwnerId}/posts/{postId}/comments/{commentId}` and `/users/{postOwnerId}/posts/{postId}/likes/{likeId}`. Each `Comment` document includes the `userId` of the commenter, and each `Like` document includes the `userId` of the liker (recommended `likeId` is `request.auth.uid`). This denormalizes the commenter/liker ownership to the document itself. The `postOwnerId` and `postId` are available directly in the path. For writes, `request.auth.uid` must match the denormalized `userId`. The existence of the parent post can be checked using `exists()` without violating atomicity for the comment/like operation itself.\n5.  **User Feeds:** The core solution for personalized feeds is total denormalization into `/user_feeds/{feedViewerId}/feed_posts/{feedPostId}` and `/user_story_feeds/{storyFeedViewerId}/feed_stories/{feedStoryId}`. Each document in these collections contains a full snapshot of the original post/story content required for display, along with `originalPostId` and `originalPostOwnerId`. The authorization for reading these documents is simply `request.auth.uid == feedViewerId`, which is entirely self-contained and requires no `get()` calls.\n\n**QAP (Rules are not Filters) Support:**\n1.  **User Profiles:** `/users/{userId}` allows for direct `get` requests for specific user profiles and `list` requests across the collection for public profile information (e.g., username search), relying on client-side queries and server-side rules based on available fields.\n2.  **Personalized Content Feeds:** The `/user_feeds/{feedViewerId}/feed_posts` and `/user_story_feeds/{storyFeedViewerId}/feed_stories` collections are explicitly designed for QAPs. Users fetch their own feed by querying `db.collection('user_feeds').doc(request.auth.uid).collection('feed_posts')`. Security rules can simply enforce `allow read: if feedViewerId == request.auth.uid`. This allows for efficient, paginated list operations without the need for complex, unindexable filters within security rules, as the feed is pre-computed and delivered.\n3.  **Owner-Specific Content:** Paths like `/users/{postOwnerId}/posts` or `/users/{storyOwnerId}/stories` allow `list` operations to retrieve all posts/stories by a specific user. The security rules ensure that `request.auth.uid` matches `postOwnerId` or `storyOwnerId` for write/delete, and allows read access if `request.auth.uid` is the owner or follows the owner using the efficient `exists()` check.\n4.  **Comments and Likes:** `list` operations for comments and likes of a specific post (`/users/{postOwnerId}/posts/{postId}/comments` or `/users/{postOwnerId}/posts/{postId}/likes`) are QAP-compliant. The security rules ensure that the user has appropriate access (owner, commenter/liker, or follower of post owner) to the parent post before allowing listing of its subcollections. This avoids filtering by complex criteria in rules."
+    "reasoning": "Standard Chat-Message structure with metadata at the chat root for efficient inbox listing."
   }
 }

@@ -7,7 +7,7 @@ import { PostCard } from '@/components/post-card';
 import type { Post } from '@/models/post';
 import type { Notification } from '@/models/notification';
 import Link from 'next/link';
-import { Heart, Database, RefreshCw, AlertCircle } from 'lucide-react';
+import { Heart, Database, RefreshCw, AlertCircle, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 
@@ -27,7 +27,6 @@ export default function FeedPage() {
   // Query for unread notifications to show red dot
   const notificationsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    // We fetch recent notifications and check for 'read' status in JS to avoid index requirement for 'where'
     return query(collection(firestore, 'users', user.uid, 'notifications'), orderBy('createdAt', 'desc'));
   }, [firestore, user]);
 
@@ -48,7 +47,6 @@ export default function FeedPage() {
     );
   }
 
-  // Handle Index missing error specifically in UI
   if (error && (error.message.includes('index') || error.message.includes('INDEX'))) {
     return (
       <div className="flex h-full flex-col items-center justify-center text-white bg-black p-8 text-center max-w-lg mx-auto">
@@ -66,14 +64,9 @@ export default function FeedPage() {
                 <RefreshCw className="h-5 w-5" />
                 अभी चेक करें (Refresh Now)
             </Button>
-            
             <p className="text-sm text-muted-foreground italic">
                 अगर रिफ्रेश करने पर भी यही दिख रहा है, तो 2 मिनट और रुकें।
             </p>
-
-            <div className="mt-8 p-4 bg-secondary/30 rounded-xl border border-border text-[10px] font-mono text-left opacity-50 break-all overflow-hidden max-h-24">
-                {error.message}
-            </div>
         </div>
       </div>
     );
@@ -85,23 +78,20 @@ export default function FeedPage() {
             <h1 className="text-2xl font-bold text-primary font-sans" style={{filter: 'drop-shadow(0 0 5px hsl(var(--primary)))'}}>
                 A.snap
             </h1>
-            <Link href="/notifications" aria-label="Notifications" className="relative hover:scale-110 transition-transform">
-                <Heart className="h-7 w-7 text-white" />
-                {hasUnread && (
-                  <span className="absolute top-0 right-0 h-3 w-3 bg-red-500 rounded-full border-2 border-black animate-pulse" />
-                )}
-            </Link>
+            <div className="flex items-center gap-4">
+                <Link href="/notifications" aria-label="Notifications" className="relative hover:scale-110 transition-transform">
+                    <Heart className="h-7 w-7 text-white" />
+                    {hasUnread && (
+                      <span className="absolute top-0 right-0 h-3 w-3 bg-red-500 rounded-full border-2 border-black animate-pulse" />
+                    )}
+                </Link>
+                <Link href="/messages" aria-label="Messages" className="hover:scale-110 transition-transform">
+                    <Send className="h-7 w-7 text-white -rotate-12" />
+                </Link>
+            </div>
       </header>
 
       <div className="flex-1 w-full h-full overflow-y-auto snap-y snap-mandatory scrollbar-hide">
-        {error && (
-            <div className="flex h-full flex-col items-center justify-center p-4 text-center">
-                <AlertCircle className="h-12 w-12 text-destructive mb-2" />
-                <h2 className="text-xl font-bold text-destructive">Could not load feed</h2>
-                <p className="text-muted-foreground">{error.message}</p>
-                <Button onClick={handleRefresh} variant="outline" className="mt-4">Try Again</Button>
-            </div>
-        )}
         {!isLoading && !error && (!posts || posts.length === 0) && (
             <div className="flex h-full flex-col items-center justify-center text-center p-4">
                 <h2 className="text-2xl font-bold">Welcome to A.snap!</h2>
