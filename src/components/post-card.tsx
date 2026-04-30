@@ -13,7 +13,7 @@ import { Heart, MessageCircle, Send, Volume2, VolumeX } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { CommentSection } from './comment-section';
 
 interface PostCardProps {
@@ -324,6 +324,9 @@ export function PostCard({ post }: PostCardProps) {
                 </Button>
               </SheetTrigger>
               <SheetContent side="bottom" className="h-[70vh] p-0 rounded-t-xl overflow-hidden border-border bg-background">
+                <SheetHeader className="sr-only">
+                  <SheetTitle>Comments on {author?.username}&apos;s post</SheetTitle>
+                </SheetHeader>
                 <CommentSection postId={post.id} postOwnerId={post.userId} />
               </SheetContent>
             </Sheet>
