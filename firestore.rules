@@ -33,7 +33,7 @@ service cloud.firestore {
         // Only owner can create
         allow create: if isOwner(userId) && request.resource.data.userId == userId;
         
-        // Allow owner to update OR allow any signed-in user to increment viewCount
+        // Allow owner to update OR allow any signed-in user to increment viewCount, likeCount, commentCount
         allow update: if isOwner(userId) || 
                        (isSignedIn() && 
                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount', 'likeCount', 'commentCount']));
@@ -41,18 +41,30 @@ service cloud.firestore {
         // Only owner can delete
         allow delete: if isOwner(userId);
 
-        // Comments and Likes
+        // Comments
         match /comments/{commentId} {
           allow read: if true;
           allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-          allow update: if isOwner(resource.data.userId);
+          
+          // Allow author to update OR allow anyone to increment likeCount
+          allow update: if isOwner(resource.data.userId) || 
+                         (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount']));
+          
           allow delete: if isSignedIn() && (request.auth.uid == resource.data.userId || isOwner(userId));
+
+          // Likes on comments (Nested inside comments)
+          match /likes/{likeId} {
+            allow read: if true;
+            allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+            allow delete: if isOwner(likeId) || isOwner(resource.data.userId);
+          }
         }
 
+        // Likes on posts (Directly under posts)
         match /likes/{likeId} {
           allow read: if true;
           allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-          allow delete: if isOwner(resource.data.userId);
+          allow delete: if isOwner(likeId) || isOwner(resource.data.userId);
         }
       }
 
