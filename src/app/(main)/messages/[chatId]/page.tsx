@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -12,10 +11,11 @@ import type { UserProfile } from '@/models/user';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, Send, Play } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import Image from 'next/image';
 
 export default function ChatPage() {
   const { chatId } = useParams();
@@ -67,15 +67,12 @@ export default function ChatPage() {
     const messagesRef = collection(firestore, 'chats', chatId as string, 'messages');
     const chatDocRef = doc(firestore, 'chats', chatId as string);
 
-    // Using non-blocking updates for instant UI feedback
     addDocumentNonBlocking(messagesRef, {
       senderId: user.uid,
       text,
       createdAt: serverTimestamp(),
     });
 
-    // We use setDocumentNonBlocking with merge: true to ensure the chat document
-    // exists even if the initial creation from the profile page hasn't finished.
     setDocumentNonBlocking(chatDocRef, {
       lastMessage: text,
       lastMessageAt: serverTimestamp(),
@@ -117,6 +114,8 @@ export default function ChatPage() {
       >
         {messages?.map((msg, index) => {
           const isMine = msg.senderId === user.uid;
+          const isSharedPost = !!msg.sharedPostId;
+
           return (
             <div 
               key={msg.id} 
@@ -125,16 +124,52 @@ export default function ChatPage() {
                 isMine ? "ml-auto items-end" : "mr-auto items-start"
               )}
             >
-              <div 
-                className={cn(
-                  "px-4 py-2 rounded-2xl text-sm break-words",
-                  isMine 
-                    ? "bg-primary text-white rounded-tr-none" 
-                    : "bg-secondary text-white rounded-tl-none"
-                )}
-              >
-                {msg.text}
-              </div>
+              {isSharedPost ? (
+                <Link 
+                  href="/feed"
+                  className={cn(
+                    "rounded-2xl overflow-hidden border border-border shadow-lg transition-transform active:scale-95 group",
+                    isMine ? "bg-primary/20" : "bg-secondary/40"
+                  )}
+                >
+                  <div className="relative aspect-[9/16] w-48 bg-black">
+                     {msg.sharedPostMediaUrl?.includes('video') || msg.sharedPostMediaUrl?.includes('cloudinary') ? (
+                       <video 
+                         src={msg.sharedPostMediaUrl} 
+                         className="h-full w-full object-cover" 
+                         muted 
+                         autoPlay 
+                         loop 
+                         playsInline
+                       />
+                     ) : (
+                       <Image 
+                         src={msg.sharedPostMediaUrl || ''} 
+                         alt="Shared Post" 
+                         fill 
+                         className="object-cover"
+                       />
+                     )}
+                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
+                        <Play className="h-10 w-10 text-white fill-white/20" />
+                     </div>
+                  </div>
+                  <div className="p-2 text-[10px] font-bold text-center bg-black/40 text-muted-foreground uppercase tracking-widest">
+                    View Post
+                  </div>
+                </Link>
+              ) : (
+                <div 
+                  className={cn(
+                    "px-4 py-2 rounded-2xl text-sm break-words",
+                    isMine 
+                      ? "bg-primary text-white rounded-tr-none" 
+                      : "bg-secondary text-white rounded-tl-none"
+                  )}
+                >
+                  {msg.text}
+                </div>
+              )}
               <span className="text-[9px] text-muted-foreground mt-1 px-1">
                 {msg.createdAt && format(msg.createdAt.toDate(), 'HH:mm')}
               </span>

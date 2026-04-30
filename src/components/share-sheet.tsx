@@ -25,7 +25,6 @@ export function ShareSheet({ postId, postOwnerId, mediaUrl, onClose }: ShareShee
   const [searchQuery, setSearchQuery] = useState('');
   const [sentTo, setSentTo] = useState<string[]>([]);
 
-  // Query for users based on search
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     const lowerQuery = searchQuery.toLowerCase().trim();
@@ -45,29 +44,25 @@ export function ShareSheet({ postId, postOwnerId, mediaUrl, onClose }: ShareShee
   const handleSendPost = async (recipientId: string) => {
     if (!user || !firestore || sentTo.includes(recipientId)) return;
 
-    // Generate a deterministic chat ID
     const participants = [user.uid, recipientId].sort();
     const chatId = participants.join('_');
     const chatRef = doc(firestore, 'chats', chatId);
     const messagesRef = collection(firestore, 'chats', chatId, 'messages');
 
-    const postLink = `${window.location.origin}/feed?post=${postId}`;
-    const messageText = `Check out this post: ${postLink}`;
-
     try {
-      // Ensure chat document exists
       await setDoc(chatRef, {
         id: chatId,
         participants,
-        lastMessage: messageText,
+        lastMessage: 'Shared a post',
         lastMessageAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       }, { merge: true });
 
-      // Add the message
       await addDoc(messagesRef, {
         senderId: user.uid,
-        text: messageText,
+        text: '',
+        sharedPostId: postId,
+        sharedPostMediaUrl: mediaUrl,
         createdAt: serverTimestamp(),
       });
 

@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "User": {
@@ -153,6 +152,8 @@
         "id": { "type": "string" },
         "senderId": { "type": "string" },
         "text": { "type": "string" },
+        "sharedPostId": { "type": "string" },
+        "sharedPostMediaUrl": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "senderId", "text", "createdAt"]
