@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import type { Post } from '@/models/post';
 import type { UserProfile } from '@/models/user';
 import { useDoc, useFirebase, useMemoFirebase, useUser } from '@/firebase';
-import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection, setDoc, deleteDoc } from 'firebase/firestore';
+import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection } from 'firebase/firestore';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
@@ -16,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { CommentSection } from './comment-section';
+import { ShareSheet } from './share-sheet';
 
 interface PostCardProps {
   post: Post;
@@ -35,6 +35,7 @@ export function PostCard({ post }: PostCardProps) {
   const [showVolumeIcon, setShowVolumeIcon] = useState(false);
   const [showBigHeart, setShowBigHeart] = useState(false);
   const [isCommentSheetOpen, setIsCommentSheetOpen] = useState(false);
+  const [isShareSheetOpen, setIsShareSheetOpen] = useState(false);
 
   const isOwnPost = user?.uid === post.userId;
 
@@ -184,23 +185,6 @@ export function PostCard({ post }: PostCardProps) {
     }
   };
 
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Check out this video on A.snap',
-          text: post.caption,
-          url: window.location.origin + '/feed',
-        });
-      } catch (err) {
-        console.log('Error sharing:', err);
-      }
-    } else {
-      toast({ title: "Sharing not supported", description: "Link copied to clipboard!" });
-      navigator.clipboard.writeText(window.location.origin + '/feed');
-    }
-  };
-
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -347,9 +331,24 @@ export function PostCard({ post }: PostCardProps) {
             </div>
 
             <div className="flex flex-col items-center">
-                <Button variant="ghost" size="icon" className="text-white h-12 w-12 hover:bg-transparent" onClick={handleShare}>
-                    <Share2 className="h-9 w-9 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
-                </Button>
+                <Sheet open={isShareSheetOpen} onOpenChange={setIsShareSheetOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon" className="text-white h-12 w-12 hover:bg-transparent">
+                        <Share2 className="h-9 w-9 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-2xl overflow-hidden border-border bg-background">
+                    <SheetHeader className="p-4 border-b border-border">
+                      <SheetTitle className="text-center font-bold">Share to</SheetTitle>
+                    </SheetHeader>
+                    <ShareSheet 
+                      postId={post.id} 
+                      postOwnerId={post.userId} 
+                      mediaUrl={post.mediaUrl}
+                      onClose={() => setIsShareSheetOpen(false)} 
+                    />
+                  </SheetContent>
+                </Sheet>
                 <span className="text-xs font-bold mt-1 drop-shadow-md">Share</span>
             </div>
       </div>
