@@ -108,6 +108,7 @@ export default function SignupPage() {
       id: user.uid,
       name,
       username,
+      username_lowercase: username.toLowerCase(),
       email: user.email,
       profileImageUrl,
       createdAt: serverTimestamp(),
@@ -215,5 +216,3 @@ export default function SignupPage() {
     </div>
   );
 }
-
-    

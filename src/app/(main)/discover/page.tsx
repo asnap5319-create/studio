@@ -26,14 +26,14 @@ export default function SearchPage() {
 
   const { data: posts, isLoading: isPostsLoading } = useCollection<Post>(explorePostsQuery);
 
-  // Query for users based on search
+  // Query for users based on search (case-insensitive)
   const usersQuery = useMemoFirebase(() => {
     if (!firestore || searchQuery.length < 2) return null;
-    // Basic search: starts with query
+    const lowerQuery = searchQuery.toLowerCase();
     return query(
       collection(firestore, 'users'),
-      where('username', '>=', searchQuery.toLowerCase()),
-      where('username', '<=', searchQuery.toLowerCase() + '\uf8ff'),
+      where('username_lowercase', '>=', lowerQuery),
+      where('username_lowercase', '<=', lowerQuery + '\uf8ff'),
       limit(10)
     );
   }, [firestore, searchQuery]);
@@ -103,7 +103,7 @@ export default function SearchPage() {
           </div>
         )}
 
-        {/* Explore Grid (Hidden when searching unless results are empty) */}
+        {/* Explore Grid */}
         <div className="px-0.5">
           {!searchQuery && <h2 className="px-4 text-sm font-bold text-muted-foreground mb-4 uppercase tracking-wider">Explore</h2>}
           
@@ -128,8 +128,6 @@ export default function SearchPage() {
                         muted
                         loop
                         playsInline
-                        onMouseOver={(e) => e.currentTarget.play()}
-                        onMouseOut={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
                     />
                   ) : (
                     <Image 

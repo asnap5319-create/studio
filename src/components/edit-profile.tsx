@@ -17,7 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFirebase, useUser } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import type { UserProfile } from '@/app/(main)/profile/page';
+import type { UserProfile } from '@/models/user';
 
 interface EditProfileSheetProps {
   open: boolean;
@@ -109,6 +109,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       const dataToUpdate = {
         name,
         username,
+        username_lowercase: username.toLowerCase(),
         bio,
         profileImageUrl,
       };
