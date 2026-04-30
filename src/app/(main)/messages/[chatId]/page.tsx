@@ -1,10 +1,10 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, orderBy, addDoc, serverTimestamp, doc, updateDoc, setDoc } from 'firebase/firestore';
+import { collection, query, orderBy, serverTimestamp, doc } from 'firebase/firestore';
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { Message } from '@/models/message';
 import type { Chat } from '@/models/chat';
 import type { UserProfile } from '@/models/user';
@@ -62,26 +62,22 @@ export default function ChatPage() {
 
     const text = inputText.trim();
     setInputText('');
-    setIsSending(true);
+    
+    const messagesRef = collection(firestore, 'chats', chatId as string, 'messages');
+    const chatDocRef = doc(firestore, 'chats', chatId as string);
 
-    try {
-      const messagesRef = collection(firestore, 'chats', chatId as string, 'messages');
-      await addDoc(messagesRef, {
-        senderId: user.uid,
-        text,
-        createdAt: serverTimestamp(),
-      });
+    // Using non-blocking updates for instant UI feedback
+    addDocumentNonBlocking(messagesRef, {
+      senderId: user.uid,
+      text,
+      createdAt: serverTimestamp(),
+    });
 
-      await updateDoc(doc(firestore, 'chats', chatId as string), {
-        lastMessage: text,
-        lastMessageAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-    } catch (error) {
-      console.error("Error sending message:", error);
-    } finally {
-      setIsSending(false);
-    }
+    updateDocumentNonBlocking(chatDocRef, {
+      lastMessage: text,
+      lastMessageAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
   };
 
   if (!user) return null;
