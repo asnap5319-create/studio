@@ -257,14 +257,26 @@ export default function ProfilePage() {
                                         <Image src={post.mediaUrl} alt="" fill className="object-cover" />
                                     )}
                                     
-                                    {/* Delete Button Overlay (Only for own profile) */}
+                                    {/* Delete Button Menu (Only for own profile) */}
                                     {isOwnProfile && (
-                                        <button 
-                                            onClick={(e) => handleDeleteClick(e, post)}
-                                            className="absolute top-1 right-1 p-1.5 bg-black/60 rounded-full hover:bg-destructive transition-colors z-10"
-                                        >
-                                            <Trash2 className="h-4 w-4 text-white" />
-                                        </button>
+                                        <div className="absolute top-1 right-1 z-10" onClick={(e) => e.stopPropagation()}>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <button className="p-1.5 bg-black/60 rounded-full hover:bg-white/20 transition-colors">
+                                                        <MoreVertical className="h-4 w-4 text-white" />
+                                                    </button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem 
+                                                        onClick={(e) => handleDeleteClick(e, post)}
+                                                        className="text-destructive font-bold focus:text-destructive"
+                                                    >
+                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                        Delete Post
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
                                     )}
 
                                     <div className="absolute bottom-1 left-1 flex items-center gap-1 text-white text-[10px] bg-black/40 rounded px-1">
