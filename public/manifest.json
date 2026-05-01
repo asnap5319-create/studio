@@ -1,7 +1,7 @@
 {
   "name": "A.snap - Short Video Sharing",
   "short_name": "A.snap",
-  "description": "Premium short video sharing application",
+  "description": "Premium short video sharing application.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
@@ -10,14 +10,12 @@
     {
       "src": "https://picsum.photos/seed/asnap_icon/192/192",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     },
     {
       "src": "https://picsum.photos/seed/asnap_icon/512/512",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     }
   ]
 }
