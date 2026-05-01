@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: 'google-site-verification-id', // आप यहाँ अपनी गूगल वेरिफिकेशन आईडी डाल सकते हैं
+    google: 'google-site-verification-id',
   }
 };
 
