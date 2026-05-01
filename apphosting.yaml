@@ -3,3 +3,8 @@ runConfig:
   maxInstances: 1
   memory: 1Gi
   cpu: 1
+env:
+  - variable: NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+    value: "demo"
+  - variable: NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
+    value: "unsigned_preset"
