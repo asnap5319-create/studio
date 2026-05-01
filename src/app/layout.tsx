@@ -1,4 +1,5 @@
-import type { Metadata } from "next";
+
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
@@ -8,6 +9,7 @@ export const metadata: Metadata = {
   title: "A.snap - Share Your World in Short Videos",
   description: "A.snap is the ultimate premium short video sharing application. Create, share, and discover amazing visual content with friends in real-time.",
   keywords: ["A.snap", "Short Video", "Social Media", "Video Sharing", "A snap", "Trending Videos", "Asnap"],
+  manifest: "/manifest.json",
   authors: [{ name: "A.snap Team" }],
   metadataBase: new URL('https://studio-8111746683-c1e57.web.app'),
   openGraph: {
@@ -31,6 +33,14 @@ export const metadata: Metadata = {
   verification: {
     google: 'google-site-verification-id',
   }
+};
+
+export const viewport: Viewport = {
+  themeColor: "#ff3366",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
