@@ -1,22 +1,46 @@
-
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
 import { collectionGroup, query, orderBy, collection } from 'firebase/firestore';
 import { PostCard } from '@/components/post-card';
+import { SponsoredCard } from '@/components/sponsored-card';
 import type { Post } from '@/models/post';
 import type { Notification } from '@/models/notification';
 import Link from 'next/link';
-import { Heart, Database, RefreshCw, AlertCircle, Send } from 'lucide-react';
+import { Heart, Database, RefreshCw, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import { useMemo } from 'react';
+
+// Mock Ads Data (In a real app, this would come from an Ads Service or Firestore)
+const MOCK_ADS = [
+  {
+    id: 'ad_1',
+    brandName: 'A.snap Pro',
+    brandLogo: 'https://picsum.photos/seed/adslogo/100/100',
+    mediaUrl: 'https://res.cloudinary.com/demo/video/upload/w_1280,h_720,c_fill/dog.mp4',
+    caption: 'Upgrade to A.snap Premium and get exclusive filters and longer videos! #AsnapPro #Premium',
+    ctaText: 'Get Premium Now',
+    ctaUrl: '/profile',
+    isVideo: true,
+  },
+  {
+    id: 'ad_2',
+    brandName: 'Nike',
+    brandLogo: 'https://picsum.photos/seed/nike/100/100',
+    mediaUrl: 'https://picsum.photos/seed/nikead/1080/1920',
+    caption: 'Just Do It. Check out the latest collection of sneakers designed for the next generation.',
+    ctaText: 'Shop Now',
+    ctaUrl: 'https://nike.com',
+    isVideo: false,
+  }
+];
 
 export default function FeedPage() {
   const { firestore } = useFirebase();
   const { user } = useUser();
   const router = useRouter();
 
-  // Query for posts
   const postsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'));
@@ -24,7 +48,6 @@ export default function FeedPage() {
 
   const { data: posts, isLoading, error } = useCollection<Post>(postsQuery);
 
-  // Query for unread notifications to show red dot
   const notificationsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'users', user.uid, 'notifications'), orderBy('createdAt', 'desc'));
@@ -32,6 +55,26 @@ export default function FeedPage() {
 
   const { data: notifications } = useCollection<Notification>(notificationsQuery);
   const hasUnread = notifications?.some(n => !n.read);
+
+  // Logic to interleave Ads into the posts feed
+  const feedItems = useMemo(() => {
+    if (!posts) return [];
+    
+    const items = [];
+    let adIndex = 0;
+
+    posts.forEach((post, index) => {
+      items.push({ type: 'post' as const, data: post });
+      
+      // Insert an ad every 3 posts
+      if ((index + 1) % 3 === 0 && adIndex < MOCK_ADS.length) {
+        items.push({ type: 'ad' as const, data: MOCK_ADS[adIndex] });
+        adIndex = (adIndex + 1) % MOCK_ADS.length;
+      }
+    });
+
+    return items;
+  }, [posts]);
 
   const handleRefresh = () => {
     router.refresh();
@@ -55,19 +98,12 @@ export default function FeedPage() {
         </div>
         <h2 className="text-3xl font-bold mb-4">बस थोड़ा सा इंतज़ार, भाई!</h2>
         <p className="text-muted-foreground mb-6 text-lg">
-          आपने 'Create Index' पर क्लिक कर दिया है, यह बहुत अच्छी बात है! 
-          अब Google के सर्वर इंडेक्स बना रहे हैं। इसमें <strong>2 से 5 मिनट</strong> का समय लगता है।
+          Google के सर्वर इंडेक्स बना रहे हैं। इसमें 2 से 5 मिनट का समय लगता है।
         </p>
-        
-        <div className="flex flex-col gap-4 w-full">
-            <Button onClick={handleRefresh} className="w-full py-6 text-lg font-bold flex gap-2">
-                <RefreshCw className="h-5 w-5" />
-                अभी चेक करें (Refresh Now)
-            </Button>
-            <p className="text-sm text-muted-foreground italic">
-                अगर रिफ्रेश करने पर भी यही दिख रहा है, तो 2 मिनट और रुकें।
-            </p>
-        </div>
+        <Button onClick={handleRefresh} className="w-full py-6 text-lg font-bold flex gap-2">
+            <RefreshCw className="h-5 w-5" />
+            रिफ्रेश करें
+        </Button>
       </div>
     );
   }
@@ -79,34 +115,36 @@ export default function FeedPage() {
                 A.snap
             </h1>
             <div className="flex items-center gap-5">
-                <Link href="/notifications" aria-label="Notifications" className="relative hover:scale-110 transition-transform active:scale-95">
+                <Link href="/notifications" className="relative hover:scale-110 transition-transform">
                     <Heart className="h-7 w-7 text-white" />
                     {hasUnread && (
                       <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 bg-red-600 rounded-full border-2 border-black animate-pulse" />
                     )}
                 </Link>
-                <Link href="/messages" aria-label="Messages" className="hover:scale-110 transition-transform active:scale-95">
+                <Link href="/messages" className="hover:scale-110 transition-transform">
                     <Send className="h-7 w-7 text-white -rotate-12" />
                 </Link>
             </div>
       </header>
 
       <div className="flex-1 w-full h-full overflow-y-auto snap-y snap-mandatory scrollbar-hide">
-        {!isLoading && !error && (!posts || posts.length === 0) && (
+        {feedItems.length === 0 && !isLoading && (
             <div className="flex h-full flex-col items-center justify-center text-center p-6">
-                <div className="w-20 h-20 bg-secondary/50 rounded-full flex items-center justify-center mb-6">
-                  <Heart className="w-10 h-10 text-muted-foreground opacity-30" />
-                </div>
                 <h2 className="text-2xl font-bold">Welcome to A.snap!</h2>
-                <p className="text-muted-foreground mt-2 max-w-[250px]">इट्स ए बिट क्वाइट हियर। बी द फर्स्ट टू क्रिएट ए पोस्ट!</p>
+                <p className="text-muted-foreground mt-2">बी द फर्स्ट टू क्रिएट ए पोस्ट!</p>
                 <Button asChild className="mt-8 px-8 py-6 text-lg font-bold" variant="default">
                   <Link href="/create">Create First Post</Link>
                 </Button>
             </div>
         )}
-        {posts && posts.map((post) => (
-            <div key={post.id} className="h-full w-full snap-start flex items-center justify-center bg-black">
-                <PostCard post={post} />
+        
+        {feedItems.map((item, idx) => (
+            <div key={item.type === 'post' ? item.data.id : item.data.id} className="h-full w-full snap-start flex items-center justify-center bg-black">
+                {item.type === 'post' ? (
+                  <PostCard post={item.data} />
+                ) : (
+                  <SponsoredCard ad={item.data} />
+                )}
             </div>
         ))}
       </div>
