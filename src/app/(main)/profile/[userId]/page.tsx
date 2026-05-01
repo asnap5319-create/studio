@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -16,8 +15,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
-import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, setDoc, getDoc } from "firebase/firestore";
-import { MoreVertical, Settings, Shield, LogOut, Grid3x3, Clapperboard, Trash2, Play, UserPlus, UserCheck } from "lucide-react";
+import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, setDoc } from "firebase/firestore";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -132,14 +131,10 @@ export default function ProfilePage() {
     const handleMessageClick = () => {
         if (!firestore || !user || !userId || isOwnProfile) return;
 
-        // Generate a deterministic chat ID (sort UIDs to ensure same ID regardless of who starts)
         const participants = [user.uid, userId].sort();
         const chatId = participants.join('_');
-
         const chatRef = doc(firestore, 'chats', chatId);
         
-        // Use setDoc with merge: true to ensure the chat document exists without overwriting anything else
-        // We don't await this because we want to navigate immediately for a fast UX
         setDoc(chatRef, {
             id: chatId,
             participants,
@@ -148,19 +143,25 @@ export default function ProfilePage() {
             console.error("Error ensuring chat exists:", err);
         });
 
-        // Navigate immediately
         router.push(`/messages/${chatId}`);
     };
 
-    const handleDeletePost = async () => {
+    const handleDeleteClick = (e: React.MouseEvent, post: Post) => {
+        e.stopPropagation();
+        setPostToDelete(post);
+        setIsDeleteDialogOpen(true);
+    };
+
+    const confirmDeletePost = async () => {
         if (!firestore || !user || !postToDelete || !isOwnProfile) return;
 
         try {
             const postRef = doc(firestore, 'users', user.uid, 'posts', postToDelete.id);
             await deleteDoc(postRef);
-            toast({ title: "Post Deleted" });
-        } catch (error) {
+            toast({ title: "Post Deleted Successfully" });
+        } catch (error: any) {
             console.error("Error deleting post:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete post.' });
         } finally {
             setIsDeleteDialogOpen(false);
             setPostToDelete(null);
@@ -255,6 +256,17 @@ export default function ProfilePage() {
                                     ) : (
                                         <Image src={post.mediaUrl} alt="" fill className="object-cover" />
                                     )}
+                                    
+                                    {/* Delete Button Overlay (Only for own profile) */}
+                                    {isOwnProfile && (
+                                        <button 
+                                            onClick={(e) => handleDeleteClick(e, post)}
+                                            className="absolute top-1 right-1 p-1.5 bg-black/60 rounded-full hover:bg-destructive transition-colors z-10"
+                                        >
+                                            <Trash2 className="h-4 w-4 text-white" />
+                                        </button>
+                                    )}
+
                                     <div className="absolute bottom-1 left-1 flex items-center gap-1 text-white text-[10px] bg-black/40 rounded px-1">
                                         <Play className="h-3 w-3 fill-white" />
                                         <span>{post.viewCount || 0}</span>
@@ -265,7 +277,9 @@ export default function ProfilePage() {
                     </div>
                 </div>
             </div>
+
             {isOwnProfile && userProfile && <EditProfileSheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen} userProfile={userProfile} />}
+            
             <Dialog open={!!selectedPost} onOpenChange={(isOpen) => !isOpen && setSelectedPost(null)}>
                 <DialogContent className="p-0 border-0 bg-black/80 w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center">
                     {selectedPost && (
@@ -276,6 +290,29 @@ export default function ProfilePage() {
                     )}
                 </DialogContent>
             </Dialog>
+
+            {/* Post Delete Confirmation Dialog */}
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent className="max-w-[320px] rounded-2xl border-border bg-background text-white">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-center">Delete Video?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-center text-xs">
+                            This video will be permanently deleted from your profile.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+                        <AlertDialogAction 
+                            onClick={confirmDeletePost}
+                            className="bg-destructive hover:bg-destructive/90 text-white font-bold rounded-xl h-11"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                        <AlertDialogCancel className="bg-secondary border-none hover:bg-secondary/80 text-white rounded-xl h-11 m-0">
+                            Cancel
+                        </AlertDialogCancel>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 }
