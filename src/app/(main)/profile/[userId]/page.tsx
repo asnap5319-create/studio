@@ -1,6 +1,6 @@
 
 'use client';
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -16,8 +16,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
-import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, setDoc } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, Users } from "lucide-react";
+import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, setDoc, where, getDocs } from "firebase/firestore";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, Users, Search, X } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -27,6 +27,7 @@ import type { UserProfile } from "@/models/user";
 import { PostCard } from "@/components/post-card";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -52,6 +53,100 @@ function UserItem({ userId, onClose }: { userId: string; onClose: () => void }) 
                 <span className="text-xs text-muted-foreground">{profile.name}</span>
             </div>
         </Link>
+    );
+}
+
+// A component that fetches and displays a list of users with a search filter
+function FollowList({ userIds, onClose }: { userIds: string[]; onClose: () => void }) {
+    const { firestore } = useFirebase();
+    const [searchQuery, setSearchQuery] = useState("");
+    const [profiles, setProfiles] = useState<UserProfile[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!firestore || userIds.length === 0) {
+            setLoading(false);
+            return;
+        }
+
+        // Firestore doesn't support 'in' with more than 30 IDs easily, 
+        // but for followers/following we'll fetch them.
+        // In a real app, you'd denormalize or use a more complex search.
+        const fetchProfiles = async () => {
+            const fetched: UserProfile[] = [];
+            // Chunk processing for IDs if many
+            const chunks = [];
+            for (let i = 0; i < userIds.length; i += 10) {
+                chunks.push(userIds.slice(i, i + 10));
+            }
+
+            for (const chunk of chunks) {
+                const q = query(collection(firestore, 'users'), where('id', 'in', chunk));
+                const snap = await getDocs(q);
+                snap.forEach(doc => fetched.push({ ...doc.data(), id: doc.id } as UserProfile));
+            }
+            setProfiles(fetched);
+            setLoading(false);
+        };
+
+        fetchProfiles();
+    }, [firestore, userIds]);
+
+    const filteredProfiles = useMemo(() => {
+        if (!searchQuery.trim()) return profiles;
+        const q = searchQuery.toLowerCase();
+        return profiles.filter(p => 
+            p.username?.toLowerCase().includes(q) || 
+            p.name?.toLowerCase().includes(q)
+        );
+    }, [profiles, searchQuery]);
+
+    return (
+        <div className="flex flex-col h-full">
+            <div className="px-4 pb-2">
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                        placeholder="Search ID..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10 h-10 bg-secondary border-none rounded-xl focus-visible:ring-1"
+                    />
+                    {searchQuery && (
+                        <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 p-1">
+                            <X className="h-3 w-3 text-muted-foreground" />
+                        </button>
+                    )}
+                </div>
+            </div>
+            <ScrollArea className="flex-1 px-4">
+                <div className="space-y-1 py-2">
+                    {loading ? (
+                        <div className="flex justify-center p-10"><div className="animate-spin rounded-full h-6 w-6 border-t-2 border-primary"></div></div>
+                    ) : filteredProfiles.length > 0 ? (
+                        filteredProfiles.map(p => (
+                            <Link 
+                                key={p.id}
+                                href={`/profile/${p.id}`} 
+                                onClick={onClose}
+                                className="flex items-center gap-3 p-3 hover:bg-secondary rounded-xl transition-colors"
+                            >
+                                <Avatar className="h-12 w-12 border border-border">
+                                    <AvatarImage src={p.profileImageUrl} />
+                                    <AvatarFallback>{p.username?.[0]?.toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex flex-col">
+                                    <span className="font-bold text-sm">{p.username}</span>
+                                    <span className="text-xs text-muted-foreground">{p.name}</span>
+                                </div>
+                            </Link>
+                        ))
+                    ) : (
+                        <p className="text-center text-muted-foreground mt-10 text-sm">No users found.</p>
+                    )}
+                </div>
+            </ScrollArea>
+        </div>
     );
 }
 
@@ -361,19 +456,13 @@ export default function ProfilePage() {
                             {showFollowList}
                         </DialogTitle>
                     </DialogHeader>
-                    <ScrollArea className="flex-1 p-4">
-                        <div className="space-y-2">
-                            {showFollowList === 'followers' ? (
-                                followersData && followersData.length > 0 ? (
-                                    followersData.map(f => <UserItem key={f.id} userId={f.id} onClose={() => setShowFollowList(null)} />)
-                                ) : <p className="text-center text-muted-foreground mt-10">No followers yet.</p>
-                            ) : (
-                                followingData && followingData.length > 0 ? (
-                                    followingData.map(f => <UserItem key={f.id} userId={f.id} onClose={() => setShowFollowList(null)} />)
-                                ) : <p className="text-center text-muted-foreground mt-10">Not following anyone yet.</p>
-                            )}
-                        </div>
-                    </ScrollArea>
+                    <div className="flex-1 overflow-hidden">
+                        {showFollowList === 'followers' ? (
+                            <FollowList userIds={followersData?.map(f => f.id) || []} onClose={() => setShowFollowList(null)} />
+                        ) : (
+                            <FollowList userIds={followingData?.map(f => f.id) || []} onClose={() => setShowFollowList(null)} />
+                        )}
+                    </div>
                 </DialogContent>
             </Dialog>
 
