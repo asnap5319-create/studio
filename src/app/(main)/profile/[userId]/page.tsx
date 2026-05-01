@@ -16,8 +16,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
-import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, setDoc, where, getDocs } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, Users, Search, X } from "lucide-react";
+import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, setDoc, where, getDocs, documentId } from "firebase/firestore";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, Users, Search, X, Check } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -31,32 +31,86 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-function UserItem({ userId, onClose }: { userId: string; onClose: () => void }) {
+// Component for each user row in the followers/following list
+function FollowListItem({ profile, onClose }: { profile: UserProfile; onClose: () => void }) {
+    const { user } = useUser();
     const { firestore } = useFirebase();
-    const userRef = useMemoFirebase(() => doc(firestore, 'users', userId), [firestore, userId]);
-    const { data: profile } = useDoc<UserProfile>(userRef);
+    const { toast } = useToast();
+    const isOwn = user?.uid === profile.id;
 
-    if (!profile) return null;
+    // Check if current user is following this person
+    const followCheckRef = useMemoFirebase(() => {
+        if (!firestore || !user || isOwn) return null;
+        return doc(firestore, 'user_followers', profile.id, 'followers', user.uid);
+    }, [firestore, user, profile.id, isOwn]);
+    
+    const { data: followCheck } = useDoc(followCheckRef);
+    const isFollowing = !!followCheck;
+
+    const handleFollowToggle = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!firestore || !user || isOwn) return;
+
+        const batch = writeBatch(firestore);
+        const followerDocRef = doc(firestore, 'user_followers', profile.id, 'followers', user.uid);
+        const followingDocRef = doc(firestore, 'user_following', user.uid, 'following', profile.id);
+
+        if (isFollowing) {
+            batch.delete(followerDocRef);
+            batch.delete(followingDocRef);
+        } else {
+            batch.set(followerDocRef, { createdAt: serverTimestamp() });
+            batch.set(followingDocRef, { createdAt: serverTimestamp() });
+            
+            const notificationRef = doc(collection(firestore, 'users', profile.id, 'notifications'));
+            batch.set(notificationRef, {
+                type: 'follow',
+                senderId: user.uid,
+                recipientId: profile.id,
+                read: false,
+                createdAt: serverTimestamp(),
+            });
+        }
+
+        try {
+            await batch.commit();
+        } catch (error) {
+            console.error("Error toggling follow in list:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Action failed.' });
+        }
+    };
 
     return (
-        <Link 
-            href={`/profile/${profile.id}`} 
-            onClick={onClose}
-            className="flex items-center gap-3 p-3 hover:bg-secondary rounded-xl transition-colors"
-        >
-            <Avatar className="h-12 w-12 border border-border">
-                <AvatarImage src={profile.profileImageUrl} />
-                <AvatarFallback>{profile.username?.[0]?.toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col">
-                <span className="font-bold text-sm">{profile.username}</span>
-                <span className="text-xs text-muted-foreground">{profile.name}</span>
-            </div>
-        </Link>
+        <div className="flex items-center justify-between p-3 hover:bg-secondary/30 rounded-xl transition-colors group">
+            <Link 
+                href={`/profile/${profile.id}`} 
+                onClick={onClose}
+                className="flex items-center gap-3 flex-1 min-w-0"
+            >
+                <Avatar className="h-12 w-12 border border-border">
+                    <AvatarImage src={profile.profileImageUrl} />
+                    <AvatarFallback>{profile.username?.[0]?.toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col truncate">
+                    <span className="font-bold text-sm truncate">{profile.username}</span>
+                    <span className="text-xs text-muted-foreground truncate">{profile.name}</span>
+                </div>
+            </Link>
+            {!isOwn && (
+                <Button 
+                    size="sm" 
+                    variant={isFollowing ? "secondary" : "default"}
+                    className={cn("h-8 px-4 font-bold text-xs rounded-lg transition-all", !isFollowing && "bg-primary hover:bg-primary/90")}
+                    onClick={handleFollowToggle}
+                >
+                    {isFollowing ? 'Following' : 'Follow'}
+                </Button>
+            )}
+        </div>
     );
 }
 
-// A component that fetches and displays a list of users with a search filter
 function FollowList({ userIds, onClose }: { userIds: string[]; onClose: () => void }) {
     const { firestore } = useFirebase();
     const [searchQuery, setSearchQuery] = useState("");
@@ -66,27 +120,30 @@ function FollowList({ userIds, onClose }: { userIds: string[]; onClose: () => vo
     useEffect(() => {
         if (!firestore || userIds.length === 0) {
             setLoading(false);
+            setProfiles([]);
             return;
         }
 
-        // Firestore doesn't support 'in' with more than 30 IDs easily, 
-        // but for followers/following we'll fetch them.
-        // In a real app, you'd denormalize or use a more complex search.
         const fetchProfiles = async () => {
-            const fetched: UserProfile[] = [];
-            // Chunk processing for IDs if many
-            const chunks = [];
-            for (let i = 0; i < userIds.length; i += 10) {
-                chunks.push(userIds.slice(i, i + 10));
-            }
+            try {
+                const fetched: UserProfile[] = [];
+                const chunks = [];
+                for (let i = 0; i < userIds.length; i += 10) {
+                    chunks.push(userIds.slice(i, i + 10));
+                }
 
-            for (const chunk of chunks) {
-                const q = query(collection(firestore, 'users'), where('id', 'in', chunk));
-                const snap = await getDocs(q);
-                snap.forEach(doc => fetched.push({ ...doc.data(), id: doc.id } as UserProfile));
+                for (const chunk of chunks) {
+                    // Use documentId() to query by list of IDs
+                    const q = query(collection(firestore, 'users'), where(documentId(), 'in', chunk));
+                    const snap = await getDocs(q);
+                    snap.forEach(doc => fetched.push({ ...doc.data(), id: doc.id } as UserProfile));
+                }
+                setProfiles(fetched);
+            } catch (error) {
+                console.error("Error fetching follow profiles:", error);
+            } finally {
+                setLoading(false);
             }
-            setProfiles(fetched);
-            setLoading(false);
         };
 
         fetchProfiles();
@@ -102,12 +159,12 @@ function FollowList({ userIds, onClose }: { userIds: string[]; onClose: () => vo
     }, [profiles, searchQuery]);
 
     return (
-        <div className="flex flex-col h-full">
-            <div className="px-4 pb-2">
+        <div className="flex flex-col h-full bg-background">
+            <div className="px-4 py-2">
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input 
-                        placeholder="Search ID..." 
+                        placeholder="Search users..." 
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-10 h-10 bg-secondary border-none rounded-xl focus-visible:ring-1"
@@ -119,30 +176,22 @@ function FollowList({ userIds, onClose }: { userIds: string[]; onClose: () => vo
                     )}
                 </div>
             </div>
-            <ScrollArea className="flex-1 px-4">
+            <ScrollArea className="flex-1 px-2">
                 <div className="space-y-1 py-2">
                     {loading ? (
-                        <div className="flex justify-center p-10"><div className="animate-spin rounded-full h-6 w-6 border-t-2 border-primary"></div></div>
+                        <div className="flex flex-col items-center justify-center p-10 gap-2">
+                            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-primary"></div>
+                            <span className="text-xs text-muted-foreground">Loading list...</span>
+                        </div>
                     ) : filteredProfiles.length > 0 ? (
                         filteredProfiles.map(p => (
-                            <Link 
-                                key={p.id}
-                                href={`/profile/${p.id}`} 
-                                onClick={onClose}
-                                className="flex items-center gap-3 p-3 hover:bg-secondary rounded-xl transition-colors"
-                            >
-                                <Avatar className="h-12 w-12 border border-border">
-                                    <AvatarImage src={p.profileImageUrl} />
-                                    <AvatarFallback>{p.username?.[0]?.toUpperCase()}</AvatarFallback>
-                                </Avatar>
-                                <div className="flex flex-col">
-                                    <span className="font-bold text-sm">{p.username}</span>
-                                    <span className="text-xs text-muted-foreground">{p.name}</span>
-                                </div>
-                            </Link>
+                            <FollowListItem key={p.id} profile={p} onClose={onClose} />
                         ))
                     ) : (
-                        <p className="text-center text-muted-foreground mt-10 text-sm">No users found.</p>
+                        <div className="flex flex-col items-center justify-center p-10 text-center opacity-40">
+                            <Users className="h-12 w-12 mb-2" />
+                            <p className="text-sm">No users found</p>
+                        </div>
                     )}
                 </div>
             </ScrollArea>
@@ -304,7 +353,7 @@ export default function ProfilePage() {
     
     return (
         <>
-            <div className="h-full bg-background text-white overflow-y-auto pb-20">
+            <div className="h-full bg-background text-white overflow-y-auto pb-20 scrollbar-hide">
                 <div className="p-4">
                     <div className="flex items-center justify-between">
                         <h1 className="text-xl font-bold">{userProfile?.username || 'Profile'}</h1>
@@ -315,8 +364,8 @@ export default function ProfilePage() {
                                         <MoreVertical />
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={handleLogout}><LogOut className="mr-2 h-4 w-4" /> Logout</DropdownMenuItem>
+                                <DropdownMenuContent align="end" className="bg-secondary border-border text-white">
+                                    <DropdownMenuItem onClick={handleLogout} className="focus:bg-primary/20"><LogOut className="mr-2 h-4 w-4" /> Logout</DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         )}
@@ -332,21 +381,21 @@ export default function ProfilePage() {
                         <div className="flex items-center justify-around flex-1 text-center">
                             <div className="cursor-default">
                                 <p className="font-bold text-lg">{posts?.length || 0}</p>
-                                <p className="text-xs text-muted-foreground uppercase tracking-widest">Posts</p>
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Posts</p>
                             </div>
                             <div 
                                 className="cursor-pointer hover:opacity-70 transition-opacity"
                                 onClick={() => setShowFollowList('followers')}
                             >
                                 <p className="font-bold text-lg">{followersData?.length || 0}</p>
-                                <p className="text-xs text-muted-foreground uppercase tracking-widest">Followers</p>
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Followers</p>
                             </div>
                             <div 
                                 className="cursor-pointer hover:opacity-70 transition-opacity"
                                 onClick={() => setShowFollowList('following')}
                             >
                                 <p className="font-bold text-lg">{followingData?.length || 0}</p>
-                                <p className="text-xs text-muted-foreground uppercase tracking-widest">Following</p>
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Following</p>
                             </div>
                         </div>
                     </div>
@@ -356,13 +405,13 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex gap-2 mt-6">
                          {isOwnProfile ? (
-                            <Button className="flex-1 font-bold h-11" onClick={() => setIsEditSheetOpen(true)}>Edit Profile</Button>
+                            <Button className="flex-1 font-bold h-11 rounded-xl" onClick={() => setIsEditSheetOpen(true)}>Edit Profile</Button>
                         ) : (
                             <>
-                                <Button className="flex-1 font-bold h-11" onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"}>
+                                <Button className="flex-1 font-bold h-11 rounded-xl" onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"}>
                                     {isFollowing ? 'Following' : 'Follow'}
                                 </Button>
-                                <Button className="flex-1 font-bold h-11" variant="secondary" onClick={handleMessageClick}>Message</Button>
+                                <Button className="flex-1 font-bold h-11 rounded-xl" variant="secondary" onClick={handleMessageClick}>Message</Button>
                             </>
                         )}
                     </div>
@@ -397,10 +446,10 @@ export default function ProfilePage() {
                                                             <MoreVertical className="h-4 w-4 text-white" />
                                                         </button>
                                                     </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
+                                                    <DropdownMenuContent align="end" className="bg-secondary border-border text-white">
                                                         <DropdownMenuItem 
                                                             onClick={(e) => handleDeleteClick(e, post)}
-                                                            className="text-destructive font-bold focus:text-destructive"
+                                                            className="text-destructive font-bold focus:text-destructive focus:bg-destructive/10"
                                                         >
                                                             <Trash2 className="mr-2 h-4 w-4" />
                                                             Delete Post
@@ -438,7 +487,7 @@ export default function ProfilePage() {
             
             {/* Post Details Modal */}
             <Dialog open={!!selectedPost} onOpenChange={(isOpen) => !isOpen && setSelectedPost(null)}>
-                <DialogContent className="p-0 border-0 bg-black/80 w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center">
+                <DialogContent className="p-0 border-0 bg-black/80 w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center overflow-hidden">
                     {selectedPost && (
                         <>
                             <DialogTitle className="sr-only">Post Details by {userProfile?.username}</DialogTitle>
@@ -448,11 +497,11 @@ export default function ProfilePage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Followers/Following Modal */}
+            {/* Followers/Following Modal - Instagram Style */}
             <Dialog open={!!showFollowList} onOpenChange={(open) => !open && setShowFollowList(null)}>
-                <DialogContent className="bg-background border-border p-0 max-w-sm rounded-t-2xl sm:rounded-2xl h-[70vh] flex flex-col">
-                    <DialogHeader className="p-4 border-b border-border">
-                        <DialogTitle className="text-center font-bold capitalize">
+                <DialogContent className="bg-background border-border p-0 max-w-sm rounded-t-2xl sm:rounded-2xl h-[70vh] flex flex-col overflow-hidden">
+                    <DialogHeader className="p-4 border-b border-border bg-background">
+                        <DialogTitle className="text-center font-bold capitalize text-white">
                             {showFollowList}
                         </DialogTitle>
                     </DialogHeader>
