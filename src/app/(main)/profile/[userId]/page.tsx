@@ -1,9 +1,10 @@
+
 'use client';
 import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogHeader } from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, setDoc } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play } from "lucide-react";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, Users } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -25,6 +26,33 @@ import type { Post } from "@/models/post";
 import type { UserProfile } from "@/models/user";
 import { PostCard } from "@/components/post-card";
 import { useToast } from "@/hooks/use-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import Link from "next/link";
+
+function UserItem({ userId, onClose }: { userId: string; onClose: () => void }) {
+    const { firestore } = useFirebase();
+    const userRef = useMemoFirebase(() => doc(firestore, 'users', userId), [firestore, userId]);
+    const { data: profile } = useDoc<UserProfile>(userRef);
+
+    if (!profile) return null;
+
+    return (
+        <Link 
+            href={`/profile/${profile.id}`} 
+            onClick={onClose}
+            className="flex items-center gap-3 p-3 hover:bg-secondary rounded-xl transition-colors"
+        >
+            <Avatar className="h-12 w-12 border border-border">
+                <AvatarImage src={profile.profileImageUrl} />
+                <AvatarFallback>{profile.username?.[0]?.toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col">
+                <span className="font-bold text-sm">{profile.username}</span>
+                <span className="text-xs text-muted-foreground">{profile.name}</span>
+            </div>
+        </Link>
+    );
+}
 
 export default function ProfilePage() {
     const params = useParams();
@@ -38,6 +66,7 @@ export default function ProfilePage() {
     const [selectedPost, setSelectedPost] = useState<Post | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [postToDelete, setPostToDelete] = useState<Post | null>(null);
+    const [showFollowList, setShowFollowList] = useState<'followers' | 'following' | null>(null);
 
     const isOwnProfile = user?.uid === userId;
 
@@ -200,98 +229,118 @@ export default function ProfilePage() {
 
                 <div className="px-4">
                     <div className="flex items-center gap-4">
-                        <Avatar className="h-20 w-20 md:h-24 md:w-24 border-2 border-primary">
+                        <Avatar className="h-20 w-20 md:h-24 md:w-24 border-2 border-primary shadow-lg shadow-primary/20">
                             <AvatarImage src={userProfile?.profileImageUrl} />
                             <AvatarFallback>{userProfile?.name?.[0]?.toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <div className="flex items-center justify-around flex-1 text-center">
-                            <div>
-                                <p className="font-bold">{posts?.length || 0}</p>
-                                <p className="text-xs text-muted-foreground">Posts</p>
+                            <div className="cursor-default">
+                                <p className="font-bold text-lg">{posts?.length || 0}</p>
+                                <p className="text-xs text-muted-foreground uppercase tracking-widest">Posts</p>
                             </div>
-                            <div>
-                                <p className="font-bold">{followersData?.length || 0}</p>
-                                <p className="text-xs text-muted-foreground">Followers</p>
+                            <div 
+                                className="cursor-pointer hover:opacity-70 transition-opacity"
+                                onClick={() => setShowFollowList('followers')}
+                            >
+                                <p className="font-bold text-lg">{followersData?.length || 0}</p>
+                                <p className="text-xs text-muted-foreground uppercase tracking-widest">Followers</p>
                             </div>
-                            <div>
-                                <p className="font-bold">{followingData?.length || 0}</p>
-                                <p className="text-xs text-muted-foreground">Following</p>
+                            <div 
+                                className="cursor-pointer hover:opacity-70 transition-opacity"
+                                onClick={() => setShowFollowList('following')}
+                            >
+                                <p className="font-bold text-lg">{followingData?.length || 0}</p>
+                                <p className="text-xs text-muted-foreground uppercase tracking-widest">Following</p>
                             </div>
                         </div>
                     </div>
                     <div className="mt-4">
                         <p className="font-bold">{userProfile?.name}</p>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{userProfile?.bio || "Welcome to A.snap!"}</p>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{userProfile?.bio || "Welcome to A.snap!"}</p>
                     </div>
-                    <div className="flex gap-2 mt-4">
+                    <div className="flex gap-2 mt-6">
                          {isOwnProfile ? (
-                            <Button className="flex-1" onClick={() => setIsEditSheetOpen(true)}>Edit Profile</Button>
+                            <Button className="flex-1 font-bold h-11" onClick={() => setIsEditSheetOpen(true)}>Edit Profile</Button>
                         ) : (
                             <>
-                                <Button className="flex-1" onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"}>
+                                <Button className="flex-1 font-bold h-11" onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"}>
                                     {isFollowing ? 'Following' : 'Follow'}
                                 </Button>
-                                <Button className="flex-1" variant="secondary" onClick={handleMessageClick}>Message</Button>
+                                <Button className="flex-1 font-bold h-11" variant="secondary" onClick={handleMessageClick}>Message</Button>
                             </>
                         )}
                     </div>
                 </div>
                 
-                <div className="border-t border-border mt-4">
-                    <div className="flex justify-center p-2 border-b border-border">
-                        <Grid3x3 className="text-primary"/>
+                <div className="border-t border-border mt-8">
+                    <div className="flex justify-center p-3 border-b border-border">
+                        <Grid3x3 className={cn("h-6 w-6", posts && posts.length > 0 ? "text-primary" : "text-muted-foreground")}/>
                     </div>
-                    <div className="grid grid-cols-3 gap-0.5">
-                        {posts?.map((post) => {
-                            const isVideo = post.mediaUrl.includes('.mp4') || post.mediaUrl.includes('.mov') || post.mediaUrl.includes('video') || post.mediaUrl.includes('cloudinary');
-                            return (
-                                <div key={post.id} className="aspect-square bg-secondary relative cursor-pointer group" onClick={() => setSelectedPost(post)}>
-                                    {isVideo ? (
-                                        <video 
-                                            src={post.mediaUrl} 
-                                            className="w-full h-full object-cover"
-                                            muted
-                                            playsInline
-                                        />
-                                    ) : (
-                                        <Image src={post.mediaUrl} alt="" fill className="object-cover" />
-                                    )}
-                                    
-                                    {/* Delete Button Menu (Only for own profile) */}
-                                    {isOwnProfile && (
-                                        <div className="absolute top-1 right-1 z-10" onClick={(e) => e.stopPropagation()}>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <button className="p-1.5 bg-black/60 rounded-full hover:bg-white/20 transition-colors">
-                                                        <MoreVertical className="h-4 w-4 text-white" />
-                                                    </button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem 
-                                                        onClick={(e) => handleDeleteClick(e, post)}
-                                                        className="text-destructive font-bold focus:text-destructive"
-                                                    >
-                                                        <Trash2 className="mr-2 h-4 w-4" />
-                                                        Delete Post
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </div>
-                                    )}
+                    {posts && posts.length > 0 ? (
+                        <div className="grid grid-cols-3 gap-0.5">
+                            {posts.map((post) => {
+                                const isVideo = post.mediaUrl.includes('.mp4') || post.mediaUrl.includes('.mov') || post.mediaUrl.includes('video') || post.mediaUrl.includes('cloudinary');
+                                return (
+                                    <div key={post.id} className="aspect-square bg-secondary relative cursor-pointer group" onClick={() => setSelectedPost(post)}>
+                                        {isVideo ? (
+                                            <video 
+                                                src={post.mediaUrl} 
+                                                className="w-full h-full object-cover"
+                                                muted
+                                                playsInline
+                                            />
+                                        ) : (
+                                            <Image src={post.mediaUrl} alt="" fill className="object-cover" />
+                                        )}
+                                        
+                                        {isOwnProfile && (
+                                            <div className="absolute top-1 right-1 z-10" onClick={(e) => e.stopPropagation()}>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <button className="p-1.5 bg-black/60 rounded-full hover:bg-white/20 transition-colors">
+                                                            <MoreVertical className="h-4 w-4 text-white" />
+                                                        </button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem 
+                                                            onClick={(e) => handleDeleteClick(e, post)}
+                                                            className="text-destructive font-bold focus:text-destructive"
+                                                        >
+                                                            <Trash2 className="mr-2 h-4 w-4" />
+                                                            Delete Post
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
+                                        )}
 
-                                    <div className="absolute bottom-1 left-1 flex items-center gap-1 text-white text-[10px] bg-black/40 rounded px-1">
-                                        <Play className="h-3 w-3 fill-white" />
-                                        <span>{post.viewCount || 0}</span>
+                                        <div className="absolute bottom-1 left-1 flex items-center gap-1 text-white text-[10px] bg-black/40 rounded px-1.5 py-0.5 backdrop-blur-sm">
+                                            <Play className="h-3 w-3 fill-white" />
+                                            <span className="font-bold">{post.viewCount || 0}</span>
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center p-20 text-center opacity-30">
+                            <Users className="h-16 w-16 mb-4" />
+                            <p className="font-medium">No posts yet</p>
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {isOwnProfile && userProfile && <EditProfileSheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen} userProfile={userProfile} />}
+            {/* Edit Profile Sheet */}
+            {isOwnProfile && userProfile && (
+                <EditProfileSheet 
+                    open={isEditSheetOpen} 
+                    onOpenChange={setIsEditSheetOpen} 
+                    userProfile={userProfile} 
+                />
+            )}
             
+            {/* Post Details Modal */}
             <Dialog open={!!selectedPost} onOpenChange={(isOpen) => !isOpen && setSelectedPost(null)}>
                 <DialogContent className="p-0 border-0 bg-black/80 w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center">
                     {selectedPost && (
@@ -303,7 +352,31 @@ export default function ProfilePage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Post Delete Confirmation Dialog */}
+            {/* Followers/Following Modal */}
+            <Dialog open={!!showFollowList} onOpenChange={(open) => !open && setShowFollowList(null)}>
+                <DialogContent className="bg-background border-border p-0 max-w-sm rounded-t-2xl sm:rounded-2xl h-[70vh] flex flex-col">
+                    <DialogHeader className="p-4 border-b border-border">
+                        <DialogTitle className="text-center font-bold capitalize">
+                            {showFollowList}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <ScrollArea className="flex-1 p-4">
+                        <div className="space-y-2">
+                            {showFollowList === 'followers' ? (
+                                followersData && followersData.length > 0 ? (
+                                    followersData.map(f => <UserItem key={f.id} userId={f.id} onClose={() => setShowFollowList(null)} />)
+                                ) : <p className="text-center text-muted-foreground mt-10">No followers yet.</p>
+                            ) : (
+                                followingData && followingData.length > 0 ? (
+                                    followingData.map(f => <UserItem key={f.id} userId={f.id} onClose={() => setShowFollowList(null)} />)
+                                ) : <p className="text-center text-muted-foreground mt-10">Not following anyone yet.</p>
+                            )}
+                        </div>
+                    </ScrollArea>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogContent className="max-w-[320px] rounded-2xl border-border bg-background text-white">
                     <AlertDialogHeader>
