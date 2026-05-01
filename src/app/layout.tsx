@@ -1,4 +1,3 @@
-
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
@@ -19,6 +18,10 @@ export const metadata: Metadata = {
     siteName: "A.snap",
     url: 'https://studio-8111746683-c1e57.web.app',
   },
+  icons: {
+    icon: 'https://picsum.photos/seed/asnap_icon/32/32',
+    apple: 'https://picsum.photos/seed/asnap_icon/180/180',
+  },
   robots: {
     index: true,
     follow: true,
@@ -29,9 +32,6 @@ export const metadata: Metadata = {
       'max-image-preview': 'large',
       'max-snippet': -1,
     },
-  },
-  verification: {
-    google: 'google-site-verification-id',
   }
 };
 

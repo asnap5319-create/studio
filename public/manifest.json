@@ -1,8 +1,7 @@
-
 {
   "name": "A.snap",
   "short_name": "A.snap",
-  "description": "Share your world in short videos.",
+  "description": "Share Your World in Short Videos",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
