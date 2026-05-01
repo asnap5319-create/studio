@@ -13,8 +13,9 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 
-// Real Ad Configuration using IDs from the user
+// Ad Configuration using the IDs provided by the user
 const AD_UNIT_ID = process.env.NEXT_PUBLIC_ADMOB_UNIT_ID || 'ca-app-pub-6100214178274409/8382187974';
+const AD_APP_ID = process.env.NEXT_PUBLIC_ADMOB_APP_ID || 'ca-app-pub-6100214178274409~7603458775';
 
 const MOCK_ADS = [
   {
@@ -114,7 +115,7 @@ export default function FeedPage() {
   }
 
   return (
-    <div className="h-full w-full max-w-lg mx-auto flex flex-col text-white bg-black">
+    <div className="h-full w-full max-w-lg mx-auto flex flex-col text-white bg-black" data-ad-app-id={AD_APP_ID}>
        <header className="flex items-center justify-between p-4 bg-black/60 backdrop-blur-lg sticky top-0 z-20 shrink-0 border-b border-white/5">
             <h1 className="text-2xl font-black text-primary italic tracking-tighter" style={{filter: 'drop-shadow(0 0 8px hsl(var(--primary)))'}}>
                 A.snap
