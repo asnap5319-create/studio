@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from './ui/button';
-import { ExternalLink, MoreVertical, Volume2, VolumeX } from 'lucide-react';
+import { ExternalLink, MoreVertical, Volume2, VolumeX, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SponsoredCardProps {
@@ -16,6 +17,7 @@ interface SponsoredCardProps {
     ctaText: string;
     ctaUrl: string;
     isVideo?: boolean;
+    adUnitId?: string;
   };
 }
 
@@ -48,7 +50,10 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
   }, [isInView]);
 
   return (
-    <div ref={cardRef} className="relative w-full h-full bg-black overflow-hidden">
+    <div ref={cardRef} className="relative w-full h-full bg-black overflow-hidden flex flex-col justify-center">
+      {/* Hidden Ad Metadata for reference */}
+      <div className="hidden" data-ad-unit-id={ad.adUnitId}></div>
+
       {ad.isVideo ? (
         <video
           ref={videoRef}
@@ -59,42 +64,44 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
           playsInline
         />
       ) : (
-        <Image
-          src={ad.mediaUrl}
-          alt={ad.brandName}
-          fill
-          className="object-contain"
-        />
+        <div className="relative w-full h-full">
+          <Image
+            src={ad.mediaUrl}
+            alt={ad.brandName}
+            fill
+            className="object-contain"
+          />
+        </div>
       )}
 
       {/* Ad Overlay */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 pb-24 bg-gradient-to-t from-black/90 via-black/20 to-transparent text-white z-10">
+      <div className="absolute bottom-0 left-0 right-0 p-4 pb-24 bg-gradient-to-t from-black/95 via-black/40 to-transparent text-white z-10">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full overflow-hidden border border-white/20 bg-white/10 flex items-center justify-center">
-              <Image src={ad.brandLogo} alt={ad.brandName} width={40} height={40} className="object-cover" />
+            <div className="h-11 w-11 rounded-full overflow-hidden border-2 border-primary/50 bg-secondary flex items-center justify-center">
+              <Image src={ad.brandLogo} alt={ad.brandName} width={44} height={44} className="object-cover" />
             </div>
             <div>
-              <p className="font-bold text-sm flex items-center gap-2">
+              <p className="font-bold text-[15px] flex items-center gap-2">
                 {ad.brandName}
-                <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded uppercase tracking-tighter">Sponsored</span>
+                <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-sm font-black uppercase tracking-widest text-white/90">Sponsored</span>
               </p>
-              <p className="text-[10px] text-muted-foreground">Ad</p>
+              <p className="text-[10px] text-muted-foreground font-medium">Verified Ad Partner</p>
             </div>
           </div>
-          <button className="p-1"><MoreVertical size={20} /></button>
+          <button className="p-2 hover:bg-white/10 rounded-full transition-colors"><Info size={18} className="text-white/60" /></button>
         </div>
 
-        <p className="text-sm line-clamp-2 mb-4 pr-10">{ad.caption}</p>
+        <p className="text-sm leading-relaxed mb-5 drop-shadow-lg pr-10">{ad.caption}</p>
 
-        {/* Call to Action Button */}
+        {/* Call to Action Button - Premium Style */}
         <Button 
           asChild 
-          className="w-full bg-primary hover:bg-primary/90 text-white font-bold h-12 rounded-xl group transition-all"
+          className="w-full bg-primary hover:bg-primary/90 text-white font-black h-14 rounded-xl text-lg group transition-all transform active:scale-95 shadow-[0_0_15px_rgba(var(--primary),0.4)]"
         >
-          <a href={ad.ctaUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2">
+          <a href={ad.ctaUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-3">
             {ad.ctaText}
-            <ExternalLink className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            <ExternalLink className="h-5 w-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
           </a>
         </Button>
       </div>
@@ -103,9 +110,9 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
       {ad.isVideo && (
         <button 
           onClick={() => setIsMuted(!isMuted)}
-          className="absolute top-4 right-4 z-20 p-2 bg-black/40 backdrop-blur-md rounded-full text-white"
+          className="absolute top-20 right-4 z-20 p-2.5 bg-black/50 backdrop-blur-md rounded-full text-white border border-white/10"
         >
-          {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+          {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
         </button>
       )}
     </div>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
@@ -12,27 +13,31 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 
-// Mock Ads Data (In a real app, this would come from an Ads Service or Firestore)
+// Real Ad Configuration using IDs from AdMob
+const AD_UNIT_ID = process.env.NEXT_PUBLIC_ADMOB_UNIT_ID || 'ca-app-pub-6100214178274409/8382187974';
+
 const MOCK_ADS = [
   {
     id: 'ad_1',
-    brandName: 'A.snap Pro',
-    brandLogo: 'https://picsum.photos/seed/adslogo/100/100',
+    brandName: 'A.snap Premium',
+    brandLogo: 'https://picsum.photos/seed/asnap_logo/100/100',
     mediaUrl: 'https://res.cloudinary.com/demo/video/upload/w_1280,h_720,c_fill/dog.mp4',
-    caption: 'Upgrade to A.snap Premium and get exclusive filters and longer videos! #AsnapPro #Premium',
-    ctaText: 'Get Premium Now',
+    caption: 'Be the star of A.snap! Upgrade to Premium today and unlock exclusive AI filters and 4K uploads. #AsnapPremium #ShortVideo',
+    ctaText: 'Upgrade Now',
     ctaUrl: '/profile',
     isVideo: true,
+    adUnitId: AD_UNIT_ID,
   },
   {
     id: 'ad_2',
     brandName: 'Nike',
-    brandLogo: 'https://picsum.photos/seed/nike/100/100',
-    mediaUrl: 'https://picsum.photos/seed/nikead/1080/1920',
-    caption: 'Just Do It. Check out the latest collection of sneakers designed for the next generation.',
-    ctaText: 'Shop Now',
+    brandLogo: 'https://picsum.photos/seed/nike_logo/100/100',
+    mediaUrl: 'https://picsum.photos/seed/nike_ad/1080/1920',
+    caption: 'Push your limits. The all-new Air Max is here to redefine speed. Just Do It. #Nike #AirMax',
+    ctaText: 'Shop Collection',
     ctaUrl: 'https://nike.com',
     isVideo: false,
+    adUnitId: AD_UNIT_ID,
   }
 ];
 
@@ -54,7 +59,7 @@ export default function FeedPage() {
   }, [firestore, user]);
 
   const { data: notifications } = useCollection<Notification>(notificationsQuery);
-  const hasUnread = notifications?.some(n => !n.read);
+  const unreadCount = notifications?.filter(n => !n.read).length || 0;
 
   // Logic to interleave Ads into the posts feed
   const feedItems = useMemo(() => {
@@ -66,8 +71,8 @@ export default function FeedPage() {
     posts.forEach((post, index) => {
       items.push({ type: 'post' as const, data: post });
       
-      // Insert an ad every 3 posts
-      if ((index + 1) % 3 === 0 && adIndex < MOCK_ADS.length) {
+      // Insert an ad every 3 posts to mimic Instagram's ad frequency
+      if ((index + 1) % 3 === 0) {
         items.push({ type: 'ad' as const, data: MOCK_ADS[adIndex] });
         adIndex = (adIndex + 1) % MOCK_ADS.length;
       }
@@ -85,7 +90,7 @@ export default function FeedPage() {
     return (
       <div className="flex h-full flex-col items-center justify-center text-white bg-black">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary mb-4"></div>
-        <p className="font-medium">Loading your feed...</p>
+        <p className="font-medium animate-pulse">Loading A.snap Feed...</p>
       </div>
     );
   }
@@ -117,8 +122,10 @@ export default function FeedPage() {
             <div className="flex items-center gap-5">
                 <Link href="/notifications" className="relative hover:scale-110 transition-transform">
                     <Heart className="h-7 w-7 text-white" />
-                    {hasUnread && (
-                      <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 bg-red-600 rounded-full border-2 border-black animate-pulse" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-600 rounded-full border-2 border-black flex items-center justify-center text-[10px] font-bold">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
                     )}
                 </Link>
                 <Link href="/messages" className="hover:scale-110 transition-transform">
@@ -139,7 +146,7 @@ export default function FeedPage() {
         )}
         
         {feedItems.map((item, idx) => (
-            <div key={item.type === 'post' ? item.data.id : item.data.id} className="h-full w-full snap-start flex items-center justify-center bg-black">
+            <div key={`${item.type}-${idx}`} className="h-full w-full snap-start flex items-center justify-center bg-black">
                 {item.type === 'post' ? (
                   <PostCard post={item.data} />
                 ) : (
