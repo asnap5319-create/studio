@@ -1,7 +1,8 @@
+
 {
-  "name": "A.snap - Short Video Sharing",
-  "short_name": "A.snap",
-  "description": "Premium short video sharing application.",
+  "name": "A.snap",
+  "short_name": "Asnap",
+  "description": "Premium Short Video Sharing",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
