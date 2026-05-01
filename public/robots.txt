@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://studio-8111746683-c1e57.web.app/sitemap.xml
