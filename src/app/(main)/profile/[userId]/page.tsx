@@ -28,6 +28,7 @@ import { PostCard } from "@/components/post-card";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 function UserItem({ userId, onClose }: { userId: string; onClose: () => void }) {
     const { firestore } = useFirebase();
