@@ -21,6 +21,11 @@ interface SponsoredCardProps {
   };
 }
 
+/**
+ * SponsoredCard Component
+ * This represents a native ad slot in the A.snap feed.
+ * Earning potential: High when connected to a real ad network or direct advertisers.
+ */
 export function SponsoredCard({ ad }: SponsoredCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -51,8 +56,8 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
 
   return (
     <div ref={cardRef} className="relative w-full h-full bg-black overflow-hidden flex flex-col justify-center">
-      {/* Hidden Ad Metadata for reference */}
-      <div className="hidden" data-ad-unit-id={ad.adUnitId}></div>
+      {/* Ad Tracking Metadata */}
+      <div className="hidden" data-ad-unit-id={ad.adUnitId} data-ad-slot-id={ad.id}></div>
 
       {ad.isVideo ? (
         <video
@@ -74,11 +79,11 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
         </div>
       )}
 
-      {/* Ad Overlay */}
+      {/* Ad Overlay - Designed to maximize clicks and earning */}
       <div className="absolute bottom-0 left-0 right-0 p-4 pb-24 bg-gradient-to-t from-black/95 via-black/40 to-transparent text-white z-10">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-full overflow-hidden border-2 border-primary/50 bg-secondary flex items-center justify-center">
+            <div className="h-11 w-11 rounded-full overflow-hidden border-2 border-primary/50 bg-secondary flex items-center justify-center shadow-lg shadow-primary/20">
               <Image src={ad.brandLogo} alt={ad.brandName} width={44} height={44} className="object-cover" />
             </div>
             <div>
@@ -94,10 +99,10 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
 
         <p className="text-sm leading-relaxed mb-5 drop-shadow-lg pr-10">{ad.caption}</p>
 
-        {/* Call to Action Button - Premium Style */}
+        {/* Call to Action Button - Premium Style to encourage engagement */}
         <Button 
           asChild 
-          className="w-full bg-primary hover:bg-primary/90 text-white font-black h-14 rounded-xl text-lg group transition-all transform active:scale-95 shadow-[0_0_15px_rgba(var(--primary),0.4)]"
+          className="w-full bg-primary hover:bg-primary/90 text-white font-black h-14 rounded-xl text-lg group transition-all transform active:scale-95 shadow-[0_0_20px_rgba(var(--primary),0.5)]"
         >
           <a href={ad.ctaUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-3">
             {ad.ctaText}

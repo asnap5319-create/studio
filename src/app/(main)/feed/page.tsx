@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 
-// Real Ad Configuration using IDs from AdMob
+// Real Ad Configuration using IDs from the user
 const AD_UNIT_ID = process.env.NEXT_PUBLIC_ADMOB_UNIT_ID || 'ca-app-pub-6100214178274409/8382187974';
 
 const MOCK_ADS = [
