@@ -1,6 +1,7 @@
 
 {
   "hosting": {
+    "site": "studio-8111746683-c1e57",
     "source": ".",
     "ignore": [
       "firebase.json",
@@ -9,6 +10,12 @@
     ],
     "frameworksBackend": {
       "region": "us-central1"
-    }
+    },
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
   }
 }
