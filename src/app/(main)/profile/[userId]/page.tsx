@@ -213,7 +213,8 @@ export default function ProfilePage() {
     const [showFollowList, setShowFollowList] = useState<'followers' | 'following' | null>(null);
 
     const isOwnProfile = user?.uid === userId;
-    const isAdmin = user?.email === ADMIN_EMAIL;
+    // Stronger admin check
+    const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
     const userProfileRef = useMemoFirebase(() => {
         if (!firestore || !userId) return null;
@@ -415,7 +416,17 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex gap-2 mt-6">
                          {isOwnProfile ? (
-                            <Button className="flex-1 font-bold h-11 rounded-xl" onClick={() => setIsEditSheetOpen(true)}>Edit Profile</Button>
+                            <>
+                                <Button className="flex-1 font-bold h-11 rounded-xl" onClick={() => setIsEditSheetOpen(true)}>Edit Profile</Button>
+                                {isAdmin && (
+                                    <Button 
+                                        className="flex-1 font-bold h-11 rounded-xl bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20" 
+                                        onClick={() => router.push('/admin')}
+                                    >
+                                        <ShieldCheck className="mr-2 h-4 w-4" /> Admin
+                                    </Button>
+                                )}
+                            </>
                         ) : (
                             <>
                                 <Button className="flex-1 font-bold h-11 rounded-xl" onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"}>

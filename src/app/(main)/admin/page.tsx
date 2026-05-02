@@ -24,7 +24,8 @@ export default function AdminPage() {
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('');
 
-    const isAdmin = user?.email === ADMIN_EMAIL;
+    // Stronger admin check
+    const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
     // Queries for Admin
     const usersQuery = useMemoFirebase(() => {
@@ -60,7 +61,12 @@ export default function AdminPage() {
         }
     };
 
-    if (isUserLoading) return <div className="p-10 text-center">Loading...</div>;
+    if (isUserLoading) return (
+        <div className="flex h-screen items-center justify-center bg-background text-white">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary mr-3"></div>
+            <span>Verifying Admin...</span>
+        </div>
+    );
 
     if (!user || !isAdmin) {
         return (
@@ -85,7 +91,7 @@ export default function AdminPage() {
 
     return (
         <div className="min-h-screen bg-background text-white p-4 max-w-4xl mx-auto pb-20">
-            <header className="flex items-center justify-between mb-8 sticky top-0 bg-background/80 backdrop-blur-md z-10 py-4">
+            <header className="flex flex-col md:flex-row md:items-center justify-between mb-8 sticky top-0 bg-background/95 backdrop-blur-md z-10 py-4 gap-4">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="icon" onClick={() => router.back()}>
                         <ArrowLeft />
@@ -94,10 +100,10 @@ export default function AdminPage() {
                         <ShieldCheck className="text-primary" /> Admin Panel
                     </h1>
                 </div>
-                <div className="relative w-48 md:w-64">
+                <div className="relative w-full md:w-64">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input 
-                        placeholder="Search..." 
+                        placeholder="Search users or posts..." 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10 bg-secondary border-none"
@@ -117,8 +123,8 @@ export default function AdminPage() {
 
                 <TabsContent value="users" className="animate-in fade-in duration-300">
                     <div className="space-y-4">
-                        {isUsersLoading ? <p>Loading users...</p> : 
-                        filteredUsers?.map(u => (
+                        {isUsersLoading ? <p className="text-center p-10 opacity-50">Loading users...</p> : 
+                        filteredUsers?.length ? filteredUsers.map(u => (
                             <div key={u.id} className="flex items-center justify-between p-4 bg-secondary/50 rounded-xl border border-border">
                                 <div className="flex items-center gap-3">
                                     <Avatar className="h-12 w-12">
@@ -134,17 +140,17 @@ export default function AdminPage() {
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
                             </div>
-                        ))}
+                        )) : <p className="text-center p-10 opacity-50">No users found.</p>}
                     </div>
                 </TabsContent>
 
                 <TabsContent value="posts" className="animate-in fade-in duration-300">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {isPostsLoading ? <p>Loading posts...</p> : 
-                        filteredPosts?.map(p => (
+                        {isPostsLoading ? <p className="text-center p-10 opacity-50">Loading posts...</p> : 
+                        filteredPosts?.length ? filteredPosts.map(p => (
                             <div key={p.id} className="bg-secondary/50 rounded-xl border border-border overflow-hidden">
                                 <div className="aspect-video relative bg-black">
-                                    {p.mediaUrl.includes('video') || p.mediaUrl.includes('.mp4') ? (
+                                    {p.mediaUrl.includes('video') || p.mediaUrl.includes('.mp4') || p.mediaUrl.includes('cloudinary') ? (
                                         <video src={p.mediaUrl} className="w-full h-full object-contain" muted playsInline />
                                     ) : (
                                         <img src={p.mediaUrl} className="w-full h-full object-contain" alt="" />
@@ -153,7 +159,7 @@ export default function AdminPage() {
                                 <div className="p-4 flex justify-between items-start">
                                     <div>
                                         <p className="text-sm line-clamp-2 mb-2 font-medium">{p.caption}</p>
-                                        <p className="text-[10px] text-muted-foreground">User: {p.userId}</p>
+                                        <p className="text-[10px] text-muted-foreground">User ID: {p.userId}</p>
                                         <p className="text-[10px] text-muted-foreground">Date: {p.createdAt ? format(p.createdAt.toDate(), 'PPP') : 'N/A'}</p>
                                     </div>
                                     <Button variant="destructive" size="icon" className="shrink-0" onClick={() => handleDeletePost(p)}>
@@ -161,7 +167,7 @@ export default function AdminPage() {
                                     </Button>
                                 </div>
                             </div>
-                        ))}
+                        )) : <p className="text-center p-10 opacity-50">No posts found.</p>}
                     </div>
                 </TabsContent>
             </Tabs>
