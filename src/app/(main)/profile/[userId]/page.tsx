@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogTitle, DialogHeader } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -14,10 +14,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/AlertDialog";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, setDoc, where, getDocs, documentId } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, Users, Search, X, Check } from "lucide-react";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, Users, Search, X, Check, ShieldCheck } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -31,14 +31,14 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-// Component for each user row in the followers/following list
+const ADMIN_EMAIL = "asnap5319@gmail.com";
+
 function FollowListItem({ profile, onClose }: { profile: UserProfile; onClose: () => void }) {
     const { user } = useUser();
     const { firestore } = useFirebase();
     const { toast } = useToast();
     const isOwn = user?.uid === profile.id;
 
-    // Check if current user is following this person
     const followCheckRef = useMemoFirebase(() => {
         if (!firestore || !user || isOwn) return null;
         return doc(firestore, 'user_followers', profile.id, 'followers', user.uid);
@@ -133,7 +133,6 @@ function FollowList({ userIds, onClose }: { userIds: string[]; onClose: () => vo
                 }
 
                 for (const chunk of chunks) {
-                    // Use documentId() to query by list of IDs
                     const q = query(collection(firestore, 'users'), where(documentId(), 'in', chunk));
                     const snap = await getDocs(q);
                     snap.forEach(doc => fetched.push({ ...doc.data(), id: doc.id } as UserProfile));
@@ -214,6 +213,7 @@ export default function ProfilePage() {
     const [showFollowList, setShowFollowList] = useState<'followers' | 'following' | null>(null);
 
     const isOwnProfile = user?.uid === userId;
+    const isAdmin = user?.email === ADMIN_EMAIL;
 
     const userProfileRef = useMemoFirebase(() => {
         if (!firestore || !userId) return null;
@@ -364,8 +364,18 @@ export default function ProfilePage() {
                                         <MoreVertical />
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="bg-secondary border-border text-white">
-                                    <DropdownMenuItem onClick={handleLogout} className="focus:bg-primary/20"><LogOut className="mr-2 h-4 w-4" /> Logout</DropdownMenuItem>
+                                <DropdownMenuContent align="end" className="bg-secondary border-border text-white min-w-[160px]">
+                                    {isAdmin && (
+                                        <>
+                                            <DropdownMenuItem onClick={() => router.push('/admin')} className="focus:bg-primary/20">
+                                                <ShieldCheck className="mr-2 h-4 w-4 text-primary" /> Admin Dashboard
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator className="bg-border" />
+                                        </>
+                                    )}
+                                    <DropdownMenuItem onClick={handleLogout} className="focus:bg-primary/20">
+                                        <LogOut className="mr-2 h-4 w-4" /> Logout
+                                    </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         )}
@@ -476,7 +486,6 @@ export default function ProfilePage() {
                 </div>
             </div>
 
-            {/* Edit Profile Sheet */}
             {isOwnProfile && userProfile && (
                 <EditProfileSheet 
                     open={isEditSheetOpen} 
@@ -485,7 +494,6 @@ export default function ProfilePage() {
                 />
             )}
             
-            {/* Post Details Modal */}
             <Dialog open={!!selectedPost} onOpenChange={(isOpen) => !isOpen && setSelectedPost(null)}>
                 <DialogContent className="p-0 border-0 bg-black/80 w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center overflow-hidden">
                     {selectedPost && (
@@ -497,7 +505,6 @@ export default function ProfilePage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Followers/Following Modal - Instagram Style */}
             <Dialog open={!!showFollowList} onOpenChange={(open) => !open && setShowFollowList(null)}>
                 <DialogContent className="bg-background border-border p-0 max-w-sm rounded-t-2xl sm:rounded-2xl h-[70vh] flex flex-col overflow-hidden">
                     <DialogHeader className="p-4 border-b border-border bg-background">
@@ -515,7 +522,6 @@ export default function ProfilePage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Delete Confirmation Dialog */}
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogContent className="max-w-[320px] rounded-2xl border-border bg-background text-white">
                     <AlertDialogHeader>
