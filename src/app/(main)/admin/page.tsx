@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, collectionGroup, query, orderBy, deleteDoc, doc, limit } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
@@ -24,8 +24,11 @@ export default function AdminPage() {
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Stronger admin check
-    const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    // Standardized admin check
+    const isAdmin = useMemo(() => {
+        if (!user?.email) return false;
+        return user.email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    }, [user]);
 
     // Queries for Admin
     const usersQuery = useMemoFirebase(() => {

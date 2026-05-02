@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const router = useRouter();
   const { auth, firestore } = useFirebase();
   const { toast } = useToast();
@@ -23,19 +25,32 @@ export default function LoginPage() {
       return;
     }
 
+    setIsLoggingIn(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      // Normalize email by trimming spaces and making it lowercase
+      const normalizedEmail = email.trim().toLowerCase();
+      await signInWithEmailAndPassword(auth, normalizedEmail, password);
       toast({ title: "Success", description: "Logged in successfully!" });
       router.push('/feed');
     } catch (error: any) {
       console.error("Error signing in: ", error);
       let errorMessage = "Could not log in. Please check your credentials.";
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-        errorMessage = "Invalid email or password.";
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = "Please enter a valid email address.";
+      
+      // Handle specific Firebase Auth errors
+      if (
+        error.code === 'auth/user-not-found' || 
+        error.code === 'auth/wrong-password' || 
+        error.code === 'auth/invalid-credential' ||
+        error.code === 'auth/invalid-email'
+      ) {
+        errorMessage = "गलत ईमेल या पासवर्ड! कृपया दोबारा चेक करें।";
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = "बहुत सारे गलत प्रयास! कृपया कुछ देर बाद कोशिश करें।";
       }
+      
       toast({ title: "Login Failed", description: errorMessage, variant: "destructive" });
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -54,6 +69,7 @@ export default function LoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            disabled={isLoggingIn}
           />
           <Input 
             type="password" 
@@ -62,9 +78,10 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            disabled={isLoggingIn}
           />
-          <Button type="submit" className="w-full h-12 text-lg font-bold">
-            Log In
+          <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={isLoggingIn}>
+            {isLoggingIn ? "Logging in..." : "Log In"}
           </Button>
         </form>
 

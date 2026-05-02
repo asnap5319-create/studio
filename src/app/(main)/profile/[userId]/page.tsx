@@ -213,8 +213,12 @@ export default function ProfilePage() {
     const [showFollowList, setShowFollowList] = useState<'followers' | 'following' | null>(null);
 
     const isOwnProfile = user?.uid === userId;
-    // Stronger admin check
-    const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    
+    // Admin check using the standardized email
+    const isAdmin = useMemo(() => {
+        if (!user?.email) return false;
+        return user.email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    }, [user]);
 
     const userProfileRef = useMemoFirebase(() => {
         if (!firestore || !userId) return null;
@@ -420,7 +424,7 @@ export default function ProfilePage() {
                                 <Button className="flex-1 font-bold h-11 rounded-xl" onClick={() => setIsEditSheetOpen(true)}>Edit Profile</Button>
                                 {isAdmin && (
                                     <Button 
-                                        className="flex-1 font-bold h-11 rounded-xl bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20" 
+                                        className="flex-1 font-bold h-11 rounded-xl bg-primary text-white hover:bg-primary/90 shadow-[0_0_15px_rgba(var(--primary),0.4)]" 
                                         onClick={() => router.push('/admin')}
                                     >
                                         <ShieldCheck className="mr-2 h-4 w-4" /> Admin
