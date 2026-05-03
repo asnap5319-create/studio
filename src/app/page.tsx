@@ -7,13 +7,14 @@ import { useUser } from '@/firebase';
 
 /**
  * Splash Screen Component
- * Simplified to prevent hydration errors and ensure smooth rendering of the 3D logo.
+ * Designed to prevent hydration errors and ensure smooth rendering of the 3D logo.
  */
 export default function Splash() {
   const router = useRouter();
   const { user, isUserLoading } = useUser();
   const [mounted, setMounted] = useState(false);
 
+  // UseEffect runs ONLY on the client, ensuring we don't have hydration mismatch
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -33,14 +34,16 @@ export default function Splash() {
     return () => clearTimeout(timer);
   }, [user, isUserLoading, router, mounted]);
 
-  // Force solid black background during initial load to prevent white flashes
-  if (!mounted) return <div className="min-h-screen bg-black" />;
+  // Prevent white flashes by returning a solid black background during initial load
+  if (!mounted) {
+    return <div className="min-h-screen bg-black" />;
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-black overflow-hidden select-none">
       <div className="flex flex-col items-center space-y-12 animate-in fade-in zoom-in-95 duration-1000">
         
-        {/* The 3D Dark Squircle Frame */}
+        {/* The 3D Dark Squircle Frame (Insta-inspired) */}
         <div className="relative">
             {/* Soft Glow behind the box */}
             <div className="absolute -inset-10 bg-primary/20 rounded-[4.5rem] blur-3xl opacity-30"></div>
@@ -53,7 +56,7 @@ export default function Splash() {
                 {/* Glossy top-down overlay for 3D depth */}
                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.07] via-transparent to-transparent pointer-events-none"></div>
 
-                {/* Stylized 'A' with Pink Dot */}
+                {/* Stylized 'A' with Pink Dot as per photo */}
                 <svg viewBox="0 0 100 100" className="w-32 h-28 drop-shadow-[0_12px_20px_rgba(0,0,0,0.6)]">
                     <defs>
                         <linearGradient id="a-gradient-splash" x1="0%" y1="0%" x2="100%" y2="100%">
