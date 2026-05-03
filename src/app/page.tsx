@@ -7,7 +7,7 @@ import { useUser } from '@/firebase';
 
 /**
  * A.snap Splash Screen
- * Optimized for maximum stability to prevent the white screen error.
+ * Optimized for maximum stability to prevent hydration and white screen errors.
  * Features a high-end 3D Dark Box Logo with a stylized 'A' and Pink Dot.
  */
 export default function Splash() {
@@ -15,7 +15,8 @@ export default function Splash() {
   const { user, isUserLoading } = useUser();
   const [mounted, setMounted] = useState(false);
 
-  // Critical fix for hydration mismatch and white screen
+  // Critical fix for hydration mismatch and white screen:
+  // Ensure we only render the UI after the component has mounted on the client.
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -35,7 +36,7 @@ export default function Splash() {
     return () => clearTimeout(timer);
   }, [user, isUserLoading, router, mounted]);
 
-  // Render nothing until client-side mount to avoid hydration errors
+  // Render a minimal black background until client-side mount to avoid hydration errors
   if (!mounted) {
     return <div className="min-h-screen bg-black" />;
   }
@@ -46,19 +47,19 @@ export default function Splash() {
         
         {/* The 3D Dark Squircle Box (Premium Design) */}
         <div className="relative">
-            {/* Soft Ambient Glow */}
+            {/* Soft Ambient Glow in the background */}
             <div className="absolute -inset-16 bg-primary/20 rounded-[5rem] blur-[80px] opacity-40"></div>
             
             {/* The Main 3D Box Container */}
             <div className="relative w-52 h-52 bg-[#0a0a0a] rounded-[4rem] flex items-center justify-center 
-                            shadow-[30px_30px_60px_rgba(0,0,0,1),-10px_-10px_30px_rgba(255,255,255,0.02)] 
+                            shadow-[inset_0_2px_8px_rgba(255,255,255,0.05),30px_30px_60px_rgba(0,0,0,1),-10px_-10px_30px_rgba(255,255,255,0.02)] 
                             border-[10px] border-[#1a1a1a] overflow-hidden">
                 
-                {/* Glossy Reflection Overlay */}
+                {/* Glossy Reflection Overlay for realism */}
                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.08] via-transparent to-transparent pointer-events-none"></div>
 
-                {/* The Stylized 'A' Icon */}
-                <svg viewBox="0 0 100 100" className="w-36 h-32 drop-shadow-[0_15px_25px_rgba(0,0,0,0.7)]">
+                {/* The Stylized 'A' Icon using SVG for perfect rendering */}
+                <svg viewBox="0 0 100 100" className="w-36 h-32 drop-shadow-[0_15px_25px_rgba(0,0,0,0.8)]">
                     <defs>
                         <linearGradient id="a-gradient-premium" x1="0%" y1="0%" x2="100%" y2="100%">
                             <stop offset="0%" stopColor="#ff9a9e" /> 
@@ -67,7 +68,7 @@ export default function Splash() {
                         </linearGradient>
                     </defs>
                     
-                    {/* The Ribbon Loop 'A' */}
+                    {/* The Ribbon Loop 'A' design */}
                     <path 
                         d="M25 75 C 25 30, 40 18, 50 18 C 60 18, 75 30, 75 75 M30 54 L70 54" 
                         fill="none" 
@@ -77,7 +78,7 @@ export default function Splash() {
                         strokeLinejoin="round"
                     />
                     
-                    {/* The Iconic Pink Dot */}
+                    {/* The Iconic Pink Dot with glow effect */}
                     <circle 
                       cx="78" 
                       cy="22" 
@@ -95,7 +96,7 @@ export default function Splash() {
             <h1 className="text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-[#ffd26f] via-[#ff3366] to-white italic">
                 A.snap
             </h1>
-            <div className="h-1.5 w-20 bg-primary/40 mx-auto rounded-full animate-pulse"></div>
+            <div className="h-1.5 w-20 bg-primary/40 mx-auto rounded-full animate-pulse-soft"></div>
         </div>
       </div>
       
