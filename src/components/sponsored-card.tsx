@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from './ui/button';
-import { ExternalLink, MoreVertical, Volume2, VolumeX, Info } from 'lucide-react';
+import { ExternalLink, Volume2, VolumeX, Info, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SponsoredCardProps {
@@ -23,8 +23,7 @@ interface SponsoredCardProps {
 
 /**
  * SponsoredCard Component
- * This represents a native ad slot in the A.snap feed.
- * Earning potential: High when connected to a real ad network or direct advertisers.
+ * Optimized for high CTR (Click-Through Rate) to maximize revenue.
  */
 export function SponsoredCard({ ad }: SponsoredCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -80,29 +79,31 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
       )}
 
       {/* Ad Overlay - Designed to maximize clicks and earning */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 pb-24 bg-gradient-to-t from-black/95 via-black/40 to-transparent text-white z-10">
+      <div className="absolute bottom-0 left-0 right-0 p-4 pb-24 bg-gradient-to-t from-black via-black/60 to-transparent text-white z-10">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-full overflow-hidden border-2 border-primary/50 bg-secondary flex items-center justify-center shadow-lg shadow-primary/20">
-              <Image src={ad.brandLogo} alt={ad.brandName} width={44} height={44} className="object-cover" />
+            <div className="h-12 w-12 rounded-full overflow-hidden border-2 border-primary bg-secondary flex items-center justify-center shadow-[0_0_15px_rgba(var(--primary),0.3)]">
+              <Image src={ad.brandLogo} alt={ad.brandName} width={48} height={48} className="object-cover" />
             </div>
             <div>
-              <p className="font-bold text-[15px] flex items-center gap-2">
+              <p className="font-bold text-[16px] flex items-center gap-2">
                 {ad.brandName}
-                <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-sm font-black uppercase tracking-widest text-white/90">Sponsored</span>
+                <span className="text-[9px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-black uppercase tracking-tighter border border-primary/30 flex items-center gap-1">
+                  <Sparkles className="h-2 w-2" /> Sponsored
+                </span>
               </p>
               <p className="text-[10px] text-muted-foreground font-medium">Verified Ad Partner</p>
             </div>
           </div>
-          <button className="p-2 hover:bg-white/10 rounded-full transition-colors"><Info size={18} className="text-white/60" /></button>
+          <button className="p-2 hover:bg-white/10 rounded-full transition-colors"><Info size={18} className="text-white/40" /></button>
         </div>
 
-        <p className="text-sm leading-relaxed mb-5 drop-shadow-lg pr-10">{ad.caption}</p>
+        <p className="text-sm leading-relaxed mb-6 drop-shadow-lg pr-8 line-clamp-2">{ad.caption}</p>
 
-        {/* Call to Action Button - Premium Style to encourage engagement */}
+        {/* Call to Action Button - Ultra Premium Style to encourage clicks (CPC Revenue) */}
         <Button 
           asChild 
-          className="w-full bg-primary hover:bg-primary/90 text-white font-black h-14 rounded-xl text-lg group transition-all transform active:scale-95 shadow-[0_0_20px_rgba(var(--primary),0.5)]"
+          className="w-full bg-primary hover:bg-primary/90 text-white font-black h-14 rounded-2xl text-lg group transition-all transform active:scale-95 shadow-[0_10px_30px_-10px_rgba(var(--primary),0.6)] border-t border-white/20"
         >
           <a href={ad.ctaUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-3">
             {ad.ctaText}
@@ -115,9 +116,9 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
       {ad.isVideo && (
         <button 
           onClick={() => setIsMuted(!isMuted)}
-          className="absolute top-20 right-4 z-20 p-2.5 bg-black/50 backdrop-blur-md rounded-full text-white border border-white/10"
+          className="absolute top-20 right-4 z-20 p-3 bg-black/60 backdrop-blur-xl rounded-full text-white border border-white/10 shadow-lg"
         >
-          {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+          {isMuted ? <VolumeX size={22} /> : <Volume2 size={22} />}
         </button>
       )}
     </div>
