@@ -7,14 +7,15 @@ import { useUser } from '@/firebase';
 
 /**
  * A.snap Splash Screen
- * Optimized for stability to fix the white screen error.
+ * Optimized for maximum stability to prevent the white screen error.
+ * Features a high-end 3D Dark Box Logo with a stylized 'A' and Pink Dot.
  */
 export default function Splash() {
   const router = useRouter();
   const { user, isUserLoading } = useUser();
   const [mounted, setMounted] = useState(false);
 
-  // Prevent hydration mismatch (White screen fix)
+  // Critical fix for hydration mismatch and white screen
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -22,7 +23,7 @@ export default function Splash() {
   useEffect(() => {
     if (!mounted || isUserLoading) return;
 
-    // Wait for 3.5 seconds then redirect based on login status
+    // Show the premium splash for 3.5 seconds before navigating
     const timer = setTimeout(() => {
       if (user) {
         router.replace('/feed');
@@ -34,7 +35,7 @@ export default function Splash() {
     return () => clearTimeout(timer);
   }, [user, isUserLoading, router, mounted]);
 
-  // Return a solid black background until the component is fully mounted
+  // Render nothing until client-side mount to avoid hydration errors
   if (!mounted) {
     return <div className="min-h-screen bg-black" />;
   }
@@ -43,25 +44,25 @@ export default function Splash() {
     <main className="flex min-h-screen flex-col items-center justify-center bg-black overflow-hidden select-none">
       <div className="flex flex-col items-center space-y-12 animate-in fade-in zoom-in-95 duration-1000">
         
-        {/* The 3D Dark Squircle Box */}
+        {/* The 3D Dark Squircle Box (Premium Design) */}
         <div className="relative">
-            {/* Soft Glow behind the box */}
-            <div className="absolute -inset-10 bg-primary/20 rounded-[4.5rem] blur-3xl opacity-30"></div>
+            {/* Soft Ambient Glow */}
+            <div className="absolute -inset-16 bg-primary/20 rounded-[5rem] blur-[80px] opacity-40"></div>
             
-            {/* The Main 3D Box Container as per the user's photo */}
-            <div className="relative w-48 h-48 bg-[#0a0a0a] rounded-[3.8rem] flex items-center justify-center 
-                            shadow-[25px_25px_50px_rgba(0,0,0,0.9),-5px_-5px_20px_rgba(255,255,255,0.02)] 
-                            border-[8px] border-[#161616] overflow-hidden">
+            {/* The Main 3D Box Container */}
+            <div className="relative w-52 h-52 bg-[#0a0a0a] rounded-[4rem] flex items-center justify-center 
+                            shadow-[30px_30px_60px_rgba(0,0,0,1),-10px_-10px_30px_rgba(255,255,255,0.02)] 
+                            border-[10px] border-[#1a1a1a] overflow-hidden">
                 
-                {/* Glossy top-down overlay for 3D depth */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.07] via-transparent to-transparent pointer-events-none"></div>
+                {/* Glossy Reflection Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.08] via-transparent to-transparent pointer-events-none"></div>
 
-                {/* Stylized 'A' with Pink Dot */}
-                <svg viewBox="0 0 100 100" className="w-32 h-28 drop-shadow-[0_12px_20px_rgba(0,0,0,0.6)]">
+                {/* The Stylized 'A' Icon */}
+                <svg viewBox="0 0 100 100" className="w-36 h-32 drop-shadow-[0_15px_25px_rgba(0,0,0,0.7)]">
                     <defs>
-                        <linearGradient id="a-gradient-splash" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <linearGradient id="a-gradient-premium" x1="0%" y1="0%" x2="100%" y2="100%">
                             <stop offset="0%" stopColor="#ff9a9e" /> 
-                            <stop offset="50%" stopColor="#ff3366" /> 
+                            <stop offset="40%" stopColor="#ff3366" /> 
                             <stop offset="100%" stopColor="#9d50bb" />
                         </linearGradient>
                     </defs>
@@ -70,13 +71,13 @@ export default function Splash() {
                     <path 
                         d="M25 75 C 25 30, 40 18, 50 18 C 60 18, 75 30, 75 75 M30 54 L70 54" 
                         fill="none" 
-                        stroke="url(#a-gradient-splash)" 
+                        stroke="url(#a-gradient-premium)" 
                         strokeWidth="11" 
                         strokeLinecap="round" 
                         strokeLinejoin="round"
                     />
                     
-                    {/* The Iconic Pink Dot from photo */}
+                    {/* The Iconic Pink Dot */}
                     <circle 
                       cx="78" 
                       cy="22" 
@@ -91,17 +92,17 @@ export default function Splash() {
         
         {/* Branding Typography */}
         <div className="text-center space-y-4">
-            <h1 className="text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-[#ffd26f] via-[#ff3366] to-white italic">
+            <h1 className="text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-[#ffd26f] via-[#ff3366] to-white italic">
                 A.snap
             </h1>
-            <div className="h-1.5 w-16 bg-primary/40 mx-auto rounded-full animate-pulse"></div>
+            <div className="h-1.5 w-20 bg-primary/40 mx-auto rounded-full animate-pulse"></div>
         </div>
       </div>
       
-      {/* Footer Branding */}
-      <div className="absolute bottom-12 flex flex-col items-center opacity-50">
-          <p className="text-[10px] uppercase tracking-[0.7em] font-bold text-white/40 mb-1">powered by</p>
-          <p className="text-[12px] font-black text-primary italic tracking-tight">ASNAP CORE</p>
+      {/* Premium Footer Branding */}
+      <div className="absolute bottom-12 flex flex-col items-center opacity-40">
+          <p className="text-[11px] uppercase tracking-[0.8em] font-bold text-white/50 mb-1">powered by</p>
+          <p className="text-[13px] font-black text-primary italic tracking-tight">ASNAP CORE</p>
       </div>
     </main>
   );
