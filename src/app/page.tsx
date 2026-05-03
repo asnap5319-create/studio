@@ -6,15 +6,15 @@ import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase';
 
 /**
- * Splash Screen Component
- * Optimized for maximum stability to prevent "White Screen" or hydration errors.
+ * A.snap Splash Screen
+ * Optimized for stability to fix the white screen error.
  */
 export default function Splash() {
   const router = useRouter();
   const { user, isUserLoading } = useUser();
   const [mounted, setMounted] = useState(false);
 
-  // Ensure this ONLY runs on the client to avoid hydration mismatch
+  // Prevent hydration mismatch (White screen fix)
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -22,7 +22,7 @@ export default function Splash() {
   useEffect(() => {
     if (!mounted || isUserLoading) return;
 
-    // Redirect after 3.5 seconds based on login status
+    // Wait for 3.5 seconds then redirect based on login status
     const timer = setTimeout(() => {
       if (user) {
         router.replace('/feed');
@@ -34,7 +34,7 @@ export default function Splash() {
     return () => clearTimeout(timer);
   }, [user, isUserLoading, router, mounted]);
 
-  // Return a solid black background until the component is fully mounted on the client
+  // Return a solid black background until the component is fully mounted
   if (!mounted) {
     return <div className="min-h-screen bg-black" />;
   }
@@ -43,12 +43,12 @@ export default function Splash() {
     <main className="flex min-h-screen flex-col items-center justify-center bg-black overflow-hidden select-none">
       <div className="flex flex-col items-center space-y-12 animate-in fade-in zoom-in-95 duration-1000">
         
-        {/* The 3D Dark Squircle Frame from your photo */}
+        {/* The 3D Dark Squircle Box */}
         <div className="relative">
             {/* Soft Glow behind the box */}
             <div className="absolute -inset-10 bg-primary/20 rounded-[4.5rem] blur-3xl opacity-30"></div>
             
-            {/* The Main 3D Box Container */}
+            {/* The Main 3D Box Container as per the user's photo */}
             <div className="relative w-48 h-48 bg-[#0a0a0a] rounded-[3.8rem] flex items-center justify-center 
                             shadow-[25px_25px_50px_rgba(0,0,0,0.9),-5px_-5px_20px_rgba(255,255,255,0.02)] 
                             border-[8px] border-[#161616] overflow-hidden">
@@ -56,7 +56,7 @@ export default function Splash() {
                 {/* Glossy top-down overlay for 3D depth */}
                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.07] via-transparent to-transparent pointer-events-none"></div>
 
-                {/* Stylized 'A' with Pink Dot exactly as per photo */}
+                {/* Stylized 'A' with Pink Dot */}
                 <svg viewBox="0 0 100 100" className="w-32 h-28 drop-shadow-[0_12px_20px_rgba(0,0,0,0.6)]">
                     <defs>
                         <linearGradient id="a-gradient-splash" x1="0%" y1="0%" x2="100%" y2="100%">
