@@ -5,6 +5,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase';
 
+/**
+ * Splash Screen Component
+ * Designed to show the 3D A.snap logo and handle initial navigation.
+ */
 export default function Splash() {
   const router = useRouter();
   const { user, isUserLoading } = useUser();
@@ -17,81 +21,84 @@ export default function Splash() {
   useEffect(() => {
     if (!mounted || isUserLoading) return;
 
+    // Give the splash screen 3 seconds to shine
     const timer = setTimeout(() => {
       if (user) {
         router.push('/feed');
       } else {
         router.push('/login');
       }
-    }, 3500);
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, [user, isUserLoading, router, mounted]);
 
+  // Prevent hydration mismatch
   if (!mounted) return <div className="min-h-screen bg-black" />;
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-black overflow-hidden select-none">
-      <div className="flex flex-col items-center animate-in fade-in zoom-in duration-1000">
+      <div className="flex flex-col items-center space-y-12 transition-all duration-1000 animate-in fade-in zoom-in-95">
         
-        {/* The 3D Dark Squircle Frame (Exact design from photo) */}
+        {/* The 3D Dark Squircle Frame - Exact design from user photo */}
         <div className="relative">
-            {/* Glow for depth */}
-            <div className="absolute -inset-10 bg-primary/10 rounded-[4rem] blur-3xl opacity-30"></div>
+            {/* Soft Glow behind the box */}
+            <div className="absolute -inset-8 bg-primary/20 rounded-[4rem] blur-3xl opacity-20"></div>
             
-            {/* The Main 3D Box */}
-            <div className="relative w-48 h-48 bg-[#0a0a0a] rounded-[3.5rem] flex items-center justify-center 
-                            shadow-[inset_0_4px_12px_rgba(255,255,255,0.05),inset_0_-12px_24px_rgba(0,0,0,0.9),25px_25px_50px_rgba(0,0,0,0.7),-4px_-4px_20px_rgba(255,255,255,0.01)] 
-                            border-[8px] border-[#161616] overflow-hidden group">
+            {/* The Main 3D Box Container */}
+            <div className="relative w-44 h-44 bg-[#0d0d0d] rounded-[3.5rem] flex items-center justify-center 
+                            shadow-[20px_20px_40px_rgba(0,0,0,0.8),-5px_-5px_20px_rgba(255,255,255,0.02)] 
+                            border-[6px] border-[#1a1a1a] overflow-hidden group">
                 
-                {/* Top glossy highlight */}
-                <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/[0.03] to-transparent pointer-events-none"></div>
+                {/* Glossy top-down overlay for 3D depth */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none"></div>
 
-                {/* Stylized 'A' with Pink Dot - EXACT RIBBON DESIGN */}
-                <svg viewBox="0 0 100 100" className="w-32 h-28 drop-shadow-[0_0_20px_rgba(255,51,102,0.5)]">
+                {/* Stylized 'A' with Pink Dot - Precise Ribbon Loop Design */}
+                <svg viewBox="0 0 100 100" className="w-28 h-24 drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)]">
                     <defs>
-                        <linearGradient id="a-gradient-final" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#ffd26f" /> 
-                            <stop offset="40%" stopColor="#ff3366" /> 
+                        <linearGradient id="a-gradient-splash" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#ff9a9e" /> 
+                            <stop offset="50%" stopColor="#ff3366" /> 
                             <stop offset="100%" stopColor="#9d50bb" />
                         </linearGradient>
                     </defs>
                     
+                    {/* The Ribbon Loop 'A' */}
                     <path 
-                        d="M25 75 C 25 35, 45 18, 50 18 C 55 18, 75 35, 75 75 M30 55 L70 55" 
+                        d="M25 75 C 25 30, 40 18, 50 18 C 60 18, 75 30, 75 75 M30 54 L70 54" 
                         fill="none" 
-                        stroke="url(#a-gradient-final)" 
+                        stroke="url(#a-gradient-splash)" 
                         strokeWidth="11" 
                         strokeLinecap="round" 
                         strokeLinejoin="round"
                     />
                     
-                    {/* The Famous Pink Dot */}
+                    {/* The Iconic Pink Dot from photo */}
                     <circle 
                       cx="78" 
-                      cy="24" 
-                      r="7.5" 
+                      cy="22" 
+                      r="8" 
                       fill="#ff3366" 
                       className="animate-pulse"
-                      style={{ filter: 'drop-shadow(0 0 8px #ff3366)' }}
+                      style={{ filter: 'drop-shadow(0 0 12px #ff3366)' }}
                     />
                 </svg>
             </div>
         </div>
         
-        {/* Branding Text */}
-        <div className="mt-12 text-center">
+        {/* Branding Typography */}
+        <div className="text-center space-y-3">
             <h1 className="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-[#ffd26f] via-[#ff3366] to-white italic">
                 A.snap
             </h1>
-            <div className="mt-4 h-1.5 w-14 bg-gradient-to-r from-[#ff3366] to-[#9d50bb] mx-auto rounded-full opacity-40 animate-pulse"></div>
+            <div className="h-1 w-12 bg-primary/40 mx-auto rounded-full animate-pulse"></div>
         </div>
       </div>
       
-      {/* Premium Footer */}
-      <div className="absolute bottom-12 flex flex-col items-center opacity-30">
-          <p className="text-[10px] uppercase tracking-[0.5em] font-bold text-white/70">developed by</p>
-          <p className="text-xs font-black text-[#ff3366] italic tracking-tight">ASNAP TEAM</p>
+      {/* Footer Branding */}
+      <div className="absolute bottom-10 flex flex-col items-center opacity-40">
+          <p className="text-[9px] uppercase tracking-[0.6em] font-bold text-white/50 mb-1">powered by</p>
+          <p className="text-[11px] font-black text-primary italic tracking-tight">ASNAP CORE</p>
       </div>
     </main>
   );
