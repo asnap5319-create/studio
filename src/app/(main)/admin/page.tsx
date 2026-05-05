@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, collectionGroup, query, orderBy, deleteDoc, doc, limit } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Trash2, Users, FileVideo, ArrowLeft, Search, ShieldCheck, Database, RefreshCw } from 'lucide-react';
+import { ShieldAlert, Trash2, Users, FileVideo, ArrowLeft, Search, ShieldCheck, Database, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -23,6 +22,7 @@ export default function AdminPage() {
     const { toast } = useToast();
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('');
+    const [isActionLoading, setIsActionLoading] = useState<string | null>(null);
 
     // Strict admin check
     const isAdmin = useMemo(() => {
@@ -45,25 +45,37 @@ export default function AdminPage() {
     const { data: users, isLoading: isUsersLoading, error: usersError } = useCollection<UserProfile>(usersQuery);
     const { data: posts, isLoading: isPostsLoading, error: postsError } = useCollection<Post>(postsQuery);
 
-    const handleDeleteUser = async (userId: string) => {
-        if (!firestore || !confirm("Are you sure? This will delete the USER PROFILE document. Sub-collections like posts will remain in database but hidden from profile.")) return;
+    const handleDeleteUser = async (userId: string, username: string) => {
+        if (!firestore) return;
+        const confirmText = `क्या आप वाकई "${username}" की आईडी डिलीट करना चाहते हैं? यह वापस नहीं आएगी।`;
+        if (!confirm(confirmText)) return;
+
+        setIsActionLoading(userId);
         try {
             await deleteDoc(doc(firestore, 'users', userId));
-            toast({ title: "User Profile Deleted", description: "The user's main profile has been removed." });
-        } catch (e) {
-            toast({ variant: 'destructive', title: "Delete Failed", description: "Permission denied or network error." });
+            toast({ title: "सफलता", description: `यूजर "${username}" की आईडी डिलीट कर दी गई है।` });
+        } catch (e: any) {
+            console.error(e);
+            toast({ variant: 'destructive', title: "डिलीट फेल", description: "अनुमति नहीं है या नेटवर्क एरर।" });
+        } finally {
+            setIsActionLoading(null);
         }
     };
 
     const handleDeletePost = async (post: Post) => {
-        if (!firestore || !confirm("Delete this video permanently?")) return;
+        if (!firestore) return;
+        if (!confirm("इस वीडियो को हमेशा के लिए डिलीट करें?")) return;
+
+        setIsActionLoading(post.id);
         try {
             // Path: /users/{userId}/posts/{postId}
             await deleteDoc(doc(firestore, 'users', post.userId, 'posts', post.id));
-            toast({ title: "Video Deleted", description: "Post removed successfully from database." });
-        } catch (e) {
+            toast({ title: "सफलता", description: "वीडियो डिलीट हो गया है।" });
+        } catch (e: any) {
             console.error(e);
-            toast({ variant: 'destructive', title: "Error", description: "Could not delete this post." });
+            toast({ variant: 'destructive', title: "Error", description: "वीडियो डिलीट नहीं हो सका।" });
+        } finally {
+            setIsActionLoading(null);
         }
     };
 
@@ -74,7 +86,7 @@ export default function AdminPage() {
     if (isUserLoading) return (
         <div className="flex h-screen items-center justify-center bg-background text-white">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary mr-3"></div>
-            <span className="font-bold">Verifying Admin Permissions...</span>
+            <span className="font-bold font-hindi">परमिशन चेक हो रही है...</span>
         </div>
     );
 
@@ -82,9 +94,9 @@ export default function AdminPage() {
         return (
             <div className="flex flex-col items-center justify-center h-screen p-6 text-center bg-background text-white">
                 <ShieldAlert className="w-20 h-20 text-destructive mb-4" />
-                <h1 className="text-3xl font-black mb-2 italic">ACCESS DENIED</h1>
-                <p className="text-muted-foreground mb-6 max-w-xs">This high-security panel is restricted to the owner: <span className="text-primary font-bold">{ADMIN_EMAIL}</span></p>
-                <Button onClick={() => router.push('/feed')} className="px-10 py-6 text-lg font-bold">Exit Panel</Button>
+                <h1 className="text-3xl font-black mb-2 italic uppercase">ACCESS DENIED</h1>
+                <p className="text-muted-foreground mb-6 max-w-xs font-hindi">यह पैनल सिर्फ एडमिन <span className="text-primary font-bold">{ADMIN_EMAIL}</span> के लिए है।</p>
+                <Button onClick={() => router.push('/feed')} className="px-10 py-6 text-lg font-bold">बाहर निकलें</Button>
             </div>
         );
     }
@@ -110,15 +122,15 @@ export default function AdminPage() {
                     </Button>
                     <div>
                         <h1 className="text-2xl font-black flex items-center gap-2 italic text-primary">
-                            <ShieldCheck className="text-primary animate-pulse" /> ADMIN CONTROL
+                            <ShieldCheck className="text-primary animate-pulse" /> A.SNAP MASTER
                         </h1>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Full Database Access</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Database Control Center</p>
                     </div>
                 </div>
                 <div className="relative w-full md:w-72">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input 
-                        placeholder="Search users or captions..." 
+                        placeholder="Search users or videos..." 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10 bg-secondary/50 border-white/10 rounded-xl focus:ring-primary"
@@ -129,12 +141,12 @@ export default function AdminPage() {
             {hasIndexError && (
                 <div className="mb-8 p-6 bg-primary/10 rounded-2xl border border-primary/20 text-center">
                     <Database className="h-10 w-10 text-primary mx-auto mb-3" />
-                    <h3 className="font-bold text-lg mb-1">Index Setup Required</h3>
-                    <p className="text-sm text-muted-foreground mb-4 px-4">
-                        Google needs a search index to list all users and posts here. Please check the browser console for the link to create it.
+                    <h3 className="font-bold text-lg mb-1 font-hindi">इंडेक्स की ज़रूरत है</h3>
+                    <p className="text-sm text-muted-foreground mb-4 px-4 font-hindi">
+                        डेटाबेस से लिस्ट निकालने के लिए Google को सर्च इंडेक्स चाहिए। कंसोल में दिए लिंक पर क्लिक करें।
                     </p>
                     <Button variant="outline" onClick={handleRefresh} className="gap-2">
-                        <RefreshCw className="h-4 w-4" /> Refresh after creating
+                        <RefreshCw className="h-4 w-4" /> बनाने के बाद रिफ्रेश करें
                     </Button>
                 </div>
             )}
@@ -169,16 +181,17 @@ export default function AdminPage() {
                                 <Button 
                                     variant="destructive" 
                                     size="icon" 
-                                    className="rounded-xl h-11 w-11 shadow-lg shadow-destructive/20"
-                                    onClick={() => handleDeleteUser(u.id)}
+                                    disabled={isActionLoading === u.id}
+                                    className="rounded-xl h-11 w-11 shadow-lg shadow-destructive/20 hover:scale-110 transition-transform"
+                                    onClick={() => handleDeleteUser(u.id, u.username || 'User')}
                                 >
-                                    <Trash2 className="h-5 w-5" />
+                                    {isActionLoading === u.id ? <RefreshCw className="animate-spin h-5 w-5" /> : <Trash2 className="h-5 w-5" />}
                                 </Button>
                             </div>
                         )) : (
                             <div className="text-center py-20 opacity-30">
                                 <Users className="h-16 w-16 mx-auto mb-2" />
-                                <p className="font-bold">No Users Found</p>
+                                <p className="font-bold font-hindi">कोई यूजर नहीं मिला</p>
                             </div>
                         )}
                     </div>
@@ -215,22 +228,31 @@ export default function AdminPage() {
                                     <Button 
                                         variant="destructive" 
                                         size="icon" 
+                                        disabled={isActionLoading === p.id}
                                         className="shrink-0 rounded-xl h-10 w-10 shadow-lg shadow-destructive/20 hover:scale-110 transition-transform" 
                                         onClick={() => handleDeletePost(p)}
                                     >
-                                        <Trash2 className="h-5 w-5" />
+                                        {isActionLoading === p.id ? <RefreshCw className="animate-spin h-5 w-5" /> : <Trash2 className="h-5 w-5" />}
                                     </Button>
                                 </div>
                             </div>
                         )) : (
                             <div className="col-span-full text-center py-20 opacity-30">
                                 <FileVideo className="h-16 w-16 mx-auto mb-2" />
-                                <p className="font-bold">No Videos Available</p>
+                                <p className="font-bold font-hindi">कोई वीडियो नहीं मिली</p>
                             </div>
                         )}
                     </div>
                 </TabsContent>
             </Tabs>
+
+            <footer className="mt-12 p-6 bg-secondary/20 rounded-2xl border border-white/5 text-center">
+                <AlertTriangle className="h-6 w-6 text-primary mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground font-hindi">
+                    सावधान! यहाँ से किया गया डिलीट "Permanent" होता है। <br/>
+                    ID डिलीट करने पर सिर्फ प्रोफाइल हटेगी, वीडियो अलग से डिलीट करने पड़ेंगे।
+                </p>
+            </footer>
         </div>
     );
 }
