@@ -95,7 +95,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
             profileImageUrl = data.secure_url;
             toast({ title: "Photo uploaded!" });
         } else {
-            // Fixed: Use toast instead of throwing error to prevent app crash
+            // Display friendly toast instead of crashing with throw new Error
             toast({ 
               variant: 'destructive', 
               title: 'Upload Failed ❌', 
