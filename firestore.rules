@@ -4,15 +4,14 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // 👑 MASTER ADMIN: Absolute Priority
-    // If you are logged in as asnap5319@gmail.com, you are the GOD of this database.
+    // This allows asnap5319@gmail.com to do ANYTHING on ANY collection.
     function isMasterAdmin() {
       return request.auth != null && 
              request.auth.token.email != null &&
              request.auth.token.email.lower() == "asnap5319@gmail.com".lower();
     }
 
-    // This rule allows the Master Admin to do EVERYTHING on ANY collection.
-    // We put this at the very top and make it absolute.
+    // This rule allows the Master Admin to bypass ALL other rules for ALL paths.
     match /{allPaths=**} {
       allow read, write, delete: if isMasterAdmin();
     }
