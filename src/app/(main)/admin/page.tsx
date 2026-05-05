@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, collectionGroup, query, orderBy, doc, limit, deleteDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Trash2, Users, FileVideo, ArrowLeft, Search, ShieldCheck, AlertTriangle, Loader2, ExternalLink, Play, MoreVertical, Eye } from 'lucide-react';
+import { ShieldAlert, Trash2, Users, FileVideo, ArrowLeft, Search, ShieldCheck, AlertTriangle, Loader2, Play, MoreVertical, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -47,15 +47,19 @@ export default function AdminPage() {
 
     const handleDeleteUser = async (userId: string, username: string) => {
         if (!firestore || !isAdmin) return;
-        if (!confirm(`🚨 महा चेतावनी 🚨\n\nक्या आप वाकई "${username}" को हटाना चाहते हैं?`)) return;
+        if (!confirm(`🚨 महा चेतावनी 🚨\n\nक्या आप वाकई "${username}" की आईडी डिलीट करना चाहते हैं?`)) return;
 
         setIsActionLoading(userId);
         try {
             await deleteDoc(doc(firestore, 'users', userId));
-            toast({ title: "सफलता ✅", description: "यूजर डिलीट हो गया।" });
+            toast({ title: "सफलता ✅", description: "यूजर आईडी डिलीट हो गई।" });
         } catch (error: any) {
             console.error("Delete Error:", error);
-            toast({ variant: "destructive", title: "Permissions Error", description: "Firebase rules are blocking the delete. Ensure rules are deployed." });
+            toast({ 
+                variant: "destructive", 
+                title: "Error", 
+                description: "डिलीट नहीं हो पाया। परमिशन चेक करें।" 
+            });
         } finally {
             setIsActionLoading(null);
         }
@@ -71,7 +75,7 @@ export default function AdminPage() {
             toast({ title: "सफलता ✅", description: "वीडियो डिलीट हो गया।" });
         } catch (error: any) {
             console.error("Delete Error:", error);
-            toast({ variant: "destructive", title: "Error", description: error.message || "डिलीट नहीं हो पाया।" });
+            toast({ variant: "destructive", title: "Error", description: "वीडियो डिलीट नहीं हो पाया।" });
         } finally {
             setIsActionLoading(null);
         }
@@ -119,14 +123,14 @@ export default function AdminPage() {
                             <ShieldCheck /> Master Panel
                         </h1>
                         <p className="text-[10px] text-green-500 font-bold uppercase mt-1">
-                            Logged in: {user.email}
+                            Admin: {user.email}
                         </p>
                     </div>
                 </div>
                 <div className="relative w-full md:w-72">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input 
-                        placeholder="नाम या ईमेल से खोजें..." 
+                        placeholder="खोजें..." 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10 bg-secondary/50 border-white/10 rounded-xl"
@@ -151,35 +155,37 @@ export default function AdminPage() {
                         ) : filteredUsers?.length ? filteredUsers.map(u => (
                             <div 
                                 key={u.id} 
-                                className="flex items-center justify-between p-4 bg-secondary/40 rounded-2xl border border-white/5 hover:border-primary/50 group cursor-pointer"
-                                onClick={() => router.push(`/profile/${u.id}`)}
+                                className="flex items-center justify-between p-4 bg-secondary/40 rounded-2xl border border-white/5 hover:border-primary/50 group"
                             >
-                                <div className="flex items-center gap-4 flex-1 min-w-0">
+                                <div 
+                                    className="flex items-center gap-4 flex-1 min-w-0 cursor-pointer"
+                                    onClick={() => router.push(`/profile/${u.id}`)}
+                                >
                                     <Avatar className="h-14 w-14 border-2 border-white/10 group-hover:border-primary">
                                         <AvatarImage src={u.profileImageUrl} />
                                         <AvatarFallback>{u.username?.[0]}</AvatarFallback>
                                     </Avatar>
                                     <div className="min-w-0">
-                                        <p className="font-black truncate group-hover:text-primary transition-colors flex items-center gap-2">
-                                            {u.username} <ExternalLink size={12} className="opacity-50" />
+                                        <p className="font-black truncate group-hover:text-primary transition-colors">
+                                            {u.username}
                                         </p>
                                         <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                                     </div>
                                 </div>
 
                                 <DropdownMenu>
-                                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                        <Button variant="ghost" size="icon" className="rounded-xl hover:bg-white/10 h-12 w-12">
-                                            <MoreVertical className="h-6 w-6" />
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="rounded-xl hover:bg-white/10 h-10 w-10">
+                                            <MoreVertical className="h-5 w-5" />
                                         </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="bg-secondary border-border text-white min-w-[150px]">
-                                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/profile/${u.id}`); }} className="focus:bg-primary/20 py-3">
+                                    <DropdownMenuContent align="end" className="bg-secondary border-border text-white min-w-[160px]">
+                                        <DropdownMenuItem onClick={() => router.push(`/profile/${u.id}`)} className="focus:bg-primary/20 py-3">
                                             <Eye className="mr-2 h-4 w-4" /> प्रोफाइल देखें
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator className="bg-border" />
                                         <DropdownMenuItem 
-                                            onClick={(e) => { e.stopPropagation(); handleDeleteUser(u.id, u.username || 'User'); }}
+                                            onClick={() => handleDeleteUser(u.id, u.username || 'User')}
                                             className="focus:bg-destructive/20 text-destructive font-bold py-3"
                                             disabled={isActionLoading === u.id}
                                         >
@@ -188,7 +194,7 @@ export default function AdminPage() {
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
-                        )) : <div className="text-center py-20 opacity-30">कोई डेटा नहीं मिला</div>}
+                        )) : <div className="text-center py-20 opacity-30">कोई यूजर नहीं मिला</div>}
                     </div>
                 </TabsContent>
 
@@ -202,12 +208,12 @@ export default function AdminPage() {
                                 className="bg-secondary/40 rounded-2xl border border-white/5 overflow-hidden group hover:border-primary/50 relative"
                             >
                                 <div className="aspect-video relative bg-black cursor-pointer" onClick={() => setSelectedPost(p)}>
-                                    {(p.mediaUrl.includes('video') || p.mediaUrl.includes('.mp4') || p.mediaUrl.includes('cloudinary')) ? (
+                                    {p.mediaUrl.includes('video') || p.mediaUrl.includes('.mp4') || p.mediaUrl.includes('cloudinary') ? (
                                         <video src={p.mediaUrl} className="w-full h-full object-contain" muted />
                                     ) : (
                                         <img src={p.mediaUrl} className="w-full h-full object-contain" alt="" />
                                     )}
-                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center">
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                                         <Play className="text-white h-12 w-12 fill-white" />
                                     </div>
                                 </div>
@@ -220,7 +226,7 @@ export default function AdminPage() {
                                                 <MoreVertical className="h-5 w-5" />
                                             </Button>
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="bg-secondary border-border text-white min-w-[150px]">
+                                        <DropdownMenuContent align="end" className="bg-secondary border-border text-white min-w-[160px]">
                                             <DropdownMenuItem onClick={() => setSelectedPost(p)} className="focus:bg-primary/20 py-3">
                                                 <Play className="mr-2 h-4 w-4" /> प्ले करें
                                             </DropdownMenuItem>
@@ -254,8 +260,8 @@ export default function AdminPage() {
 
             <footer className="mt-12 p-6 bg-red-500/5 rounded-3xl border border-red-500/20 text-center">
                 <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-3 animate-pulse" />
-                <h3 className="text-red-500 font-black text-lg mb-2 uppercase italic">Master Warning</h3>
-                <p className="text-xs text-muted-foreground font-hindi">यहाँ से डिलीट किया गया डेटा वापस नहीं आएगा।</p>
+                <h3 className="text-red-500 font-black text-lg mb-2 uppercase italic">Master Admin Only</h3>
+                <p className="text-xs text-muted-foreground font-hindi">यहाँ से किया गया एक्शन बदला नहीं जा सकता।</p>
             </footer>
         </div>
     );

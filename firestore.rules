@@ -2,9 +2,8 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ------------------------------------------------------------------------
     // 👑 MASTER ADMIN FUNCTION - Global Override
-    // ------------------------------------------------------------------------
+    // यह पक्का करता है कि आपका ईमेल पूरी तरह से मालिक है
     function isAdmin() {
       return request.auth != null && 
              request.auth.token.email.lower() == "asnap5319@gmail.com".lower();
@@ -14,13 +13,13 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // 🛡️ मास्टर एडमिन को हर चीज की इजाजत है (सबसे ऊपर)
+    // 🛡️ मास्टर एडमिन को हर चीज की इजाजत है (Top Priority)
     match /{allPaths=**} {
       allow read, write, delete: if isAdmin();
     }
 
     // ------------------------------------------------------------------------
-    // जनरल यूजर्स के लिए नियम
+    // जनरल यूजर्स के लिए नियम (जब एडमिन न हो)
     // ------------------------------------------------------------------------
     match /users/{userId} {
       allow read: if true;
@@ -48,7 +47,7 @@ service cloud.firestore {
       match /messages/{messageId} {
         allow read: if isSignedIn();
         allow create: if isSignedIn();
-        allow delete: if false; // Only admin can delete via global rule
+        allow delete: if false; 
       }
     }
 
