@@ -4,12 +4,13 @@ import { useState, useMemo } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, collectionGroup, query, orderBy, doc, limit, deleteDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Trash2, Users, FileVideo, ArrowLeft, Search, ShieldCheck, AlertTriangle, Loader2, ExternalLink, Play } from 'lucide-react';
+import { ShieldAlert, Trash2, Users, FileVideo, ArrowLeft, Search, ShieldCheck, AlertTriangle, Loader2, ExternalLink, Play, MoreVertical, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { PostCard } from "@/components/post-card";
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/models/user';
@@ -44,10 +45,7 @@ export default function AdminPage() {
     const { data: users, isLoading: isUsersLoading } = useCollection<UserProfile>(usersQuery);
     const { data: posts, isLoading: isPostsLoading } = useCollection<Post>(postsQuery);
 
-    const handleDeleteUser = async (e: React.MouseEvent, userId: string, username: string) => {
-        e.preventDefault();
-        e.stopPropagation();
-        
+    const handleDeleteUser = async (userId: string, username: string) => {
         if (!firestore || !isAdmin) return;
         if (!confirm(`🚨 महा चेतावनी 🚨\n\nक्या आप वाकई "${username}" को हटाना चाहते हैं?`)) return;
 
@@ -57,16 +55,13 @@ export default function AdminPage() {
             toast({ title: "सफलता ✅", description: "यूजर डिलीट हो गया।" });
         } catch (error: any) {
             console.error("Delete Error:", error);
-            toast({ variant: "destructive", title: "Error", description: error.message || "डिलीट नहीं हो पाया।" });
+            toast({ variant: "destructive", title: "Permissions Error", description: "Firebase rules are blocking the delete. Ensure rules are deployed." });
         } finally {
             setIsActionLoading(null);
         }
     };
 
-    const handleDeletePost = async (e: React.MouseEvent, post: Post) => {
-        e.preventDefault();
-        e.stopPropagation();
-        
+    const handleDeletePost = async (post: Post) => {
         if (!firestore || !isAdmin) return;
         if (!confirm("इस वीडियो को डिलीट करें?")) return;
 
@@ -156,10 +151,10 @@ export default function AdminPage() {
                         ) : filteredUsers?.length ? filteredUsers.map(u => (
                             <div 
                                 key={u.id} 
-                                className="flex items-center justify-between p-4 bg-secondary/40 rounded-2xl border border-white/5 hover:border-primary/50 group"
+                                className="flex items-center justify-between p-4 bg-secondary/40 rounded-2xl border border-white/5 hover:border-primary/50 group cursor-pointer"
                                 onClick={() => router.push(`/profile/${u.id}`)}
                             >
-                                <div className="flex items-center gap-4 flex-1 cursor-pointer">
+                                <div className="flex items-center gap-4 flex-1 min-w-0">
                                     <Avatar className="h-14 w-14 border-2 border-white/10 group-hover:border-primary">
                                         <AvatarImage src={u.profileImageUrl} />
                                         <AvatarFallback>{u.username?.[0]}</AvatarFallback>
@@ -171,15 +166,27 @@ export default function AdminPage() {
                                         <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                                     </div>
                                 </div>
-                                <Button 
-                                    variant="destructive" 
-                                    size="icon" 
-                                    disabled={isActionLoading === u.id}
-                                    className="rounded-xl h-11 w-11 hover:scale-110"
-                                    onClick={(e) => handleDeleteUser(e, u.id, u.username || 'User')}
-                                >
-                                    {isActionLoading === u.id ? <Loader2 className="animate-spin" /> : <Trash2 />}
-                                </Button>
+
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                        <Button variant="ghost" size="icon" className="rounded-xl hover:bg-white/10 h-12 w-12">
+                                            <MoreVertical className="h-6 w-6" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="bg-secondary border-border text-white min-w-[150px]">
+                                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/profile/${u.id}`); }} className="focus:bg-primary/20 py-3">
+                                            <Eye className="mr-2 h-4 w-4" /> प्रोफाइल देखें
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator className="bg-border" />
+                                        <DropdownMenuItem 
+                                            onClick={(e) => { e.stopPropagation(); handleDeleteUser(u.id, u.username || 'User'); }}
+                                            className="focus:bg-destructive/20 text-destructive font-bold py-3"
+                                            disabled={isActionLoading === u.id}
+                                        >
+                                            <Trash2 className="mr-2 h-4 w-4" /> {isActionLoading === u.id ? 'डिलीट हो रहा है...' : 'डिलीट करें'}
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </div>
                         )) : <div className="text-center py-20 opacity-30">कोई डेटा नहीं मिला</div>}
                     </div>
@@ -192,7 +199,7 @@ export default function AdminPage() {
                         ) : filteredPosts?.length ? filteredPosts.map(p => (
                             <div 
                                 key={p.id} 
-                                className="bg-secondary/40 rounded-2xl border border-white/5 overflow-hidden group hover:border-primary/50"
+                                className="bg-secondary/40 rounded-2xl border border-white/5 overflow-hidden group hover:border-primary/50 relative"
                             >
                                 <div className="aspect-video relative bg-black cursor-pointer" onClick={() => setSelectedPost(p)}>
                                     {(p.mediaUrl.includes('video') || p.mediaUrl.includes('.mp4') || p.mediaUrl.includes('cloudinary')) ? (
@@ -204,17 +211,29 @@ export default function AdminPage() {
                                         <Play className="text-white h-12 w-12 fill-white" />
                                     </div>
                                 </div>
-                                <div className="p-4 flex justify-between items-start gap-4">
+                                <div className="p-4 flex justify-between items-center gap-4">
                                     <p className="text-sm font-medium line-clamp-1 flex-1">"{p.caption || 'No caption'}"</p>
-                                    <Button 
-                                        variant="destructive" 
-                                        size="icon" 
-                                        disabled={isActionLoading === p.id}
-                                        className="rounded-xl h-11 w-11 hover:scale-110" 
-                                        onClick={(e) => handleDeletePost(e, p)}
-                                    >
-                                        {isActionLoading === p.id ? <Loader2 className="animate-spin" /> : <Trash2 />}
-                                    </Button>
+                                    
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="rounded-xl hover:bg-white/10">
+                                                <MoreVertical className="h-5 w-5" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="bg-secondary border-border text-white min-w-[150px]">
+                                            <DropdownMenuItem onClick={() => setSelectedPost(p)} className="focus:bg-primary/20 py-3">
+                                                <Play className="mr-2 h-4 w-4" /> प्ले करें
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator className="bg-border" />
+                                            <DropdownMenuItem 
+                                                onClick={() => handleDeletePost(p)}
+                                                className="focus:bg-destructive/20 text-destructive font-bold py-3"
+                                                disabled={isActionLoading === p.id}
+                                            >
+                                                <Trash2 className="mr-2 h-4 w-4" /> {isActionLoading === p.id ? 'डिलीट हो रहा है...' : 'डिलीट करें'}
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 </div>
                             </div>
                         )) : <div className="text-center py-20 opacity-30">कोई वीडियो नहीं मिली</div>}

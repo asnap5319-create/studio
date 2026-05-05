@@ -3,7 +3,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ------------------------------------------------------------------------
-    // 👑 MASTER ADMIN FUNCTION - God Mode for your email
+    // 👑 MASTER ADMIN FUNCTION - Global Override
     // ------------------------------------------------------------------------
     function isAdmin() {
       return request.auth != null && 
@@ -14,9 +14,7 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // ------------------------------------------------------------------------
-    // ⚔️ GLOBAL OVERRIDE (एडमिन के लिए सब कुछ खुला - यह सबसे ऊपर है)
-    // ------------------------------------------------------------------------
+    // 🛡️ मास्टर एडमिन को हर चीज की इजाजत है (सबसे ऊपर)
     match /{allPaths=**} {
       allow read, write, delete: if isAdmin();
     }
