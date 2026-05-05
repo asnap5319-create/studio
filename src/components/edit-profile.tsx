@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, ChangeEvent, useRef } from 'react';
@@ -18,6 +19,8 @@ import { useFirebase, useUser } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/models/user';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface EditProfileSheetProps {
   open: boolean;
@@ -41,11 +44,12 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (userProfile) {
+    if (userProfile && open) {
       setName(userProfile.name);
       setUsername(userProfile.username);
       setBio(userProfile.bio || '');
       setImagePreviewUrl(userProfile.profileImageUrl);
+      setImageFile(null); // Reset file selection when opening
     }
   }, [userProfile, open]);
   
@@ -60,26 +64,17 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
 
   const handleSaveChanges = async () => {
     if (!user || !firestore) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'You must be logged in to edit your profile.',
-      });
+      toast({ variant: 'destructive', title: 'Error', description: 'Not logged in.' });
       return;
     }
     
     if (!username.trim()) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Username is required.' });
+        toast({ variant: 'destructive', title: 'Error', description: 'Username needed.' });
         return;
     }
 
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-
-    if (!cloudName || !uploadPreset) {
-      toast({ title: "Configuration Error", description: "Cloudinary is not configured.", variant: "destructive" });
-      return;
-    }
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "demo";
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "unsigned_preset";
 
     setIsSaving(true);
 
@@ -87,6 +82,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       let profileImageUrl = userProfile?.profileImageUrl;
 
       if (imageFile) {
+        toast({ title: "Uploading photo...", description: "Please wait." });
         const formData = new FormData();
         formData.append('file', imageFile);
         formData.append('upload_preset', uploadPreset);
@@ -99,6 +95,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         
         if (data.secure_url) {
             profileImageUrl = data.secure_url;
+            toast({ title: "Photo uploaded!" });
         } else {
             throw new Error(data.error?.message || 'Cloudinary upload failed.');
         }
@@ -108,25 +105,32 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       const dataToUpdate = {
         name: name.trim(),
         username: username.trim(),
-        username_lowercase: username.trim().toLowerCase(), // Crucial for case-insensitive search
+        username_lowercase: username.trim().toLowerCase(),
         bio: bio.trim(),
         profileImageUrl,
       };
 
-      await setDoc(userDocRef, dataToUpdate, { merge: true });
-
-      toast({
-        title: 'Profile Updated',
-        description: 'Your changes have been saved successfully.',
-      });
-      onOpenChange(false);
+      // Non-blocking write but we handle the close after initiating
+      setDoc(userDocRef, dataToUpdate, { merge: true })
+        .then(() => {
+            toast({ title: 'Profile Updated ✅' });
+            onOpenChange(false);
+        })
+        .catch((err) => {
+            const permissionError = new FirestorePermissionError({
+                path: userDocRef.path,
+                operation: 'update',
+                requestResourceData: dataToUpdate,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        });
 
     } catch (error: any) {
-      console.error('Error updating profile: ', error);
+      console.error('Error updating profile:', error);
       toast({
         variant: 'destructive',
-        title: 'Save Failed',
-        description: error.message || 'Could not update your profile.',
+        title: 'Save Failed ❌',
+        description: error.message || 'Could not update profile.',
       });
     } finally {
       setIsSaving(false);
@@ -135,65 +139,63 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="rounded-t-lg bg-background text-white border-border">
-        <SheetHeader className="text-center">
-          <SheetTitle>Edit Profile</SheetTitle>
+      <SheetContent side="bottom" className="rounded-t-3xl bg-background text-white border-white/10 p-0 overflow-hidden h-[90vh]">
+        <SheetHeader className="p-6 border-b border-white/5">
+          <SheetTitle className="text-center text-xl font-black italic">EDIT PROFILE</SheetTitle>
         </SheetHeader>
-        <div className="py-8 px-4 space-y-6">
+        
+        <div className="p-6 space-y-8 overflow-y-auto h-full pb-32">
           <div className="flex flex-col items-center gap-4">
-            <Avatar className="h-24 w-24">
-              <AvatarImage src={imagePreviewUrl ?? userProfile?.profileImageUrl} />
-              <AvatarFallback>{userProfile?.name?.[0]?.toUpperCase()}</AvatarFallback>
-            </Avatar>
-            
-            <Button 
-                variant="link" 
-                className="text-primary p-0 h-auto" 
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isSaving}
-            >
-                Change profile photo
-            </Button>
+            <div className="relative group" onClick={() => fileInputRef.current?.click()}>
+                <Avatar className="h-32 w-32 border-4 border-primary shadow-[0_0_20px_rgba(var(--primary),0.3)] cursor-pointer">
+                  <AvatarImage src={imagePreviewUrl ?? userProfile?.profileImageUrl} className="object-cover" />
+                  <AvatarFallback className="text-2xl font-black">{userProfile?.name?.[0]}</AvatarFallback>
+                </Avatar>
+                <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-[10px] font-black uppercase">Change</span>
+                </div>
+            </div>
             
             <input 
                 type="file" 
                 className="hidden" 
                 ref={fileInputRef} 
                 onChange={handleFileSelect} 
-                accept="image/png, image/jpeg, image/webp"
+                accept="image/*"
                 disabled={isSaving}
             />
           </div>
-          <div className="space-y-4">
+
+          <div className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} disabled={isSaving} />
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Full Name</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} disabled={isSaving} className="h-12 bg-secondary/50 border-white/10 rounded-xl" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} disabled={isSaving} />
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Username</Label>
+              <Input value={username} onChange={(e) => setUsername(e.target.value)} disabled={isSaving} className="h-12 bg-secondary/50 border-white/10 rounded-xl" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="bio">Bio</Label>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Bio</Label>
               <Textarea 
-                id="bio" 
                 value={bio} 
                 onChange={(e) => setBio(e.target.value)} 
-                placeholder="Write a little bit about yourself..."
-                className="min-h-[100px]"
+                placeholder="Tell us about yourself..."
+                className="min-h-[120px] bg-secondary/50 border-white/10 rounded-xl resize-none"
                 disabled={isSaving}
               />
             </div>
           </div>
         </div>
-        <SheetFooter className="flex-row gap-2">
-          <SheetClose asChild>
-            <Button variant="outline" className="flex-1" disabled={isSaving}>Cancel</Button>
-          </SheetClose>
-          <Button onClick={handleSaveChanges} disabled={isSaving} className="flex-1">
+
+        <div className="absolute bottom-0 left-0 right-0 p-6 bg-background border-t border-white/5 flex gap-4">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} className="flex-1 h-14 rounded-2xl font-black uppercase border border-white/5" disabled={isSaving}>
+            Cancel
+          </Button>
+          <Button onClick={handleSaveChanges} disabled={isSaving} className="flex-1 h-14 rounded-2xl font-black uppercase bg-primary shadow-[0_0_20px_rgba(var(--primary),0.4)]">
             {isSaving ? 'Saving...' : 'Save Changes'}
           </Button>
-        </SheetFooter>
+        </div>
       </SheetContent>
     </Sheet>
   );

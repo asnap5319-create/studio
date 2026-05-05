@@ -3,62 +3,56 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 👑 MASTER ADMIN FUNCTION
-    function isAdmin() {
+    // 👑 MASTER ADMIN: Highest Priority
+    // Is e-mail ko har cheez ki ijazat hai.
+    function isMasterAdmin() {
       return request.auth != null && 
              request.auth.token.email.lower() == "asnap5319@gmail.com".lower();
     }
 
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    // 🛡️ मास्टर एडमिन को हर चीज की इजाजत है (Top Priority)
     match /{allPaths=**} {
-      allow read, write, delete: if isAdmin();
+      allow read, write, delete: if isMasterAdmin();
     }
 
-    // ------------------------------------------------------------------------
-    // जनरल यूजर्स के लिए नियम (जब एडमिन न हो)
-    // ------------------------------------------------------------------------
+    // 🛡️ GENERAL USER RULES (Only if not Master Admin)
     match /users/{userId} {
       allow read: if true;
-      allow create: if isSignedIn();
-      allow update: if request.auth.uid == userId;
-      allow delete: if request.auth.uid == userId;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null && request.auth.uid == userId;
 
       match /posts/{postId} {
         allow read: if true;
-        allow create: if request.auth.uid == userId;
-        allow update: if request.auth.uid == userId || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount', 'likeCount', 'commentCount']));
-        allow delete: if request.auth.uid == userId;
+        allow create: if request.auth != null && request.auth.uid == userId;
+        allow update: if request.auth != null && (request.auth.uid == userId || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount', 'likeCount', 'commentCount']));
+        allow delete: if request.auth != null && request.auth.uid == userId;
       }
       
       match /notifications/{notificationId} {
-        allow read, update, delete: if request.auth.uid == userId;
-        allow create: if isSignedIn();
+        allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null;
       }
     }
 
     match /chats/{chatId} {
-      allow read, update, delete: if isSignedIn() && request.auth.uid in resource.data.participants;
-      allow create: if isSignedIn();
+      allow read, update, delete: if request.auth != null && request.auth.uid in resource.data.participants;
+      allow create: if request.auth != null;
 
       match /messages/{messageId} {
-        allow read: if isSignedIn();
-        allow create: if isSignedIn();
-        allow delete: if false; 
+        allow read: if request.auth != null;
+        allow create: if request.auth != null;
+        allow delete: if request.auth != null && request.auth.uid == resource.data.senderId; 
       }
     }
 
     match /user_followers/{followedUserId}/followers/{followerUserId} {
       allow read: if true;
-      allow write: if isSignedIn() && request.auth.uid == followerUserId;
+      allow write: if request.auth != null && request.auth.uid == followerUserId;
     }
 
     match /user_following/{followerUserId}/following/{followedUserId} {
       allow read: if true;
-      allow write: if isSignedIn() && request.auth.uid == followerUserId;
+      allow write: if request.auth != null && request.auth.uid == followerUserId;
     }
   }
 }

@@ -16,6 +16,8 @@ import { PostCard } from "@/components/post-card";
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/models/user';
 import type { Post } from '@/models/post';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
@@ -51,20 +53,23 @@ export default function AdminPage() {
         if (!confirm(`🚨 महा चेतावनी 🚨\n\nक्या आप वाकई "${username}" की आईडी डिलीट करना चाहते हैं?`)) return;
 
         setIsActionLoading(userId);
-        try {
-            await deleteDoc(doc(firestore, 'users', userId));
-            toast({ title: "सफलता ✅", description: "यूजर आईडी डिलीट हो गई।" });
-        } catch (error: any) {
-            console.error("Delete Error:", error);
-            alert("डिलीट नहीं हो पाया: " + error.message);
-            toast({ 
-                variant: "destructive", 
-                title: "Error", 
-                description: "डिलीट नहीं हो पाया। परमिशन चेक करें।" 
+        const userDocRef = doc(firestore, 'users', userId);
+
+        deleteDoc(userDocRef)
+            .then(() => {
+                toast({ title: "सफलता ✅", description: "यूजर आईडी डिलीट हो गई।" });
+            })
+            .catch((error: any) => {
+                console.error("Delete Error:", error);
+                const permissionError = new FirestorePermissionError({
+                    path: userDocRef.path,
+                    operation: 'delete',
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            })
+            .finally(() => {
+                setIsActionLoading(null);
             });
-        } finally {
-            setIsActionLoading(null);
-        }
     };
 
     const handleDeletePost = async (post: Post) => {
@@ -72,16 +77,23 @@ export default function AdminPage() {
         if (!confirm("इस वीडियो को डिलीट करें?")) return;
 
         setIsActionLoading(post.id);
-        try {
-            await deleteDoc(doc(firestore, 'users', post.userId, 'posts', post.id));
-            toast({ title: "सफलता ✅", description: "वीडियो डिलीट हो गया।" });
-        } catch (error: any) {
-            console.error("Delete Error:", error);
-            alert("डिलीट नहीं हो पाया: " + error.message);
-            toast({ variant: "destructive", title: "Error", description: "वीडियो डिलीट नहीं हो पाया।" });
-        } finally {
-            setIsActionLoading(null);
-        }
+        const postDocRef = doc(firestore, 'users', post.userId, 'posts', post.id);
+
+        deleteDoc(postDocRef)
+            .then(() => {
+                toast({ title: "सफलता ✅", description: "वीडियो डिलीट हो गया।" });
+            })
+            .catch((error: any) => {
+                console.error("Delete Error:", error);
+                const permissionError = new FirestorePermissionError({
+                    path: postDocRef.path,
+                    operation: 'delete',
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            })
+            .finally(() => {
+                setIsActionLoading(null);
+            });
     };
 
     if (isUserLoading) return (
@@ -165,7 +177,7 @@ export default function AdminPage() {
                                     onClick={() => router.push(`/profile/${u.id}`)}
                                 >
                                     <Avatar className="h-14 w-14 border-2 border-white/10 group-hover:border-primary">
-                                        <AvatarImage src={u.profileImageUrl} />
+                                        <AvatarImage src={u.profileImageUrl} className="object-cover" />
                                         <AvatarFallback>{u.username?.[0]}</AvatarFallback>
                                     </Avatar>
                                     <div className="min-w-0">
