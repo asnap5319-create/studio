@@ -3,21 +3,19 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // 👑 MASTER ADMIN: Absolute Priority
-    // asnap5319@gmail.com is granted absolute power over everything.
+    // This rule allows asnap5319@gmail.com to do ANYTHING in the database.
     function isMasterAdmin() {
       return request.auth != null && 
              request.auth.token.email != null &&
              request.auth.token.email.lower() == "asnap5319@gmail.com".lower();
     }
 
-    // This rule allows the master admin to read, write, and delete anything at any path.
     match /{allPaths=**} {
       allow read, write, delete: if isMasterAdmin();
     }
 
     // 🛡️ GENERAL RULES
     
-    // Everyone should be able to see posts on the home feed.
     match /users/{userId}/posts/{postId} {
       allow read: if true;
     }
@@ -30,7 +28,6 @@ service cloud.firestore {
 
       match /posts/{postId} {
         allow create: if request.auth != null && (request.auth.uid == userId || isMasterAdmin());
-        // viewCount, likeCount update is allowed for all to increment.
         allow update: if request.auth != null && (request.auth.uid == userId || isMasterAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount', 'likeCount', 'commentCount']));
         allow delete: if request.auth != null && (request.auth.uid == userId || isMasterAdmin());
         

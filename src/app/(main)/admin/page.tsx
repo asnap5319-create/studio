@@ -191,7 +191,7 @@ export default function AdminPage() {
                                             <MoreVertical className="h-6 w-6" />
                                         </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="bg-[#1a1a1a] border-border text-white min-w-[180px] p-2 rounded-2xl">
+                                    <DropdownMenuContent align="end" className="bg-[#1a1a1a] border-border text-white min-w-[180px] p-2 rounded-2xl shadow-2xl">
                                         <DropdownMenuItem onClick={() => router.push(`/profile/${u.id}`)} className="focus:bg-primary/20 py-3 rounded-xl cursor-pointer">
                                             <Eye className="mr-3 h-4 w-4" /> प्रोफाइल देखें
                                         </DropdownMenuItem>
@@ -201,7 +201,7 @@ export default function AdminPage() {
                                             className="focus:bg-destructive/20 text-destructive font-black py-3 rounded-xl cursor-pointer"
                                             disabled={isActionLoading === u.id}
                                         >
-                                            <Trash2 className="mr-3 h-4 w-4" /> 
+                                            <Trash2 className="mr-3 h-4 w-4 text-destructive" /> 
                                             {isActionLoading === u.id ? 'डिलीट हो रहा है...' : 'ID डिलीट करें'}
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>
@@ -239,7 +239,7 @@ export default function AdminPage() {
                                                 <MoreVertical className="h-6 w-6" />
                                             </Button>
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="bg-[#1a1a1a] border-border text-white min-w-[180px] p-2 rounded-2xl">
+                                        <DropdownMenuContent align="end" className="bg-[#1a1a1a] border-border text-white min-w-[180px] p-2 rounded-2xl shadow-2xl">
                                             <DropdownMenuItem onClick={() => setSelectedPost(p)} className="focus:bg-primary/20 py-3 rounded-xl cursor-pointer">
                                                 <Play className="mr-3 h-4 w-4" /> प्ले करें
                                             </DropdownMenuItem>
@@ -249,7 +249,7 @@ export default function AdminPage() {
                                                 className="focus:bg-destructive/20 text-destructive font-black py-3 rounded-xl cursor-pointer"
                                                 disabled={isActionLoading === p.id}
                                             >
-                                                <Trash2 className="mr-3 h-4 w-4" /> 
+                                                <Trash2 className="mr-3 h-4 w-4 text-destructive" /> 
                                                 {isActionLoading === p.id ? 'डिलीट हो रहा है...' : 'वीडियो डिलीट करें'}
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>

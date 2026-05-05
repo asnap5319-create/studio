@@ -70,6 +70,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         return;
     }
 
+    // Explicitly use the values from the .env if available, or fallback to the provided ones
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "demo";
     const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "unsigned_preset";
 
@@ -79,7 +80,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       let profileImageUrl = userProfile?.profileImageUrl;
 
       if (imageFile) {
-        toast({ title: "Uploading photo...", description: "Please wait." });
+        toast({ title: "फोटो अपलोड हो रही है...", description: "कृपया प्रतीक्षा करें।" });
         const formData = new FormData();
         formData.append('file', imageFile);
         formData.append('upload_preset', uploadPreset);
@@ -90,24 +91,31 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
                 body: formData
             });
             
-            const data = await response.json();
+            // Check if response is empty or invalid
+            const text = await response.text();
+            let data: any = {};
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                console.error("Failed to parse JSON response:", text);
+            }
 
             if (response.ok && data.secure_url) {
                 profileImageUrl = data.secure_url;
-                toast({ title: "Photo uploaded successfully! ✅" });
+                toast({ title: "फोटो सफलतापूर्वक अपलोड हो गई! ✅" });
             } else {
                 console.error("Cloudinary Error Detail:", data);
-                const errorMsg = data.error?.message || "Check Cloudinary Settings.";
+                const errorMsg = data.error?.message || "क्लाउडिनरी सेटिंग्स चेक करें (Preset missing).";
                 toast({ 
                   variant: 'destructive', 
-                  title: 'Photo Upload Failed ❌', 
+                  title: 'फोटो अपलोड फेल ❌', 
                   description: errorMsg
                 });
-                // We continue to save other info even if photo fails
+                // Note: We intentionally DO NOT throw here to let other profile changes save
             }
         } catch (uploadError: any) {
             console.error("Network Error during upload:", uploadError);
-            toast({ variant: 'destructive', title: 'Network Error ❌', description: 'Could not reach Cloudinary.' });
+            toast({ variant: 'destructive', title: 'नेटवर्क एरर ❌', description: 'सर्वर से संपर्क नहीं हो पाया।' });
         }
       }
 
@@ -121,11 +129,11 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       };
 
       await setDoc(userDocRef, dataToUpdate, { merge: true });
-      toast({ title: 'Profile updated successfully! ✅' });
+      toast({ title: 'प्रोफाइल अपडेट हो गई! ✅' });
       onOpenChange(false);
 
     } catch (error: any) {
-      console.error('Error updating profile document:', error);
+      console.error('Error updating profile:', error);
       const permissionError = new FirestorePermissionError({
           path: `users/${user.uid}`,
           operation: 'update',
@@ -134,7 +142,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       
       toast({
         variant: 'destructive',
-        title: 'Update Failed ❌',
+        title: 'अपडेट फेल ❌',
         description: error.message || 'Database permission error.',
       });
     } finally {
