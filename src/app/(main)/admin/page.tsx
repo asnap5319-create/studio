@@ -50,14 +50,14 @@ export default function AdminPage() {
 
     const handleDeleteUser = async (userId: string, username: string) => {
         if (!firestore || !isAdmin) return;
-        if (!confirm(`🚨 महा चेतावनी 🚨\n\nक्या आप वाकई "${username}" की आईडी डिलीट करना चाहते हैं?`)) return;
+        if (!confirm(`🚨 चेतावनी 🚨\n\nक्या आप वाकई "${username}" की आईडी डिलीट करना चाहते हैं?`)) return;
 
         setIsActionLoading(userId);
         const userDocRef = doc(firestore, 'users', userId);
 
         try {
             await deleteDoc(userDocRef);
-            toast({ title: "सफलता ✅", description: "यूजर आईडी डिलीट हो गई।" });
+            toast({ title: "सफलता ✅", description: "यूजर डिलीट हो गया।" });
         } catch (error: any) {
             console.error("Delete Error:", error);
             const permissionError = new FirestorePermissionError({
@@ -65,7 +65,7 @@ export default function AdminPage() {
                 operation: 'delete',
             });
             errorEmitter.emit('permission-error', permissionError);
-            toast({ variant: 'destructive', title: 'Error', description: error.message || 'Permissions Denied.' });
+            toast({ variant: 'destructive', title: 'Error', description: 'Permissions Denied.' });
         } finally {
             setIsActionLoading(null);
         }
@@ -73,7 +73,7 @@ export default function AdminPage() {
 
     const handleDeletePost = async (post: Post) => {
         if (!firestore || !isAdmin) return;
-        if (!confirm("इस वीडियो को डिलीट करें?")) return;
+        if (!confirm("क्या आप इस वीडियो को डिलीट करना चाहते हैं?")) return;
 
         setIsActionLoading(post.id);
         const postDocRef = doc(firestore, 'users', post.userId, 'posts', post.id);
@@ -88,7 +88,7 @@ export default function AdminPage() {
                 operation: 'delete',
             });
             errorEmitter.emit('permission-error', permissionError);
-            toast({ variant: 'destructive', title: 'Error', description: error.message || 'Permissions Denied.' });
+            toast({ variant: 'destructive', title: 'Error', description: 'Permissions Denied.' });
         } finally {
             setIsActionLoading(null);
         }
@@ -135,7 +135,7 @@ export default function AdminPage() {
                         <h1 className="text-2xl font-black flex items-center gap-2 text-primary uppercase italic">
                             <ShieldCheck /> Master Panel
                         </h1>
-                        <p className="text-[10px] text-green-500 font-bold uppercase mt-1">
+                        <p className="text-[10px] text-green-500 font-bold mt-1">
                             Current Admin: {user.email}
                         </p>
                     </div>
@@ -143,7 +143,7 @@ export default function AdminPage() {
                 <div className="relative w-full md:w-72">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input 
-                        placeholder="खोजें..." 
+                        placeholder="खोजें (User/Post)..." 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10 bg-secondary/50 border-white/10 rounded-xl"
@@ -192,7 +192,7 @@ export default function AdminPage() {
                                             <MoreVertical className="h-6 w-6" />
                                         </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="bg-[#1a1a1a] border-border text-white min-w-[180px] p-2 rounded-2xl shadow-2xl">
+                                    <DropdownMenuContent align="end" className="bg-[#1a1a1a] border-border text-white min-w-[180px] p-2 rounded-2xl">
                                         <DropdownMenuItem onClick={() => router.push(`/profile/${u.id}`)} className="focus:bg-primary/20 py-3 rounded-xl cursor-pointer">
                                             <Eye className="mr-3 h-4 w-4" /> प्रोफाइल देखें
                                         </DropdownMenuItem>
@@ -276,7 +276,6 @@ export default function AdminPage() {
             <footer className="mt-12 p-6 bg-red-500/5 rounded-3xl border border-red-500/20 text-center">
                 <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-3 animate-pulse" />
                 <h3 className="text-red-500 font-black text-lg mb-2 uppercase italic">Master Admin Only</h3>
-                <p className="text-xs text-muted-foreground font-hindi">यहाँ से किया गया एक्शन बदला नहीं जा सकता।</p>
             </footer>
         </div>
     );

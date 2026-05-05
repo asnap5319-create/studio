@@ -77,7 +77,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       let profileImageUrl = userProfile?.profileImageUrl;
 
       if (imageFile) {
-        toast({ title: "फोटो अपलोड शुरू... 📤", description: "कृपया इंतज़ार करें।" });
+        toast({ title: "अपलोड शुरू... 📤", description: "फोटो भेजी जा रही है।" });
         
         const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "demo";
         const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "unsigned_preset";
@@ -96,17 +96,19 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
 
             if (response.ok && data.secure_url) {
                 profileImageUrl = data.secure_url;
-                toast({ title: "फोटो सफलतापूर्वक अपलोड हो गई! ✅" });
+                toast({ title: "सफल! ✅", description: "फोटो बदल गई है।" });
             } else {
-                // Handle Cloudinary error without crashing
-                const errorMsg = data?.error?.message || "क्लाउडिनरी सेटिंग्स चेक करें (Preset missing).";
+                const errorDetail = data?.error?.message || "Cloudinary configuration error.";
+                console.error("Cloudinary Detailed Error:", data);
                 toast({ 
                   variant: 'destructive', 
-                  title: 'फोटो अपलोड नहीं हुई ❌', 
-                  description: errorMsg
+                  title: 'फोटो अपलोड फेल ❌', 
+                  description: errorDetail
                 });
+                // We don't throw here, allow other changes to save
             }
         } catch (uploadError: any) {
+            console.error("Network Error during upload:", uploadError);
             toast({ 
                 variant: 'destructive', 
                 title: 'नेटवर्क एरर ❌', 

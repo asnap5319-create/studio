@@ -1,8 +1,9 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 👑 MASTER ADMIN: Absolute Priority
+    // 👑 MASTER ADMIN GOD MODE: Absolute Priority
     // This rule allows asnap5319@gmail.com to do ANYTHING in the database.
     function isMasterAdmin() {
       return request.auth != null && 
