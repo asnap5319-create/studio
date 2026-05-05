@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, ChangeEvent, useRef } from 'react';
@@ -76,9 +77,8 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       let profileImageUrl = userProfile?.profileImageUrl;
 
       if (imageFile) {
-        toast({ title: "फोटो अपलोड हो रही है...", description: "कृपया प्रतीक्षा करें।" });
+        toast({ title: "फोटो अपलोड शुरू... 📤", description: "कृपया इंतज़ार करें।" });
         
-        // Environment variables or fallback values
         const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "demo";
         const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "unsigned_preset";
 
@@ -98,18 +98,20 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
                 profileImageUrl = data.secure_url;
                 toast({ title: "फोटो सफलतापूर्वक अपलोड हो गई! ✅" });
             } else {
-                console.error("Cloudinary Error Detail:", data);
-                const errorMsg = data.error?.message || "क्लाउडिनरी सेटिंग्स चेक करें (Upload Preset missing).";
+                // Handle Cloudinary error without crashing
+                const errorMsg = data?.error?.message || "क्लाउडिनरी सेटिंग्स चेक करें (Preset missing).";
                 toast({ 
                   variant: 'destructive', 
-                  title: 'फोटो अपलोड फेल ❌', 
+                  title: 'फोटो अपलोड नहीं हुई ❌', 
                   description: errorMsg
                 });
-                // We proceed even if photo fails, to save other details
             }
         } catch (uploadError: any) {
-            console.error("Network Error during upload:", uploadError);
-            toast({ variant: 'destructive', title: 'अपलोड एरर ❌', description: 'नेटवर्क या सर्वर समस्या।' });
+            toast({ 
+                variant: 'destructive', 
+                title: 'नेटवर्क एरर ❌', 
+                description: 'सर्वर से संपर्क नहीं हो पाया।' 
+            });
         }
       }
 
@@ -123,7 +125,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       };
 
       await setDoc(userDocRef, dataToUpdate, { merge: true });
-      toast({ title: 'प्रोफाइल अपडेट हो गई! ✅' });
+      toast({ title: 'प्रोफाइल अपडेट सफल! ✨' });
       onOpenChange(false);
 
     } catch (error: any) {
@@ -137,7 +139,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       toast({
         variant: 'destructive',
         title: 'अपडेट फेल ❌',
-        description: error.message || 'Database permission error.',
+        description: error.message || 'Permissions Denied.',
       });
     } finally {
       setIsSaving(false);
@@ -154,7 +156,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         <div className="p-6 space-y-8 overflow-y-auto h-full pb-32">
           <div className="flex flex-col items-center gap-4">
             <div className="relative group" onClick={() => fileInputRef.current?.click()}>
-                <Avatar className="h-32 w-32 border-4 border-primary shadow-[0_0_20px_rgba(var(--primary),0.3)] cursor-pointer">
+                <Avatar className="h-32 w-32 border-4 border-primary shadow-[0_0_20px_rgba(var(--primary),0.3)] cursor-pointer hover:scale-105 transition-transform">
                   <AvatarImage src={imagePreviewUrl ?? userProfile?.profileImageUrl} className="object-cover" />
                   <AvatarFallback className="text-2xl font-black">{userProfile?.name?.[0]}</AvatarFallback>
                 </Avatar>
