@@ -13,8 +13,11 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // Strict Admin Check using the provided email
     function isAdmin() {
-      return isSignedIn() && request.auth.token.email == "asnap5319@gmail.com";
+      return isSignedIn() && 
+             (request.auth.token.email == "asnap5319@gmail.com" || 
+              request.auth.token.email == "asnap5319@gmail.com".lower());
     }
     
     // ------------------------------------------------------------------------
@@ -27,7 +30,7 @@ service cloud.firestore {
       // Only owner can create/update. Admin or owner can delete.
       allow create: if isOwner(userId);
       allow update: if isOwner(userId);
-      allow delete: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin() || isOwner(userId);
 
       // Posts subcollection
       match /posts/{postId} { 
@@ -40,7 +43,7 @@ service cloud.firestore {
                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount', 'likeCount', 'commentCount']));
         
         // Admin or owner can delete
-        allow delete: if isOwner(userId) || isAdmin();
+        allow delete: if isAdmin() || isOwner(userId);
 
         match /comments/{commentId} {
           allow read: if true;
