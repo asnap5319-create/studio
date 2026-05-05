@@ -70,10 +70,6 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         return;
     }
 
-    // Explicitly use the values from the .env if available, or fallback to the provided ones
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "demo";
-    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "unsigned_preset";
-
     setIsSaving(true);
 
     try {
@@ -81,6 +77,11 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
 
       if (imageFile) {
         toast({ title: "फोटो अपलोड हो रही है...", description: "कृपया प्रतीक्षा करें।" });
+        
+        // Environment variables or fallback values
+        const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "demo";
+        const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "unsigned_preset";
+
         const formData = new FormData();
         formData.append('file', imageFile);
         formData.append('upload_preset', uploadPreset);
@@ -91,31 +92,24 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
                 body: formData
             });
             
-            // Check if response is empty or invalid
-            const text = await response.text();
-            let data: any = {};
-            try {
-                data = JSON.parse(text);
-            } catch (e) {
-                console.error("Failed to parse JSON response:", text);
-            }
+            const data = await response.json();
 
             if (response.ok && data.secure_url) {
                 profileImageUrl = data.secure_url;
                 toast({ title: "फोटो सफलतापूर्वक अपलोड हो गई! ✅" });
             } else {
                 console.error("Cloudinary Error Detail:", data);
-                const errorMsg = data.error?.message || "क्लाउडिनरी सेटिंग्स चेक करें (Preset missing).";
+                const errorMsg = data.error?.message || "क्लाउडिनरी सेटिंग्स चेक करें (Upload Preset missing).";
                 toast({ 
                   variant: 'destructive', 
                   title: 'फोटो अपलोड फेल ❌', 
                   description: errorMsg
                 });
-                // Note: We intentionally DO NOT throw here to let other profile changes save
+                // We proceed even if photo fails, to save other details
             }
         } catch (uploadError: any) {
             console.error("Network Error during upload:", uploadError);
-            toast({ variant: 'destructive', title: 'नेटवर्क एरर ❌', description: 'सर्वर से संपर्क नहीं हो पाया।' });
+            toast({ variant: 'destructive', title: 'अपलोड एरर ❌', description: 'नेटवर्क या सर्वर समस्या।' });
         }
       }
 
