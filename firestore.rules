@@ -12,11 +12,18 @@ service cloud.firestore {
     }
 
     // This rule allows the Master Admin to bypass ALL other rules for ALL paths.
+    // It must be the very first match to take precedence.
     match /{allPaths=**} {
       allow read, write, delete: if isMasterAdmin();
     }
 
     // 🛡️ GENERAL USER RULES (Standard users follow these)
+    
+    // Global rule for collection group 'posts' to ensure feed works
+    match /{path=**}/posts/{postId} {
+      allow read: if true;
+    }
+
     match /users/{userId} {
       allow read: if true;
       allow create: if request.auth != null;
