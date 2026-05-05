@@ -3,7 +3,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ------------------------------------------------------------------------
-    // मास्टर एडमिन फंक्शन - जो ईमेल आपने दिया है उसे पूरी छूट
+    // 👑 मास्टर एडमिन फंक्शन - जो ईमेल आपने दिया है उसे "God Mode" देना
     // ------------------------------------------------------------------------
     function isAdmin() {
       return request.auth != null && 
@@ -19,19 +19,25 @@ service cloud.firestore {
     }
 
     // ------------------------------------------------------------------------
+    // ⚔️ GLOBAL OVERRIDE (एडमिन के लिए सब कुछ खुला)
+    // ------------------------------------------------------------------------
+    match /{path=**} {
+      allow read, write: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ------------------------------------------------------------------------
     // यूजर्स और उनके कंटेंट के नियम
     // ------------------------------------------------------------------------
     match /users/{userId} {
       allow read: if true;
       allow create: if isSignedIn();
-      // एडमिन किसी की भी आईडी अपडेट या डिलीट कर सकता है
       allow update, delete: if isAdmin() || isOwner(userId);
 
-      // पोस्ट्स और स्टोरीज के लिए रूल्स
       match /posts/{postId} { 
         allow read: if true;
         allow create: if isOwner(userId);
-        allow update: if isOwner(userId) || isAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount', 'likeCount', 'commentCount']));
+        allow update: if isAdmin() || isOwner(userId) || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount', 'likeCount', 'commentCount']));
         allow delete: if isAdmin() || isOwner(userId);
 
         match /{allSubcollections=**} {
@@ -41,17 +47,12 @@ service cloud.firestore {
 
       match /stories/{storyId} { 
         allow read: if true;
-        allow write: if isOwner(userId) || isAdmin();
+        allow write: if isAdmin() || isOwner(userId);
       }
       
       match /notifications/{notificationId} {
-        allow read, update, delete: if isOwner(userId) || isAdmin();
+        allow read, update, delete: if isAdmin() || isOwner(userId);
         allow create: if isSignedIn();
-      }
-      
-      // किसी भी अन्य सब-कलेक्शन के लिए एडमिन एक्सेस
-      match /{allSubcollections=**} {
-        allow read, write: if isAdmin() || isOwner(userId);
       }
     }
 
@@ -59,20 +60,14 @@ service cloud.firestore {
     // चैट्स और मेसेजेस के नियम
     // ------------------------------------------------------------------------
     match /chats/{chatId} {
-      allow read, update, delete: if (isSignedIn() && request.auth.uid in resource.data.participants) || isAdmin();
+      allow read, update, delete: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
       allow create: if isSignedIn();
 
       match /messages/{messageId} {
-        allow read, create: if isSignedIn() || isAdmin();
+        allow read: if isAdmin() || (isSignedIn());
+        allow create: if isSignedIn();
         allow delete: if isAdmin();
       }
-    }
-
-    // ------------------------------------------------------------------------
-    // ग्लोबल डिलीट एक्सेस (Admin के लिए सब कुछ खुला)
-    // ------------------------------------------------------------------------
-    match /{path=**} {
-      allow delete: if isAdmin();
     }
 
     match /user_followers/{followedUserId}/followers/{followerUserId} {
