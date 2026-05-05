@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -55,6 +56,7 @@ export default function AdminPage() {
             toast({ title: "सफलता ✅", description: "यूजर आईडी डिलीट हो गई।" });
         } catch (error: any) {
             console.error("Delete Error:", error);
+            alert("डिलीट नहीं हो पाया: " + error.message);
             toast({ 
                 variant: "destructive", 
                 title: "Error", 
@@ -75,6 +77,7 @@ export default function AdminPage() {
             toast({ title: "सफलता ✅", description: "वीडियो डिलीट हो गया।" });
         } catch (error: any) {
             console.error("Delete Error:", error);
+            alert("डिलीट नहीं हो पाया: " + error.message);
             toast({ variant: "destructive", title: "Error", description: "वीडियो डिलीट नहीं हो पाया।" });
         } finally {
             setIsActionLoading(null);
@@ -151,7 +154,7 @@ export default function AdminPage() {
                 <TabsContent value="users">
                     <div className="grid grid-cols-1 gap-3">
                         {isUsersLoading ? (
-                            <Loader2 className="animate-spin h-10 w-10 mx-auto" />
+                            <div className="flex justify-center p-10"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>
                         ) : filteredUsers?.length ? filteredUsers.map(u => (
                             <div 
                                 key={u.id} 
@@ -175,21 +178,22 @@ export default function AdminPage() {
 
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="rounded-xl hover:bg-white/10 h-10 w-10">
-                                            <MoreVertical className="h-5 w-5" />
+                                        <Button variant="ghost" size="icon" className="rounded-xl hover:bg-white/10 h-12 w-12">
+                                            <MoreVertical className="h-6 w-6" />
                                         </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="bg-secondary border-border text-white min-w-[160px]">
-                                        <DropdownMenuItem onClick={() => router.push(`/profile/${u.id}`)} className="focus:bg-primary/20 py-3">
-                                            <Eye className="mr-2 h-4 w-4" /> प्रोफाइल देखें
+                                    <DropdownMenuContent align="end" className="bg-[#1a1a1a] border-border text-white min-w-[180px] p-2 rounded-2xl">
+                                        <DropdownMenuItem onClick={() => router.push(`/profile/${u.id}`)} className="focus:bg-primary/20 py-3 rounded-xl cursor-pointer">
+                                            <Eye className="mr-3 h-4 w-4" /> प्रोफाइल देखें
                                         </DropdownMenuItem>
-                                        <DropdownMenuSeparator className="bg-border" />
+                                        <DropdownMenuSeparator className="bg-white/5 my-1" />
                                         <DropdownMenuItem 
                                             onClick={() => handleDeleteUser(u.id, u.username || 'User')}
-                                            className="focus:bg-destructive/20 text-destructive font-bold py-3"
+                                            className="focus:bg-destructive/20 text-destructive font-black py-3 rounded-xl cursor-pointer"
                                             disabled={isActionLoading === u.id}
                                         >
-                                            <Trash2 className="mr-2 h-4 w-4" /> {isActionLoading === u.id ? 'डिलीट हो रहा है...' : 'डिलीट करें'}
+                                            <Trash2 className="mr-3 h-4 w-4" /> 
+                                            {isActionLoading === u.id ? 'डिलीट हो रहा है...' : 'ID डिलीट करें'}
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
@@ -201,7 +205,7 @@ export default function AdminPage() {
                 <TabsContent value="posts">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {isPostsLoading ? (
-                            <Loader2 className="animate-spin h-10 w-10 mx-auto" />
+                             <div className="flex justify-center p-10 col-span-full"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>
                         ) : filteredPosts?.length ? filteredPosts.map(p => (
                             <div 
                                 key={p.id} 
@@ -222,21 +226,22 @@ export default function AdminPage() {
                                     
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="rounded-xl hover:bg-white/10">
-                                                <MoreVertical className="h-5 w-5" />
+                                            <Button variant="ghost" size="icon" className="rounded-xl hover:bg-white/10 h-10 w-10">
+                                                <MoreVertical className="h-6 w-6" />
                                             </Button>
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="bg-secondary border-border text-white min-w-[160px]">
-                                            <DropdownMenuItem onClick={() => setSelectedPost(p)} className="focus:bg-primary/20 py-3">
-                                                <Play className="mr-2 h-4 w-4" /> प्ले करें
+                                        <DropdownMenuContent align="end" className="bg-[#1a1a1a] border-border text-white min-w-[180px] p-2 rounded-2xl">
+                                            <DropdownMenuItem onClick={() => setSelectedPost(p)} className="focus:bg-primary/20 py-3 rounded-xl cursor-pointer">
+                                                <Play className="mr-3 h-4 w-4" /> प्ले करें
                                             </DropdownMenuItem>
-                                            <DropdownMenuSeparator className="bg-border" />
+                                            <DropdownMenuSeparator className="bg-white/5 my-1" />
                                             <DropdownMenuItem 
                                                 onClick={() => handleDeletePost(p)}
-                                                className="focus:bg-destructive/20 text-destructive font-bold py-3"
+                                                className="focus:bg-destructive/20 text-destructive font-black py-3 rounded-xl cursor-pointer"
                                                 disabled={isActionLoading === p.id}
                                             >
-                                                <Trash2 className="mr-2 h-4 w-4" /> {isActionLoading === p.id ? 'डिलीट हो रहा है...' : 'डिलीट करें'}
+                                                <Trash2 className="mr-3 h-4 w-4" /> 
+                                                {isActionLoading === p.id ? 'डिलीट हो रहा है...' : 'वीडियो डिलीट करें'}
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>

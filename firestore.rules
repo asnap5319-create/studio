@@ -1,9 +1,9 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 👑 MASTER ADMIN FUNCTION - Global Override
-    // यह पक्का करता है कि आपका ईमेल पूरी तरह से मालिक है
+    // 👑 MASTER ADMIN FUNCTION
     function isAdmin() {
       return request.auth != null && 
              request.auth.token.email.lower() == "asnap5319@gmail.com".lower();
