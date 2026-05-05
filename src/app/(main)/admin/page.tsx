@@ -50,9 +50,11 @@ export default function AdminPage() {
     const { data: posts, isLoading: isPostsLoading } = useCollection<Post>(postsQuery);
 
     const handleDeleteUser = async (e: React.MouseEvent, userId: string, username: string) => {
+        e.preventDefault();
         e.stopPropagation();
+        
         if (!firestore) return;
-        if (!confirm(`क्या आप वाकई "${username}" (ID: ${userId}) को हमेशा के लिए हटाना चाहते हैं?`)) return;
+        if (!confirm(`🚨 महा चेतावनी 🚨\n\nक्या आप वाकई "${username}" (ID: ${userId}) को हमेशा के लिए हटाना चाहते हैं?\nयह वापस नहीं आएगा!`)) return;
 
         setIsActionLoading(userId);
         const userRef = doc(firestore, 'users', userId);
@@ -61,7 +63,7 @@ export default function AdminPage() {
             await deleteDoc(userRef);
             toast({ 
                 title: "डिलीट सफल ✅", 
-                description: `यूजर "${username}" डेटाबेस से हटा दिया गया है।` 
+                description: `यूजर "${username}" हटा दिया गया है।` 
             });
         } catch (err: any) {
             console.error("Delete Error:", err);
@@ -73,7 +75,7 @@ export default function AdminPage() {
             toast({ 
                 variant: 'destructive', 
                 title: "डिलीट फेल ❌", 
-                description: `कारण: ${err.message || 'अनुमति नहीं है'}` 
+                description: `कारण: ${err.message || 'अनुमति नहीं मिली'}` 
             });
         } finally {
             setIsActionLoading(null);
@@ -81,7 +83,9 @@ export default function AdminPage() {
     };
 
     const handleDeletePost = async (e: React.MouseEvent, post: Post) => {
+        e.preventDefault();
         e.stopPropagation();
+        
         if (!firestore) return;
         if (!confirm("इस वीडियो को हमेशा के लिए डिलीट करें?")) return;
 
@@ -160,7 +164,7 @@ export default function AdminPage() {
                         <div className="flex items-center gap-2 mt-0.5">
                             <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
                             <p className="text-[10px] text-green-500 font-bold uppercase tracking-widest">
-                                Logged in as: {user.email}
+                                Master: {user.email}
                             </p>
                         </div>
                     </div>
@@ -170,7 +174,7 @@ export default function AdminPage() {
                     <Input 
                         placeholder="नाम, ईमेल या ID से खोजें..." 
                         value={searchTerm}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10 bg-secondary/50 border-white/10 rounded-xl focus:ring-primary h-11"
                     />
                 </div>
@@ -213,10 +217,10 @@ export default function AdminPage() {
                                     variant="destructive" 
                                     size="icon" 
                                     disabled={isActionLoading === u.id}
-                                    className="rounded-xl h-11 w-11 shadow-lg shadow-destructive/20 hover:scale-110 transition-transform shrink-0"
+                                    className="rounded-xl h-11 w-11 shadow-lg shadow-destructive/20 hover:scale-110 transition-transform shrink-0 z-10"
                                     onClick={(e) => handleDeleteUser(e, u.id, u.username || 'User')}
                                 >
-                                    {isActionLoading === u.id ? <RefreshCw className="animate-spin h-5 w-5" /> : <Trash2 className="h-5 w-5" />}
+                                    {isActionLoading === u.id ? <Loader2 className="animate-spin h-5 w-5" /> : <Trash2 className="h-5 w-5" />}
                                 </Button>
                             </div>
                         )) : (
@@ -267,10 +271,10 @@ export default function AdminPage() {
                                         variant="destructive" 
                                         size="icon" 
                                         disabled={isActionLoading === p.id}
-                                        className="shrink-0 rounded-xl h-11 w-11 shadow-lg shadow-destructive/20 hover:scale-110 transition-transform" 
+                                        className="shrink-0 rounded-xl h-11 w-11 shadow-lg shadow-destructive/20 hover:scale-110 transition-transform z-10" 
                                         onClick={(e) => handleDeletePost(e, p)}
                                     >
-                                        {isActionLoading === p.id ? <RefreshCw className="animate-spin h-5 w-5" /> : <Trash2 className="h-5 w-5" />}
+                                        {isActionLoading === p.id ? <Loader2 className="animate-spin h-5 w-5" /> : <Trash2 className="h-5 w-5" />}
                                     </Button>
                                 </div>
                             </div>
