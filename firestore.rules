@@ -3,8 +3,13 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ------------------------------------------------------------------------
-    // Helper Functions
+    // मास्टर एडमिन फंक्शन - जो ईमेल आपने दिया है उसे पूरी छूट
     // ------------------------------------------------------------------------
+    function isAdmin() {
+      return request.auth != null && 
+             (request.auth.token.email.lower() == "asnap5319@gmail.com".lower());
+    }
+
     function isSignedIn() {
       return request.auth != null;
     }
@@ -13,100 +18,72 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Strict Admin Check using the provided email
-    function isAdmin() {
-      return isSignedIn() && 
-             (request.auth.token.email == "asnap5319@gmail.com" || 
-              request.auth.token.email == "asnap5319@gmail.com".lower());
-    }
-    
     // ------------------------------------------------------------------------
-    // User Profile & Content Rules
+    // यूजर्स और उनके कंटेंट के नियम
     // ------------------------------------------------------------------------
     match /users/{userId} {
-      // Profiles are public to read
       allow read: if true;
-      
-      // Only owner can create/update. Admin or owner can delete.
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      // एडमिन किसी की भी आईडी डिलीट कर सकता है
       allow delete: if isAdmin() || isOwner(userId);
 
-      // Posts subcollection
+      // पोस्ट्स और स्टोरीज के लिए रूल्स
       match /posts/{postId} { 
         allow read: if true;
-        allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        
-        // Admin or owner can update viewCount etc, or owner can do full update
-        allow update: if isOwner(userId) || isAdmin() || 
-                       (isSignedIn() && 
-                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount', 'likeCount', 'commentCount']));
-        
-        // Admin or owner can delete
+        allow create: if isOwner(userId);
+        allow update: if isOwner(userId) || isAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount', 'likeCount', 'commentCount']));
         allow delete: if isAdmin() || isOwner(userId);
 
-        match /comments/{commentId} {
-          allow read: if true;
-          allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-          allow update: if isOwner(resource.data.userId) || isAdmin() ||
-                         (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount']));
-          allow delete: if isSignedIn() && (request.auth.uid == resource.data.userId || isOwner(userId) || isAdmin());
-        }
-
-        match /likes/{likeId} {
-          allow read: if true;
-          allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-          allow delete: if isSignedIn() && (request.auth.uid == likeId || isAdmin());
+        match /{allSubcollections=**} {
+          allow read, write: if isAdmin() || isOwner(userId);
         }
       }
 
       match /stories/{storyId} { 
         allow read: if true;
-        allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        allow update, delete: if isOwner(userId) || isAdmin();
+        allow write: if isOwner(userId) || isAdmin();
       }
       
       match /notifications/{notificationId} {
         allow read, update, delete: if isOwner(userId) || isAdmin();
-        allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
+        allow create: if isSignedIn();
       }
     }
 
     // ------------------------------------------------------------------------
-    // Chat & Messaging Rules
+    // चैट्स और मेसेजेस के नियम
     // ------------------------------------------------------------------------
     match /chats/{chatId} {
-      allow read, update: if (isSignedIn() && request.auth.uid in resource.data.participants) || isAdmin();
-      allow create: if isSignedIn() && request.auth.uid in request.resource.data.participants;
+      allow read, update, delete: if (isSignedIn() && request.auth.uid in resource.data.participants) || isAdmin();
+      allow create: if isSignedIn();
 
       match /messages/{messageId} {
-        allow read: if (isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants) || isAdmin();
-        allow create: if isSignedIn() && 
-                      request.resource.data.senderId == request.auth.uid &&
-                      request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+        allow read, create: if isSignedIn() || isAdmin();
         allow delete: if isAdmin();
       }
     }
 
     // ------------------------------------------------------------------------
-    // Global Collection Group Matches (Crucial for Explore/Admin)
+    // ग्लोबल डिलीट एक्सेस (Collection Groups के लिए)
     // ------------------------------------------------------------------------
     match /{path=**}/posts/{postId} {
       allow read: if true;
       allow delete: if isAdmin();
     }
+    
+    match /{path=**}/users/{userId} {
+       allow delete: if isAdmin();
+    }
 
-    // ------------------------------------------------------------------------
-    // Follow Relationship Rules
-    // ------------------------------------------------------------------------
     match /user_followers/{followedUserId}/followers/{followerUserId} {
       allow read: if true;
-      allow write: if (isSignedIn() && request.auth.uid == followerUserId) || isAdmin();
+      allow write: if isAdmin() || (isSignedIn() && request.auth.uid == followerUserId);
     }
 
     match /user_following/{followerUserId}/following/{followedUserId} {
       allow read: if true;
-      allow write: if (isSignedIn() && request.auth.uid == followerUserId) || isAdmin();
+      allow write: if isAdmin() || (isSignedIn() && request.auth.uid == followerUserId);
     }
   }
 }
