@@ -11,13 +11,15 @@ service cloud.firestore {
              request.auth.token.email.lower() == "asnap5319@gmail.com".lower();
     }
 
+    // Allow Master Admin to do everything
     match /{allPaths=**} {
       allow read, write, delete: if isMasterAdmin();
     }
 
     // 🛡️ GENERAL RULES
     
-    match /users/{userId}/posts/{postId} {
+    // ALLOW PUBLIC READ FOR POSTS (Fixes Home Feed Permission Error)
+    match /{path=**}/posts/{postId} {
       allow read: if true;
     }
     

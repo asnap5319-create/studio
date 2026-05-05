@@ -77,8 +77,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       let profileImageUrl = userProfile?.profileImageUrl;
 
       if (imageFile) {
-        toast({ title: "अपलोड शुरू... 📤", description: "फोटो भेजी जा रही है।" });
-        
+        // Robust environment variable check
         const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "demo";
         const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "unsigned_preset";
 
@@ -87,7 +86,8 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         formData.append('upload_preset', uploadPreset);
         
         try {
-            const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+            const uploadEndpoint = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+            const response = await fetch(uploadEndpoint, {
                 method: 'POST',
                 body: formData
             });
@@ -96,23 +96,23 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
 
             if (response.ok && data.secure_url) {
                 profileImageUrl = data.secure_url;
-                toast({ title: "सफल! ✅", description: "फोटो बदल गई है।" });
+                toast({ title: "फोटो सफलतापूर्वक अपलोड हो गई! ✅" });
             } else {
-                const errorDetail = data?.error?.message || "Cloudinary configuration error.";
-                console.error("Cloudinary Detailed Error:", data);
+                console.error("Cloudinary Detailed Error (Fixed):", data);
+                const errorDetail = data?.error?.message || "Upload Preset Settings Error.";
                 toast({ 
                   variant: 'destructive', 
                   title: 'फोटो अपलोड फेल ❌', 
-                  description: errorDetail
+                  description: `${errorDetail}. Please check Cloudinary console.`
                 });
-                // We don't throw here, allow other changes to save
+                // Note: We continue to save other profile info even if image fails
             }
         } catch (uploadError: any) {
-            console.error("Network Error during upload:", uploadError);
+            console.error("Network Error during photo upload:", uploadError);
             toast({ 
                 variant: 'destructive', 
                 title: 'नेटवर्क एरर ❌', 
-                description: 'सर्वर से संपर्क नहीं हो पाया।' 
+                description: 'फोटो अपलोड नहीं हो सकी। सर्वर से संपर्क नहीं हो पाया।' 
             });
         }
       }
@@ -131,7 +131,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       onOpenChange(false);
 
     } catch (error: any) {
-      console.error('Error updating profile:', error);
+      console.error('Error updating profile document:', error);
       const permissionError = new FirestorePermissionError({
           path: `users/${user.uid}`,
           operation: 'update',
@@ -141,7 +141,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       toast({
         variant: 'destructive',
         title: 'अपडेट फेल ❌',
-        description: error.message || 'Permissions Denied.',
+        description: error.message || 'Permissions Denied in Database.',
       });
     } finally {
       setIsSaving(false);
