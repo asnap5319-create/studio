@@ -80,28 +80,32 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       let profileImageUrl = userProfile?.profileImageUrl;
 
       if (imageFile) {
-        toast({ title: "Uploading photo...", description: "Please wait." });
+        toast({ title: "फोटो अपलोड हो रही है...", description: "कृपया प्रतीक्षा करें।" });
         const formData = new FormData();
         formData.append('file', imageFile);
         formData.append('upload_preset', uploadPreset);
         
-        const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-            method: 'POST',
-            body: formData
-        });
-        const data = await response.json();
-        
-        if (data.secure_url) {
-            profileImageUrl = data.secure_url;
-            toast({ title: "Photo uploaded!" });
-        } else {
-            toast({ 
-              variant: 'destructive', 
-              title: 'Upload Failed ❌', 
-              description: data.error?.message || 'Cloudinary Preset not found. Please check your settings.' 
+        try {
+            const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+                method: 'POST',
+                body: formData
             });
-            setIsSaving(false);
-            return;
+            const data = await response.json();
+            
+            if (data.secure_url) {
+                profileImageUrl = data.secure_url;
+                toast({ title: "फोटो सफलतापूर्वक अपलोड हो गई! ✅" });
+            } else {
+                console.error("Cloudinary Error:", data);
+                toast({ 
+                  variant: 'destructive', 
+                  title: 'फोटो अपलोड नहीं हुई ❌', 
+                  description: 'Cloudinary Preset की समस्या है। बाकी जानकारी अपडेट हो रही है।' 
+                });
+            }
+        } catch (uploadError) {
+            console.error("Upload fetch error:", uploadError);
+            toast({ variant: 'destructive', title: 'नेटवर्क एरर ❌', description: 'फोटो अपलोड फेल हो गई।' });
         }
       }
 
@@ -115,7 +119,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       };
 
       await setDoc(userDocRef, dataToUpdate, { merge: true });
-      toast({ title: 'Profile Updated ✅' });
+      toast({ title: 'प्रोफाइल सफलतापूर्वक अपडेट हो गई! ✅' });
       onOpenChange(false);
 
     } catch (error: any) {
@@ -128,8 +132,8 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       
       toast({
         variant: 'destructive',
-        title: 'Save Failed ❌',
-        description: error.message || 'Could not update profile.',
+        title: 'अपडेट फेल ❌',
+        description: error.message || 'जानकारी सेव नहीं हो सकी।',
       });
     } finally {
       setIsSaving(false);

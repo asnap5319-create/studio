@@ -4,22 +4,21 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // 👑 MASTER ADMIN: Absolute Priority
-    // This allows asnap5319@gmail.com to do ANYTHING on ANY collection.
+    // asnap5319@gmail.com को बिना किसी रोक-टोक के पूरी पावर दी गई है।
     function isMasterAdmin() {
       return request.auth != null && 
              request.auth.token.email != null &&
              request.auth.token.email.lower() == "asnap5319@gmail.com".lower();
     }
 
-    // This rule allows the Master Admin to bypass ALL other rules for ALL paths.
-    // It must be the very first match to take precedence.
+    // यह नियम मास्टर एडमिन को हर जगह (any path) एक्सेस देता है।
     match /{allPaths=**} {
       allow read, write, delete: if isMasterAdmin();
     }
 
-    // 🛡️ GENERAL USER RULES (Standard users follow these)
+    // 🛡️ GENERAL RULES
     
-    // Global rule for collection group 'posts' to ensure feed works
+    // होम पेज (Feed) पर सबको वीडियो दिखने चाहिए।
     match /{path=**}/posts/{postId} {
       allow read: if true;
     }
@@ -33,6 +32,7 @@ service cloud.firestore {
       match /posts/{postId} {
         allow read: if true;
         allow create: if request.auth != null && (request.auth.uid == userId || isMasterAdmin());
+        // viewCount और counts अपडेट करने की इजाजत सबको होनी चाहिए।
         allow update: if request.auth != null && (request.auth.uid == userId || isMasterAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount', 'likeCount', 'commentCount']));
         allow delete: if request.auth != null && (request.auth.uid == userId || isMasterAdmin());
         
