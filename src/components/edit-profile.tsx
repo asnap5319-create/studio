@@ -95,11 +95,10 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
             profileImageUrl = data.secure_url;
             toast({ title: "Photo uploaded!" });
         } else {
-            // Display friendly toast instead of crashing with throw new Error
             toast({ 
               variant: 'destructive', 
               title: 'Upload Failed ❌', 
-              description: data.error?.message || 'Check Cloudinary Settings.' 
+              description: data.error?.message || 'Cloudinary Preset not found. Please check your settings.' 
             });
             setIsSaving(false);
             return;
