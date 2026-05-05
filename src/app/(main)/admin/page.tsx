@@ -55,21 +55,20 @@ export default function AdminPage() {
         setIsActionLoading(userId);
         const userDocRef = doc(firestore, 'users', userId);
 
-        deleteDoc(userDocRef)
-            .then(() => {
-                toast({ title: "सफलता ✅", description: "यूजर आईडी डिलीट हो गई।" });
-            })
-            .catch((error: any) => {
-                console.error("Delete Error:", error);
-                const permissionError = new FirestorePermissionError({
-                    path: userDocRef.path,
-                    operation: 'delete',
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            })
-            .finally(() => {
-                setIsActionLoading(null);
+        try {
+            await deleteDoc(userDocRef);
+            toast({ title: "सफलता ✅", description: "यूजर आईडी डिलीट हो गई।" });
+        } catch (error: any) {
+            console.error("Delete Error:", error);
+            const permissionError = new FirestorePermissionError({
+                path: userDocRef.path,
+                operation: 'delete',
             });
+            errorEmitter.emit('permission-error', permissionError);
+            toast({ variant: 'destructive', title: 'Error', description: error.message || 'Permissions Denied.' });
+        } finally {
+            setIsActionLoading(null);
+        }
     };
 
     const handleDeletePost = async (post: Post) => {
@@ -79,21 +78,20 @@ export default function AdminPage() {
         setIsActionLoading(post.id);
         const postDocRef = doc(firestore, 'users', post.userId, 'posts', post.id);
 
-        deleteDoc(postDocRef)
-            .then(() => {
-                toast({ title: "सफलता ✅", description: "वीडियो डिलीट हो गया।" });
-            })
-            .catch((error: any) => {
-                console.error("Delete Error:", error);
-                const permissionError = new FirestorePermissionError({
-                    path: postDocRef.path,
-                    operation: 'delete',
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            })
-            .finally(() => {
-                setIsActionLoading(null);
+        try {
+            await deleteDoc(postDocRef);
+            toast({ title: "सफलता ✅", description: "वीडियो डिलीट हो गया।" });
+        } catch (error: any) {
+            console.error("Delete Error:", error);
+            const permissionError = new FirestorePermissionError({
+                path: postDocRef.path,
+                operation: 'delete',
             });
+            errorEmitter.emit('permission-error', permissionError);
+            toast({ variant: 'destructive', title: 'Error', description: error.message || 'Permissions Denied.' });
+        } finally {
+            setIsActionLoading(null);
+        }
     };
 
     if (isUserLoading) return (
@@ -138,7 +136,7 @@ export default function AdminPage() {
                             <ShieldCheck /> Master Panel
                         </h1>
                         <p className="text-[10px] text-green-500 font-bold uppercase mt-1">
-                            Admin: {user.email}
+                            Current Admin: {user.email}
                         </p>
                     </div>
                 </div>

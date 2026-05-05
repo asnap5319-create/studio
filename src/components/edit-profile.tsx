@@ -11,8 +11,6 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetFooter,
-  SheetClose,
 } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFirebase, useUser } from '@/firebase';
@@ -49,7 +47,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       setUsername(userProfile.username);
       setBio(userProfile.bio || '');
       setImagePreviewUrl(userProfile.profileImageUrl);
-      setImageFile(null); // Reset file selection when opening
+      setImageFile(null);
     }
   }, [userProfile, open]);
   
@@ -97,7 +95,14 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
             profileImageUrl = data.secure_url;
             toast({ title: "Photo uploaded!" });
         } else {
-            throw new Error(data.error?.message || 'Cloudinary upload failed.');
+            // Fixed: Use toast instead of throwing error to prevent app crash
+            toast({ 
+              variant: 'destructive', 
+              title: 'Upload Failed ❌', 
+              description: data.error?.message || 'Check Cloudinary Settings.' 
+            });
+            setIsSaving(false);
+            return;
         }
       }
 
@@ -110,23 +115,18 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         profileImageUrl,
       };
 
-      // Non-blocking write but we handle the close after initiating
-      setDoc(userDocRef, dataToUpdate, { merge: true })
-        .then(() => {
-            toast({ title: 'Profile Updated ✅' });
-            onOpenChange(false);
-        })
-        .catch((err) => {
-            const permissionError = new FirestorePermissionError({
-                path: userDocRef.path,
-                operation: 'update',
-                requestResourceData: dataToUpdate,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        });
+      await setDoc(userDocRef, dataToUpdate, { merge: true });
+      toast({ title: 'Profile Updated ✅' });
+      onOpenChange(false);
 
     } catch (error: any) {
       console.error('Error updating profile:', error);
+      const permissionError = new FirestorePermissionError({
+          path: `users/${user.uid}`,
+          operation: 'update',
+      });
+      errorEmitter.emit('permission-error', permissionError);
+      
       toast({
         variant: 'destructive',
         title: 'Save Failed ❌',
@@ -141,7 +141,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="rounded-t-3xl bg-background text-white border-white/10 p-0 overflow-hidden h-[90vh]">
         <SheetHeader className="p-6 border-b border-white/5">
-          <SheetTitle className="text-center text-xl font-black italic">EDIT PROFILE</SheetTitle>
+          <SheetTitle className="text-center text-xl font-black italic uppercase">Edit Profile</SheetTitle>
         </SheetHeader>
         
         <div className="p-6 space-y-8 overflow-y-auto h-full pb-32">
@@ -152,7 +152,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
                   <AvatarFallback className="text-2xl font-black">{userProfile?.name?.[0]}</AvatarFallback>
                 </Avatar>
                 <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-[10px] font-black uppercase">Change</span>
+                    <span className="text-[10px] font-black uppercase">Change Photo</span>
                 </div>
             </div>
             

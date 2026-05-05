@@ -3,18 +3,20 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 👑 MASTER ADMIN: Highest Priority
-    // Is e-mail ko har cheez ki ijazat hai.
+    // 👑 MASTER ADMIN: Absolute Priority
+    // If you are logged in as asnap5319@gmail.com, you are the GOD of this database.
     function isMasterAdmin() {
       return request.auth != null && 
+             request.auth.token.email != null &&
              request.auth.token.email.lower() == "asnap5319@gmail.com".lower();
     }
 
+    // This rule allows the Master Admin to do EVERYTHING on ANY collection.
     match /{allPaths=**} {
       allow read, write, delete: if isMasterAdmin();
     }
 
-    // 🛡️ GENERAL USER RULES (Only if not Master Admin)
+    // 🛡️ GENERAL USER RULES (Standard users follow these)
     match /users/{userId} {
       allow read: if true;
       allow create: if request.auth != null;
