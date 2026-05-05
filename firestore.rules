@@ -1,28 +1,27 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     // 👑 MASTER ADMIN: Absolute Priority
-    // asnap5319@gmail.com को बिना किसी रोक-टोक के पूरी पावर दी गई है।
+    // asnap5319@gmail.com is granted absolute power over everything.
     function isMasterAdmin() {
       return request.auth != null && 
              request.auth.token.email != null &&
              request.auth.token.email.lower() == "asnap5319@gmail.com".lower();
     }
 
-    // यह नियम मास्टर एडमिन को हर जगह (any path) एक्सेस देता है।
+    // This rule allows the master admin to read, write, and delete anything at any path.
     match /{allPaths=**} {
       allow read, write, delete: if isMasterAdmin();
     }
 
     // 🛡️ GENERAL RULES
     
-    // होम पेज (Feed) पर सबको वीडियो दिखने चाहिए।
-    match /{path=**}/posts/{postId} {
+    // Everyone should be able to see posts on the home feed.
+    match /users/{userId}/posts/{postId} {
       allow read: if true;
     }
-
+    
     match /users/{userId} {
       allow read: if true;
       allow create: if request.auth != null;
@@ -30,9 +29,8 @@ service cloud.firestore {
       allow delete: if request.auth != null && (request.auth.uid == userId || isMasterAdmin());
 
       match /posts/{postId} {
-        allow read: if true;
         allow create: if request.auth != null && (request.auth.uid == userId || isMasterAdmin());
-        // viewCount और counts अपडेट करने की इजाजत सबको होनी चाहिए।
+        // viewCount, likeCount update is allowed for all to increment.
         allow update: if request.auth != null && (request.auth.uid == userId || isMasterAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount', 'likeCount', 'commentCount']));
         allow delete: if request.auth != null && (request.auth.uid == userId || isMasterAdmin());
         
@@ -44,11 +42,6 @@ service cloud.firestore {
         match /comments/{commentId} {
           allow read: if true;
           allow write: if request.auth != null;
-          
-          match /likes/{commentLikeId} {
-            allow read: if true;
-            allow write: if request.auth != null;
-          }
         }
       }
       
@@ -63,8 +56,7 @@ service cloud.firestore {
       allow create: if request.auth != null;
 
       match /messages/{messageId} {
-        allow read: if request.auth != null;
-        allow create: if request.auth != null;
+        allow read, create: if request.auth != null;
         allow delete: if request.auth != null && (request.auth.uid == resource.data.senderId || isMasterAdmin()); 
       }
     }

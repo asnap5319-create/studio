@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, ChangeEvent, useRef } from 'react';
@@ -62,12 +61,12 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
 
   const handleSaveChanges = async () => {
     if (!user || !firestore) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Not logged in.' });
+      toast({ variant: 'destructive', title: 'Error', description: 'Firebase not initialized.' });
       return;
     }
     
     if (!username.trim()) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Username needed.' });
+        toast({ variant: 'destructive', title: 'Error', description: 'Username is required.' });
         return;
     }
 
@@ -80,7 +79,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       let profileImageUrl = userProfile?.profileImageUrl;
 
       if (imageFile) {
-        toast({ title: "फोटो अपलोड हो रही है...", description: "कृपया प्रतीक्षा करें।" });
+        toast({ title: "Uploading photo...", description: "Please wait." });
         const formData = new FormData();
         formData.append('file', imageFile);
         formData.append('upload_preset', uploadPreset);
@@ -90,22 +89,25 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
                 method: 'POST',
                 body: formData
             });
-            const data = await response.json();
             
-            if (data.secure_url) {
+            const data = await response.json();
+
+            if (response.ok && data.secure_url) {
                 profileImageUrl = data.secure_url;
-                toast({ title: "फोटो सफलतापूर्वक अपलोड हो गई! ✅" });
+                toast({ title: "Photo uploaded successfully! ✅" });
             } else {
-                console.error("Cloudinary Error:", data);
+                console.error("Cloudinary Error Detail:", data);
+                const errorMsg = data.error?.message || "Check Cloudinary Settings.";
                 toast({ 
                   variant: 'destructive', 
-                  title: 'फोटो अपलोड नहीं हुई ❌', 
-                  description: 'Cloudinary Preset की समस्या है। बाकी जानकारी अपडेट हो रही है।' 
+                  title: 'Photo Upload Failed ❌', 
+                  description: errorMsg
                 });
+                // We continue to save other info even if photo fails
             }
-        } catch (uploadError) {
-            console.error("Upload fetch error:", uploadError);
-            toast({ variant: 'destructive', title: 'नेटवर्क एरर ❌', description: 'फोटो अपलोड फेल हो गई।' });
+        } catch (uploadError: any) {
+            console.error("Network Error during upload:", uploadError);
+            toast({ variant: 'destructive', title: 'Network Error ❌', description: 'Could not reach Cloudinary.' });
         }
       }
 
@@ -119,11 +121,11 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       };
 
       await setDoc(userDocRef, dataToUpdate, { merge: true });
-      toast({ title: 'प्रोफाइल सफलतापूर्वक अपडेट हो गई! ✅' });
+      toast({ title: 'Profile updated successfully! ✅' });
       onOpenChange(false);
 
     } catch (error: any) {
-      console.error('Error updating profile:', error);
+      console.error('Error updating profile document:', error);
       const permissionError = new FirestorePermissionError({
           path: `users/${user.uid}`,
           operation: 'update',
@@ -132,8 +134,8 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       
       toast({
         variant: 'destructive',
-        title: 'अपडेट फेल ❌',
-        description: error.message || 'जानकारी सेव नहीं हो सकी।',
+        title: 'Update Failed ❌',
+        description: error.message || 'Database permission error.',
       });
     } finally {
       setIsSaving(false);
