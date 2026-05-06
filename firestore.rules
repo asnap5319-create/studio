@@ -25,7 +25,7 @@ service cloud.firestore {
       allow read: if true;
       allow create: if request.auth != null && request.auth.uid == userId;
       allow update: if request.auth != null; // Allows likes/views increment
-      allow delete: if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null && (request.auth.uid == userId || isMasterAdmin());
       
       match /likes/{likeId} {
         allow read: if true;
@@ -42,7 +42,7 @@ service cloud.firestore {
       allow read: if true;
       allow create: if request.auth != null && request.auth.uid == userId;
       allow update: if request.auth != null && request.auth.uid == userId;
-      allow delete: if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null && (request.auth.uid == userId || isMasterAdmin());
 
       match /notifications/{notificationId} {
         allow read, update, delete: if request.auth != null && request.auth.uid == userId;
