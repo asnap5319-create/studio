@@ -1,7 +1,6 @@
-
 {
   "name": "a.snap",
-  "version": "0.1.10",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -p 9002",

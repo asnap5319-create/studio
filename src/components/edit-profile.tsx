@@ -70,7 +70,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       let profileImageUrl = userProfile?.profileImageUrl;
 
       if (imageFile) {
-        // Updated Cloudinary Config as per your requirement
+        // Updated Cloudinary Config (dipz5jsls & video_upload)
         const cloudName = "dipz5jsls";
         const uploadPreset = "video_upload";
 
@@ -89,8 +89,8 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
             profileImageUrl = data.secure_url;
             toast({ title: "फोटो सफलतापूर्वक अपलोड हो गई! ✅" });
         } else {
-            console.error("Cloudinary Detailed Error (Fixed):", data);
-            const errorMsg = data.error?.message || "Check Cloudinary Settings.";
+            console.error("Cloudinary Error Detail:", data);
+            const errorMsg = data?.error?.message || "Cloudinary upload failed. Check Preset Settings.";
             throw new Error(errorMsg);
         }
       }

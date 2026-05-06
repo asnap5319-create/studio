@@ -16,7 +16,7 @@ service cloud.firestore {
 
     // 🛡️ GENERAL RULES
     
-    // ALLOW PUBLIC READ FOR POSTS (Global visibility)
+    // ALLOW PUBLIC READ FOR POSTS (Global visibility for feed)
     match /{path=**}/posts/{postId} {
       allow read: if true;
     }
