@@ -69,10 +69,10 @@ service cloud.firestore {
 
     match /user_following/{followerUserId}/following/{followedUserId} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == followerUserId;
+      allow write: if request.auth != null && request.auth.uid == followedUserId;
     }
     
-    // Global catch-all for read operations to prevent permission errors on common listings
+    // Global catch-all for read operations to prevent permission errors
     match /{allPaths=**} {
       allow read: if true;
     }
