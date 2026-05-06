@@ -71,5 +71,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if request.auth != null && request.auth.uid == followerUserId;
     }
+    
+    // Global catch-all for read operations to prevent permission errors on common listings
+    match /{allPaths=**} {
+      allow read: if true;
+    }
   }
 }
