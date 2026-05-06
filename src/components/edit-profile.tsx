@@ -60,14 +60,14 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
   const handleSaveChanges = async () => {
     if (!user || !firestore) return;
     if (!username.trim()) {
-        toast({ variant: 'destructive', title: 'Error', description: 'यूजरनेम ज़रूरी है।' });
+        toast({ variant: 'destructive', title: 'Error', description: 'Username is required.' });
         return;
     }
 
     setIsSaving(true);
 
     try {
-      let profileImageUrl = userProfile?.profileImageUrl;
+      let profileImageUrl = userProfile?.profileImageUrl || `https://picsum.photos/seed/${user.uid}/400/400`;
 
       if (imageFile) {
         const cloudName = "dipz5jsls";
@@ -77,7 +77,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         formData.append('file', imageFile);
         formData.append('upload_preset', uploadPreset);
         
-        toast({ title: "फोटो अपलोड हो रही है...", description: "कृपया थोड़ा इंतज़ार करें।" });
+        toast({ title: "Photo uploading... 🚀", description: "Please wait a moment." });
         
         const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
             method: 'POST',
@@ -88,16 +88,16 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
 
         if (response.ok && data.secure_url) {
             profileImageUrl = data.secure_url;
-            toast({ title: "फोटो सफलतापूर्वक अपलोड हो गई! ✅" });
+            toast({ title: "Photo Updated! ✅" });
         } else {
-            console.error("Cloudinary Error Detail:", data);
-            const errorMsg = data?.error?.message || "Cloudinary configuration error.";
+            console.error("Cloudinary Detailed Error:", data);
+            const errorMsg = data?.error?.message || "Upload failed. Check Cloudinary settings.";
             toast({ 
               variant: 'destructive', 
-              title: 'फोटो अपलोड फेल ❌', 
+              title: 'Photo Upload Failed ❌', 
               description: errorMsg 
             });
-            // Don't stop the whole process if only image fails, unless it's critical
+            // Proceed even if photo fails so other profile data is saved
         }
       }
 
@@ -110,15 +110,15 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         profileImageUrl,
       }, { merge: true });
 
-      toast({ title: 'प्रोफाइल अपडेट हो गई! ✅', description: 'आपकी जानकारी सुरक्षित है।' });
+      toast({ title: 'Profile Updated! ✅', description: 'Your changes have been saved.' });
       onOpenChange(false);
 
     } catch (error: any) {
       console.error('Update Profile Error:', error);
       toast({
         variant: 'destructive',
-        title: 'फेल ❌',
-        description: error.message || 'इंटरनेट या सेटिंग्स चेक करें।',
+        title: 'Error ❌',
+        description: error.message || 'Something went wrong.',
       });
     } finally {
       setIsSaving(false);
@@ -140,7 +140,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
                   <AvatarFallback className="text-2xl font-black">{userProfile?.name?.[0]}</AvatarFallback>
                 </Avatar>
                 <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-[10px] font-black uppercase text-white">फोटो बदलें</span>
+                    <span className="text-[10px] font-black uppercase text-white">Change Photo</span>
                 </div>
             </div>
             
@@ -168,7 +168,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
               <Textarea 
                 value={bio} 
                 onChange={(e) => setBio(e.target.value)} 
-                placeholder="अपने बारे में कुछ बताएं..."
+                placeholder="Tell us about yourself..."
                 className="min-h-[120px] bg-secondary/50 border-white/10 rounded-xl resize-none"
                 disabled={isSaving}
               />

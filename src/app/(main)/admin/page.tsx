@@ -94,7 +94,7 @@ export default function AdminPage() {
     if (isUserLoading) return (
         <div className="flex h-screen flex-col items-center justify-center bg-background text-white">
             <Loader2 className="animate-spin h-10 w-10 text-primary mb-4" />
-            <span className="font-bold">एडमिन चेक हो रहा है...</span>
+            <span className="font-bold">Admin Checking...</span>
         </div>
     );
 
@@ -104,9 +104,9 @@ export default function AdminPage() {
                 <ShieldAlert className="w-20 h-20 text-destructive mb-4 animate-bounce" />
                 <h1 className="text-3xl font-black mb-2 text-red-500 uppercase">ACCESS DENIED</h1>
                 <p className="text-muted-foreground mb-8">
-                    यह पैनल सिर्फ <span className="text-primary font-bold">{ADMIN_EMAIL}</span> के लिए है।
+                    This panel is restricted to <span className="text-primary font-bold">{ADMIN_EMAIL}</span>.
                 </p>
-                <Button onClick={() => router.push('/feed')}>फीड पर वापस जाएं</Button>
+                <Button onClick={() => router.push('/feed')}>Return to Feed</Button>
             </div>
         );
     }
@@ -140,7 +140,7 @@ export default function AdminPage() {
                 <div className="relative w-full md:w-72">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input 
-                        placeholder="खोजें (User/Post)..." 
+                        placeholder="Search (User/Post)..." 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10 bg-secondary/50 border-white/10 rounded-xl"
@@ -151,10 +151,10 @@ export default function AdminPage() {
             <Tabs defaultValue="users" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 bg-secondary/50 p-1 rounded-2xl mb-8 border border-white/5 h-14">
                     <TabsTrigger value="users" className="rounded-xl data-[state=active]:bg-primary font-bold">
-                        <Users className="mr-2 h-5 w-5" /> यूजर्स ({users?.length || 0})
+                        <Users className="mr-2 h-5 w-5" /> Users ({users?.length || 0})
                     </TabsTrigger>
                     <TabsTrigger value="posts" className="rounded-xl data-[state=active]:bg-primary font-bold">
-                        <FileVideo className="mr-2 h-5 w-5" /> वीडियो ({posts?.length || 0})
+                        <FileVideo className="mr-2 h-5 w-5" /> Videos ({posts?.length || 0})
                     </TabsTrigger>
                 </TabsList>
 
@@ -191,7 +191,7 @@ export default function AdminPage() {
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="bg-[#1a1a1a] border-border text-white min-w-[180px] p-2 rounded-2xl">
                                         <DropdownMenuItem onClick={() => router.push(`/profile/${u.id}`)} className="focus:bg-primary/20 py-3 rounded-xl cursor-pointer">
-                                            <Eye className="mr-3 h-4 w-4" /> प्रोफाइल देखें
+                                            <Eye className="mr-3 h-4 w-4" /> View Profile
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator className="bg-white/5 my-1" />
                                         <DropdownMenuItem 
@@ -200,12 +200,12 @@ export default function AdminPage() {
                                             disabled={isActionLoading === u.id}
                                         >
                                             <Trash2 className="mr-3 h-4 w-4 text-destructive" /> 
-                                            {isActionLoading === u.id ? 'डिलीट हो रहा है...' : 'ID डिलीट करें'}
+                                            {isActionLoading === u.id ? 'Deleting...' : 'Delete Account'}
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
-                        )) : <div className="text-center py-20 opacity-30">कोई यूजर नहीं मिला</div>}
+                        )) : <div className="text-center py-20 opacity-30">No users found</div>}
                     </div>
                 </TabsContent>
 
@@ -239,7 +239,7 @@ export default function AdminPage() {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end" className="bg-[#1a1a1a] border-border text-white min-w-[180px] p-2 rounded-2xl shadow-2xl">
                                             <DropdownMenuItem onClick={() => setSelectedPost(p)} className="focus:bg-primary/20 py-3 rounded-xl cursor-pointer">
-                                                <Play className="mr-3 h-4 w-4" /> प्ले करें
+                                                <Play className="mr-3 h-4 w-4" /> Play
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator className="bg-white/5 my-1" />
                                             <DropdownMenuItem 
@@ -248,13 +248,13 @@ export default function AdminPage() {
                                                 disabled={isActionLoading === p.id}
                                             >
                                                 <Trash2 className="mr-3 h-4 w-4 text-destructive" /> 
-                                                {isActionLoading === p.id ? 'डिलीट हो रहा है...' : 'वीडियो डिलीट करें'}
+                                                {isActionLoading === p.id ? 'Deleting...' : 'Delete Video'}
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </div>
                             </div>
-                        )) : <div className="text-center py-20 opacity-30">कोई वीडियो नहीं मिली</div>}
+                        )) : <div className="text-center py-20 opacity-30">No videos found</div>}
                     </div>
                 </TabsContent>
             </Tabs>
