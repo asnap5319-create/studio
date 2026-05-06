@@ -83,27 +83,23 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         formData.append('file', imageFile);
         formData.append('upload_preset', uploadPreset);
         
-        const uploadEndpoint = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
-        
-        const response = await fetch(uploadEndpoint, {
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
             method: 'POST',
             body: formData
         });
-        
-        const data = await response.json();
 
-        if (response.ok && data.secure_url) {
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Cloudinary Raw Error:", errorText);
+            throw new Error(`Cloudinary Upload Failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (data.secure_url) {
             profileImageUrl = data.secure_url;
-            toast({ title: "फोटो सफलतापूर्वक अपलोड हो गई! ✅" });
         } else {
-            console.error("Cloudinary Detailed Error:", data);
-            const errorDetail = data?.error?.message || "क्लाउडिनरी सेटिंग्स चेक करें (Preset missing).";
-            toast({ 
-              variant: 'destructive', 
-              title: 'फोटो अपलोड नहीं हुई ❌', 
-              description: errorDetail
-            });
-            // Don't stop here, let the rest of the profile update
+            console.error("Cloudinary JSON Error:", data);
+            throw new Error(data.error?.message || "Cloudinary Upload Failed.");
         }
       }
 
@@ -121,17 +117,11 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       onOpenChange(false);
 
     } catch (error: any) {
-      console.error('Error updating profile:', error);
-      const permissionError = new FirestorePermissionError({
-          path: `users/${user.uid}`,
-          operation: 'update',
-      });
-      errorEmitter.emit('permission-error', permissionError);
-      
+      console.error('Update Profile Error:', error);
       toast({
         variant: 'destructive',
         title: 'अपडेट फेल ❌',
-        description: error.message || 'Permissions Denied.',
+        description: error.message || 'Something went wrong.',
       });
     } finally {
       setIsSaving(false);

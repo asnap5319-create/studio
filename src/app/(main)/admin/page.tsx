@@ -64,7 +64,6 @@ export default function AdminPage() {
                 operation: 'delete',
             });
             errorEmitter.emit('permission-error', permissionError);
-            toast({ variant: 'destructive', title: 'Error', description: 'Permissions Denied.' });
         } finally {
             setIsActionLoading(null);
         }
@@ -87,7 +86,6 @@ export default function AdminPage() {
                 operation: 'delete',
             });
             errorEmitter.emit('permission-error', permissionError);
-            toast({ variant: 'destructive', title: 'Error', description: 'Permissions Denied.' });
         } finally {
             setIsActionLoading(null);
         }
