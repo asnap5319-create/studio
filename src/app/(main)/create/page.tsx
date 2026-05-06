@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, ChangeEvent } from 'react';
@@ -51,8 +50,9 @@ export default function CreatePostPage() {
     }
     if (!firestore) return;
 
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "demo";
-    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "unsigned_preset";
+    // Updated Cloudinary Config as per user requirement
+    const cloudName = "dipz5jsls";
+    const uploadPreset = "video_upload";
 
     setIsUploading(true);
     setError(null);

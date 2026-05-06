@@ -44,14 +44,9 @@ export default function SignupPage() {
       return;
     }
 
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-
-    if (!cloudName || !uploadPreset) {
-      toast({ title: "Configuration Error", description: "Cloudinary is not configured. Please set environment variables.", variant: "destructive" });
-      console.error("Cloudinary environment variables NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME or NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET are not set.");
-      return;
-    }
+    // Updated Cloudinary Config
+    const cloudName = "dipz5jsls";
+    const uploadPreset = "video_upload";
 
     setIsLoading(true);
     setStatusMessage('Creating account...');

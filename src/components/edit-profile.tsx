@@ -16,8 +16,6 @@ import { useFirebase, useUser } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/models/user';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 
 interface EditProfileSheetProps {
   open: boolean;
@@ -60,11 +58,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
   };
 
   const handleSaveChanges = async () => {
-    if (!user || !firestore) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Firebase not initialized.' });
-      return;
-    }
-    
+    if (!user || !firestore) return;
     if (!username.trim()) {
         toast({ variant: 'destructive', title: 'Error', description: 'Username is required.' });
         return;
@@ -76,8 +70,9 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       let profileImageUrl = userProfile?.profileImageUrl;
 
       if (imageFile) {
-        const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "demo";
-        const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "unsigned_preset";
+        // Updated Cloudinary Config as per user requirement
+        const cloudName = "dipz5jsls";
+        const uploadPreset = "video_upload";
 
         const formData = new FormData();
         formData.append('file', imageFile);
@@ -88,31 +83,25 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
             body: formData
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error("Cloudinary Raw Error:", errorText);
-            throw new Error(`Cloudinary Upload Failed: ${response.status}`);
-        }
-
         const data = await response.json();
-        if (data.secure_url) {
+
+        if (response.ok && data.secure_url) {
             profileImageUrl = data.secure_url;
         } else {
-            console.error("Cloudinary JSON Error:", data);
-            throw new Error(data.error?.message || "Cloudinary Upload Failed.");
+            console.error("Cloudinary Detailed Error:", data);
+            throw new Error(data.error?.message || "Upload Failed. Check Cloudinary Preset Settings.");
         }
       }
 
       const userDocRef = doc(firestore, 'users', user.uid);
-      const dataToUpdate = {
+      await setDoc(userDocRef, {
         name: name.trim(),
         username: username.trim(),
         username_lowercase: username.trim().toLowerCase(),
         bio: bio.trim(),
         profileImageUrl,
-      };
+      }, { merge: true });
 
-      await setDoc(userDocRef, dataToUpdate, { merge: true });
       toast({ title: 'प्रोफाइल अपडेट सफल! ✨' });
       onOpenChange(false);
 
