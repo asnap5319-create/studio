@@ -87,11 +87,11 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
 
         if (response.ok && data.secure_url) {
             profileImageUrl = data.secure_url;
-            toast({ title: "फोटो सफलतापूर्वक अपलोड हो गई! ✅" });
+            toast({ title: "फोटो सफलतापूर्वक अपडेट हुई! ✅" });
         } else {
             console.error("Cloudinary Error Detail:", data);
-            const errorMsg = data?.error?.message || "Cloudinary upload failed. Check Preset Settings.";
-            throw new Error(errorMsg);
+            // Even if photo fails, we continue to update other info but inform user
+            toast({ variant: 'destructive', title: 'फोटो अपलोड फेल', description: 'Photo change skipped. Check Cloudinary settings.' });
         }
       }
 
