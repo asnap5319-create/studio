@@ -16,7 +16,7 @@ service cloud.firestore {
 
     // 🛡️ GENERAL RULES
     match /users/{userId}/posts/{postId} {
-      // Allow public read for feed to avoid permission errors on home page
+      // Allow public read for feed so it works without login on Google/Vercel
       allow read: if true;
       allow create: if request.auth != null && request.auth.uid == userId;
       allow update: if request.auth != null;

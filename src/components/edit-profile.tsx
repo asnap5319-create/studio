@@ -70,6 +70,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       let profileImageUrl = userProfile?.profileImageUrl || `https://picsum.photos/seed/${user.uid}/400/400`;
 
       if (imageFile) {
+        // Robust Cloudinary Upload Logic
         const cloudName = "dipz5jsls";
         const uploadPreset = "video_upload";
 
@@ -90,13 +91,16 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
             profileImageUrl = data.secure_url;
             toast({ title: "फोटो सफलतापूर्वक अपडेट हो गई! ✅" });
         } else {
-            console.error("Cloudinary Error Log:", data);
+            console.error("Cloudinary Detailed Error:", data);
             const errorDetail = data?.error?.message || "Upload Preset Settings Error.";
             toast({ 
               variant: 'destructive', 
               title: 'अपलोड फेल ❌', 
               description: errorDetail
             });
+            // If upload fails, we stop the save process to prevent data inconsistency
+            setIsSaving(false);
+            return;
         }
       }
 
