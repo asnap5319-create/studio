@@ -60,7 +60,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
   const handleSaveChanges = async () => {
     if (!user || !firestore) return;
     if (!username.trim()) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Username is required.' });
+        toast({ variant: 'destructive', title: 'Error', description: 'यूजरनेम ज़रूरी है।' });
         return;
     }
 
@@ -70,7 +70,6 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       let profileImageUrl = userProfile?.profileImageUrl;
 
       if (imageFile) {
-        // Cloudinary Settings from user
         const cloudName = "dipz5jsls";
         const uploadPreset = "video_upload";
 
@@ -78,7 +77,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         formData.append('file', imageFile);
         formData.append('upload_preset', uploadPreset);
         
-        toast({ title: "Uploading Photo...", description: "Please wait a moment." });
+        toast({ title: "फोटो अपलोड हो रही है...", description: "कृपया थोड़ा इंतज़ार करें।" });
         
         const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
             method: 'POST',
@@ -89,9 +88,16 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
 
         if (response.ok && data.secure_url) {
             profileImageUrl = data.secure_url;
+            toast({ title: "फोटो सफलतापूर्वक अपलोड हो गई! ✅" });
         } else {
-            console.error("Cloudinary Detailed Error:", data);
-            throw new Error(data.error?.message || "Cloudinary upload failed.");
+            console.error("Cloudinary Error Detail:", data);
+            const errorMsg = data?.error?.message || "Cloudinary configuration error.";
+            toast({ 
+              variant: 'destructive', 
+              title: 'फोटो अपलोड फेल ❌', 
+              description: errorMsg 
+            });
+            // Don't stop the whole process if only image fails, unless it's critical
         }
       }
 
@@ -104,15 +110,15 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         profileImageUrl,
       }, { merge: true });
 
-      toast({ title: 'Success! ✅', description: 'Profile updated successfully.' });
+      toast({ title: 'प्रोफाइल अपडेट हो गई! ✅', description: 'आपकी जानकारी सुरक्षित है।' });
       onOpenChange(false);
 
     } catch (error: any) {
       console.error('Update Profile Error:', error);
       toast({
         variant: 'destructive',
-        title: 'Update Failed ❌',
-        description: error.message || 'Check your internet or settings.',
+        title: 'फेल ❌',
+        description: error.message || 'इंटरनेट या सेटिंग्स चेक करें।',
       });
     } finally {
       setIsSaving(false);
@@ -134,7 +140,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
                   <AvatarFallback className="text-2xl font-black">{userProfile?.name?.[0]}</AvatarFallback>
                 </Avatar>
                 <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-[10px] font-black uppercase text-white">Change Photo</span>
+                    <span className="text-[10px] font-black uppercase text-white">फोटो बदलें</span>
                 </div>
             </div>
             
@@ -162,7 +168,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
               <Textarea 
                 value={bio} 
                 onChange={(e) => setBio(e.target.value)} 
-                placeholder="Tell us about yourself..."
+                placeholder="अपने बारे में कुछ बताएं..."
                 className="min-h-[120px] bg-secondary/50 border-white/10 rounded-xl resize-none"
                 disabled={isSaving}
               />
