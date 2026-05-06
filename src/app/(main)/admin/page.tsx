@@ -133,14 +133,14 @@ export default function AdminPage() {
                             <ShieldCheck /> Master Panel
                         </h1>
                         <p className="text-[10px] text-green-500 font-bold mt-1">
-                            Current Admin: {user.email}
+                            Admin: {user.email}
                         </p>
                     </div>
                 </div>
                 <div className="relative w-full md:w-72">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input 
-                        placeholder="Search (User/Post)..." 
+                        placeholder="Search..." 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10 bg-secondary/50 border-white/10 rounded-xl"
@@ -272,7 +272,7 @@ export default function AdminPage() {
 
             <footer className="mt-12 p-6 bg-red-500/5 rounded-3xl border border-red-500/20 text-center">
                 <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-3 animate-pulse" />
-                <h3 className="text-red-500 font-black text-lg mb-2 uppercase italic">Master Admin Only</h3>
+                <h3 className="text-red-500 font-black text-lg mb-2 uppercase italic">Master Control</h3>
             </footer>
         </div>
     );

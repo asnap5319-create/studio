@@ -60,7 +60,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
   const handleSaveChanges = async () => {
     if (!user || !firestore) return;
     if (!username.trim()) {
-        toast({ variant: 'destructive', title: 'Error', description: 'यूजरनेम ज़रूरी है।' });
+        toast({ variant: 'destructive', title: 'Error', description: 'Username is required.' });
         return;
     }
 
@@ -70,7 +70,6 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       let profileImageUrl = userProfile?.profileImageUrl || `https://picsum.photos/seed/${user.uid}/400/400`;
 
       if (imageFile) {
-        // Cloudinary Config Provided by User
         const cloudName = "dipz5jsls";
         const uploadPreset = "video_upload";
 
@@ -78,7 +77,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         formData.append('file', imageFile);
         formData.append('upload_preset', uploadPreset);
         
-        toast({ title: "फोटो अपलोड हो रही है... 🚀", description: "कृपया थोड़ा इंतज़ार करें।" });
+        toast({ title: "Uploading Photo... 🚀" });
         
         const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
             method: 'POST',
@@ -89,16 +88,14 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
 
         if (response.ok && data.secure_url) {
             profileImageUrl = data.secure_url;
-            toast({ title: "फोटो बदल गई! ✅" });
+            toast({ title: "Photo Updated! ✅" });
         } else {
-            console.error("Cloudinary Detailed Error (Fixed):", data);
-            const errorMsg = data?.error?.message || "क्लाउडिनरी सेटिंग्स चेक करें (Upload Preset missing).";
+            console.error("Cloudinary Error:", data);
             toast({ 
               variant: 'destructive', 
-              title: 'फोटो अपलोड फेल ❌', 
-              description: errorMsg 
+              title: 'Upload Failed ❌', 
+              description: data?.error?.message || "Check Cloudinary Settings."
             });
-            // Still proceed to save name/bio if photo upload fails
         }
       }
 
@@ -111,15 +108,15 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         profileImageUrl,
       }, { merge: true });
 
-      toast({ title: 'प्रोफाइल सेव हो गई! ✅', description: 'आपके बदलाव सुरक्षित हैं।' });
+      toast({ title: 'Profile Saved! ✅' });
       onOpenChange(false);
 
     } catch (error: any) {
       console.error('Update Profile Error:', error);
       toast({
         variant: 'destructive',
-        title: 'एरर ❌',
-        description: error.message || 'कुछ गड़बड़ हो गई।',
+        title: 'Error ❌',
+        description: error.message || 'Something went wrong.',
       });
     } finally {
       setIsSaving(false);
@@ -136,7 +133,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         <div className="p-6 space-y-8 overflow-y-auto h-full pb-32">
           <div className="flex flex-col items-center gap-4">
             <div className="relative group" onClick={() => fileInputRef.current?.click()}>
-                <Avatar className="h-32 w-32 border-4 border-primary shadow-[0_0_20px_rgba(var(--primary),0.3)] cursor-pointer hover:scale-105 transition-transform">
+                <Avatar className="h-32 w-32 border-4 border-primary shadow-lg cursor-pointer hover:scale-105 transition-transform">
                   <AvatarImage src={imagePreviewUrl ?? userProfile?.profileImageUrl} className="object-cover" />
                   <AvatarFallback className="text-2xl font-black">{userProfile?.name?.[0]}</AvatarFallback>
                 </Avatar>
@@ -169,7 +166,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
               <Textarea 
                 value={bio} 
                 onChange={(e) => setBio(e.target.value)} 
-                placeholder="अपने बारे में कुछ लिखें..."
+                placeholder="About you..."
                 className="min-h-[120px] bg-secondary/50 border-white/10 rounded-xl resize-none"
                 disabled={isSaving}
               />
@@ -178,10 +175,10 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         </div>
 
         <div className="absolute bottom-0 left-0 right-0 p-6 bg-background border-t border-white/5 flex gap-4">
-          <Button variant="ghost" onClick={() => onOpenChange(false)} className="flex-1 h-14 rounded-2xl font-black uppercase border border-white/5" disabled={isSaving}>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} className="flex-1 h-14 rounded-2xl font-black uppercase" disabled={isSaving}>
             Cancel
           </Button>
-          <Button onClick={handleSaveChanges} disabled={isSaving} className="flex-1 h-14 rounded-2xl font-black uppercase bg-primary shadow-[0_0_20px_rgba(var(--primary),0.4)]">
+          <Button onClick={handleSaveChanges} disabled={isSaving} className="flex-1 h-14 rounded-2xl font-black uppercase bg-primary">
             {isSaving ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>

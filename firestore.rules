@@ -2,21 +2,19 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 👑 MASTER ADMIN: Absolute Control (asnap5319@gmail.com)
+    // 👑 MASTER ADMIN: asnap5319@gmail.com
     function isMasterAdmin() {
       return request.auth != null && 
              request.auth.token.email != null &&
              request.auth.token.email.lower() == "asnap5319@gmail.com".lower();
     }
 
-    // Allow Master Admin to do everything anywhere
+    // Master Admin bypass
     match /{allPaths=**} {
       allow read, write, delete: if isMasterAdmin();
     }
 
     // 🛡️ GENERAL RULES
-    
-    // ALLOW PUBLIC READ FOR POSTS (Important for the feed and links to work)
     match /users/{userId}/posts/{postId} {
       allow read: if true;
       allow create: if request.auth != null && request.auth.uid == userId;
@@ -54,18 +52,18 @@ service cloud.firestore {
       match /messages/{messageId} {
         allow read: if request.auth != null;
         allow create: if request.auth != null;
-        allow delete: if request.auth != null && (request.auth.uid == resource.data.senderId || isMasterAdmin()); 
+        allow delete: if request.auth != null && (request.auth.uid == resource.data.senderId); 
       }
     }
 
     match /user_followers/{followedUserId}/followers/{followerUserId} {
       allow read: if true;
-      allow write: if request.auth != null && (request.auth.uid == followerUserId || isMasterAdmin());
+      allow write: if request.auth != null && request.auth.uid == followerUserId;
     }
 
     match /user_following/{followerUserId}/following/{followedUserId} {
       allow read: if true;
-      allow write: if request.auth != null && (request.auth.uid == followerUserId || isMasterAdmin());
+      allow write: if request.auth != null && request.auth.uid == followerUserId;
     }
   }
 }
