@@ -70,13 +70,15 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       let profileImageUrl = userProfile?.profileImageUrl;
 
       if (imageFile) {
-        // Updated Cloudinary Config (dipz5jsls & video_upload)
+        // Cloudinary Settings from user
         const cloudName = "dipz5jsls";
         const uploadPreset = "video_upload";
 
         const formData = new FormData();
         formData.append('file', imageFile);
         formData.append('upload_preset', uploadPreset);
+        
+        toast({ title: "Uploading Photo...", description: "Please wait a moment." });
         
         const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
             method: 'POST',
@@ -87,11 +89,9 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
 
         if (response.ok && data.secure_url) {
             profileImageUrl = data.secure_url;
-            toast({ title: "फोटो सफलतापूर्वक अपडेट हुई! ✅" });
         } else {
-            console.error("Cloudinary Error Detail:", data);
-            // Even if photo fails, we continue to update other info but inform user
-            toast({ variant: 'destructive', title: 'फोटो अपलोड फेल', description: 'Photo change skipped. Check Cloudinary settings.' });
+            console.error("Cloudinary Detailed Error:", data);
+            throw new Error(data.error?.message || "Cloudinary upload failed.");
         }
       }
 
@@ -104,15 +104,15 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         profileImageUrl,
       }, { merge: true });
 
-      toast({ title: 'प्रोफाइल अपडेट सफल! ✨' });
+      toast({ title: 'Success! ✅', description: 'Profile updated successfully.' });
       onOpenChange(false);
 
     } catch (error: any) {
       console.error('Update Profile Error:', error);
       toast({
         variant: 'destructive',
-        title: 'अपडेट फेल ❌',
-        description: error.message || 'Something went wrong.',
+        title: 'Update Failed ❌',
+        description: error.message || 'Check your internet or settings.',
       });
     } finally {
       setIsSaving(false);
