@@ -15,8 +15,13 @@ service cloud.firestore {
     }
 
     // 🛡️ GENERAL RULES
+    
+    // Explicit rule for collection group queries on posts
+    match /{path=**}/posts/{postId} {
+      allow read: if true;
+    }
+
     match /users/{userId}/posts/{postId} {
-      // Allow public read for feed so it works without login on Google/Vercel
       allow read: if true;
       allow create: if request.auth != null && request.auth.uid == userId;
       allow update: if request.auth != null;
@@ -35,7 +40,7 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if true;
-      allow create: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == userId;
       allow update: if request.auth != null && request.auth.uid == userId;
       allow delete: if request.auth != null && request.auth.uid == userId;
 
