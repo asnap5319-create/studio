@@ -42,10 +42,10 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
 
   useEffect(() => {
     if (userProfile && open) {
-      setName(userProfile.name);
-      setUsername(userProfile.username);
+      setName(userProfile.name || '');
+      setUsername(userProfile.username || '');
       setBio(userProfile.bio || '');
-      setImagePreviewUrl(userProfile.profileImageUrl);
+      setImagePreviewUrl(userProfile.profileImageUrl || '');
       setImageFile(null);
     }
   }, [userProfile, open]);
@@ -83,34 +83,27 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         formData.append('file', imageFile);
         formData.append('upload_preset', uploadPreset);
         
-        try {
-            const uploadEndpoint = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
-            const response = await fetch(uploadEndpoint, {
-                method: 'POST',
-                body: formData
-            });
-            
-            const data = await response.json();
+        const uploadEndpoint = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+        
+        const response = await fetch(uploadEndpoint, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
 
-            if (response.ok && data.secure_url) {
-                profileImageUrl = data.secure_url;
-            } else {
-                console.error("Cloudinary Detailed Error:", data);
-                const errorDetail = data?.error?.message || "Upload Preset settings incorrect.";
-                toast({ 
-                  variant: 'destructive', 
-                  title: 'फोटो अपलोड नहीं हुई ❌', 
-                  description: errorDetail
-                });
-                // Continue to save other info even if image fails
-            }
-        } catch (uploadError: any) {
-            console.error("Network Error during photo upload:", uploadError);
+        if (response.ok && data.secure_url) {
+            profileImageUrl = data.secure_url;
+            toast({ title: "फोटो सफलतापूर्वक अपलोड हो गई! ✅" });
+        } else {
+            console.error("Cloudinary Detailed Error:", data);
+            const errorDetail = data?.error?.message || "क्लाउडिनरी सेटिंग्स चेक करें (Preset missing).";
             toast({ 
-                variant: 'destructive', 
-                title: 'नेटवर्क एरर ❌', 
-                description: 'फोटो अपलोड फेल हो गई।' 
+              variant: 'destructive', 
+              title: 'फोटो अपलोड नहीं हुई ❌', 
+              description: errorDetail
             });
+            // Don't stop here, let the rest of the profile update
         }
       }
 
