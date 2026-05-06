@@ -60,7 +60,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
   const handleSaveChanges = async () => {
     if (!user || !firestore) return;
     if (!username.trim()) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Username is required.' });
+        toast({ variant: 'destructive', title: 'Error', description: 'यूजरनेम ज़रूरी है।' });
         return;
     }
 
@@ -70,6 +70,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       let profileImageUrl = userProfile?.profileImageUrl || `https://picsum.photos/seed/${user.uid}/400/400`;
 
       if (imageFile) {
+        // Cloudinary Config Provided by User
         const cloudName = "dipz5jsls";
         const uploadPreset = "video_upload";
 
@@ -77,7 +78,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         formData.append('file', imageFile);
         formData.append('upload_preset', uploadPreset);
         
-        toast({ title: "Photo uploading... 🚀", description: "Please wait a moment." });
+        toast({ title: "फोटो अपलोड हो रही है... 🚀", description: "कृपया थोड़ा इंतज़ार करें।" });
         
         const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
             method: 'POST',
@@ -88,16 +89,16 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
 
         if (response.ok && data.secure_url) {
             profileImageUrl = data.secure_url;
-            toast({ title: "Photo Updated! ✅" });
+            toast({ title: "फोटो बदल गई! ✅" });
         } else {
-            console.error("Cloudinary Detailed Error:", data);
-            const errorMsg = data?.error?.message || "Upload failed. Check Cloudinary settings.";
+            console.error("Cloudinary Detailed Error (Fixed):", data);
+            const errorMsg = data?.error?.message || "क्लाउडिनरी सेटिंग्स चेक करें (Upload Preset missing).";
             toast({ 
               variant: 'destructive', 
-              title: 'Photo Upload Failed ❌', 
+              title: 'फोटो अपलोड फेल ❌', 
               description: errorMsg 
             });
-            // Proceed even if photo fails so other profile data is saved
+            // Still proceed to save name/bio if photo upload fails
         }
       }
 
@@ -110,15 +111,15 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         profileImageUrl,
       }, { merge: true });
 
-      toast({ title: 'Profile Updated! ✅', description: 'Your changes have been saved.' });
+      toast({ title: 'प्रोफाइल सेव हो गई! ✅', description: 'आपके बदलाव सुरक्षित हैं।' });
       onOpenChange(false);
 
     } catch (error: any) {
       console.error('Update Profile Error:', error);
       toast({
         variant: 'destructive',
-        title: 'Error ❌',
-        description: error.message || 'Something went wrong.',
+        title: 'एरर ❌',
+        description: error.message || 'कुछ गड़बड़ हो गई।',
       });
     } finally {
       setIsSaving(false);
@@ -168,7 +169,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
               <Textarea 
                 value={bio} 
                 onChange={(e) => setBio(e.target.value)} 
-                placeholder="Tell us about yourself..."
+                placeholder="अपने बारे में कुछ लिखें..."
                 className="min-h-[120px] bg-secondary/50 border-white/10 rounded-xl resize-none"
                 disabled={isSaving}
               />

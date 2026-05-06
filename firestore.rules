@@ -2,7 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 👑 MASTER ADMIN: Absolute Control
+    // 👑 MASTER ADMIN: Absolute Control (asnap5319@gmail.com)
     function isMasterAdmin() {
       return request.auth != null && 
              request.auth.token.email != null &&
@@ -16,7 +16,7 @@ service cloud.firestore {
 
     // 🛡️ GENERAL RULES
     
-    // ALLOW PUBLIC READ FOR POSTS (Crucial for the link to work on Google)
+    // ALLOW PUBLIC READ FOR POSTS (Important for the feed and links to work)
     match /users/{userId}/posts/{postId} {
       allow read: if true;
       allow create: if request.auth != null && request.auth.uid == userId;
@@ -54,18 +54,18 @@ service cloud.firestore {
       match /messages/{messageId} {
         allow read: if request.auth != null;
         allow create: if request.auth != null;
-        allow delete: if request.auth != null && request.auth.uid == resource.data.senderId; 
+        allow delete: if request.auth != null && (request.auth.uid == resource.data.senderId || isMasterAdmin()); 
       }
     }
 
     match /user_followers/{followedUserId}/followers/{followerUserId} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == followerUserId;
+      allow write: if request.auth != null && (request.auth.uid == followerUserId || isMasterAdmin());
     }
 
     match /user_following/{followerUserId}/following/{followedUserId} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == followerUserId;
+      allow write: if request.auth != null && (request.auth.uid == followerUserId || isMasterAdmin());
     }
   }
 }
