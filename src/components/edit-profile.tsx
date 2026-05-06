@@ -151,17 +151,17 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
           <div className="space-y-6">
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">नाम</Label>
-              <Input value={name} onChange={(e) => setName(target.value)} disabled={isSaving} className="h-12 bg-secondary/50 border-white/10 rounded-xl" />
+              <Input value={name} onChange={(e) => setName(e.target.value)} disabled={isSaving} className="h-12 bg-secondary/50 border-white/10 rounded-xl" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">यूजरनेम</Label>
-              <Input value={username} onChange={(e) => setUsername(target.value)} disabled={isSaving} className="h-12 bg-secondary/50 border-white/10 rounded-xl" />
+              <Input value={username} onChange={(e) => setUsername(e.target.value)} disabled={isSaving} className="h-12 bg-secondary/50 border-white/10 rounded-xl" />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">बायो</Label>
               <Textarea 
                 value={bio} 
-                onChange={(e) => setBio(target.value)} 
+                onChange={(e) => setBio(e.target.value)} 
                 placeholder="अपने बारे में लिखें..."
                 className="min-h-[120px] bg-secondary/50 border-white/10 rounded-xl resize-none"
                 disabled={isSaving}
