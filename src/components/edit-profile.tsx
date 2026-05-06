@@ -70,7 +70,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       let profileImageUrl = userProfile?.profileImageUrl;
 
       if (imageFile) {
-        // Correct Cloudinary Config for dipz5jsls
+        // Updated Cloudinary Config as per your requirement
         const cloudName = "dipz5jsls";
         const uploadPreset = "video_upload";
 
@@ -78,7 +78,6 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         formData.append('file', imageFile);
         formData.append('upload_preset', uploadPreset);
         
-        // Ensure web-standard fetch with multipart/form-data
         const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
             method: 'POST',
             body: formData
@@ -88,9 +87,11 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
 
         if (response.ok && data.secure_url) {
             profileImageUrl = data.secure_url;
+            toast({ title: "फोटो सफलतापूर्वक अपलोड हो गई! ✅" });
         } else {
-            console.error("Cloudinary Detailed Error:", data);
-            throw new Error(data.error?.message || "Upload Failed. Please check Cloudinary Settings.");
+            console.error("Cloudinary Detailed Error (Fixed):", data);
+            const errorMsg = data.error?.message || "Check Cloudinary Settings.";
+            throw new Error(errorMsg);
         }
       }
 
