@@ -10,7 +10,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from '@/components/ui/sheet';
+} from '@/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFirebase, useUser } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
@@ -70,7 +70,6 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       let profileImageUrl = userProfile?.profileImageUrl || `https://picsum.photos/seed/${user.uid}/400/400`;
 
       if (imageFile) {
-        // Robust Cloudinary Upload Logic
         const cloudName = "dipz5jsls";
         const uploadPreset = "video_upload";
 
@@ -92,15 +91,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
             toast({ title: "फोटो सफलतापूर्वक अपडेट हो गई! ✅" });
         } else {
             console.error("Cloudinary Detailed Error:", data);
-            const errorDetail = data?.error?.message || "Upload Preset Settings Error.";
-            toast({ 
-              variant: 'destructive', 
-              title: 'अपलोड फेल ❌', 
-              description: errorDetail
-            });
-            // If upload fails, we stop the save process to prevent data inconsistency
-            setIsSaving(false);
-            return;
+            throw new Error(data.error?.message || "Upload failed");
         }
       }
 
