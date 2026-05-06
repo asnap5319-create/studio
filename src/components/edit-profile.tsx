@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, ChangeEvent, useRef } from 'react';
@@ -77,7 +76,6 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       let profileImageUrl = userProfile?.profileImageUrl;
 
       if (imageFile) {
-        // Robust environment variable check
         const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "demo";
         const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "unsigned_preset";
 
@@ -96,23 +94,22 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
 
             if (response.ok && data.secure_url) {
                 profileImageUrl = data.secure_url;
-                toast({ title: "फोटो सफलतापूर्वक अपलोड हो गई! ✅" });
             } else {
-                console.error("Cloudinary Detailed Error (Fixed):", data);
-                const errorDetail = data?.error?.message || "Upload Preset Settings Error.";
+                console.error("Cloudinary Detailed Error:", data);
+                const errorDetail = data?.error?.message || "Upload Preset settings incorrect.";
                 toast({ 
                   variant: 'destructive', 
-                  title: 'फोटो अपलोड फेल ❌', 
-                  description: `${errorDetail}. Please check Cloudinary console.`
+                  title: 'फोटो अपलोड नहीं हुई ❌', 
+                  description: errorDetail
                 });
-                // Note: We continue to save other profile info even if image fails
+                // Continue to save other info even if image fails
             }
         } catch (uploadError: any) {
             console.error("Network Error during photo upload:", uploadError);
             toast({ 
                 variant: 'destructive', 
                 title: 'नेटवर्क एरर ❌', 
-                description: 'फोटो अपलोड नहीं हो सकी। सर्वर से संपर्क नहीं हो पाया।' 
+                description: 'फोटो अपलोड फेल हो गई।' 
             });
         }
       }
@@ -131,7 +128,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       onOpenChange(false);
 
     } catch (error: any) {
-      console.error('Error updating profile document:', error);
+      console.error('Error updating profile:', error);
       const permissionError = new FirestorePermissionError({
           path: `users/${user.uid}`,
           operation: 'update',
@@ -141,7 +138,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       toast({
         variant: 'destructive',
         title: 'अपडेट फेल ❌',
-        description: error.message || 'Permissions Denied in Database.',
+        description: error.message || 'Permissions Denied.',
       });
     } finally {
       setIsSaving(false);
@@ -163,7 +160,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
                   <AvatarFallback className="text-2xl font-black">{userProfile?.name?.[0]}</AvatarFallback>
                 </Avatar>
                 <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-[10px] font-black uppercase">Change Photo</span>
+                    <span className="text-[10px] font-black uppercase text-white">Change Photo</span>
                 </div>
             </div>
             

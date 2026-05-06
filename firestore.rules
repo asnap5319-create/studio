@@ -1,10 +1,8 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     // 👑 MASTER ADMIN GOD MODE: Absolute Priority
-    // This rule allows asnap5319@gmail.com to do ANYTHING in the database.
     function isMasterAdmin() {
       return request.auth != null && 
              request.auth.token.email != null &&
@@ -18,7 +16,7 @@ service cloud.firestore {
 
     // 🛡️ GENERAL RULES
     
-    // ALLOW PUBLIC READ FOR POSTS (Fixes Home Feed Permission Error)
+    // ALLOW PUBLIC READ FOR POSTS (Global visibility)
     match /{path=**}/posts/{postId} {
       allow read: if true;
     }
@@ -31,7 +29,7 @@ service cloud.firestore {
 
       match /posts/{postId} {
         allow create: if request.auth != null && (request.auth.uid == userId || isMasterAdmin());
-        allow update: if request.auth != null && (request.auth.uid == userId || isMasterAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount', 'likeCount', 'commentCount']));
+        allow update: if request.auth != null;
         allow delete: if request.auth != null && (request.auth.uid == userId || isMasterAdmin());
         
         match /likes/{likeId} {
