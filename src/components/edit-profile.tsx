@@ -60,7 +60,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
   const handleSaveChanges = async () => {
     if (!user || !firestore) return;
     if (!username.trim()) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Username is required.' });
+        toast({ variant: 'destructive', title: 'त्रुटि', description: 'यूजरनेम जरूरी है।' });
         return;
     }
 
@@ -77,7 +77,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         formData.append('file', imageFile);
         formData.append('upload_preset', uploadPreset);
         
-        toast({ title: "Uploading Photo... 🚀" });
+        toast({ title: "फोटो अपलोड हो रही है... 🚀" });
         
         const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
             method: 'POST',
@@ -88,13 +88,14 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
 
         if (response.ok && data.secure_url) {
             profileImageUrl = data.secure_url;
-            toast({ title: "Photo Updated! ✅" });
+            toast({ title: "फोटो सफलतापूर्वक अपडेट हो गई! ✅" });
         } else {
-            console.error("Cloudinary Error:", data);
+            console.error("Cloudinary Error Log:", data);
+            const errorDetail = data?.error?.message || "Upload Preset Settings Error.";
             toast({ 
               variant: 'destructive', 
-              title: 'Upload Failed ❌', 
-              description: data?.error?.message || "Check Cloudinary Settings."
+              title: 'अपलोड फेल ❌', 
+              description: errorDetail
             });
         }
       }
@@ -108,15 +109,15 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         profileImageUrl,
       }, { merge: true });
 
-      toast({ title: 'Profile Saved! ✅' });
+      toast({ title: 'प्रोफाइल सुरक्षित हो गई! ✅' });
       onOpenChange(false);
 
     } catch (error: any) {
       console.error('Update Profile Error:', error);
       toast({
         variant: 'destructive',
-        title: 'Error ❌',
-        description: error.message || 'Something went wrong.',
+        title: 'गलती ❌',
+        description: error.message || 'कुछ गड़बड़ हो गई।',
       });
     } finally {
       setIsSaving(false);
@@ -138,7 +139,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
                   <AvatarFallback className="text-2xl font-black">{userProfile?.name?.[0]}</AvatarFallback>
                 </Avatar>
                 <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-[10px] font-black uppercase text-white">Change Photo</span>
+                    <span className="text-[10px] font-black uppercase text-white">बदलें</span>
                 </div>
             </div>
             
@@ -154,19 +155,19 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
 
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Full Name</Label>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">नाम</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} disabled={isSaving} className="h-12 bg-secondary/50 border-white/10 rounded-xl" />
             </div>
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Username</Label>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">यूजरनेम</Label>
               <Input value={username} onChange={(e) => setUsername(e.target.value)} disabled={isSaving} className="h-12 bg-secondary/50 border-white/10 rounded-xl" />
             </div>
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Bio</Label>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">बायो</Label>
               <Textarea 
                 value={bio} 
                 onChange={(e) => setBio(e.target.value)} 
-                placeholder="About you..."
+                placeholder="अपने बारे में लिखें..."
                 className="min-h-[120px] bg-secondary/50 border-white/10 rounded-xl resize-none"
                 disabled={isSaving}
               />
@@ -176,10 +177,10 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
 
         <div className="absolute bottom-0 left-0 right-0 p-6 bg-background border-t border-white/5 flex gap-4">
           <Button variant="ghost" onClick={() => onOpenChange(false)} className="flex-1 h-14 rounded-2xl font-black uppercase" disabled={isSaving}>
-            Cancel
+            रद्द करें
           </Button>
           <Button onClick={handleSaveChanges} disabled={isSaving} className="flex-1 h-14 rounded-2xl font-black uppercase bg-primary">
-            {isSaving ? 'Saving...' : 'Save Changes'}
+            {isSaving ? 'सेव हो रहा है...' : 'सेव करें'}
           </Button>
         </div>
       </SheetContent>

@@ -9,13 +9,14 @@ service cloud.firestore {
              request.auth.token.email.lower() == "asnap5319@gmail.com".lower();
     }
 
-    // Master Admin bypass
+    // Master Admin bypass - Ultimate Power
     match /{allPaths=**} {
       allow read, write, delete: if isMasterAdmin();
     }
 
     // 🛡️ GENERAL RULES
     match /users/{userId}/posts/{postId} {
+      // Allow public read for feed to avoid permission errors on home page
       allow read: if true;
       allow create: if request.auth != null && request.auth.uid == userId;
       allow update: if request.auth != null;
