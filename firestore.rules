@@ -18,7 +18,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if true;
       allow create: if request.auth != null && request.auth.uid == userId;
-      allow update: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && (request.auth.uid == userId || isMasterAdmin());
 
       // Notifications
       match /notifications/{notificationId} {
@@ -30,7 +30,7 @@ service cloud.firestore {
       match /posts/{postId} {
         allow read: if true;
         allow create: if request.auth != null && request.auth.uid == userId;
-        allow update: if request.auth != null; // For global likes/views
+        allow update: if request.auth != null; // For global likes/views/comments
         allow delete: if request.auth != null && (request.auth.uid == userId || isMasterAdmin());
         
         match /likes/{likeId} {
@@ -41,6 +41,10 @@ service cloud.firestore {
         match /comments/{commentId} {
           allow read: if true;
           allow write: if request.auth != null;
+          
+          match /likes/{likeId} {
+             allow read, write: if request.auth != null;
+          }
         }
       }
     }
@@ -72,7 +76,7 @@ service cloud.firestore {
 
     match /user_following/{followerUserId}/following/{followedUserId} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == followerUserId;
+      allow write: if request.auth != null && request.auth.uid == followedUserId || request.auth.uid == followerUserId;
     }
     
     // Global catch-all to prevent crashes while debugging
