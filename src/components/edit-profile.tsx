@@ -77,8 +77,6 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         formData.append('file', imageFile);
         formData.append('upload_preset', uploadPreset);
         
-        toast({ title: "Uploading Photo... 🚀" });
-        
         const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
             method: 'POST',
             body: formData
@@ -88,9 +86,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
 
         if (response.ok && data.secure_url) {
             profileImageUrl = data.secure_url;
-            toast({ title: "Photo Updated! ✅" });
         } else {
-            console.error("Cloudinary Detailed Error:", data);
             throw new Error(data.error?.message || "Upload failed");
         }
       }
