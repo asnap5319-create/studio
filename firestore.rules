@@ -2,36 +2,15 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 👑 MASTER ADMIN RULE
-    function isMasterAdmin() {
-      return request.auth != null && 
-             request.auth.token.email != null &&
-             request.auth.token.email.lower() == "asnap5319@gmail.com".lower();
-    }
-
-    // Allow Master Admin to do everything
-    match /{allPaths=**} {
-      allow read, write, delete: if isMasterAdmin();
-    }
-
-    // 🛡️ USER PROFILES
+    // Allow users to read and write their own profile
     match /users/{userId} {
       allow read: if true;
-      allow create: if request.auth != null && request.auth.uid == userId;
-      allow update: if request.auth != null && (request.auth.uid == userId || isMasterAdmin());
-
-      // Notifications
-      match /notifications/{notificationId} {
-        allow read, update, delete: if request.auth != null && request.auth.uid == userId;
-        allow create: if request.auth != null;
-      }
-
-      // Posts (Nested inside user)
+      allow write: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow others to see posts and likes
       match /posts/{postId} {
         allow read: if true;
-        allow create: if request.auth != null && request.auth.uid == userId;
-        allow update: if request.auth != null; // For global likes/views/comments
-        allow delete: if request.auth != null && (request.auth.uid == userId || isMasterAdmin());
+        allow write: if request.auth != null;
         
         match /likes/{likeId} {
           allow read: if true;
@@ -41,45 +20,42 @@ service cloud.firestore {
         match /comments/{commentId} {
           allow read: if true;
           allow write: if request.auth != null;
-          
-          match /likes/{likeId} {
-             allow read, write: if request.auth != null;
-          }
         }
+      }
+      
+      match /notifications/{notificationId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null;
       }
     }
 
-    // 🌎 GLOBAL COLLECTION GROUP READS (Essential for Feed & Search)
+    // Allow collection group reads for the global feed
     match /{path=**}/posts/{postId} {
       allow read: if true;
     }
 
-    // 💬 CHATS & MESSAGES
+    // Chat rules
     match /chats/{chatId} {
-      allow read: if request.auth != null && request.auth.uid in resource.data.participants;
+      allow read, write: if request.auth != null && request.auth.uid in resource.data.participants;
       allow create: if request.auth != null;
-      allow update: if request.auth != null && request.auth.uid in resource.data.participants;
-      allow delete: if isMasterAdmin();
-
+      
       match /messages/{messageId} {
-        allow read: if request.auth != null; 
+        allow read: if request.auth != null;
         allow create: if request.auth != null;
-        allow delete: if request.auth != null && request.auth.uid == resource.data.senderId; 
       }
     }
 
-    // 🤝 FOLLOW SYSTEM
+    // Follow system rules
     match /user_followers/{followedUserId}/followers/{followerUserId} {
       allow read: if true;
-      allow write: if request.auth != null && (request.auth.uid == followerUserId || isMasterAdmin());
+      allow write: if request.auth != null && request.auth.uid == followerUserId;
     }
-
     match /user_following/{followerUserId}/following/{followedUserId} {
       allow read: if true;
-      allow write: if request.auth != null && (request.auth.uid == followerUserId || isMasterAdmin());
+      allow write: if request.auth != null && request.auth.uid == followerUserId;
     }
-    
-    // Global catch-all to prevent crashes while debugging
+
+    // Global catch-all for development (Strict in production)
     match /{allPaths=**} {
       allow read: if true;
       allow write: if request.auth != null;
