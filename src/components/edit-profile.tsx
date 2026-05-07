@@ -133,7 +133,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
                   <AvatarImage src={imagePreviewUrl ?? userProfile?.profileImageUrl} className="object-cover" />
                   <AvatarFallback className="text-2xl font-black">{userProfile?.name?.[0]}</AvatarFallback>
                 </Avatar>
-                <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover/post:opacity-100 transition-opacity">
                     <span className="text-[10px] font-black uppercase text-white">बदलें</span>
                 </div>
             </div>
