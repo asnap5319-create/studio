@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -27,7 +26,6 @@ export default function LoginPage() {
 
     setIsLoggingIn(true);
     try {
-      // Normalize email by trimming spaces and making it lowercase
       const normalizedEmail = email.trim().toLowerCase();
       await signInWithEmailAndPassword(auth, normalizedEmail, password);
       toast({ title: "Success", description: "Logged in successfully!" });
@@ -36,7 +34,6 @@ export default function LoginPage() {
       console.error("Error signing in: ", error);
       let errorMessage = "Could not log in. Please check your credentials.";
       
-      // Handle specific Firebase Auth errors
       if (
         error.code === 'auth/user-not-found' || 
         error.code === 'auth/wrong-password' || 
@@ -57,7 +54,34 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm space-y-6 text-center">
-        <h1 className="text-5xl font-bold text-primary [filter:drop-shadow(0_0_8px_hsl(var(--primary)))]">
+        {/* Premium "A" Logo added here */}
+        <div className="flex justify-center mb-4">
+          <div className="relative w-24 h-24 bg-[#0a0a0a] rounded-3xl flex items-center justify-center shadow-[inset_0_1px_4px_rgba(255,255,255,0.1),10px_10px_20px_rgba(0,0,0,0.5)] border-4 border-[#1a1a1a] overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none"></div>
+            <div className="relative w-16 h-16">
+              <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-[0_0_10px_rgba(255,51,102,0.5)]">
+                <defs>
+                  <linearGradient id="loginGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                    <stop offset="0%" style={{ stopColor: '#ff0080', stopOpacity: 1 }} />
+                    <stop offset="50%" style={{ stopColor: '#ff3366', stopOpacity: 1 }} />
+                    <stop offset="100%" style={{ stopColor: '#ffcc33', stopOpacity: 1 }} />
+                  </linearGradient>
+                </defs>
+                <path 
+                  d="M150 400 L256 100 L362 400 M210 320 L302 320" 
+                  stroke="url(#loginGrad)" 
+                  strokeWidth="55" 
+                  fill="none" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                />
+                <circle cx="390" cy="120" r="35" fill="#ff0080" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <h1 className="text-5xl font-black text-primary italic [filter:drop-shadow(0_0_8px_hsl(var(--primary)))] tracking-tighter">
           A.snap
         </h1>
         
@@ -65,7 +89,7 @@ export default function LoginPage() {
           <Input 
             type="email" 
             placeholder="Email" 
-            className="h-12 text-base" 
+            className="h-12 text-base bg-secondary/50 border-white/10 rounded-xl" 
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -74,20 +98,20 @@ export default function LoginPage() {
           <Input 
             type="password" 
             placeholder="Password" 
-            className="h-12 text-base" 
+            className="h-12 text-base bg-secondary/50 border-white/10 rounded-xl" 
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             disabled={isLoggingIn}
           />
-          <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={isLoggingIn}>
+          <Button type="submit" className="w-full h-14 text-lg font-black uppercase rounded-2xl bg-primary shadow-[0_0_20px_rgba(var(--primary),0.3)]" disabled={isLoggingIn}>
             {isLoggingIn ? "Logging in..." : "Log In"}
           </Button>
         </form>
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
+            <span className="w-full border-t border-white/10" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
             <span className="bg-background px-2 text-muted-foreground">
@@ -98,7 +122,7 @@ export default function LoginPage() {
         <div>
           <p className="text-sm text-muted-foreground">
             Don&apos;t have an account?{' '}
-            <Link href="/signup" className="font-semibold text-primary hover:underline">
+            <Link href="/signup" className="font-bold text-primary hover:underline">
               Sign up
             </Link>
           </p>
