@@ -5,13 +5,16 @@ import { cn } from "@/lib/utils";
 import { FirebaseClientProvider } from "@/firebase/client-provider";
 import Script from "next/script";
 
+const LOGO_SVG = "data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzBhMGEwYSIvPjxwYXRoIGQ9Ik01MCAxMCBMMTUgOTAgTDMwIDkwIEw0MCA2NSBMNjAgNjUgTDcwIDkwIEw4NSA5MCBaIE01MCAzMCBMNTUgNTUgTDQ1IDU1IFoiIGZpbGw9IiNmZjMzNjYiLz48L3N2Zz4=";
+
 export const metadata: Metadata = {
   title: "A.snap - Share Your World in Short Videos",
   description: "A.snap is the ultimate premium short video sharing application.",
   manifest: "/manifest.json",
   icons: {
-    icon: "data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNNTAgMTAgTDE1IDkwIEwzMCA5MCBMNDAgNjUgTDYwIDY1IEw3MCA5MCBMODUgOTAgWiBNNTAgMzAgTDU1IDU1IEw0NSA1NSBaIiBmaWxsPSIjZmYzMzY2Ii8+PC9zdmc+",
-    apple: "data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzBhMGEwYSIvPjxwYXRoIGQ9Ik01MCAxMCBMMTUgOTAgTDMwIDkwIEw0MCA2NSBMNjAgNjUgTDcwIDkwIEw4NSA5MCBaIE01MCAzMCBMNTUgNTUgTDQ1IDU1IFoiIGZpbGw9IiNmZjMzNjYiLz48L3N2Zz4=",
+    icon: LOGO_SVG,
+    shortcut: LOGO_SVG,
+    apple: LOGO_SVG,
   },
   other: {
     "google-adsense-account": "ca-pub-6100214178274409",

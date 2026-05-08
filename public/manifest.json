@@ -2,7 +2,7 @@
   "name": "A.snap",
   "short_name": "A.snap",
   "description": "Premium Short Video Sharing",
-  "start_url": "/",
+  "start_url": "/feed",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#ff3366",
