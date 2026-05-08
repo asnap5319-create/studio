@@ -1,10 +1,8 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Download, X, Sparkles } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 export function PwaInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -15,9 +13,11 @@ export function PwaInstallPrompt() {
     setIsMounted(true);
     
     const handler = (e: any) => {
+      // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
+      // Stash the event so it can be triggered later.
       setDeferredPrompt(e);
-      // Show prompt if not already installed
+      // Update UI notify the user they can install the PWA
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
       if (!isStandalone) {
         setIsVisible(true);
@@ -26,10 +26,17 @@ export function PwaInstallPrompt() {
 
     window.addEventListener('beforeinstallprompt', handler);
 
-    // Register service worker
+    // Register service worker if supported
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(err => {
-        console.error('SW registration failed:', err);
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then(
+          (registration) => {
+            console.log('SW registered: ', registration);
+          },
+          (registrationError) => {
+            console.log('SW registration failed: ', registrationError);
+          }
+        );
       });
     }
 
@@ -38,10 +45,15 @@ export function PwaInstallPrompt() {
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
+    // Show the install prompt
     deferredPrompt.prompt();
+    // Wait for the user to respond to the prompt
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') {
+      console.log('User accepted the install prompt');
       setIsVisible(false);
+    } else {
+      console.log('User dismissed the install prompt');
     }
     setDeferredPrompt(null);
   };
@@ -56,9 +68,9 @@ export function PwaInstallPrompt() {
              <svg viewBox="0 0 512 512" className="w-8 h-8">
                 <defs>
                   <linearGradient id="promptGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-                    <stop offset="0%" style={{ stopColor: '#ff0080', stopOpacity: 1 }} />
-                    <stop offset="50%" style={{ stopColor: '#ff3366', stopOpacity: 1 }} />
-                    <stop offset="100%" style={{ stopColor: '#ffcc33', stopOpacity: 1 }} />
+                    <stop offset="0%" stopColor="#ff0080" stopOpacity="1" />
+                    <stop offset="50%" stopColor="#ff3366" stopOpacity="1" />
+                    <stop offset="100%" stopColor="#ffcc33" stopOpacity="1" />
                   </linearGradient>
                 </defs>
                 <path 

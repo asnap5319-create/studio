@@ -1,4 +1,4 @@
-// Service Worker for PWA installation support
+// A.snap Service Worker
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
@@ -8,5 +8,5 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Required to satisfy PWA criteria
+  // This is required for the browser to treat the app as installable
 });
