@@ -1,3 +1,4 @@
+
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
@@ -23,24 +24,17 @@ export const metadata: Metadata = {
     icon: [
       { url: 'https://picsum.photos/seed/asnap_logo_final/32/32', sizes: '32x32' },
       { url: 'https://picsum.photos/seed/asnap_logo_final/192/192', sizes: '192x192' },
+      { url: 'https://picsum.photos/seed/asnap_logo_final/512/512', sizes: '512x512' },
     ],
     apple: [
       { url: 'https://picsum.photos/seed/asnap_logo_final/180/180', sizes: '180x180' },
     ],
   },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
-  },
   other: {
     'google-adsense-account': 'ca-pub-6100214178274409',
+    'mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-status-bar-style': 'black-translucent'
   },
 };
 
