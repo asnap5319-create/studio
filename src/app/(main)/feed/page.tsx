@@ -104,9 +104,9 @@ export default function FeedPage() {
                  <svg viewBox="0 0 512 512" className="w-7 h-7">
                     <defs>
                       <linearGradient id="headerGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-                        <stop offset="0%" style="stop-color:#ff0080;stop-opacity:1" />
-                        <stop offset="50%" style="stop-color:#ff3366;stop-opacity:1" />
-                        <stop offset="100%" style="stop-color:#ffcc33;stop-opacity:1" />
+                        <stop offset="0%" stopColor="#ff0080" stopOpacity="1" />
+                        <stop offset="50%" stopColor="#ff3366" stopOpacity="1" />
+                        <stop offset="100%" stopColor="#ffcc33" stopOpacity="1" />
                       </linearGradient>
                     </defs>
                     <path 
