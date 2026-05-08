@@ -1,25 +1,25 @@
-
-const CACHE_NAME = 'asnap-v1';
-const ASSETS = [
+const CACHE_NAME = 'asnap-cache-v1';
+const urlsToCache = [
   '/',
-  '/manifest.json',
-  '/offline'
+  '/manifest.json'
 ];
 
-self.addEventListener('install', (event) => {
+self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
-    })
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(urlsToCache))
   );
 });
 
-self.addEventListener('fetch', (event) => {
+self.addEventListener('activate', event => {
+  event.waitUntil(clients.claim());
+});
+
+self.addEventListener('fetch', event => {
+  // Required for PWA installability
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    }).catch(() => {
-      return caches.match('/offline');
-    })
+    caches.match(event.request)
+      .then(response => response || fetch(event.request))
   );
 });

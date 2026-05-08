@@ -1,4 +1,3 @@
-
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
@@ -25,12 +24,12 @@ export const metadata: Metadata = {
   other: {
     "google-adsense-account": "ca-pub-6100214178274409",
     "mobile-web-app-capable": "yes",
-    "theme-color": "#ff3366",
+    "theme-color": "#000000",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#ff3366",
+  themeColor: "#000000",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,

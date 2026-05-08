@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -12,7 +11,7 @@ export function PwaInstallPrompt() {
   useEffect(() => {
     const handler = (e: any) => {
       e.preventDefault();
-      // Store the event globally so other components can access it if needed
+      // Store the event globally
       (window as any).deferredPrompt = e;
       setDeferredPrompt(e);
       
@@ -25,6 +24,7 @@ export function PwaInstallPrompt() {
 
     window.addEventListener('beforeinstallprompt', handler);
 
+    // Also check if already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
         setIsVisible(false);
     }
@@ -35,21 +35,19 @@ export function PwaInstallPrompt() {
   const handleInstall = async () => {
     const promptEvent = deferredPrompt || (window as any).deferredPrompt;
     
-    if (!promptEvent) {
-        // Only show this if we really don't have the event
-        return;
-    }
+    if (!promptEvent) return;
 
     promptEvent.prompt();
     const { outcome } = await promptEvent.userChoice;
+    
     if (outcome === 'accepted') {
       setIsVisible(false);
+      setDeferredPrompt(null);
       (window as any).deferredPrompt = null;
     }
   };
 
-  // If already installed or browser hasn't fired the event, don't show the UI yet
-  if (!isVisible || (!deferredPrompt && !(window as any).deferredPrompt)) return null;
+  if (!isVisible || !deferredPrompt) return null;
 
   return (
     <div className="fixed bottom-20 left-4 right-4 z-[100] animate-in slide-in-from-bottom-10 duration-700">
