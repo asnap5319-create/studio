@@ -33,7 +33,10 @@ export const metadata: Metadata = {
       'max-image-preview': 'large',
       'max-snippet': -1,
     },
-  }
+  },
+  other: {
+    'google-adsense-account': 'ca-pub-6100214178274409',
+  },
 };
 
 export const viewport: Viewport = {
@@ -55,7 +58,7 @@ export default function RootLayout({
         <Script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6100214178274409"
-          crossorigin="anonymous"
+          crossOrigin="anonymous"
           strategy="afterInteractive"
         />
         <FirebaseClientProvider>
