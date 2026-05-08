@@ -1,13 +1,22 @@
 
-// Minimal Service Worker for PWA Installation criteria
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
-});
+const CACHE_NAME = 'asnap-v1';
+const ASSETS = [
+  '/',
+  '/manifest.json'
+];
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(clients.claim());
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(ASSETS);
+    })
+  );
 });
 
 self.addEventListener('fetch', (event) => {
-  // Required to be a valid PWA
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      return response || fetch(event.request);
+    })
+  );
 });
