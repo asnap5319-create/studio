@@ -1,4 +1,3 @@
-
 {
   "name": "A.snap",
   "short_name": "A.snap",
@@ -9,15 +8,15 @@
   "theme_color": "#ff3366",
   "icons": [
     {
-      "src": "https://picsum.photos/seed/asnap_brand_identity/192/192",
+      "src": "data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzBhMGEwYSIvPjxwYXRoIGQ9Ik01MCAxMCBMMTUgOTAgTDMwIDkwIEw0MCA2NSBMNjAgNjUgTDcwIDkwIEw4NSA5MCBaIE01MCAzMCBMNTUgNTUgTDQ1IDU1IFoiIGZpbGw9IiNmZjMzNjYiLz48L3N2Zz4=",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "https://picsum.photos/seed/asnap_brand_identity/512/512",
+      "src": "data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzBhMGEwYSIvPjxwYXRoIGQ9Ik01MCAxMCBMMTUgOTAgTDMwIDkwIEw0MCA2NSBMNjAgNjUgTDcwIDkwIEw4NSA5MCBaIE01MCAzMCBMNTUgNTUgTDQ1IDU1IFoiIGZpbGw9IiNmZjMzNjYiLz48L3N2Zz4=",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ]

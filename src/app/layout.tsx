@@ -1,4 +1,3 @@
-
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
@@ -8,31 +7,17 @@ import Script from "next/script";
 
 export const metadata: Metadata = {
   title: "A.snap - Share Your World in Short Videos",
-  description: "A.snap is the ultimate premium short video sharing application. Create, share, and discover amazing visual content with friends in real-time.",
-  keywords: ["A.snap", "Short Video", "Social Media", "Video Sharing", "A snap", "Trending Videos", "Asnap"],
+  description: "A.snap is the ultimate premium short video sharing application.",
   manifest: "/manifest.json",
-  authors: [{ name: "A.snap Team" }],
-  metadataBase: new URL('https://studio-8111746683-c1e57.web.app'),
-  openGraph: {
-    title: "A.snap - Short Video Sharing",
-    description: "Join A.snap and start sharing your world through amazing short videos.",
-    type: "website",
-    siteName: "A.snap",
-    url: 'https://studio-8111746683-c1e57.web.app',
-  },
   icons: {
-    icon: [
-      { url: '/favicon.ico' },
-    ],
-    apple: [
-      { url: '/apple-touch-icon.png' },
-    ],
+    icon: "data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNNTAgMTAgTDE1IDkwIEwzMCA5MCBMNDAgNjUgTDYwIDY1IEw3MCA5MCBMODUgOTAgWiBNNTAgMzAgTDU1IDU1IEw0NSA1NSBaIiBmaWxsPSIjZmYzMzY2Ii8+PC9zdmc+",
+    apple: "data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzBhMGEwYSIvPjxwYXRoIGQ9Ik01MCAxMCBMMTUgOTAgTDMwIDkwIEw0MCA2NSBMNjAgNjUgTDcwIDkwIEw4NSA5MCBaIE01MCAzMCBMNTUgNTUgTDQ1IDU1IFoiIGZpbGw9IiNmZjMzNjYiLz48L3N2Zz4=",
   },
   other: {
-    'google-adsense-account': 'ca-pub-6100214178274409',
-    'mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-status-bar-style': 'black-translucent'
+    "google-adsense-account": "ca-pub-6100214178274409",
+    "mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "black-translucent"
   },
 };
 
@@ -51,7 +36,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-       <body className={cn("min-h-screen bg-background font-sans antialiased")}>
+      <body className={cn("min-h-screen bg-background font-sans antialiased")}>
         <Script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6100214178274409"
