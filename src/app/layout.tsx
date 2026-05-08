@@ -25,6 +25,7 @@ export const metadata: Metadata = {
   other: {
     "google-adsense-account": "ca-pub-6100214178274409",
     "mobile-web-app-capable": "yes",
+    "theme-color": "#ff3366",
   },
 };
 
@@ -46,6 +47,9 @@ export default function RootLayout({
       <head>
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href={LOGO_SVG} />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="theme-color" content="#000000" />
       </head>
       <body className={cn("min-h-screen bg-background font-sans antialiased")}>
         <Script

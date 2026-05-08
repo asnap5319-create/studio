@@ -1,22 +1,12 @@
-
-const CACHE_NAME = 'asnap-v1';
-const ASSETS = [
-  '/',
-  '/manifest.json'
-];
-
+// Service Worker for PWA installation support
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
-    })
-  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(clients.claim());
 });
 
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
-  );
+  // Required to satisfy PWA criteria
 });
