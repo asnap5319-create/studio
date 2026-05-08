@@ -12,7 +12,6 @@ import { Heart, Database, RefreshCw, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
-import Image from 'next/image';
 
 const AD_UNIT_ID = process.env.NEXT_PUBLIC_ADMOB_UNIT_ID || 'ca-app-pub-6100214178274409/8382187974';
 const AD_APP_ID = process.env.NEXT_PUBLIC_ADMOB_APP_ID || 'ca-app-pub-6100214178274409~7603458775';
@@ -101,9 +100,24 @@ export default function FeedPage() {
     <div className="h-full w-full max-w-lg mx-auto flex flex-col text-white bg-black" data-ad-app-id={AD_APP_ID}>
        <header className="flex items-center justify-between p-4 bg-black/60 backdrop-blur-lg sticky top-0 z-20 shrink-0 border-b border-white/5">
             <div className="flex items-center gap-2">
-              <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-primary/30 flex items-center justify-center bg-[#111]">
-                 <svg viewBox="0 0 100 100" className="w-6 h-6">
-                    <path d="M50 10 L15 90 L30 90 L40 65 L60 65 L70 90 L85 90 Z M50 30 L55 55 L45 55 Z" fill="hsl(var(--primary))" />
+              <div className="relative w-9 h-9 rounded-xl overflow-hidden border border-white/10 flex items-center justify-center bg-[#0a0a0a]">
+                 <svg viewBox="0 0 512 512" className="w-7 h-7">
+                    <defs>
+                      <linearGradient id="headerGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                        <stop offset="0%" style="stop-color:#ff0080;stop-opacity:1" />
+                        <stop offset="50%" style="stop-color:#ff3366;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#ffcc33;stop-opacity:1" />
+                      </linearGradient>
+                    </defs>
+                    <path 
+                      d="M150 400 L256 100 L362 400 M210 320 L302 320" 
+                      stroke="url(#headerGrad)" 
+                      strokeWidth="60" 
+                      fill="none" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                    />
+                    <circle cx="390" cy="120" r="35" fill="#ff0080" />
                  </svg>
               </div>
               <h1 className="text-2xl font-black text-primary italic tracking-tighter" style={{filter: 'drop-shadow(0 0 8px hsl(var(--primary)))'}}>

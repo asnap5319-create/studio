@@ -1,23 +1,24 @@
+
 {
   "name": "A.snap",
   "short_name": "A.snap",
-  "description": "Premium Short Video Sharing",
-  "start_url": "/feed",
+  "description": "Share your world in short videos with A.snap",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#ff3366",
   "icons": [
     {
-      "src": "data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzBhMGEwYSIvPjxwYXRoIGQ9Ik01MCAxMCBMMTUgOTAgTDMwIDkwIEw0MCA2NSBMNjAgNjUgTDcwIDkwIEw4NSA5MCBaIE01MCAzMCBMNTUgNTUgTDQ1IDU1IFoiIGZpbGw9IiNmZjMzNjYiLz48L3N2Zz4=",
+      "src": "data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImdyYWQiIHgxPSIwJSIgeTE9IjEwMCUiIHgyPSIxMDAlIiB5MT0iMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmZjAwODA7c3RvcC1vcGFjaXR5OjEiIC8+PHN0b3Agb2Zmc2V0PSI1MCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmZjMzNjY7c3RvcC1vcGFjaXR5OjEiIC8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZmZjYzMzO3N0b3Atb3BhY2l0eToxIiAvPjwvbGluZWFyR3JhZGllbnQ+PGZpbHRlciBpZD0iZ2xvdyIgeD0iLTIwJSIgeT0iLTIwJSIgd2lkdGg9IjE0MCUiIGhlaWdodT0iMTQwJSI+PGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iOCIgcmVzdWx0PSJibHVyIiAvPjxmZUNvbXBvc2l0ZSBpbj0iU291cmNlR3JhcGhpYyIgaW4yPSJibHVyIiBvcGVyYXRvcj0ib3ZlciIgLz48L2ZpbHRlcj48L2RlZnM+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMjAiIGZpbGw9IiMwYTBhMGEiIC8+PHBhdGggZD0iTTE1MCA0MDBMMjU2IDEwMEwzNjIgNDAwTTIxMCAzMjBMMzAyIDMyMCIgc3Ryb2tlPSJ1cmwoI2dyYWQpIiBzdHJva2Utd2lkdGg9IjYwIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1lam9pbj0icm91bmQiIGZpbHRlcj0idXJsKCNnbG93KSIgLz48Y2lyY2xlIGN4PSIzOTAiIGN5PSIxMjAiIHI9IjM1IiBmaWxsPSIjZmYwMDgwIiBmaWx0ZXI9InVybCgjZ2xvdykiIC8+PC9zdmc+",
       "sizes": "192x192",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzBhMGEwYSIvPjxwYXRoIGQ9Ik01MCAxMCBMMTUgOTAgTDMwIDkwIEw0MCA2NSBMNjAgNjUgTDcwIDkwIEw4NSA5MCBaIE01MCAzMCBMNTUgNTUgTDQ1IDU1IFoiIGZpbGw9IiNmZjMzNjYiLz48L3N2Zz4=",
+      "src": "data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImdyYWQiIHgxPSIwJSIgeTE9IjEwMCUiIHgyPSIxMDAlIiB5MT0iMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmZjAwODA7c3RvcC1vcGFjaXR5OjEiIC8+PHN0b3Agb2Zmc2V0PSI1MCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmZjMzNjY7c3RvcC1vcGFjaXR5OjEiIC8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZmZjYzMzO3N0b3Atb3BhY2l0eToxIiAvPjwvbGluZWFyR3JhZGllbnQ+PGZpbHRlciBpZD0iZ2xvdyIgeD0iLTIwJSIgeT0iLTIwJSIgd2lkdGg9IjE0MCUiIGhlaWdodT0iMTQwJSI+PGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iOCIgcmVzdWx0PSJibHVyIiAvPjxmZUNvbXBvc2l0ZSBpbj0iU291cmNlR3JhcGhpYyIgaW4yPSJibHVyIiBvcGVyYXRvcj0ib3ZlciIgLz48L2ZpbHRlcj48L2RlZnM+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMjAiIGZpbGw9IiMwYTBhMGEiIC8+PHBhdGggZD0iTTE1MCA0MDBMMjU2IDEwMEwzNjIgNDAwTTIxMCAzMjBMMzAyIDMyMCIgc3Ryb2tlPSJ1cmwoI2dyYWQpIiBzdHJva2Utd2lkdGg9IjYwIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1lam9pbj0icm91bmQiIGZpbHRlcj0idXJsKCNnbG93KSIgLz48Y2lyY2xlIGN4PSIzOTAiIGN5PSIxMjAiIHI9IjM1IiBmaWxsPSIjZmYwMDgwIiBmaWx0ZXI9InVybCgjZ2xvdykiIC8+PC9zdmc+",
       "sizes": "512x512",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     }
   ]
 }

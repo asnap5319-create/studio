@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -36,16 +37,28 @@ export default function Splash() {
       <div className="flex flex-col items-center space-y-12 animate-in fade-in zoom-in-95 duration-700">
         <div className="relative">
             <div className="absolute -inset-16 bg-primary/20 rounded-full blur-[80px] opacity-40"></div>
-            <div className="relative w-52 h-52 bg-[#0a0a0a] rounded-[4rem] flex items-center justify-center 
+            <div className="relative w-56 h-56 bg-[#0a0a0a] rounded-[3.5rem] flex items-center justify-center 
                             shadow-[inset_0_2px_8px_rgba(255,255,255,0.05),30px_30px_60px_rgba(0,0,0,1),-10px_-10px_30px_rgba(255,255,255,0.02)] 
-                            border-[10px] border-[#1a1a1a] overflow-hidden">
+                            border-[8px] border-[#1a1a1a] overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.08] via-transparent to-transparent pointer-events-none"></div>
-                <div className="relative w-36 h-36 flex items-center justify-center">
-                   <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(255,51,102,0.8)]">
+                <div className="relative w-40 h-40">
+                   <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-[0_0_20px_rgba(255,51,102,0.6)]">
+                      <defs>
+                        <linearGradient id="splashGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                          <stop offset="0%" style="stop-color:#ff0080;stop-opacity:1" />
+                          <stop offset="50%" style="stop-color:#ff3366;stop-opacity:1" />
+                          <stop offset="100%" style="stop-color:#ffcc33;stop-opacity:1" />
+                        </linearGradient>
+                      </defs>
                       <path 
-                        d="M50 10 L15 90 L30 90 L40 65 L60 65 L70 90 L85 90 Z M50 30 L55 55 L45 55 Z" 
-                        fill="#ff3366"
+                        d="M150 400 L256 100 L362 400 M210 320 L302 320" 
+                        stroke="url(#splashGrad)" 
+                        strokeWidth="50" 
+                        fill="none" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
                       />
+                      <circle cx="390" cy="120" r="35" fill="#ff0080" />
                    </svg>
                 </div>
             </div>
@@ -54,7 +67,7 @@ export default function Splash() {
             <h1 className="text-6xl font-black tracking-tighter text-white italic">
                 A.snap
             </h1>
-            <div className="h-1.5 w-20 bg-primary/40 mx-auto rounded-full animate-pulse"></div>
+            <div className="h-1.5 w-24 bg-gradient-to-r from-primary to-yellow-400 mx-auto rounded-full animate-pulse"></div>
         </div>
       </div>
       <div className="absolute bottom-12 flex flex-col items-center opacity-30">
