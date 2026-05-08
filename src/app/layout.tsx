@@ -22,12 +22,10 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: 'https://picsum.photos/seed/asnap_logo_final/32/32', sizes: '32x32' },
-      { url: 'https://picsum.photos/seed/asnap_logo_final/192/192', sizes: '192x192' },
-      { url: 'https://picsum.photos/seed/asnap_logo_final/512/512', sizes: '512x512' },
+      { url: '/favicon.ico' },
     ],
     apple: [
-      { url: 'https://picsum.photos/seed/asnap_logo_final/180/180', sizes: '180x180' },
+      { url: '/apple-touch-icon.png' },
     ],
   },
   other: {

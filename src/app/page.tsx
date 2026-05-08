@@ -1,13 +1,13 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase';
-import Image from 'next/image';
 
 /**
  * A.snap Splash Screen
- * Features the new uploaded logo in a premium 3D container.
+ * Uses a permanent SVG logo to ensure brand consistency.
  */
 export default function Splash() {
   const router = useRouter();
@@ -43,20 +43,27 @@ export default function Splash() {
         <div className="relative">
             <div className="absolute -inset-16 bg-primary/20 rounded-full blur-[80px] opacity-40"></div>
             
+            {/* Permanent Premium Logo Container */}
             <div className="relative w-52 h-52 bg-[#0a0a0a] rounded-[4rem] flex items-center justify-center 
                             shadow-[inset_0_2px_8px_rgba(255,255,255,0.05),30px_30px_60px_rgba(0,0,0,1),-10px_-10px_30px_rgba(255,255,255,0.02)] 
                             border-[10px] border-[#1a1a1a] overflow-hidden">
                 
                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.08] via-transparent to-transparent pointer-events-none"></div>
 
-                <div className="relative w-36 h-36">
-                  <Image 
-                    src="https://picsum.photos/seed/asnap_logo_final/400/400" 
-                    alt="A.snap Logo" 
-                    fill 
-                    className="object-contain drop-shadow-[0_15px_25px_rgba(0,0,0,0.8)]"
-                    priority
-                  />
+                {/* Styled SVG "A" Logo */}
+                <div className="relative w-36 h-36 flex items-center justify-center">
+                   <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(255,51,102,0.8)]">
+                      <defs>
+                        <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="hsl(var(--primary))" />
+                          <stop offset="100%" stopColor="#ffffff" />
+                        </linearGradient>
+                      </defs>
+                      <path 
+                        d="M50 10 L15 90 L30 90 L40 65 L60 65 L70 90 L85 90 Z M50 30 L55 55 L45 55 Z" 
+                        fill="url(#logoGrad)"
+                      />
+                   </svg>
                 </div>
             </div>
         </div>

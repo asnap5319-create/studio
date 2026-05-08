@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
@@ -100,8 +101,10 @@ export default function FeedPage() {
     <div className="h-full w-full max-w-lg mx-auto flex flex-col text-white bg-black" data-ad-app-id={AD_APP_ID}>
        <header className="flex items-center justify-between p-4 bg-black/60 backdrop-blur-lg sticky top-0 z-20 shrink-0 border-b border-white/5">
             <div className="flex items-center gap-2">
-              <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-primary/30">
-                <Image src="https://picsum.photos/seed/asnap_logo_final/64/64" alt="Logo" fill className="object-cover" />
+              <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-primary/30 flex items-center justify-center bg-[#111]">
+                 <svg viewBox="0 0 100 100" className="w-6 h-6">
+                    <path d="M50 10 L15 90 L30 90 L40 65 L60 65 L70 90 L85 90 Z M50 30 L55 55 L45 55 Z" fill="hsl(var(--primary))" />
+                 </svg>
               </div>
               <h1 className="text-2xl font-black text-primary italic tracking-tighter" style={{filter: 'drop-shadow(0 0 8px hsl(var(--primary)))'}}>
                   A.snap
