@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -45,9 +44,9 @@ export default function Splash() {
                    <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-[0_0_20px_rgba(255,51,102,0.6)]">
                       <defs>
                         <linearGradient id="splashGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-                          <stop offset="0%" stopColor="#ff0080" stopOpacity="1" />
-                          <stop offset="50%" stopColor="#ff3366" stopOpacity="1" />
-                          <stop offset="100%" stopColor="#ffcc33" stopOpacity="1" />
+                          <stop offset="0%" style={{ stopColor: '#ff0080', stopOpacity: 1 }} />
+                          <stop offset="50%" style={{ stopColor: '#ff3366', stopOpacity: 1 }} />
+                          <stop offset="100%" style={{ stopColor: '#ffcc33', stopOpacity: 1 }} />
                         </linearGradient>
                       </defs>
                       <path 
