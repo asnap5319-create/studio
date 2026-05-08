@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
@@ -12,8 +11,8 @@ import { Heart, Database, RefreshCw, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
+import Image from 'next/image';
 
-// Ad Configuration using the IDs provided by the user
 const AD_UNIT_ID = process.env.NEXT_PUBLIC_ADMOB_UNIT_ID || 'ca-app-pub-6100214178274409/8382187974';
 const AD_APP_ID = process.env.NEXT_PUBLIC_ADMOB_APP_ID || 'ca-app-pub-6100214178274409~7603458775';
 
@@ -21,23 +20,12 @@ const MOCK_ADS = [
   {
     id: 'ad_1',
     brandName: 'A.snap Premium',
-    brandLogo: 'https://picsum.photos/seed/asnap_logo/100/100',
+    brandLogo: 'https://picsum.photos/seed/asnap_logo_final/100/100',
     mediaUrl: 'https://res.cloudinary.com/demo/video/upload/w_1280,h_720,c_fill/dog.mp4',
     caption: 'Be the star of A.snap! Upgrade to Premium today and unlock exclusive AI filters and 4K uploads. #AsnapPremium #ShortVideo',
     ctaText: 'Upgrade Now',
     ctaUrl: '/profile',
     isVideo: true,
-    adUnitId: AD_UNIT_ID,
-  },
-  {
-    id: 'ad_2',
-    brandName: 'Nike',
-    brandLogo: 'https://picsum.photos/seed/nike_logo/100/100',
-    mediaUrl: 'https://picsum.photos/seed/nike_ad/1080/1920',
-    caption: 'Push your limits. The all-new Air Max is here to redefine speed. Just Do It. #Nike #AirMax',
-    ctaText: 'Shop Collection',
-    ctaUrl: 'https://nike.com',
-    isVideo: false,
     adUnitId: AD_UNIT_ID,
   }
 ];
@@ -62,23 +50,17 @@ export default function FeedPage() {
   const { data: notifications } = useCollection<Notification>(notificationsQuery);
   const unreadCount = notifications?.filter(n => !n.read).length || 0;
 
-  // Logic to interleave Ads into the posts feed
   const feedItems = useMemo(() => {
     if (!posts) return [];
-    
     const items = [];
     let adIndex = 0;
-
     posts.forEach((post, index) => {
       items.push({ type: 'post' as const, data: post });
-      
-      // Insert an ad every 3 posts to mimic Instagram's ad frequency
-      if ((index + 1) % 3 === 0) {
+      if ((index + 1) % 5 === 0) {
         items.push({ type: 'ad' as const, data: MOCK_ADS[adIndex] });
         adIndex = (adIndex + 1) % MOCK_ADS.length;
       }
     });
-
     return items;
   }, [posts]);
 
@@ -117,9 +99,14 @@ export default function FeedPage() {
   return (
     <div className="h-full w-full max-w-lg mx-auto flex flex-col text-white bg-black" data-ad-app-id={AD_APP_ID}>
        <header className="flex items-center justify-between p-4 bg-black/60 backdrop-blur-lg sticky top-0 z-20 shrink-0 border-b border-white/5">
-            <h1 className="text-2xl font-black text-primary italic tracking-tighter" style={{filter: 'drop-shadow(0 0 8px hsl(var(--primary)))'}}>
-                A.snap
-            </h1>
+            <div className="flex items-center gap-2">
+              <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-primary/30">
+                <Image src="https://picsum.photos/seed/asnap_logo_final/64/64" alt="Logo" fill className="object-cover" />
+              </div>
+              <h1 className="text-2xl font-black text-primary italic tracking-tighter" style={{filter: 'drop-shadow(0 0 8px hsl(var(--primary)))'}}>
+                  A.snap
+              </h1>
+            </div>
             <div className="flex items-center gap-5">
                 <Link href="/notifications" className="relative hover:scale-110 transition-transform">
                     <Heart className="h-7 w-7 text-white" />

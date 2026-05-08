@@ -20,8 +20,13 @@ export const metadata: Metadata = {
     url: 'https://studio-8111746683-c1e57.web.app',
   },
   icons: {
-    icon: 'https://picsum.photos/seed/asnap_icon/32/32',
-    apple: 'https://picsum.photos/seed/asnap_icon/180/180',
+    icon: [
+      { url: 'https://picsum.photos/seed/asnap_logo_final/32/32', sizes: '32x32' },
+      { url: 'https://picsum.photos/seed/asnap_logo_final/192/192', sizes: '192x192' },
+    ],
+    apple: [
+      { url: 'https://picsum.photos/seed/asnap_logo_final/180/180', sizes: '180x180' },
+    ],
   },
   robots: {
     index: true,

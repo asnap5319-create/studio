@@ -1,21 +1,19 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase';
+import Image from 'next/image';
 
 /**
  * A.snap Splash Screen
- * Optimized for maximum stability to prevent hydration and white screen errors.
- * Features a high-end 3D Dark Box Logo with a stylized 'A' and Pink Dot.
+ * Features the new uploaded logo in a premium 3D container.
  */
 export default function Splash() {
   const router = useRouter();
   const { user, isUserLoading } = useUser();
   const [mounted, setMounted] = useState(false);
 
-  // Critical fix for hydration mismatch: Ensure we only render the UI after the component has mounted on the client.
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -23,7 +21,6 @@ export default function Splash() {
   useEffect(() => {
     if (!mounted || isUserLoading) return;
 
-    // Show the premium splash for 3 seconds before navigating
     const timer = setTimeout(() => {
       if (user) {
         router.replace('/feed');
@@ -35,7 +32,6 @@ export default function Splash() {
     return () => clearTimeout(timer);
   }, [user, isUserLoading, router, mounted]);
 
-  // Render a minimal black background until client-side mount to avoid hydration errors
   if (!mounted) {
     return <div className="min-h-screen bg-black" />;
   }
@@ -44,52 +40,27 @@ export default function Splash() {
     <main className="flex min-h-screen flex-col items-center justify-center bg-black overflow-hidden select-none">
       <div className="flex flex-col items-center space-y-12 animate-in fade-in zoom-in-95 duration-700">
         
-        {/* The 3D Dark Squircle Box (Premium Design) */}
         <div className="relative">
-            {/* Soft Ambient Glow in the background */}
             <div className="absolute -inset-16 bg-primary/20 rounded-full blur-[80px] opacity-40"></div>
             
-            {/* The Main 3D Box Container */}
             <div className="relative w-52 h-52 bg-[#0a0a0a] rounded-[4rem] flex items-center justify-center 
                             shadow-[inset_0_2px_8px_rgba(255,255,255,0.05),30px_30px_60px_rgba(0,0,0,1),-10px_-10px_30px_rgba(255,255,255,0.02)] 
                             border-[10px] border-[#1a1a1a] overflow-hidden">
                 
-                {/* Glossy Reflection Overlay for realism */}
                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.08] via-transparent to-transparent pointer-events-none"></div>
 
-                {/* The Stylized 'A' Icon using SVG for perfect rendering */}
-                <svg viewBox="0 0 100 100" className="w-36 h-32 drop-shadow-[0_15px_25px_rgba(0,0,0,0.8)]">
-                    <defs>
-                        <linearGradient id="a-gradient-premium" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#ff3366" /> 
-                            <stop offset="100%" stopColor="#9d50bb" />
-                        </linearGradient>
-                    </defs>
-                    
-                    {/* The Ribbon Loop 'A' design */}
-                    <path 
-                        d="M25 75 C 25 30, 40 18, 50 18 C 60 18, 75 30, 75 75 M32 54 L68 54" 
-                        fill="none" 
-                        stroke="url(#a-gradient-premium)" 
-                        strokeWidth="11" 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round"
-                    />
-                    
-                    {/* The Iconic Pink Dot with glow effect */}
-                    <circle 
-                      cx="80" 
-                      cy="20" 
-                      r="9" 
-                      fill="#ff3366" 
-                      className="animate-pulse"
-                      style={{ filter: 'drop-shadow(0 0 15px #ff3366)' }}
-                    />
-                </svg>
+                <div className="relative w-36 h-36">
+                  <Image 
+                    src="https://picsum.photos/seed/asnap_logo_final/400/400" 
+                    alt="A.snap Logo" 
+                    fill 
+                    className="object-contain drop-shadow-[0_15px_25px_rgba(0,0,0,0.8)]"
+                    priority
+                  />
+                </div>
             </div>
         </div>
         
-        {/* Branding Typography */}
         <div className="text-center space-y-4">
             <h1 className="text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary via-white to-primary italic">
                 A.snap
@@ -98,7 +69,6 @@ export default function Splash() {
         </div>
       </div>
       
-      {/* Premium Footer Branding */}
       <div className="absolute bottom-12 flex flex-col items-center opacity-30">
           <p className="text-[11px] uppercase tracking-[0.8em] font-bold text-white mb-1">Premium</p>
           <p className="text-[13px] font-black text-primary italic tracking-tight">CORE EXPERIENCE</p>
