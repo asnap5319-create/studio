@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -210,28 +211,22 @@ export default function ProfilePage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [postToDelete, setPostToDelete] = useState<Post | null>(null);
     const [showFollowList, setShowFollowList] = useState<'followers' | 'following' | null>(null);
-    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
     const isOwnProfile = user?.uid === userId;
     
-    useEffect(() => {
-        const handler = (e: any) => {
-            e.preventDefault();
-            setDeferredPrompt(e);
-        };
-        window.addEventListener('beforeinstallprompt', handler);
-        return () => window.removeEventListener('beforeinstallprompt', handler);
-    }, []);
-
     const handleInstallApp = async () => {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
+        const promptEvent = (window as any).deferredPrompt;
+        if (promptEvent) {
+            promptEvent.prompt();
+            const { outcome } = await promptEvent.userChoice;
             if (outcome === 'accepted') {
-                setDeferredPrompt(null);
+                (window as any).deferredPrompt = null;
             }
         } else {
-            toast({ title: "Note", description: "Open browser menu and select 'Install' or 'Add to Home Screen'." });
+            toast({ 
+                title: "Install Tip", 
+                description: "To install: Click the three dots in Chrome menu and select 'Install' or 'Add to Home Screen'." 
+            });
         }
     };
 

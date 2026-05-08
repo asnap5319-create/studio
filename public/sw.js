@@ -1,12 +1,25 @@
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
-});
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(clients.claim());
+const CACHE_NAME = 'asnap-v1';
+const ASSETS = [
+  '/',
+  '/manifest.json',
+  '/offline'
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(ASSETS);
+    })
+  );
 });
 
 self.addEventListener('fetch', (event) => {
-  // Simple pass-through fetch
-  event.respondWith(fetch(event.request));
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      return response || fetch(event.request);
+    }).catch(() => {
+      return caches.match('/offline');
+    })
+  );
 });

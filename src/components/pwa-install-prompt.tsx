@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -10,12 +11,11 @@ export function PwaInstallPrompt() {
 
   useEffect(() => {
     const handler = (e: any) => {
-      // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
-      // Stash the event so it can be triggered later.
+      // Store the event globally so other components can access it if needed
+      (window as any).deferredPrompt = e;
       setDeferredPrompt(e);
       
-      // Check if already in standalone mode
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
       
       if (!isStandalone) {
@@ -25,7 +25,6 @@ export function PwaInstallPrompt() {
 
     window.addEventListener('beforeinstallprompt', handler);
 
-    // Also check if app is already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
         setIsVisible(false);
     }
@@ -34,23 +33,23 @@ export function PwaInstallPrompt() {
   }, []);
 
   const handleInstall = async () => {
-    if (!deferredPrompt) {
-        // Fallback for browsers that don't support beforeinstallprompt
-        alert('To install A.snap: \n1. Click the "..." or "Share" icon in your browser menu.\n2. Select "Add to Home Screen" or "Install App".');
+    const promptEvent = deferredPrompt || (window as any).deferredPrompt;
+    
+    if (!promptEvent) {
+        // Only show this if we really don't have the event
         return;
     }
-    // Show the install prompt
-    deferredPrompt.prompt();
-    // Wait for the user to respond to the prompt
-    const { outcome } = await deferredPrompt.userChoice;
+
+    promptEvent.prompt();
+    const { outcome } = await promptEvent.userChoice;
     if (outcome === 'accepted') {
-      console.log('User accepted the install prompt');
       setIsVisible(false);
+      (window as any).deferredPrompt = null;
     }
-    setDeferredPrompt(null);
   };
 
-  if (!isVisible) return null;
+  // If already installed or browser hasn't fired the event, don't show the UI yet
+  if (!isVisible || (!deferredPrompt && !(window as any).deferredPrompt)) return null;
 
   return (
     <div className="fixed bottom-20 left-4 right-4 z-[100] animate-in slide-in-from-bottom-10 duration-700">
@@ -61,9 +60,9 @@ export function PwaInstallPrompt() {
              <svg viewBox="0 0 512 512" className="w-8 h-8 drop-shadow-[0_0_5px_rgba(255,51,102,0.5)]">
                 <defs>
                   <linearGradient id="promptGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-                    <stop offset="0%" style={{ stopColor: '#ff0080', stopOpacity: 1 }} />
-                    <stop offset="50%" style={{ stopColor: '#ff3366', stopOpacity: 1 }} />
-                    <stop offset="100%" style={{ stopColor: '#ffcc33', stopOpacity: 1 }} />
+                    <stop offset="0%" stopColor="#ff0080" stopOpacity="1" />
+                    <stop offset="50%" stopColor="#ff3366" stopOpacity="1" />
+                    <stop offset="100%" stopColor="#ffcc33" stopOpacity="1" />
                   </linearGradient>
                 </defs>
                 <path 
