@@ -7,11 +7,8 @@ import { Download, X, Sparkles } from 'lucide-react';
 export function PwaInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isVisible, setIsVisible] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
-    
     const handler = (e: any) => {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
@@ -28,11 +25,20 @@ export function PwaInstallPrompt() {
 
     window.addEventListener('beforeinstallprompt', handler);
 
+    // Also check if app is already installed
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+        setIsVisible(false);
+    }
+
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
   const handleInstall = async () => {
-    if (!deferredPrompt) return;
+    if (!deferredPrompt) {
+        // Fallback for browsers that don't support beforeinstallprompt
+        alert('To install A.snap: \n1. Click the "..." or "Share" icon in your browser menu.\n2. Select "Add to Home Screen" or "Install App".');
+        return;
+    }
     // Show the install prompt
     deferredPrompt.prompt();
     // Wait for the user to respond to the prompt
@@ -44,20 +50,20 @@ export function PwaInstallPrompt() {
     setDeferredPrompt(null);
   };
 
-  if (!isMounted || !isVisible) return null;
+  if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 z-[100] animate-in slide-in-from-bottom-10 duration-500">
-      <div className="bg-gradient-to-r from-[#1a1a1a] to-black border border-white/10 p-5 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center justify-between gap-4">
+    <div className="fixed bottom-20 left-4 right-4 z-[100] animate-in slide-in-from-bottom-10 duration-700">
+      <div className="bg-gradient-to-r from-[#1a1a1a] to-black border border-white/10 p-5 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="relative w-12 h-12 bg-[#0a0a0a] rounded-xl flex items-center justify-center border border-white/10 shrink-0 shadow-lg overflow-hidden">
              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none"></div>
              <svg viewBox="0 0 512 512" className="w-8 h-8 drop-shadow-[0_0_5px_rgba(255,51,102,0.5)]">
                 <defs>
                   <linearGradient id="promptGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#ff0080" stopOpacity="1" />
-                    <stop offset="50%" stopColor="#ff3366" stopOpacity="1" />
-                    <stop offset="100%" stopColor="#ffcc33" stopOpacity="1" />
+                    <stop offset="0%" style={{ stopColor: '#ff0080', stopOpacity: 1 }} />
+                    <stop offset="50%" style={{ stopColor: '#ff3366', stopOpacity: 1 }} />
+                    <stop offset="100%" style={{ stopColor: '#ffcc33', stopOpacity: 1 }} />
                   </linearGradient>
                 </defs>
                 <path 
@@ -76,7 +82,7 @@ export function PwaInstallPrompt() {
                <h4 className="text-sm font-black text-white uppercase italic truncate">Install A.snap</h4>
                <Sparkles className="h-3 w-3 text-primary animate-pulse shrink-0" />
             </div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold truncate">Fast & Smooth Experience</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold truncate">Get the Full App Experience</p>
           </div>
         </div>
         <div className="flex items-center gap-2">

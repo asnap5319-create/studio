@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, setDoc, where, getDocs, documentId } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, Users, Search, X, ShieldCheck } from "lucide-react";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, Users, Search, X, ShieldCheck, Download } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -210,9 +210,31 @@ export default function ProfilePage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [postToDelete, setPostToDelete] = useState<Post | null>(null);
     const [showFollowList, setShowFollowList] = useState<'followers' | 'following' | null>(null);
+    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
     const isOwnProfile = user?.uid === userId;
     
+    useEffect(() => {
+        const handler = (e: any) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+        };
+        window.addEventListener('beforeinstallprompt', handler);
+        return () => window.removeEventListener('beforeinstallprompt', handler);
+    }, []);
+
+    const handleInstallApp = async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                setDeferredPrompt(null);
+            }
+        } else {
+            toast({ title: "Note", description: "Open browser menu and select 'Install' or 'Add to Home Screen'." });
+        }
+    };
+
     // Admin check using the standardized email
     const isAdmin = useMemo(() => {
         if (!user?.email) return false;
@@ -377,6 +399,10 @@ export default function ProfilePage() {
                                             <DropdownMenuSeparator className="bg-border" />
                                         </>
                                     )}
+                                    <DropdownMenuItem onClick={handleInstallApp} className="focus:bg-primary/20">
+                                        <Download className="mr-2 h-4 w-4 text-primary" /> Install App
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator className="bg-border" />
                                     <DropdownMenuItem onClick={handleLogout} className="focus:bg-primary/20">
                                         <LogOut className="mr-2 h-4 w-4" /> Logout
                                     </DropdownMenuItem>
