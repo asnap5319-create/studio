@@ -1,9 +1,9 @@
-
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import { FirebaseClientProvider } from "@/firebase/client-provider";
+import Script from "next/script";
 
 export const metadata: Metadata = {
   title: "A.snap - Share Your World in Short Videos",
@@ -52,6 +52,12 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
        <body className={cn("min-h-screen bg-background font-sans antialiased")}>
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6100214178274409"
+          crossorigin="anonymous"
+          strategy="afterInteractive"
+        />
         <FirebaseClientProvider>
           {children}
         </FirebaseClientProvider>
