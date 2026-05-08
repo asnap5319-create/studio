@@ -49,14 +49,14 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="theme-color" content="#000000" />
-      </head>
-      <body className={cn("min-h-screen bg-background font-sans antialiased")}>
-        <Script
-          async
+        {/* Google AdSense Script In Head */}
+        <script 
+          async 
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6100214178274409"
           crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
+        ></script>
+      </head>
+      <body className={cn("min-h-screen bg-background font-sans antialiased")}>
         <FirebaseClientProvider>
           {children}
         </FirebaseClientProvider>
