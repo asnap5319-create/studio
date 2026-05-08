@@ -1,12 +1,20 @@
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
-});
+const CACHE_NAME = 'asnap-cache-v1';
+const urlsToCache = [
+  '/',
+  '/feed',
+  '/manifest.json'
+];
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(clients.claim());
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(urlsToCache))
+  );
 });
 
 self.addEventListener('fetch', (event) => {
-  // basic fetch handler to allow PWA installation
-  event.respondWith(fetch(event.request));
+  event.respondWith(
+    caches.match(event.request)
+      .then((response) => response || fetch(event.request))
+  );
 });

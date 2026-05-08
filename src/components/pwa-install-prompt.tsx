@@ -17,28 +17,16 @@ export function PwaInstallPrompt() {
       e.preventDefault();
       // Stash the event so it can be triggered later.
       setDeferredPrompt(e);
-      // Update UI notify the user they can install the PWA
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+      
+      // Check if already in standalone mode
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+      
       if (!isStandalone) {
         setIsVisible(true);
       }
     };
 
     window.addEventListener('beforeinstallprompt', handler);
-
-    // Register service worker if supported
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').then(
-          (registration) => {
-            console.log('SW registered: ', registration);
-          },
-          (registrationError) => {
-            console.log('SW registration failed: ', registrationError);
-          }
-        );
-      });
-    }
 
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
@@ -52,8 +40,6 @@ export function PwaInstallPrompt() {
     if (outcome === 'accepted') {
       console.log('User accepted the install prompt');
       setIsVisible(false);
-    } else {
-      console.log('User dismissed the install prompt');
     }
     setDeferredPrompt(null);
   };
@@ -64,8 +50,9 @@ export function PwaInstallPrompt() {
     <div className="fixed bottom-20 left-4 right-4 z-[100] animate-in slide-in-from-bottom-10 duration-500">
       <div className="bg-gradient-to-r from-[#1a1a1a] to-black border border-white/10 p-5 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="relative w-12 h-12 bg-black rounded-xl flex items-center justify-center border border-white/10 shrink-0 shadow-lg">
-             <svg viewBox="0 0 512 512" className="w-8 h-8">
+          <div className="relative w-12 h-12 bg-[#0a0a0a] rounded-xl flex items-center justify-center border border-white/10 shrink-0 shadow-lg overflow-hidden">
+             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none"></div>
+             <svg viewBox="0 0 512 512" className="w-8 h-8 drop-shadow-[0_0_5px_rgba(255,51,102,0.5)]">
                 <defs>
                   <linearGradient id="promptGrad" x1="0%" y1="100%" x2="100%" y2="0%">
                     <stop offset="0%" stopColor="#ff0080" stopOpacity="1" />
@@ -84,18 +71,18 @@ export function PwaInstallPrompt() {
                 <circle cx="390" cy="120" r="35" fill="#ff0080" />
              </svg>
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-               <h4 className="text-sm font-black text-white uppercase italic">Install A.snap</h4>
-               <Sparkles className="h-3 w-3 text-primary animate-pulse" />
+               <h4 className="text-sm font-black text-white uppercase italic truncate">Install A.snap</h4>
+               <Sparkles className="h-3 w-3 text-primary animate-pulse shrink-0" />
             </div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Fast & Smooth Experience</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold truncate">Fast & Smooth Experience</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
             <Button 
                 onClick={handleInstall} 
-                className="h-10 px-4 bg-primary text-white font-black uppercase text-xs rounded-xl shadow-[0_0_15px_rgba(var(--primary),0.3)] hover:scale-105 transition-transform"
+                className="h-10 px-4 bg-primary text-white font-black uppercase text-xs rounded-xl shadow-[0_0_15px_rgba(var(--primary),0.3)] hover:scale-105 active:scale-95 transition-all"
             >
                 <Download className="mr-2 h-4 w-4" /> Install
             </Button>
