@@ -1,25 +1,19 @@
+// Simple Service Worker to enable PWA Installation
 const CACHE_NAME = 'asnap-cache-v1';
-const urlsToCache = [
-  '/',
-  '/manifest.json'
-];
 
-self.addEventListener('install', event => {
+self.addEventListener('install', (event) => {
   self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
-  );
 });
 
-self.addEventListener('activate', event => {
+self.addEventListener('activate', (event) => {
   event.waitUntil(clients.claim());
 });
 
-self.addEventListener('fetch', event => {
-  // Required for PWA installability
+self.addEventListener('fetch', (event) => {
+  // Chrome requires a fetch handler to show the install prompt
   event.respondWith(
-    caches.match(event.request)
-      .then(response => response || fetch(event.request))
+    fetch(event.request).catch(() => {
+      return caches.match(event.request);
+    })
   );
 });

@@ -10,11 +10,12 @@ export function PwaInstallPrompt() {
 
   useEffect(() => {
     const handler = (e: any) => {
+      // Prevent Chrome 67 and earlier from automatically showing the prompt
       e.preventDefault();
-      // Store the event globally
-      (window as any).deferredPrompt = e;
+      // Stash the event so it can be triggered later.
       setDeferredPrompt(e);
       
+      // Check if the app is already installed
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
       
       if (!isStandalone) {
@@ -24,7 +25,7 @@ export function PwaInstallPrompt() {
 
     window.addEventListener('beforeinstallprompt', handler);
 
-    // Also check if already installed
+    // If app is already in standalone mode, don't show the prompt
     if (window.matchMedia('(display-mode: standalone)').matches) {
         setIsVisible(false);
     }
@@ -33,17 +34,20 @@ export function PwaInstallPrompt() {
   }, []);
 
   const handleInstall = async () => {
-    const promptEvent = deferredPrompt || (window as any).deferredPrompt;
-    
-    if (!promptEvent) return;
+    if (!deferredPrompt) return;
 
-    promptEvent.prompt();
-    const { outcome } = await promptEvent.userChoice;
+    // Show the install prompt
+    deferredPrompt.prompt();
+    
+    // Wait for the user to respond to the prompt
+    const { outcome } = await deferredPrompt.userChoice;
     
     if (outcome === 'accepted') {
+      console.log('User accepted the install prompt');
       setIsVisible(false);
       setDeferredPrompt(null);
-      (window as any).deferredPrompt = null;
+    } else {
+      console.log('User dismissed the install prompt');
     }
   };
 
