@@ -9,7 +9,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
-import { Heart, MessageCircle, Volume2, VolumeX, Share2 } from 'lucide-react';
+import { Heart, MessageCircle, Volume2, VolumeX, Share2, Play } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -19,7 +19,7 @@ import { ShareSheet } from './share-sheet';
 
 interface PostCardProps {
   post: Post;
-  isFocused?: boolean; // New prop to force playback when in a modal/dialog
+  isFocused?: boolean; // Forced playback for modals
 }
 
 export function PostCard({ post, isFocused = false }: PostCardProps) {
@@ -31,7 +31,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const viewCounted = useRef(false);
   const lastTapRef = useRef<number>(0);
 
-  const [isInView, setIsInView] = useState(false);
+  const [isInView, setIsInView] = useState(isFocused);
   const [isMuted, setIsMuted] = useState(false);
   const [showVolumeIcon, setShowVolumeIcon] = useState(false);
   const [showBigHeart, setShowBigHeart] = useState(false);
@@ -63,7 +63,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { data: likeData } = useDoc(likeRef);
   const isLiked = !!likeData;
 
-  // Enhanced video detection
   const isVideo = post.mediaUrl.toLowerCase().includes('.mp4') || 
                   post.mediaUrl.toLowerCase().includes('.mov') || 
                   post.mediaUrl.toLowerCase().includes('video') || 
@@ -151,17 +150,11 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   
   const handleFollowToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!firestore || !user || isOwnPost) {
-        toast({ variant: "destructive", title: "Error", description: "You must be logged in to follow users."});
-        return;
-    };
+    if (!firestore || !user || isOwnPost) return;
 
     const batch = writeBatch(firestore);
-    const followedUserId = post.userId;
-    const followerUserId = user.uid;
-
-    const followerDocRef = doc(firestore, 'user_followers', followedUserId, 'followers', followerUserId);
-    const followingDocRef = doc(firestore, 'user_following', followerUserId, 'following', followedUserId);
+    const followerDocRef = doc(firestore, 'user_followers', post.userId, 'followers', user.uid);
+    const followingDocRef = doc(firestore, 'user_following', user.uid, 'following', post.userId);
 
     if (isFollowing) {
         batch.delete(followerDocRef);
@@ -170,11 +163,11 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         batch.set(followerDocRef, { createdAt: serverTimestamp() });
         batch.set(followingDocRef, { createdAt: serverTimestamp() });
         
-        const notificationRef = doc(collection(firestore, 'users', followedUserId, 'notifications'));
+        const notificationRef = doc(collection(firestore, 'users', post.userId, 'notifications'));
         batch.set(notificationRef, {
             type: 'follow',
-            senderId: followerUserId,
-            recipientId: followedUserId,
+            senderId: user.uid,
+            recipientId: post.userId,
             read: false,
             createdAt: serverTimestamp(),
         });
@@ -182,12 +175,8 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
 
     try {
         await batch.commit();
-        toast({
-            title: isFollowing ? `Unfollowed ${author?.username}` : `Following ${author?.username}`,
-        });
     } catch (error) {
         console.error("Error toggling follow:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not complete the action.' });
     }
   };
 
@@ -201,56 +190,40 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       ([entry]) => {
         setIsInView(entry.isIntersecting);
       },
-      { threshold: 0.7 }
+      { threshold: 0.8 }
     );
 
-    const currentCardRef = cardRef.current;
-    if (currentCardRef) {
-      observer.observe(currentCardRef);
-    }
-
-    return () => {
-      if (currentCardRef) {
-        observer.unobserve(currentCardRef);
-      }
-    };
+    if (cardRef.current) observer.observe(cardRef.current);
+    return () => observer.disconnect();
   }, [isFocused]);
 
   useEffect(() => {
-    const videoElement = videoRef.current;
-    if (videoElement) {
-      if (isInView) {
-        videoElement.muted = isMuted;
-        const playPromise = videoElement.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(error => {
-            if (error.name === "NotAllowedError") {
-              videoElement.muted = true;
-              setIsMuted(true);
-              videoElement.play().catch(() => {});
-            }
-          });
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (isInView) {
+      video.muted = isMuted;
+      video.play().catch(err => {
+        if (err.name === "NotAllowedError") {
+          video.muted = true;
+          setIsMuted(true);
+          video.play().catch(() => {});
         }
-      } else {
-        videoElement.pause();
-        videoElement.currentTime = 0;
-      }
+      });
+    } else {
+      video.pause();
+      video.currentTime = 0;
     }
 
     if (isInView && firestore && !viewCounted.current) {
       viewCounted.current = true; 
       const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
-      updateDoc(postRef, {
-          viewCount: increment(1)
-      }).catch(() => {
-          viewCounted.current = false;
-      });
+      updateDoc(postRef, { viewCount: increment(1) }).catch(() => { viewCounted.current = false; });
     }
-
-  }, [isInView, firestore, post.id, post.userId, isMuted]);
+  }, [isInView, isMuted, firestore, post.id, post.userId]);
 
   return (
-    <div ref={cardRef} className="relative w-full h-full bg-black overflow-hidden" onClick={handleTap}>
+    <div ref={cardRef} className="relative w-full h-full bg-black overflow-hidden select-none" onClick={handleTap}>
       
       {isVideo ? (
         <video
@@ -259,11 +232,13 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
           className="object-contain w-full h-full"
           loop
           playsInline
+          autoPlay={isFocused}
+          muted={isMuted}
         />
       ) : (
         <Image
           src={post.mediaUrl}
-          alt={post.caption || 'User post'}
+          alt={post.caption || 'Post'}
           fill
           className="object-contain"
           priority

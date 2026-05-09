@@ -124,8 +124,11 @@ export default function ChatPage() {
     }
   };
 
+  // Increased timer to 1 second to prevent accidental trigger while clicking video
   const handleLongPress = (messageId: string, senderId: string) => {
     if (senderId !== user?.uid) return;
+
+    if (pressTimer.current) clearTimeout(pressTimer.current);
 
     pressTimer.current = setTimeout(() => {
       setMsgToDelete(messageId);
@@ -133,7 +136,7 @@ export default function ChatPage() {
       if (window.navigator && window.navigator.vibrate) {
         window.navigator.vibrate(50);
       }
-    }, 600);
+    }, 1000); 
   };
 
   const cancelPress = () => {
@@ -199,15 +202,18 @@ export default function ChatPage() {
                 "flex flex-col max-w-[80%] group relative",
                 isMine ? "ml-auto items-end" : "mr-auto items-start"
               )}
-              onPointerDown={() => handleLongPress(msg.id, msg.senderId)}
-              onPointerUp={cancelPress}
-              onPointerLeave={cancelPress}
-              onTouchStart={() => handleLongPress(msg.id, msg.senderId)}
-              onTouchEnd={cancelPress}
             >
               {isSharedPost ? (
                 <div 
-                  onClick={() => msg.sharedPostId && msg.sharedPostOwnerId && handleViewSharedPost(msg.sharedPostId, msg.sharedPostOwnerId)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (msg.sharedPostId && msg.sharedPostOwnerId) {
+                        handleViewSharedPost(msg.sharedPostId, msg.sharedPostOwnerId);
+                    }
+                  }}
+                  onPointerDown={() => handleLongPress(msg.id, msg.senderId)}
+                  onPointerUp={cancelPress}
+                  onPointerLeave={cancelPress}
                   className={cn(
                     "rounded-2xl overflow-hidden border border-border shadow-lg transition-transform active:scale-95 group/post cursor-pointer",
                     isMine ? "bg-primary/20" : "bg-secondary/40"
@@ -241,6 +247,9 @@ export default function ChatPage() {
                 </div>
               ) : (
                 <div 
+                  onPointerDown={() => handleLongPress(msg.id, msg.senderId)}
+                  onPointerUp={cancelPress}
+                  onPointerLeave={cancelPress}
                   className={cn(
                     "px-4 py-2 rounded-2xl text-sm break-words transition-opacity active:opacity-70",
                     isMine 
@@ -284,14 +293,14 @@ export default function ChatPage() {
       <Dialog open={!!selectedPost} onOpenChange={(isOpen) => !isOpen && setSelectedPost(null)}>
         <DialogContent className="p-0 border-0 bg-black/90 w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center overflow-hidden">
             {selectedPost && (
-                <>
+                <div className="relative w-full h-full">
                    <DialogTitle className="sr-only">Video Player</DialogTitle>
                     <PostCard 
                       key={selectedPost.id} 
                       post={selectedPost} 
                       isFocused={true} 
                     />
-                </>
+                </div>
             )}
         </DialogContent>
       </Dialog>
