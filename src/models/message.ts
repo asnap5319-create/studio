@@ -7,5 +7,6 @@ export interface Message {
   createdAt: Timestamp;
   sharedPostId?: string;
   sharedPostMediaUrl?: string;
-  sharedPostOwnerId?: string; // Added to identify the post owner
+  sharedPostOwnerId?: string;
+  isDeleted?: boolean; // Flag to indicate if the message was deleted
 }

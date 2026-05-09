@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, orderBy, serverTimestamp, doc, deleteDoc, getDoc } from 'firebase/firestore';
-import { addDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, query, orderBy, serverTimestamp, doc, getDoc } from 'firebase/firestore';
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { Message } from '@/models/message';
 import type { Chat } from '@/models/chat';
 import type { UserProfile } from '@/models/user';
@@ -12,7 +12,7 @@ import type { Post } from '@/models/post';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Send, Play, Trash2, Loader2 } from 'lucide-react';
+import { ArrowLeft, Send, Play, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -95,14 +95,15 @@ export default function ChatPage() {
       senderId: user.uid,
       text,
       createdAt: serverTimestamp(),
+      isDeleted: false,
     });
 
-    setDocumentNonBlocking(chatDocRef, {
+    updateDocumentNonBlocking(chatDocRef, {
       lastMessage: text,
       lastMessageAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       participants: chat?.participants || [user.uid, (chatId as string).replace(user.uid, '').replace('_', '')],
-    }, { merge: true });
+    });
   };
 
   const handleViewSharedPost = async (postId: string, ownerId: string) => {
@@ -124,9 +125,8 @@ export default function ChatPage() {
     }
   };
 
-  // Increased timer to 1 second to prevent accidental trigger while clicking video
-  const handleLongPress = (messageId: string, senderId: string) => {
-    if (senderId !== user?.uid) return;
+  const handleLongPress = (messageId: string, senderId: string, isDeleted?: boolean) => {
+    if (senderId !== user?.uid || isDeleted) return;
 
     if (pressTimer.current) clearTimeout(pressTimer.current);
 
@@ -146,14 +146,20 @@ export default function ChatPage() {
     }
   };
 
-  const confirmDeleteMessage = async () => {
+  const confirmUnsendMessage = async () => {
     if (!firestore || !chatId || !msgToDelete) return;
     const messageDocRef = doc(firestore, 'chats', chatId as string, 'messages', msgToDelete);
     try {
-      deleteDocumentNonBlocking(messageDocRef);
-      toast({ title: "Message Deleted" });
+      updateDocumentNonBlocking(messageDocRef, {
+        text: "This message was deleted",
+        isDeleted: true,
+        sharedPostId: null,
+        sharedPostMediaUrl: null,
+        sharedPostOwnerId: null,
+      });
+      toast({ title: "Message Unsent" });
     } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Could not delete message." });
+      toast({ variant: "destructive", title: "Error", description: "Could not unsend message." });
     } finally {
       setIsDeleteDialogOpen(false);
       setMsgToDelete(null);
@@ -194,6 +200,7 @@ export default function ChatPage() {
         {messages?.map((msg) => {
           const isMine = msg.senderId === user.uid;
           const isSharedPost = !!msg.sharedPostId;
+          const isDeleted = msg.isDeleted;
 
           return (
             <div 
@@ -203,7 +210,14 @@ export default function ChatPage() {
                 isMine ? "ml-auto items-end" : "mr-auto items-start"
               )}
             >
-              {isSharedPost ? (
+              {isDeleted ? (
+                <div className={cn(
+                  "px-4 py-2 rounded-2xl text-xs italic opacity-50 border border-white/10",
+                  isMine ? "bg-black/20" : "bg-black/20"
+                )}>
+                  {msg.text}
+                </div>
+              ) : isSharedPost ? (
                 <div 
                   onClick={(e) => {
                     e.stopPropagation();
@@ -305,21 +319,21 @@ export default function ChatPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Unsend Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent className="max-w-[300px] rounded-2xl border-border bg-background text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-center">Delete Message?</AlertDialogTitle>
+            <AlertDialogTitle className="text-center">Unsend Message?</AlertDialogTitle>
             <AlertDialogDescription className="text-center text-xs">
-              This message will be deleted for everyone in this chat.
+              This will remove the message for everyone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
             <AlertDialogAction 
-              onClick={confirmDeleteMessage}
+              onClick={confirmUnsendMessage}
               className="bg-destructive hover:bg-destructive/90 text-white font-bold rounded-xl h-11"
             >
-              Delete
+              Unsend
             </AlertDialogAction>
             <AlertDialogCancel className="bg-secondary border-none hover:bg-secondary/80 text-white rounded-xl h-11 m-0">
               Cancel
