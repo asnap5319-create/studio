@@ -19,7 +19,7 @@ import { ShareSheet } from './share-sheet';
 
 interface PostCardProps {
   post: Post;
-  isFocused?: boolean; // Forced playback for modals
+  isFocused?: boolean; 
 }
 
 export function PostCard({ post, isFocused = false }: PostCardProps) {
@@ -29,7 +29,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const viewCounted = useRef(false);
-  const lastTapRef = useRef<number>(0);
+  const tapTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [isInView, setIsInView] = useState(isFocused);
   const [isMuted, setIsMuted] = useState(false);
@@ -48,17 +48,18 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { data: author, isLoading: isAuthorLoading } = useDoc<UserProfile>(authorRef);
   
   const followCheckRef = useMemoFirebase(() => {
-      if (!firestore || !user || isOwnPost) return null;
+      if (!firestore || !user?.uid || isOwnPost) return null;
       return doc(firestore, 'user_followers', post.userId, 'followers', user.uid);
-  }, [firestore, user, isOwnPost, post.userId]);
+  }, [firestore, user?.uid, isOwnPost, post.userId]);
 
   const { data: followCheck } = useDoc(followCheckRef);
   const isFollowing = !!followCheck;
 
+  // Use user.uid in dependencies to prevent reference flickering and auto-unlikes
   const likeRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore || !user?.uid) return null;
     return doc(firestore, 'users', post.userId, 'posts', post.id, 'likes', user.uid);
-  }, [firestore, user, post.userId, post.id]);
+  }, [firestore, user?.uid, post.userId, post.id]);
 
   const { data: likeData } = useDoc(likeRef);
   const isLiked = !!likeData;
@@ -88,9 +89,11 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         return;
     }
 
+    // Always show animation on double tap or like action
     setShowBigHeart(true);
     setTimeout(() => setShowBigHeart(false), 1000);
 
+    // If already liked, don't perform the database write again
     if (isLiked) return;
 
     const batch = writeBatch(firestore);
@@ -137,15 +140,18 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   };
 
   const handleTap = (e: React.MouseEvent) => {
-    const now = Date.now();
-    const DOUBLE_TAP_DELAY = 300;
-    
-    if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
-      handleLike();
+    if (tapTimerRef.current) {
+        // Double tap detected
+        clearTimeout(tapTimerRef.current);
+        tapTimerRef.current = null;
+        handleLike();
     } else {
-      toggleMute();
+        // Potential single tap
+        tapTimerRef.current = setTimeout(() => {
+            toggleMute();
+            tapTimerRef.current = null;
+        }, 300);
     }
-    lastTapRef.current = now;
   };
   
   const handleFollowToggle = async (e: React.MouseEvent) => {
