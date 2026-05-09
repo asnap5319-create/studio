@@ -2,11 +2,12 @@
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
-import { collectionGroup, query, orderBy, collection } from 'firebase/firestore';
+import { collectionGroup, query, orderBy, collection, where } from 'firebase/firestore';
 import { PostCard } from '@/components/post-card';
 import { SponsoredCard } from '@/components/sponsored-card';
 import type { Post } from '@/models/post';
 import type { Notification } from '@/models/notification';
+import type { Message } from '@/models/message';
 import Link from 'next/link';
 import { Heart, Database, RefreshCw, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -48,7 +49,20 @@ export default function FeedPage() {
   }, [firestore, user]);
 
   const { data: notifications } = useCollection<Notification>(notificationsQuery);
-  const unreadCount = notifications?.filter(n => !n.read).length || 0;
+  const unreadNotificationsCount = notifications?.filter(n => !n.read).length || 0;
+
+  // Unread messages logic
+  const unreadMessagesQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(
+      collectionGroup(firestore, 'messages'),
+      where('recipientId', '==', user.uid),
+      where('read', '==', false)
+    );
+  }, [firestore, user]);
+
+  const { data: unreadMessages } = useCollection<Message>(unreadMessagesQuery);
+  const unreadMessagesCount = unreadMessages?.length || 0;
 
   const feedItems = useMemo(() => {
     if (!posts) return [];
@@ -56,7 +70,6 @@ export default function FeedPage() {
     let adIndex = 0;
     posts.forEach((post, index) => {
       items.push({ type: 'post' as const, data: post });
-      // Ads appear every 3 videos as requested (2 se 3 video ke baad)
       if ((index + 1) % 3 === 0) {
         items.push({ type: 'ad' as const, data: MOCK_ADS[adIndex] });
         adIndex = (adIndex + 1) % MOCK_ADS.length;
@@ -128,14 +141,19 @@ export default function FeedPage() {
             <div className="flex items-center gap-5">
                 <Link href="/notifications" className="relative hover:scale-110 transition-transform">
                     <Heart className="h-7 w-7 text-white" />
-                    {unreadCount > 0 && (
+                    {unreadNotificationsCount > 0 && (
                       <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-600 rounded-full border-2 border-black flex items-center justify-center text-[10px] font-bold">
-                        {unreadCount > 9 ? '9+' : unreadCount}
+                        {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
                       </span>
                     )}
                 </Link>
-                <Link href="/messages" className="hover:scale-110 transition-transform">
+                <Link href="/messages" className="relative hover:scale-110 transition-transform">
                     <Send className="h-7 w-7 text-white -rotate-12" />
+                    {unreadMessagesCount > 0 && (
+                      <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-600 rounded-full border-2 border-black flex items-center justify-center text-[10px] font-bold">
+                        {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
+                      </span>
+                    )}
                 </Link>
             </div>
       </header>

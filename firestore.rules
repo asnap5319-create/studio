@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -73,6 +74,11 @@ service cloud.firestore {
       allow read: if true;
     }
 
+    // Global collection group access for messages (used for unread counts)
+    match /{path=**}/messages/{messageId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.recipientId);
+    }
+
     // Chat system rules - strictly for participants
     match /chats/{chatId} {
       allow read: if isAuthenticated() && request.auth.uid in resource.data.participants;
@@ -82,7 +88,8 @@ service cloud.firestore {
       match /messages/{messageId} {
         allow read: if isAuthenticated() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
         allow create: if isAuthenticated() && request.auth.uid == request.resource.data.senderId;
-        allow update: if isAuthenticated() && request.auth.uid == resource.data.senderId;
+        // Allow update if sender (to unsend) or recipient (to mark as read)
+        allow update: if isAuthenticated() && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.recipientId);
         allow delete: if isAuthenticated() && (request.auth.uid == resource.data.senderId || isAdmin());
       }
     }

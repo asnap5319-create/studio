@@ -2,15 +2,17 @@
 'use client';
 
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, doc } from 'firebase/firestore';
+import { collection, query, where, orderBy, doc, collectionGroup } from 'firebase/firestore';
 import type { Chat } from '@/models/chat';
 import type { UserProfile } from '@/models/user';
+import type { Message } from '@/models/message';
 import { useDoc } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
 import { ArrowLeft, MessageSquare, Database, RefreshCw, ExternalLink } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 function ChatItem({ chat, currentUserId }: { chat: Chat; currentUserId: string }) {
   const { firestore } = useFirebase();
@@ -23,27 +25,50 @@ function ChatItem({ chat, currentUserId }: { chat: Chat; currentUserId: string }
 
   const { data: otherUser } = useDoc<UserProfile>(otherUserRef);
 
+  // Check unread for this specific chat
+  const unreadQuery = useMemoFirebase(() => {
+    if (!firestore || !currentUserId || !chat.id) return null;
+    return query(
+      collection(firestore, 'chats', chat.id, 'messages'),
+      where('recipientId', '==', currentUserId),
+      where('read', '==', false)
+    );
+  }, [firestore, currentUserId, chat.id]);
+
+  const { data: unreadMessages } = useCollection<Message>(unreadQuery);
+  const isUnread = unreadMessages && unreadMessages.length > 0;
+
   if (!otherUser) return null;
 
   return (
     <Link 
       href={`/messages/${chat.id}`}
-      className="flex items-center gap-4 p-4 hover:bg-secondary/50 transition-colors"
+      className={cn(
+        "flex items-center gap-4 p-4 hover:bg-secondary/50 transition-colors",
+        isUnread && "bg-primary/5"
+      )}
     >
-      <Avatar className="h-14 w-14 border border-border">
-        <AvatarImage src={otherUser.profileImageUrl} />
-        <AvatarFallback>{otherUser.username?.[0]?.toUpperCase()}</AvatarFallback>
-      </Avatar>
+      <div className="relative">
+        <Avatar className="h-14 w-14 border border-border">
+          <AvatarImage src={otherUser.profileImageUrl} />
+          <AvatarFallback>{otherUser.username?.[0]?.toUpperCase()}</AvatarFallback>
+        </Avatar>
+        {isUnread && (
+          <span className="absolute -top-1 -right-1 h-4 w-4 bg-primary rounded-full border-2 border-background animate-pulse" />
+        )}
+      </div>
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-center mb-1">
-          <span className="font-bold text-sm truncate">{otherUser.username}</span>
+          <span className={cn("text-sm truncate", isUnread ? "font-black text-white" : "font-bold text-muted-foreground")}>
+            {otherUser.username}
+          </span>
           {chat.lastMessageAt && (
-            <span className="text-[10px] text-muted-foreground">
+            <span className={cn("text-[10px]", isUnread ? "text-primary font-bold" : "text-muted-foreground")}>
               {formatDistanceToNow(chat.lastMessageAt.toDate(), { addSuffix: false })}
             </span>
           )}
         </div>
-        <p className="text-xs text-muted-foreground truncate">
+        <p className={cn("text-xs truncate", isUnread ? "text-white font-bold" : "text-muted-foreground")}>
           {chat.lastMessage || 'Start a conversation'}
         </p>
       </div>

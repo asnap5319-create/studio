@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -151,10 +152,12 @@
       "properties": {
         "id": { "type": "string" },
         "senderId": { "type": "string" },
+        "recipientId": { "type": "string" },
         "text": { "type": "string" },
         "sharedPostId": { "type": "string" },
         "sharedPostMediaUrl": { "type": "string" },
         "sharedPostOwnerId": { "type": "string" },
+        "read": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "senderId", "text", "createdAt"]

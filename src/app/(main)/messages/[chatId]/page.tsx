@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, orderBy, serverTimestamp, doc, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, serverTimestamp, doc, getDoc, writeBatch } from 'firebase/firestore';
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { Message } from '@/models/message';
 import type { Chat } from '@/models/chat';
@@ -57,7 +58,8 @@ export default function ChatPage() {
 
   const { data: chat } = useDoc<Chat>(chatRef);
 
-  const otherUserId = chat?.participants.find(id => id !== user?.uid);
+  const otherUserId = chat?.participants.find(id => id !== user?.uid) || (chatId as string).split('_').find(id => id !== user?.uid);
+  
   const otherUserRef = useMemoFirebase(() => {
     if (!firestore || !otherUserId) return null;
     return doc(firestore, 'users', otherUserId);
@@ -75,15 +77,29 @@ export default function ChatPage() {
 
   const { data: messages } = useCollection<Message>(messagesQuery);
 
+  // Scroll to bottom and Mark messages as read
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+
+    // Mark messages as read
+    if (user && firestore && messages && messages.length > 0) {
+      const unreadMessages = messages.filter(m => !m.read && m.recipientId === user.uid);
+      if (unreadMessages.length > 0) {
+        const batch = writeBatch(firestore);
+        unreadMessages.forEach(msg => {
+          const msgRef = doc(firestore, 'chats', chatId as string, 'messages', msg.id);
+          batch.update(msgRef, { read: true });
+        });
+        batch.commit().catch(err => console.error("Error marking messages as read:", err));
+      }
+    }
+  }, [messages, user, firestore, chatId]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !firestore || !inputText.trim() || isSending) return;
+    if (!user || !firestore || !inputText.trim() || isSending || !otherUserId) return;
 
     const text = inputText.trim();
     setInputText('');
@@ -93,16 +109,18 @@ export default function ChatPage() {
 
     addDocumentNonBlocking(messagesRef, {
       senderId: user.uid,
+      recipientId: otherUserId,
       text,
       createdAt: serverTimestamp(),
       isDeleted: false,
+      read: false,
     });
 
     updateDocumentNonBlocking(chatDocRef, {
       lastMessage: text,
       lastMessageAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      participants: chat?.participants || [user.uid, (chatId as string).replace(user.uid, '').replace('_', '')],
+      participants: chat?.participants || [user.uid, otherUserId].sort(),
     });
   };
 
@@ -276,6 +294,11 @@ export default function ChatPage() {
               )}
               <span className="text-[9px] text-muted-foreground mt-1 px-1">
                 {msg.createdAt && format(msg.createdAt.toDate(), 'HH:mm')}
+                {isMine && (
+                  <span className={cn("ml-1", msg.read ? "text-primary" : "text-muted-foreground opacity-50")}>
+                    • {msg.read ? 'Seen' : 'Sent'}
+                  </span>
+                )}
               </span>
             </div>
           );

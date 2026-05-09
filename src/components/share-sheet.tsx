@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -60,11 +61,13 @@ export function ShareSheet({ postId, postOwnerId, mediaUrl, onClose }: ShareShee
 
       await addDoc(messagesRef, {
         senderId: user.uid,
+        recipientId: recipientId,
         text: '',
         sharedPostId: postId,
         sharedPostMediaUrl: mediaUrl,
-        sharedPostOwnerId: postOwnerId, // Save the owner ID
+        sharedPostOwnerId: postOwnerId,
         createdAt: serverTimestamp(),
+        read: false,
       });
 
       setSentTo(prev => [...prev, recipientId]);
