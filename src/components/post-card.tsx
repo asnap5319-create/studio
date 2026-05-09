@@ -19,9 +19,10 @@ import { ShareSheet } from './share-sheet';
 
 interface PostCardProps {
   post: Post;
+  isFocused?: boolean; // New prop to force playback when in a modal/dialog
 }
 
-export function PostCard({ post }: PostCardProps) {
+export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { firestore } = useFirebase();
   const { user } = useUser();
   const { toast } = useToast();
@@ -62,7 +63,12 @@ export function PostCard({ post }: PostCardProps) {
   const { data: likeData } = useDoc(likeRef);
   const isLiked = !!likeData;
 
-  const isVideo = post.mediaUrl.includes('.mp4') || post.mediaUrl.includes('.mov') || post.mediaUrl.includes('video') || post.mediaUrl.includes('cloudinary');
+  // Enhanced video detection
+  const isVideo = post.mediaUrl.toLowerCase().includes('.mp4') || 
+                  post.mediaUrl.toLowerCase().includes('.mov') || 
+                  post.mediaUrl.toLowerCase().includes('video') || 
+                  post.mediaUrl.includes('res.cloudinary.com') ||
+                  post.mediaUrl.includes('firebasestorage.googleapis.com');
 
   const toggleMute = () => {
     if (!isVideo || !videoRef.current) return;
@@ -186,6 +192,11 @@ export function PostCard({ post }: PostCardProps) {
   };
 
   useEffect(() => {
+    if (isFocused) {
+        setIsInView(true);
+        return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         setIsInView(entry.isIntersecting);
@@ -203,7 +214,7 @@ export function PostCard({ post }: PostCardProps) {
         observer.unobserve(currentCardRef);
       }
     };
-  }, []);
+  }, [isFocused]);
 
   useEffect(() => {
     const videoElement = videoRef.current;

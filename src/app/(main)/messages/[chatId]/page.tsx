@@ -286,7 +286,11 @@ export default function ChatPage() {
             {selectedPost && (
                 <>
                    <DialogTitle className="sr-only">Video Player</DialogTitle>
-                    <PostCard post={selectedPost} />
+                    <PostCard 
+                      key={selectedPost.id} 
+                      post={selectedPost} 
+                      isFocused={true} 
+                    />
                 </>
             )}
         </DialogContent>
