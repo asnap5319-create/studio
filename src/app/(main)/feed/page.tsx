@@ -56,7 +56,8 @@ export default function FeedPage() {
     let adIndex = 0;
     posts.forEach((post, index) => {
       items.push({ type: 'post' as const, data: post });
-      if ((index + 1) % 5 === 0) {
+      // Ads appear every 3 videos as requested (2 se 3 video ke baad)
+      if ((index + 1) % 3 === 0) {
         items.push({ type: 'ad' as const, data: MOCK_ADS[adIndex] });
         adIndex = (adIndex + 1) % MOCK_ADS.length;
       }
