@@ -154,6 +154,7 @@
         "text": { "type": "string" },
         "sharedPostId": { "type": "string" },
         "sharedPostMediaUrl": { "type": "string" },
+        "sharedPostOwnerId": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "senderId", "text", "createdAt"]
@@ -176,6 +177,14 @@
         }
       },
       {
+        "path": "/users/{userId}/posts/{postId}",
+        "definition": {
+          "entityName": "Post",
+          "schema": { "$ref": "#/backend/entities/Post" },
+          "description": "Stores user posts (videos/images)."
+        }
+      },
+      {
         "path": "/chats/{chatId}",
         "definition": {
           "entityName": "Chat",
@@ -192,6 +201,6 @@
         }
       }
     ],
-    "reasoning": "Standard Chat-Message structure with metadata at the chat root for efficient inbox listing."
+    "reasoning": "Standard hierarchical structure for users and their content, with a separate top-level collection for chats to handle many-to-many participant relationships efficiently."
   }
 }
