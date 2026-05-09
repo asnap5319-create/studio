@@ -3,15 +3,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, orderBy, serverTimestamp, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, orderBy, serverTimestamp, doc, deleteDoc, getDoc } from 'firebase/firestore';
 import { addDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { Message } from '@/models/message';
 import type { Chat } from '@/models/chat';
 import type { UserProfile } from '@/models/user';
+import type { Post } from '@/models/post';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Send, Play, Trash2 } from 'lucide-react';
+import { ArrowLeft, Send, Play, Trash2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -26,6 +27,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { PostCard } from "@/components/post-card";
 import { useToast } from '@/hooks/use-toast';
 
 export default function ChatPage() {
@@ -37,6 +40,10 @@ export default function ChatPage() {
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // States for shared post viewing
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [isLoadingPost, setIsLoadingPost] = useState(false);
 
   // States for long-press delete
   const [msgToDelete, setMsgToDelete] = useState<string | null>(null);
@@ -98,18 +105,35 @@ export default function ChatPage() {
     }, { merge: true });
   };
 
+  const handleViewSharedPost = async (postId: string, ownerId: string) => {
+    if (!firestore) return;
+    setIsLoadingPost(true);
+    try {
+      const postRef = doc(firestore, 'users', ownerId, 'posts', postId);
+      const postSnap = await getDoc(postRef);
+      if (postSnap.exists()) {
+        setSelectedPost({ ...postSnap.data(), id: postSnap.id } as Post);
+      } else {
+        toast({ variant: "destructive", title: "Video Unavailable", description: "This video may have been deleted." });
+      }
+    } catch (error) {
+      console.error("Error fetching post:", error);
+      toast({ variant: "destructive", title: "Error", description: "Could not load video." });
+    } finally {
+      setIsLoadingPost(false);
+    }
+  };
+
   const handleLongPress = (messageId: string, senderId: string) => {
-    // Only allow owner to delete their own messages
     if (senderId !== user?.uid) return;
 
     pressTimer.current = setTimeout(() => {
       setMsgToDelete(messageId);
       setIsDeleteDialogOpen(true);
-      // Haptic feedback if available
       if (window.navigator && window.navigator.vibrate) {
         window.navigator.vibrate(50);
       }
-    }, 600); // 600ms hold to trigger
+    }, 600);
   };
 
   const cancelPress = () => {
@@ -121,14 +145,11 @@ export default function ChatPage() {
 
   const confirmDeleteMessage = async () => {
     if (!firestore || !chatId || !msgToDelete) return;
-
     const messageDocRef = doc(firestore, 'chats', chatId as string, 'messages', msgToDelete);
-    
     try {
       deleteDocumentNonBlocking(messageDocRef);
       toast({ title: "Message Deleted" });
     } catch (error) {
-      console.error("Error deleting message:", error);
       toast({ variant: "destructive", title: "Error", description: "Could not delete message." });
     } finally {
       setIsDeleteDialogOpen(false);
@@ -185,10 +206,10 @@ export default function ChatPage() {
               onTouchEnd={cancelPress}
             >
               {isSharedPost ? (
-                <Link 
-                  href="/feed"
+                <div 
+                  onClick={() => msg.sharedPostId && msg.sharedPostOwnerId && handleViewSharedPost(msg.sharedPostId, msg.sharedPostOwnerId)}
                   className={cn(
-                    "rounded-2xl overflow-hidden border border-border shadow-lg transition-transform active:scale-95 group/post",
+                    "rounded-2xl overflow-hidden border border-border shadow-lg transition-transform active:scale-95 group/post cursor-pointer",
                     isMine ? "bg-primary/20" : "bg-secondary/40"
                   )}
                 >
@@ -210,14 +231,14 @@ export default function ChatPage() {
                          className="object-cover"
                        />
                      )}
-                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/post:opacity-100 transition-opacity bg-black/20">
+                     <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover/post:opacity-100 transition-opacity">
                         <Play className="h-10 w-10 text-white fill-white/20" />
                      </div>
                   </div>
                   <div className="p-2 text-[10px] font-bold text-center bg-black/40 text-muted-foreground uppercase tracking-widest">
-                    View Post
+                    {isLoadingPost && selectedPost?.id === msg.sharedPostId ? <Loader2 className="animate-spin h-3 w-3 mx-auto" /> : 'View Post'}
                   </div>
-                </Link>
+                </div>
               ) : (
                 <div 
                   className={cn(
@@ -258,6 +279,18 @@ export default function ChatPage() {
           </Button>
         </form>
       </div>
+
+      {/* Video Viewer Dialog */}
+      <Dialog open={!!selectedPost} onOpenChange={(isOpen) => !isOpen && setSelectedPost(null)}>
+        <DialogContent className="p-0 border-0 bg-black/90 w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center overflow-hidden">
+            {selectedPost && (
+                <>
+                   <DialogTitle className="sr-only">Video Player</DialogTitle>
+                    <PostCard post={selectedPost} />
+                </>
+            )}
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

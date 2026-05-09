@@ -63,6 +63,7 @@ export function ShareSheet({ postId, postOwnerId, mediaUrl, onClose }: ShareShee
         text: '',
         sharedPostId: postId,
         sharedPostMediaUrl: mediaUrl,
+        sharedPostOwnerId: postOwnerId, // Save the owner ID
         createdAt: serverTimestamp(),
       });
 
