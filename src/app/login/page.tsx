@@ -10,6 +10,11 @@ import { useFirebase, useUser } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 
+/**
+ * LoginPage Component
+ * Handles user authentication. Redirects to feed if accessed without ?auth=true
+ * to ensure users see content first.
+ */
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,13 +30,15 @@ export default function LoginPage() {
   const showAuth = searchParams.get('auth') === 'true';
 
   useEffect(() => {
-    // If user is already logged in, send to feed
+    // If user is already logged in, send to feed immediately
     if (!isUserLoading && user) {
       router.replace('/');
       return;
     }
 
-    // If someone lands on /login without ?auth=true, send them to the feed to watch videos first
+    // CRITICAL: If someone lands on /login without ?auth=true, 
+    // send them to the feed (root) to watch videos first.
+    // This satisfies the "Show videos first, login later" requirement.
     if (!isUserLoading && !showAuth) {
       router.replace('/');
     } else if (!isUserLoading) {
@@ -73,16 +80,18 @@ export default function LoginPage() {
     }
   };
 
-  if (isUserLoading || isRedirecting) {
+  // Prevent showing the login form even for a fraction of a second if we are redirecting
+  if (isUserLoading || isRedirecting || !showAuth) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background text-white">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      <div className="flex min-h-screen flex-col items-center justify-center bg-black text-white">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-primary mb-4"></div>
+        <p className="font-bold tracking-widest uppercase text-[10px] text-primary animate-pulse">Entering A.snap...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-black p-4">
       <div className="w-full max-w-sm space-y-6 text-center">
         <div className="flex justify-center mb-4">
           <div className="relative w-24 h-24 bg-[#0a0a0a] rounded-3xl flex items-center justify-center shadow-[inset_0_1px_4px_rgba(255,255,255,0.1),10px_10px_20px_rgba(0,0,0,0.5)] border-4 border-[#1a1a1a] overflow-hidden">
@@ -143,7 +152,7 @@ export default function LoginPage() {
             <span className="w-full border-t border-white/10" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">
+            <span className="bg-black px-2 text-muted-foreground">
               OR
             </span>
           </div>
