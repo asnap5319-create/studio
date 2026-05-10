@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
@@ -9,7 +8,7 @@ import type { Post } from '@/models/post';
 import type { Notification } from '@/models/notification';
 import type { Message } from '@/models/message';
 import Link from 'next/link';
-import { Heart, Database, RefreshCw, Send } from 'lucide-react';
+import { Heart, Database, RefreshCw, Send, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, useEffect } from 'react';
@@ -148,22 +147,30 @@ export default function FeedPage() {
               </h1>
             </div>
             <div className="flex items-center gap-5">
-                <Link href="/notifications" className="relative hover:scale-110 transition-transform">
-                    <Heart className="h-7 w-7 text-white" />
-                    {unreadNotificationsCount > 0 && (
-                      <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-600 rounded-full border-2 border-black flex items-center justify-center text-[10px] font-bold">
-                        {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
-                      </span>
-                    )}
-                </Link>
-                <Link href="/messages" className="relative hover:scale-110 transition-transform">
-                    <Send className="h-7 w-7 text-white -rotate-12" />
-                    {unreadMessagesCount > 0 && (
-                      <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-600 rounded-full border-2 border-black flex items-center justify-center text-[10px] font-bold">
-                        {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
-                      </span>
-                    )}
-                </Link>
+                {user ? (
+                  <>
+                    <Link href="/notifications" className="relative hover:scale-110 transition-transform">
+                        <Heart className="h-7 w-7 text-white" />
+                        {unreadNotificationsCount > 0 && (
+                          <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-600 rounded-full border-2 border-black flex items-center justify-center text-[10px] font-bold">
+                            {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
+                          </span>
+                        )}
+                    </Link>
+                    <Link href="/messages" className="relative hover:scale-110 transition-transform">
+                        <Send className="h-7 w-7 text-white -rotate-12" />
+                        {unreadMessagesCount > 0 && (
+                          <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-600 rounded-full border-2 border-black flex items-center justify-center text-[10px] font-bold">
+                            {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
+                          </span>
+                        )}
+                    </Link>
+                  </>
+                ) : (
+                  <Button asChild variant="ghost" size="sm" className="bg-primary/20 hover:bg-primary text-white font-bold rounded-full px-4 border border-primary/30 transition-all active:scale-95">
+                    <Link href="/login">Log In</Link>
+                  </Button>
+                )}
             </div>
       </header>
 

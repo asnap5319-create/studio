@@ -17,11 +17,8 @@ export default function Splash() {
     if (!mounted || isUserLoading) return;
 
     const timer = setTimeout(() => {
-      if (user) {
-        router.replace('/feed');
-      } else {
-        router.replace('/login');
-      }
+      // Redirect to feed regardless of auth status so guests can watch videos
+      router.replace('/feed');
     }, 3000);
 
     return () => clearTimeout(timer);
@@ -41,7 +38,7 @@ export default function Splash() {
                             border-[8px] border-[#1a1a1a] overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.08] via-transparent to-transparent pointer-events-none"></div>
                 <div className="relative w-40 h-40">
-                   <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-[0_0_20px_rgba(255,51,102,0.6)]">
+                   <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-[0_0_10px_rgba(255,51,102,0.6)]">
                       <defs>
                         <linearGradient id="splashGrad" x1="0%" y1="100%" x2="100%" y2="0%">
                           <stop offset="0%" style={{ stopColor: '#ff0080', stopOpacity: 1 }} />
