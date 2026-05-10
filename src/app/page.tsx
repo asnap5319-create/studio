@@ -35,6 +35,7 @@ export default function FeedPage() {
   const router = useRouter();
   const [shuffledPosts, setShuffledPosts] = useState<Post[] | null>(null);
 
+  // Core posts query
   const postsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'));
@@ -49,6 +50,7 @@ export default function FeedPage() {
     }
   }, [posts, shuffledPosts]);
 
+  // Notifications - don't let error block feed
   const notificationsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'users', user.uid, 'notifications'), orderBy('createdAt', 'desc'));
@@ -57,6 +59,7 @@ export default function FeedPage() {
   const { data: notifications } = useCollection<Notification>(notificationsQuery);
   const unreadNotificationsCount = notifications?.filter(n => !n.read).length || 0;
 
+  // Messages - don't let index error block feed
   const unreadMessagesQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
@@ -75,6 +78,7 @@ export default function FeedPage() {
     let adIndex = 0;
     shuffledPosts.forEach((post, index) => {
       items.push({ type: 'post' as const, data: post });
+      // Interleave an ad every 3 posts
       if ((index + 1) % 3 === 0) {
         items.push({ type: 'ad' as const, data: MOCK_ADS[adIndex] });
         adIndex = (adIndex + 1) % MOCK_ADS.length;
@@ -87,9 +91,9 @@ export default function FeedPage() {
     window.location.reload();
   };
 
-  const anyError = postsError || messagesError;
-  const isIndexError = anyError?.message?.includes('index') || anyError?.message?.includes('INDEX');
-  const indexLink = anyError?.message?.match(/https:\/\/console\.firebase\.google\.com[^\s]*/)?.[0];
+  // Only show full screen error if the POSTS query fails (the core content)
+  const isPostIndexError = postsError?.message?.includes('index') || postsError?.message?.includes('INDEX');
+  const indexLink = postsError?.message?.match(/https:\/\/console\.firebase\.google\.com[^\s]*/)?.[0];
 
   if (isLoading || (posts && !shuffledPosts)) {
     return (
@@ -100,7 +104,7 @@ export default function FeedPage() {
     );
   }
 
-  if (isIndexError) {
+  if (isPostIndexError) {
     return (
       <div className="flex h-screen flex-col items-center justify-center text-white bg-black p-8 text-center">
         <div className="p-4 bg-primary/10 rounded-3xl mb-6 border border-primary/20">

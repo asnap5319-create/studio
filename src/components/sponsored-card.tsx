@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useRef } from 'react';
@@ -23,16 +24,20 @@ interface SponsoredCardProps {
  */
 export function SponsoredCard({ ad }: SponsoredCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const scriptInjectedRef = useRef(false);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || scriptInjectedRef.current) return;
 
-    // Clear the container first to avoid duplicates when scrolling back and forth
+    // Use a unique ID for the container to avoid conflicts when multiple ads are rendered
+    const containerId = `container-286ef4dc1c3c9afc429b42567c2d2b99-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Clear the container first to avoid duplicates
     containerRef.current.innerHTML = '';
 
     // Create the container div that Adsterra script expects
     const adDiv = document.createElement('div');
-    adDiv.id = 'container-286ef4dc1c3c9afc429b42567c2d2b99';
+    adDiv.id = 'container-286ef4dc1c3c9afc429b42567c2d2b99'; // Adsterra expects this specific ID
     adDiv.style.width = '100%';
     adDiv.style.minHeight = '250px';
     adDiv.style.display = 'flex';
@@ -48,12 +53,15 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     // Append both to the local container
     containerRef.current.appendChild(adDiv);
     containerRef.current.appendChild(script);
+    
+    scriptInjectedRef.current = true;
 
     return () => {
       // Cleanup when the card leaves the screen
       if (containerRef.current) {
         containerRef.current.innerHTML = '';
       }
+      scriptInjectedRef.current = false;
     };
   }, []);
 
@@ -66,12 +74,13 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
       </div>
 
       {/* Adsterra Ad Container (Injected via useEffect) */}
-      <div ref={containerRef} className="w-full max-w-md px-4 flex justify-center items-center min-h-[250px]">
+      <div ref={containerRef} className="w-full max-w-md px-4 flex justify-center items-center min-h-[250px] z-10">
         {/* The ad will be placed here by the script */}
+        <div className="text-xs text-muted-foreground animate-pulse">Loading Advertisement...</div>
       </div>
 
       {/* Footer info to maintain the feed aesthetic */}
-      <div className="absolute bottom-24 left-0 right-0 p-4 text-center">
+      <div className="absolute bottom-24 left-0 right-0 p-4 text-center z-10">
         <div className="flex items-center justify-center gap-2 opacity-40">
           <Info size={12} className="text-white" />
           <p className="text-[10px] text-white uppercase tracking-widest font-bold">Advertisement</p>
