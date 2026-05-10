@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from 'react';
 import { Sparkles, Info } from 'lucide-react';
-import Script from 'next/script';
 
 interface SponsoredCardProps {
   ad: {
@@ -20,9 +19,44 @@ interface SponsoredCardProps {
 
 /**
  * SponsoredCard Component
- * Updated to render Adsterra Ads as per user request.
+ * Updated to use manual script injection for Adsterra to ensure reliability in Next.js.
  */
 export function SponsoredCard({ ad }: SponsoredCardProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    // Clear the container first to avoid duplicates when scrolling back and forth
+    containerRef.current.innerHTML = '';
+
+    // Create the container div that Adsterra script expects
+    const adDiv = document.createElement('div');
+    adDiv.id = 'container-286ef4dc1c3c9afc429b42567c2d2b99';
+    adDiv.style.width = '100%';
+    adDiv.style.minHeight = '250px';
+    adDiv.style.display = 'flex';
+    adDiv.style.justifyContent = 'center';
+    adDiv.style.alignItems = 'center';
+
+    // Create the script element manually
+    const script = document.createElement('script');
+    script.src = 'https://pl29411112.profitablecpmratenetwork.com/286ef4dc1c3c9afc429b42567c2d2b99/invoke.js';
+    script.async = true;
+    script.setAttribute('data-cfasync', 'false');
+
+    // Append both to the local container
+    containerRef.current.appendChild(adDiv);
+    containerRef.current.appendChild(script);
+
+    return () => {
+      // Cleanup when the card leaves the screen
+      if (containerRef.current) {
+        containerRef.current.innerHTML = '';
+      }
+    };
+  }, []);
+
   return (
     <div className="relative w-full h-full bg-black overflow-hidden flex flex-col justify-center items-center">
       {/* Ad Label for Transparency */}
@@ -31,17 +65,9 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
         <span className="text-[10px] font-black uppercase tracking-tighter text-white">Sponsored</span>
       </div>
 
-      <div className="w-full max-w-md px-4 flex justify-center items-center min-h-[250px]">
-        {/* Adsterra Ad Container */}
-        <div id="container-286ef4dc1c3c9afc429b42567c2d2b99" className="w-full"></div>
-        
-        {/* Adsterra Script */}
-        <Script 
-          async 
-          src="https://pl29411112.profitablecpmratenetwork.com/286ef4dc1c3c9afc429b42567c2d2b99/invoke.js" 
-          strategy="afterInteractive"
-          data-cfasync="false"
-        />
+      {/* Adsterra Ad Container (Injected via useEffect) */}
+      <div ref={containerRef} className="w-full max-w-md px-4 flex justify-center items-center min-h-[250px]">
+        {/* The ad will be placed here by the script */}
       </div>
 
       {/* Footer info to maintain the feed aesthetic */}
