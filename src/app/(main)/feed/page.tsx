@@ -8,7 +8,7 @@ import type { Post } from '@/models/post';
 import type { Notification } from '@/models/notification';
 import type { Message } from '@/models/message';
 import Link from 'next/link';
-import { Heart, Database, RefreshCw, Send, User } from 'lucide-react';
+import { Heart, Database, RefreshCw, Send, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, useEffect } from 'react';
@@ -41,9 +41,9 @@ export default function FeedPage() {
     return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'));
   }, [firestore]);
 
-  const { data: posts, isLoading, error } = useCollection<Post>(postsQuery);
+  const { data: posts, isLoading, error: postsError } = useCollection<Post>(postsQuery);
 
-  // Shuffle posts once when they load to provide a "new/random" experience each time
+  // Shuffle posts once when they load
   useEffect(() => {
     if (posts && !shuffledPosts) {
       const shuffled = [...posts].sort(() => Math.random() - 0.5);
@@ -68,7 +68,7 @@ export default function FeedPage() {
     );
   }, [firestore, user]);
 
-  const { data: unreadMessages } = useCollection<Message>(unreadMessagesQuery);
+  const { data: unreadMessages, error: messagesError } = useCollection<Message>(unreadMessagesQuery);
   const unreadMessagesCount = unreadMessages?.length || 0;
 
   const feedItems = useMemo(() => {
@@ -77,7 +77,6 @@ export default function FeedPage() {
     let adIndex = 0;
     shuffledPosts.forEach((post, index) => {
       items.push({ type: 'post' as const, data: post });
-      // Show an ad every 3 videos
       if ((index + 1) % 3 === 0) {
         items.push({ type: 'ad' as const, data: MOCK_ADS[adIndex] });
         adIndex = (adIndex + 1) % MOCK_ADS.length;
@@ -87,9 +86,12 @@ export default function FeedPage() {
   }, [shuffledPosts]);
 
   const handleRefresh = () => {
-    setShuffledPosts(null);
-    router.refresh();
+    window.location.reload();
   };
+
+  const anyError = postsError || messagesError;
+  const isIndexError = anyError?.message?.includes('index') || anyError?.message?.includes('INDEX');
+  const indexLink = anyError?.message?.match(/https:\/\/console\.firebase\.google\.com[^\s]*/)?.[0];
 
   if (isLoading || (posts && !shuffledPosts)) {
     return (
@@ -100,20 +102,33 @@ export default function FeedPage() {
     );
   }
 
-  if (error && (error.message.includes('index') || error.message.includes('INDEX'))) {
+  if (isIndexError) {
     return (
       <div className="flex h-full flex-col items-center justify-center text-white bg-black p-8 text-center max-w-lg mx-auto">
         <div className="p-4 bg-primary/10 rounded-full mb-6">
           <Database className="h-16 w-16 text-primary" />
         </div>
-        <h2 className="text-3xl font-bold mb-4">बस थोड़ा सा इंतज़ार, भाई!</h2>
-        <p className="text-muted-foreground mb-6 text-lg">
-          Google के सर्वर इंडेक्स बना रहे हैं। इसमें 2 से 5 मिनट का समय लगता है।
+        <h2 className="text-2xl font-bold mb-4">इंडेक्स बनाना पड़ेगा भाई!</h2>
+        <p className="text-muted-foreground mb-6 text-sm">
+          Google को कुछ खास डेटा दिखाने के लिए "Index" की ज़रूरत है। नीचे दिए गए बटन पर क्लिक करें और 'Create Index' दबाएं।
         </p>
-        <Button onClick={handleRefresh} className="w-full py-6 text-lg font-bold flex gap-2">
-            <RefreshCw className="h-5 w-5" />
-            रिफ्रेश करें
-        </Button>
+        <div className="flex flex-col gap-3 w-full">
+            {indexLink && (
+                <Button asChild className="w-full py-6 text-lg font-bold flex gap-2" variant="default">
+                    <a href={indexLink} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-5 w-5" />
+                        1. यहाँ क्लिक करें (Create Index)
+                    </a>
+                </Button>
+            )}
+            <Button onClick={handleRefresh} variant="outline" className="w-full py-6 text-lg font-bold flex gap-2">
+                <RefreshCw className="h-5 w-5" />
+                2. बनाने के बाद रिफ्रेश करें
+            </Button>
+        </div>
+        <div className="mt-8 text-[10px] opacity-20 break-all font-mono text-left bg-zinc-900 p-2 rounded">
+            {anyError?.message}
+        </div>
       </div>
     );
   }
