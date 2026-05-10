@@ -3,19 +3,41 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { useFirebase } from "@/firebase";
+import { useFirebase, useUser } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(true);
+  
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { auth, firestore } = useFirebase();
+  const { user, isUserLoading } = useUser();
   const { toast } = useToast();
+
+  const showAuth = searchParams.get('auth') === 'true';
+
+  useEffect(() => {
+    // If user is already logged in, send to feed
+    if (!isUserLoading && user) {
+      router.replace('/');
+      return;
+    }
+
+    // If someone lands on /login without ?auth=true, send them to the feed to watch videos first
+    if (!isUserLoading && !showAuth) {
+      router.replace('/');
+    } else if (!isUserLoading) {
+      setIsRedirecting(false);
+    }
+  }, [user, isUserLoading, router, showAuth]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +51,7 @@ export default function LoginPage() {
       const normalizedEmail = email.trim().toLowerCase();
       await signInWithEmailAndPassword(auth, normalizedEmail, password);
       toast({ title: "Success", description: "Logged in successfully!" });
-      router.push('/feed');
+      router.push('/');
     } catch (error: any) {
       console.error("Error signing in: ", error);
       let errorMessage = "Could not log in. Please check your credentials.";
@@ -51,10 +73,17 @@ export default function LoginPage() {
     }
   };
 
+  if (isUserLoading || isRedirecting) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background text-white">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm space-y-6 text-center">
-        {/* Premium "A" Logo added here */}
         <div className="flex justify-center mb-4">
           <div className="relative w-24 h-24 bg-[#0a0a0a] rounded-3xl flex items-center justify-center shadow-[inset_0_1px_4px_rgba(255,255,255,0.1),10px_10px_20px_rgba(0,0,0,0.5)] border-4 border-[#1a1a1a] overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none"></div>
@@ -126,6 +155,9 @@ export default function LoginPage() {
               Sign up
             </Link>
           </p>
+          <Button asChild variant="link" className="mt-2 text-xs text-muted-foreground">
+             <Link href="/">Back to Videos</Link>
+          </Button>
         </div>
       </div>
     </div>

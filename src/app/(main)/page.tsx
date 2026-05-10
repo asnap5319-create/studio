@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
@@ -181,7 +180,7 @@ export default function FeedPage() {
                   </>
                 ) : (
                   <Button asChild variant="ghost" size="sm" className="bg-primary/20 hover:bg-primary text-white font-bold rounded-full px-4 border border-primary/30 transition-all active:scale-95">
-                    <Link href="/login">Log In</Link>
+                    <Link href="/login?auth=true">Log In</Link>
                   </Button>
                 )}
             </div>

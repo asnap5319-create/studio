@@ -17,7 +17,7 @@ export default function ProfileRedirectPage() {
       // Use replace to avoid adding the redirect to the history stack
       router.replace(`/profile/${user.uid}`);
     } else {
-      router.replace('/login');
+      router.replace('/login?auth=true');
     }
   }, [user, isUserLoading, router]);
 

@@ -42,6 +42,7 @@ export default function CreatePostPage() {
   const handlePost = async () => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Login Required', description: 'Please login to post.' });
+      router.push('/login?auth=true');
       return;
     }
     if (!mediaFile) {
@@ -98,7 +99,7 @@ export default function CreatePostPage() {
         await addDoc(postCollectionRef, newPost);
 
         toast({ title: "Live! 🎬", description: "Your post is now visible." });
-        router.push('/feed');
+        router.push('/');
 
     } catch (e: any) {
         console.error("Post Creation Error:", e);
@@ -112,7 +113,7 @@ export default function CreatePostPage() {
   if (isUserLoading) return <div className="flex h-full items-center justify-center text-white"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>
 
   if (!user) {
-    router.push('/login');
+    router.push('/login?auth=true');
     return null;
   }
 
