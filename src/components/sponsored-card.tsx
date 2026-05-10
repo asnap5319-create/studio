@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { Sparkles, Info } from 'lucide-react';
+import Script from 'next/script';
 
 interface SponsoredCardProps {
   ad: {
@@ -19,24 +20,9 @@ interface SponsoredCardProps {
 
 /**
  * SponsoredCard Component
- * Updated to render real Google AdSense In-Feed Ads.
+ * Updated to render Adsterra Ads as per user request.
  */
 export function SponsoredCard({ ad }: SponsoredCardProps) {
-  const adRef = useRef<boolean>(false);
-
-  useEffect(() => {
-    // Only initialize AdSense once per component mount
-    if (typeof window !== 'undefined' && !adRef.current) {
-      try {
-        // @ts-ignore
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-        adRef.current = true;
-      } catch (err) {
-        console.error('AdSense error:', err);
-      }
-    }
-  }, []);
-
   return (
     <div className="relative w-full h-full bg-black overflow-hidden flex flex-col justify-center items-center">
       {/* Ad Label for Transparency */}
@@ -45,16 +31,17 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
         <span className="text-[10px] font-black uppercase tracking-tighter text-white">Sponsored</span>
       </div>
 
-      <div className="w-full max-w-md px-4">
-        {/* AdSense In-Feed Unit */}
-        <ins
-          className="adsbygoogle"
-          style={{ display: 'block' }}
-          data-ad-format="fluid"
-          data-ad-layout-key="-6t+ed+2i-1n-4w"
-          data-ad-client="ca-pub-6100214178274409"
-          data-ad-slot="8763162045"
-        ></ins>
+      <div className="w-full max-w-md px-4 flex justify-center items-center min-h-[250px]">
+        {/* Adsterra Ad Container */}
+        <div id="container-286ef4dc1c3c9afc429b42567c2d2b99" className="w-full"></div>
+        
+        {/* Adsterra Script */}
+        <Script 
+          async 
+          src="https://pl29411112.profitablecpmratenetwork.com/286ef4dc1c3c9afc429b42567c2d2b99/invoke.js" 
+          strategy="afterInteractive"
+          data-cfasync="false"
+        />
       </div>
 
       {/* Footer info to maintain the feed aesthetic */}

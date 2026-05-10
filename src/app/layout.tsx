@@ -20,7 +20,6 @@ export const metadata: Metadata = {
     title: "A.snap",
   },
   other: {
-    "google-adsense-account": "ca-pub-6100214178274409",
     "mobile-web-app-capable": "yes",
     "theme-color": "#000000",
   },
@@ -47,12 +46,6 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="theme-color" content="#000000" />
-        {/* Google AdSense Script In Head */}
-        <script 
-          async 
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6100214178274409"
-          crossOrigin="anonymous"
-        ></script>
       </head>
       <body className={cn("min-h-screen bg-background font-sans antialiased")}>
         <FirebaseClientProvider>
