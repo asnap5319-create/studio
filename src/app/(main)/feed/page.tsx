@@ -12,7 +12,7 @@ import Link from 'next/link';
 import { Heart, Database, RefreshCw, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 
 const AD_UNIT_ID = process.env.NEXT_PUBLIC_ADMOB_UNIT_ID || 'ca-app-pub-6100214178274409/8382187974';
 const AD_APP_ID = process.env.NEXT_PUBLIC_ADMOB_APP_ID || 'ca-app-pub-6100214178274409~7603458775';
@@ -35,6 +35,7 @@ export default function FeedPage() {
   const { firestore } = useFirebase();
   const { user } = useUser();
   const router = useRouter();
+  const [shuffledPosts, setShuffledPosts] = useState<Post[] | null>(null);
 
   const postsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -42,6 +43,14 @@ export default function FeedPage() {
   }, [firestore]);
 
   const { data: posts, isLoading, error } = useCollection<Post>(postsQuery);
+
+  // Shuffle posts once when they load to provide a "new/random" experience each time
+  useEffect(() => {
+    if (posts && !shuffledPosts) {
+      const shuffled = [...posts].sort(() => Math.random() - 0.5);
+      setShuffledPosts(shuffled);
+    }
+  }, [posts, shuffledPosts]);
 
   const notificationsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -51,7 +60,6 @@ export default function FeedPage() {
   const { data: notifications } = useCollection<Notification>(notificationsQuery);
   const unreadNotificationsCount = notifications?.filter(n => !n.read).length || 0;
 
-  // Unread messages logic
   const unreadMessagesQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
@@ -65,25 +73,26 @@ export default function FeedPage() {
   const unreadMessagesCount = unreadMessages?.length || 0;
 
   const feedItems = useMemo(() => {
-    if (!posts) return [];
+    if (!shuffledPosts) return [];
     const items = [];
     let adIndex = 0;
-    posts.forEach((post, index) => {
+    shuffledPosts.forEach((post, index) => {
       items.push({ type: 'post' as const, data: post });
+      // Show an ad every 3 videos
       if ((index + 1) % 3 === 0) {
         items.push({ type: 'ad' as const, data: MOCK_ADS[adIndex] });
         adIndex = (adIndex + 1) % MOCK_ADS.length;
       }
     });
     return items;
-  }, [posts]);
+  }, [shuffledPosts]);
 
   const handleRefresh = () => {
+    setShuffledPosts(null);
     router.refresh();
-    window.location.reload();
   };
 
-  if (isLoading) {
+  if (isLoading || (posts && !shuffledPosts)) {
     return (
       <div className="flex h-full flex-col items-center justify-center text-white bg-black">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary mb-4"></div>
@@ -111,8 +120,8 @@ export default function FeedPage() {
   }
 
   return (
-    <div className="h-full w-full max-w-lg mx-auto flex flex-col text-white bg-black" data-ad-app-id={AD_APP_ID}>
-       <header className="flex items-center justify-between p-4 bg-black/60 backdrop-blur-lg sticky top-0 z-20 shrink-0 border-b border-white/5">
+    <div className="fixed inset-0 w-full flex flex-col text-white bg-black" data-ad-app-id={AD_APP_ID}>
+       <header className="flex items-center justify-between p-4 bg-black/40 backdrop-blur-md absolute top-0 left-0 right-0 z-50 shrink-0 border-b border-white/5">
             <div className="flex items-center gap-2">
               <div className="relative w-9 h-9 rounded-xl overflow-hidden border border-white/10 flex items-center justify-center bg-[#0a0a0a]">
                  <svg viewBox="0 0 512 512" className="w-7 h-7">
@@ -170,7 +179,7 @@ export default function FeedPage() {
         )}
         
         {feedItems.map((item, idx) => (
-            <div key={`${item.type}-${idx}`} className="h-full w-full snap-start flex items-center justify-center bg-black">
+            <div key={`${item.type}-${item.data.id}-${idx}`} className="h-full w-full snap-start flex items-center justify-center bg-black overflow-hidden">
                 {item.type === 'post' ? (
                   <PostCard post={item.data} />
                 ) : (

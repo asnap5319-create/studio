@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -55,7 +56,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { data: followCheck } = useDoc(followCheckRef);
   const isFollowing = !!followCheck;
 
-  // Use user.uid in dependencies to prevent reference flickering and auto-unlikes
   const likeRef = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
     return doc(firestore, 'users', post.userId, 'posts', post.id, 'likes', user.uid);
@@ -89,11 +89,9 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         return;
     }
 
-    // Always show animation on double tap or like action
     setShowBigHeart(true);
     setTimeout(() => setShowBigHeart(false), 1000);
 
-    // If already liked, don't perform the database write again
     if (isLiked) return;
 
     const batch = writeBatch(firestore);
@@ -141,16 +139,14 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
 
   const handleTap = (e: React.MouseEvent) => {
     if (tapTimerRef.current) {
-        // Double tap detected
         clearTimeout(tapTimerRef.current);
         tapTimerRef.current = null;
         handleLike();
     } else {
-        // Potential single tap
         tapTimerRef.current = setTimeout(() => {
             toggleMute();
             tapTimerRef.current = null;
-        }, 300);
+        }, 250);
     }
   };
   
@@ -187,21 +183,16 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   };
 
   useEffect(() => {
-    if (isFocused) {
-        setIsInView(true);
-        return;
-    }
-
     const observer = new IntersectionObserver(
       ([entry]) => {
         setIsInView(entry.isIntersecting);
       },
-      { threshold: 0.8 }
+      { threshold: 0.7 } // Higher threshold for more accurate "current" video
     );
 
     if (cardRef.current) observer.observe(cardRef.current);
     return () => observer.disconnect();
-  }, [isFocused]);
+  }, []);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -209,13 +200,16 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
 
     if (isInView) {
       video.muted = isMuted;
-      video.play().catch(err => {
-        if (err.name === "NotAllowedError") {
-          video.muted = true;
-          setIsMuted(true);
-          video.play().catch(() => {});
-        }
-      });
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(err => {
+          if (err.name === "NotAllowedError") {
+            video.muted = true;
+            setIsMuted(true);
+            video.play().catch(() => {});
+          }
+        });
+      }
     } else {
       video.pause();
       video.currentTime = 0;
@@ -238,8 +232,8 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
           className="object-contain w-full h-full"
           loop
           playsInline
-          autoPlay={isFocused}
           muted={isMuted}
+          preload="auto"
         />
       ) : (
         <Image
@@ -265,7 +259,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         </div>
       )}
 
-      <div className="absolute bottom-0 left-0 right-0 p-4 pb-20 bg-gradient-to-t from-black/90 via-black/40 to-transparent text-white z-10" onClick={(e) => e.stopPropagation()}>
+      <div className="absolute bottom-0 left-0 right-0 p-4 pb-20 bg-gradient-to-t from-black/95 via-black/40 to-transparent text-white z-10" onClick={(e) => e.stopPropagation()}>
         {isAuthorLoading ? (
             <div className="flex items-center gap-2">
                 <Skeleton className="h-10 w-10 rounded-full" />
