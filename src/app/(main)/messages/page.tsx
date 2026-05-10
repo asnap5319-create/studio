@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
@@ -9,7 +8,7 @@ import type { Message } from '@/models/message';
 import { useDoc } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
-import { ArrowLeft, MessageSquare, Database, RefreshCw, ExternalLink } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Database, RefreshCw, ExternalLink, Send } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -95,7 +94,6 @@ export default function InboxPage() {
     window.location.reload();
   };
 
-  // Extract link from Firebase error message if available
   const indexLink = error?.message?.match(/https:\/\/console\.firebase\.google\.com[^\s]*/)?.[0];
 
   return (
@@ -104,43 +102,32 @@ export default function InboxPage() {
         <Link href="/feed" className="p-2 -ml-2">
           <ArrowLeft />
         </Link>
-        <h1 className="text-xl font-bold ml-4">Messages</h1>
+        <h1 className="text-xl font-bold ml-4 uppercase italic tracking-tighter">Messages</h1>
       </header>
 
       <div className="flex-1 overflow-y-auto">
         {error && (error.message.includes('index') || error.message.includes('INDEX')) && (
-            <div className="m-4 p-6 bg-primary/10 rounded-xl border border-primary/20 text-center">
-                <Database className="h-12 w-12 text-primary mx-auto mb-4" />
-                <h3 className="font-bold text-lg mb-2">चैट लोड नहीं हो रही?</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                    इनबॉक्स देखने के लिए Google को एक इंडेक्स चाहिए। नीचे दिए गए बटन पर क्लिक करें और 'Create Index' दबाएं।
+            <div className="m-6 p-8 bg-primary/10 rounded-3xl border border-primary/20 text-center shadow-2xl">
+                <Database className="h-14 w-14 text-primary mx-auto mb-6" />
+                <h3 className="font-black text-xl italic uppercase mb-2">चैट लोड हो रही है...</h3>
+                <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+                    Google "Index" बना रहा है। आपने console में जो बटन दबाया है, उसका असर कुछ ही मिनटों में दिखने लगेगा।
                 </p>
                 <div className="flex flex-col gap-3">
-                    {indexLink && (
-                        <Button asChild className="w-full gap-2 font-bold" variant="default">
-                            <a href={indexLink} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="h-4 w-4" />
-                                1. यहाँ क्लिक करें (Create Index)
-                            </a>
-                        </Button>
-                    )}
-                    <Button variant="outline" onClick={handleRefresh} className="w-full gap-2">
-                        <RefreshCw className="h-4 w-4" />
-                        2. इंडेक्स बनाने के बाद रिफ्रेश करें
+                    <Button variant="outline" onClick={handleRefresh} className="w-full py-6 rounded-2xl font-black uppercase border-white/10 hover:bg-white/5">
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        रिफ्रेश करें
                     </Button>
-                </div>
-                <div className="mt-4 text-[10px] opacity-30 break-all font-mono text-left bg-black p-2 rounded max-h-32 overflow-y-auto">
-                    {error.message}
                 </div>
             </div>
         )}
 
         {isLoading ? (
           <div className="p-4 space-y-4">
-             {[1,2,3,4].map(i => (
+             {[1,2,3,4,5].map(i => (
                <div key={i} className="flex gap-4 animate-pulse">
-                  <div className="h-14 w-14 rounded-full bg-secondary" />
-                  <div className="flex-1 space-y-2 py-2">
+                  <div className="h-14 w-14 rounded-2xl bg-secondary" />
+                  <div className="flex-1 space-y-3 py-2">
                     <div className="h-4 w-24 bg-secondary rounded" />
                     <div className="h-3 w-48 bg-secondary rounded" />
                   </div>
@@ -148,16 +135,23 @@ export default function InboxPage() {
              ))}
           </div>
         ) : chats && chats.length > 0 ? (
-          <div className="divide-y divide-border">
+          <div className="divide-y divide-white/5">
             {chats.map(chat => (
               <ChatItem key={chat.id} chat={chat} currentUserId={user?.uid || ''} />
             ))}
           </div>
         ) : !error && (
-          <div className="flex flex-col items-center justify-center h-[60vh] text-center opacity-50 px-10">
-            <MessageSquare className="h-20 w-20 mb-4" />
-            <h2 className="text-xl font-bold">No Messages Yet</h2>
-            <p className="text-sm">Start chatting by visiting someone's profile!</p>
+          <div className="flex flex-col items-center justify-center h-[70vh] text-center p-10">
+            <div className="w-20 h-20 bg-secondary/50 rounded-full flex items-center justify-center mb-6 border border-white/5">
+                <Send className="h-10 w-10 text-muted-foreground -rotate-12" />
+            </div>
+            <h2 className="text-2xl font-black italic uppercase text-white mb-2">Your Inbox</h2>
+            <p className="text-muted-foreground text-sm max-w-[200px] leading-relaxed">
+                दोस्तों को वीडियो भेजें और चैट शुरू करें!
+            </p>
+            <Button asChild className="mt-8 rounded-xl font-bold bg-secondary/80 hover:bg-secondary border border-white/5" variant="ghost">
+                <Link href="/discover">Find Friends</Link>
+            </Button>
           </div>
         )}
       </div>

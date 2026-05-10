@@ -8,7 +8,7 @@ import type { Post } from '@/models/post';
 import type { Notification } from '@/models/notification';
 import type { Message } from '@/models/message';
 import Link from 'next/link';
-import { Heart, Database, RefreshCw, Send, ExternalLink } from 'lucide-react';
+import { Heart, Database, RefreshCw, Send, ExternalLink, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, useEffect } from 'react';
@@ -96,8 +96,8 @@ export default function FeedPage() {
   if (isLoading || (posts && !shuffledPosts)) {
     return (
       <div className="flex h-full flex-col items-center justify-center text-white bg-black">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary mb-4"></div>
-        <p className="font-medium animate-pulse">Loading A.snap Feed...</p>
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-primary mb-4"></div>
+        <p className="font-bold tracking-widest uppercase text-[10px] text-primary animate-pulse">Loading A.snap</p>
       </div>
     );
   }
@@ -105,29 +105,26 @@ export default function FeedPage() {
   if (isIndexError) {
     return (
       <div className="flex h-full flex-col items-center justify-center text-white bg-black p-8 text-center max-w-lg mx-auto">
-        <div className="p-4 bg-primary/10 rounded-full mb-6">
+        <div className="p-4 bg-primary/10 rounded-3xl mb-6 border border-primary/20">
           <Database className="h-16 w-16 text-primary" />
         </div>
-        <h2 className="text-2xl font-bold mb-4">इंडेक्स बनाना पड़ेगा भाई!</h2>
-        <p className="text-muted-foreground mb-6 text-sm">
-          Google को कुछ खास डेटा दिखाने के लिए "Index" की ज़रूरत है। नीचे दिए गए बटन पर क्लिक करें और 'Create Index' दबाएं।
+        <h2 className="text-2xl font-black italic uppercase mb-4">इंडेक्स बनाना पड़ेगा भाई!</h2>
+        <p className="text-muted-foreground mb-8 text-sm leading-relaxed">
+          Google को आपका डेटा दिखाने के लिए "Index" की ज़रूरत है। आपने जो काम Console में किया है, उसे पूरा होने दें।
         </p>
         <div className="flex flex-col gap-3 w-full">
             {indexLink && (
-                <Button asChild className="w-full py-6 text-lg font-bold flex gap-2" variant="default">
+                <Button asChild className="w-full py-7 text-lg font-black uppercase rounded-2xl bg-primary shadow-lg shadow-primary/20" variant="default">
                     <a href={indexLink} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-5 w-5" />
-                        1. यहाँ क्लिक करें (Create Index)
+                        <ExternalLink className="h-5 w-5 mr-2" />
+                        Check Progress
                     </a>
                 </Button>
             )}
-            <Button onClick={handleRefresh} variant="outline" className="w-full py-6 text-lg font-bold flex gap-2">
-                <RefreshCw className="h-5 w-5" />
-                2. बनाने के बाद रिफ्रेश करें
+            <Button onClick={handleRefresh} variant="outline" className="w-full py-7 text-lg font-black uppercase rounded-2xl border-white/10 hover:bg-white/5">
+                <RefreshCw className="h-5 w-5 mr-2" />
+                रिफ्रेश करें
             </Button>
-        </div>
-        <div className="mt-8 text-[10px] opacity-20 break-all font-mono text-left bg-zinc-900 p-2 rounded">
-            {anyError?.message}
         </div>
       </div>
     );
@@ -191,11 +188,37 @@ export default function FeedPage() {
 
       <div className="flex-1 w-full h-full overflow-y-auto snap-y snap-mandatory scrollbar-hide">
         {feedItems.length === 0 && !isLoading && (
-            <div className="flex h-full flex-col items-center justify-center text-center p-6">
-                <h2 className="text-2xl font-bold">Welcome to A.snap!</h2>
-                <p className="text-muted-foreground mt-2">बी द फर्स्ट टू क्रिएट ए पोस्ट!</p>
-                <Button asChild className="mt-8 px-8 py-6 text-lg font-bold" variant="default">
-                  <Link href="/create">Create First Post</Link>
+            <div className="flex h-full flex-col items-center justify-center text-center p-10 bg-black">
+                <div className="mb-8 relative">
+                    <div className="absolute -inset-8 bg-primary/20 rounded-full blur-[60px] opacity-40 animate-pulse"></div>
+                    <div className="relative w-24 h-24 bg-[#0a0a0a] rounded-3xl flex items-center justify-center border-4 border-[#1a1a1a] shadow-2xl overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none"></div>
+                         <svg viewBox="0 0 512 512" className="w-16 h-16 drop-shadow-[0_0_8px_rgba(255,51,102,0.5)]">
+                            <defs>
+                              <linearGradient id="emptyGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="#ff0080" stopOpacity="1" />
+                                <stop offset="50%" stopColor="#ff3366" stopOpacity="1" />
+                                <stop offset="100%" stopColor="#ffcc33" stopOpacity="1" />
+                              </linearGradient>
+                            </defs>
+                            <path 
+                              d="M150 400 L256 100 L362 400 M210 320 L302 320" 
+                              stroke="url(#emptyGrad)" 
+                              strokeWidth="55" 
+                              fill="none" 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round" 
+                            />
+                            <circle cx="390" cy="120" r="35" fill="#ff0080" />
+                         </svg>
+                    </div>
+                </div>
+                <h2 className="text-3xl font-black italic tracking-tighter text-white mb-3">Welcome to A.snap</h2>
+                <p className="text-muted-foreground text-sm max-w-[280px] leading-relaxed mb-10">
+                    दुनिया को अपना टैलेंट दिखाओ। पहली वीडियो पोस्ट डालो और वायरल हो जाओ!
+                </p>
+                <Button asChild className="px-10 py-7 text-lg font-black uppercase rounded-2xl bg-primary shadow-[0_0_30px_rgba(var(--primary),0.4)] hover:scale-105 active:scale-95 transition-transform" variant="default">
+                  <Link href="/create">Upload Now</Link>
                 </Button>
             </div>
         )}
