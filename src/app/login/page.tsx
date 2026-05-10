@@ -4,13 +4,13 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useFirebase, useUser } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -18,23 +18,21 @@ export default function LoginPage() {
   
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { auth, firestore } = useFirebase();
+  const { auth } = useFirebase();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
   const showAuth = searchParams.get('auth') === 'true';
 
   useEffect(() => {
-    if (!isUserLoading && user) {
-      router.replace('/');
-      return;
-    }
-
-    // If accessed without ?auth=true, always go to root (Video Feed)
-    if (!isUserLoading && !showAuth) {
-      router.replace('/');
-    } else if (!isUserLoading) {
-      setIsRedirecting(false);
+    if (!isUserLoading) {
+      if (user || !showAuth) {
+        // If already logged in or accessed without ?auth=true, immediately jump to Feed
+        router.replace('/');
+      } else {
+        // Only if not logged in AND has auth flag, show the form
+        setIsRedirecting(false);
+      }
     }
   }, [user, isUserLoading, router, showAuth]);
 
@@ -106,5 +104,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black" />}>
+      <LoginForm />
+    </Suspense>
   );
 }

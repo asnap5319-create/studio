@@ -16,9 +16,6 @@ import { useMemo, useState, useEffect } from 'react';
 import { BottomNav } from "@/components/bottom-nav";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 
-const AD_UNIT_ID = process.env.NEXT_PUBLIC_ADMOB_UNIT_ID || 'ca-app-pub-6100214178274409/8382187974';
-const AD_APP_ID = process.env.NEXT_PUBLIC_ADMOB_APP_ID || 'ca-app-pub-6100214178274409~7603458775';
-
 const MOCK_ADS = [
   {
     id: 'ad_1',
@@ -29,7 +26,6 @@ const MOCK_ADS = [
     ctaText: 'Upgrade Now',
     ctaUrl: '/profile',
     isVideo: true,
-    adUnitId: AD_UNIT_ID,
   }
 ];
 
@@ -133,7 +129,7 @@ export default function FeedPage() {
   }
 
   return (
-    <div className="fixed inset-0 w-full h-screen flex flex-col text-white bg-black" data-ad-app-id={AD_APP_ID}>
+    <div className="fixed inset-0 w-full h-screen flex flex-col text-white bg-black">
        <header className="flex items-center justify-between p-4 bg-black/40 backdrop-blur-md absolute top-0 left-0 right-0 z-50 shrink-0 border-b border-white/5">
             <div className="flex items-center gap-2">
               <div className="relative w-9 h-9 rounded-xl overflow-hidden border border-white/10 flex items-center justify-center bg-[#0a0a0a]">
