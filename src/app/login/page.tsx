@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useFirebase, useUser } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 function LoginForm() {
   const [email, setEmail] = useState("");
@@ -26,11 +26,11 @@ function LoginForm() {
 
   useEffect(() => {
     if (!isUserLoading) {
+      // AGGRESSIVE REDIRECT: If someone visits /login directly without ?auth=true,
+      // or if they are already logged in, send them to the video feed instantly.
       if (user || !showAuth) {
-        // If already logged in or accessed without ?auth=true, immediately jump to Feed
         router.replace('/');
       } else {
-        // Only if not logged in AND has auth flag, show the form
         setIsRedirecting(false);
       }
     }
@@ -39,7 +39,7 @@ function LoginForm() {
   if (isUserLoading || isRedirecting || !showAuth) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-black text-white">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-primary mb-4"></div>
+        <Loader2 className="animate-spin h-10 w-10 text-primary mb-4" />
         <p className="font-bold tracking-widest uppercase text-[10px] text-primary animate-pulse">Entering A.snap...</p>
       </div>
     );
@@ -56,7 +56,7 @@ function LoginForm() {
       router.push('/');
     } catch (error: any) {
       console.error("Error signing in: ", error);
-      toast({ title: "Login Failed", description: "गलत ईमेल या पासवर्ड! कृपया दोबारा चेक करें।", variant: "destructive" });
+      toast({ title: "Login Failed", description: "Invalid email or password.", variant: "destructive" });
     } finally {
       setIsLoggingIn(false);
     }

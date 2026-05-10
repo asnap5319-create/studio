@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
@@ -9,9 +8,8 @@ import type { Post } from '@/models/post';
 import type { Notification } from '@/models/notification';
 import type { Message } from '@/models/message';
 import Link from 'next/link';
-import { Heart, Database, RefreshCw, Send, ExternalLink } from 'lucide-react';
+import { Heart, Database, RefreshCw, Send, ExternalLink, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
 import { useMemo, useState, useEffect } from 'react';
 import { BottomNav } from "@/components/bottom-nav";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
@@ -32,7 +30,6 @@ const MOCK_ADS = [
 export default function RootFeedPage() {
   const { firestore } = useFirebase();
   const { user } = useUser();
-  const router = useRouter();
   const [shuffledPosts, setShuffledPosts] = useState<Post[] | null>(null);
 
   // Core posts query
@@ -59,7 +56,7 @@ export default function RootFeedPage() {
   const { data: notifications } = useCollection<Notification>(notificationsQuery);
   const unreadNotificationsCount = notifications?.filter(n => !n.read).length || 0;
 
-  // Messages
+  // Messages - This may fail if index is building, handled gracefully
   const unreadMessagesQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
@@ -96,7 +93,7 @@ export default function RootFeedPage() {
   if (isLoading || (posts && !shuffledPosts)) {
     return (
       <div className="flex h-screen flex-col items-center justify-center text-white bg-black">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-primary mb-4"></div>
+        <Loader2 className="animate-spin h-10 w-10 text-primary mb-4" />
         <p className="font-bold tracking-widest uppercase text-[10px] text-primary animate-pulse">Entering A.snap...</p>
       </div>
     );
@@ -114,7 +111,7 @@ export default function RootFeedPage() {
         </p>
         <div className="flex flex-col gap-3 w-full max-w-sm">
             {indexLink && (
-                <Button asChild className="w-full py-7 text-lg font-black uppercase rounded-2xl bg-primary shadow-lg shadow-primary/20" variant="default">
+                <Button asChild className="w-full py-7 text-lg font-black uppercase rounded-2xl bg-primary" variant="default">
                     <a href={indexLink} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="h-5 w-5 mr-2" />
                         Check Progress
@@ -172,7 +169,7 @@ export default function RootFeedPage() {
                     </Link>
                   </>
                 ) : (
-                  <Button asChild variant="ghost" size="sm" className="bg-primary/20 hover:bg-primary text-white font-bold rounded-full px-4 border border-primary/30 transition-all active:scale-95">
+                  <Button asChild variant="ghost" size="sm" className="bg-primary/20 hover:bg-primary text-white font-bold rounded-full px-4 border border-primary/30">
                     <Link href="/login?auth=true">Log In</Link>
                   </Button>
                 )}
@@ -186,7 +183,7 @@ export default function RootFeedPage() {
                 <p className="text-muted-foreground text-sm max-w-[280px] leading-relaxed mb-10">
                     Be the first to share a video and go viral!
                 </p>
-                <Button asChild className="px-10 py-7 text-lg font-black uppercase rounded-2xl bg-primary shadow-[0_0_30px_rgba(var(--primary),0.4)]" variant="default">
+                <Button asChild className="px-10 py-7 text-lg font-black uppercase rounded-2xl bg-primary" variant="default">
                   <Link href="/create">Upload Now</Link>
                 </Button>
             </div>

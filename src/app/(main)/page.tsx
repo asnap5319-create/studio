@@ -1,12 +1,11 @@
-
 'use client';
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 /**
- * Redundant page inside (main) group.
- * Redirects to the root feed to avoid build-time route collision.
+ * Redirects to the actual root feed to avoid build-time route collisions
+ * and ensure the "Video First" experience.
  */
 export default function MainGroupRedirect() {
   const router = useRouter();

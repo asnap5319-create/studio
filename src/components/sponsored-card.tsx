@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -19,31 +18,31 @@ interface SponsoredCardProps {
 }
 
 /**
- * SponsoredCard Component
- * Uses an isolated DOM container for Adsterra injection to prevent 
- * "removeChild" errors caused by conflicts between React and external scripts.
+ * SponsoredCard Component - Adsterra Edition
+ * Uses an isolated DOM container to prevent React from crashing when 
+ * external scripts manipulate the DOM (fixes removeChild error).
  */
 export function SponsoredCard({ ad }: SponsoredCardProps) {
   const adContainerRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    // Ensure we are on the client and the ref is available
+    // Only run on client
     if (typeof window === 'undefined' || !adContainerRef.current) return;
 
     const container = adContainerRef.current;
     
-    // Clear any previous injections to avoid duplicates
+    // Clear previous content to avoid duplicates during re-renders
     container.innerHTML = '';
     
-    // Create the placeholder div that Adsterra's invoke.js looks for
+    // Create the specific container required by Adsterra
     const adPlaceholder = document.createElement('div');
     adPlaceholder.id = 'container-286ef4dc1c3c9afc429b42567c2d2b99';
     adPlaceholder.style.width = '100%';
+    adPlaceholder.style.minHeight = '250px';
     adPlaceholder.style.display = 'flex';
     adPlaceholder.style.justifyContent = 'center';
     adPlaceholder.style.alignItems = 'center';
-    adPlaceholder.style.minHeight = '250px';
 
     // Create the script tag
     const script = document.createElement('script');
@@ -51,14 +50,13 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     script.async = true;
     script.setAttribute('data-cfasync', 'false');
     
-    // Append to our isolated ref container
+    // Append elements to the isolated container
     container.appendChild(adPlaceholder);
     container.appendChild(script);
     
     setIsLoaded(true);
 
-    // Cleanup: React will handle removing the 'container' div itself,
-    // but we manually clear internal content to be safe.
+    // Cleanup when component unmounts
     return () => {
       if (container) {
         container.innerHTML = '';
@@ -74,25 +72,30 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
         <span className="text-[10px] font-black uppercase tracking-tighter text-white">Sponsored</span>
       </div>
 
-      <div className="w-full max-w-md px-4 flex flex-col justify-center items-center min-h-[250px] z-10">
+      {/* Main Ad Display Area */}
+      <div className="w-full max-w-md px-4 flex flex-col justify-center items-center z-10">
         {!isLoaded && (
-          <div className="text-xs text-muted-foreground animate-pulse mb-4">
-            Loading Ad...
+          <div className="text-xs text-muted-foreground animate-pulse mb-4 font-bold uppercase tracking-widest">
+            Loading Premium Ad...
           </div>
         )}
         
         {/* 
-            CRITICAL FIX: This div is isolated. React manages the 'adContainerRef' node, 
-            but we manage its children via useEffect. By keeping 'isLoaded' logic 
-            outside of this specific node, we prevent "node not found" child removal errors.
+            ISOLATED NODE: React manages this div, but we manually control its children.
+            This prevents "The node to be removed is not a child of this node" crashes.
         */}
-        <div ref={adContainerRef} className="w-full flex justify-center items-center" />
+        <div 
+          ref={adContainerRef} 
+          className="w-full flex justify-center items-center" 
+          style={{ minHeight: '250px' }}
+        />
       </div>
 
+      {/* Brand Footer */}
       <div className="absolute bottom-24 left-0 right-0 p-4 text-center z-10">
         <div className="flex items-center justify-center gap-2 opacity-40">
           <Info size={12} className="text-white" />
-          <p className="text-[10px] text-white uppercase tracking-widest font-bold">Advertisement</p>
+          <p className="text-[10px] text-white uppercase tracking-widest font-bold">A.snap Sponsored Content</p>
         </div>
       </div>
     </div>
