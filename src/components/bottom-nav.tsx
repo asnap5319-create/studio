@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Home, PlusSquare, Search, CircleUser } from "lucide-react";
@@ -6,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/feed", label: "Home", icon: Home },
+  { href: "/", label: "Home", icon: Home },
   { href: "/discover", label: "Search", icon: Search },
   { href: "/create", label: "Upload", icon: PlusSquare },
   { href: "/profile", label: "Profile", icon: CircleUser },
@@ -19,7 +20,8 @@ export function BottomNav() {
     <nav className="fixed bottom-0 left-0 z-50 w-full border-t bg-background">
       <div className="grid h-16 grid-cols-4 max-w-lg mx-auto">
         {navItems.map((item) => {
-          const isActive = pathname.startsWith(item.href);
+          // Home is active only on exact root path, others use startWith
+          const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           return (
             <Link
               key={item.href}
