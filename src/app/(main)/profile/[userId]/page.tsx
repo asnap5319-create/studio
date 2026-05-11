@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -51,7 +52,8 @@ export default function ProfilePage() {
 
     const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
 
-    const isProfileAdmin = userProfile?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    // Blue Badge Check
+    const isProfileAdmin = userProfile?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
     const userPostsQuery = useMemoFirebase(() => {
         if (!firestore || !userId) return null;
