@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { Heart, Send, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMemo, useState, useEffect } from 'react';
+import { BottomNav } from "@/components/bottom-nav";
 
 const MOCK_ADS = [
   {
@@ -140,6 +141,7 @@ export default function RootFeedPage() {
             </div>
         ))}
       </div>
+      <BottomNav />
     </div>
   );
 }

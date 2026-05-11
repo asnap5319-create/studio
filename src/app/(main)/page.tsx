@@ -15,5 +15,9 @@ export default function LegacyFeedPage() {
     router.replace('/');
   }, [router]);
 
-  return null;
+  return (
+    <div className="flex h-screen items-center justify-center bg-black text-white">
+      <div className="animate-pulse font-black italic text-primary">A.snap...</div>
+    </div>
+  );
 }
