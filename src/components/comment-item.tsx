@@ -72,11 +72,11 @@ export function CommentItem({ comment, postOwnerId }: CommentItemProps) {
       </Avatar>
       <div className="flex-1">
         <div className="flex items-start justify-between">
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="font-bold text-sm">{author.username}</span>
-              {isProfileAdmin && <BadgeCheck className="h-3 w-3 text-blue-400 fill-blue-400/20" />}
-              <span className="text-sm">{comment.content}</span>
+              {isProfileAdmin && <BadgeCheck className="h-3 w-3 text-blue-400 fill-blue-400/20 shrink-0" />}
+              <span className="text-sm break-words">{comment.content}</span>
             </div>
             <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
               <span>{comment.createdAt ? formatDistanceToNow(comment.createdAt.toDate()) : 'just now'}</span>
@@ -85,9 +85,9 @@ export function CommentItem({ comment, postOwnerId }: CommentItemProps) {
               )}
             </div>
           </div>
-          <button onClick={handleLike} className="pt-1">
+          <button onClick={handleLike} className="pt-1 px-2">
             <Heart 
-              className={cn("h-3 w-3", isLiked ? "fill-primary text-primary" : "text-muted-foreground")} 
+              className={cn("h-3 w-3 transition-colors", isLiked ? "fill-primary text-primary" : "text-muted-foreground")} 
             />
           </button>
         </div>

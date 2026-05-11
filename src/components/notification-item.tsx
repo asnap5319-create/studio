@@ -11,7 +11,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { doc, writeBatch, serverTimestamp, collection } from 'firebase/firestore';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus, UserCheck, BadgeCheck } from 'lucide-react';
+import { BadgeCheck } from 'lucide-react';
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
