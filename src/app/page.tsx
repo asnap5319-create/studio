@@ -1,11 +1,12 @@
+
 'use client';
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 /**
- * Root forwarder to avoid Vercel build conflicts.
- * This ensures the (main) route group handles the feed.
+ * Root page redirect to ensure (main) layout handles the feed properly.
+ * This avoids Vercel build conflicts with multiple root pages.
  */
 export default function RootPage() {
   const router = useRouter();
