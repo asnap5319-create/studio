@@ -15,5 +15,9 @@ export default function RootPage() {
     router.replace('/');
   }, [router]);
 
-  return null;
+  return (
+    <div className="flex h-screen flex-col items-center justify-center text-white bg-black">
+      <h1 className="text-4xl font-black text-primary italic animate-pulse">A.snap</h1>
+    </div>
+  );
 }

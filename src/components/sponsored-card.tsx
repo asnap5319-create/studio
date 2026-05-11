@@ -32,7 +32,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     const containerId = `at-container-${ad.adUnitId || ad.id}`;
     const parent = containerRef.current;
     
-    // Clear the parent completely before each injection
+    // Clear the parent completely before each injection to avoid DOM pollution
     parent.innerHTML = ''; 
 
     // Create a safe wrapper div that the script will target
@@ -45,7 +45,8 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     adWrapper.style.alignItems = 'center';
 
     const script = document.createElement('script');
-    script.src = `https://pl29411112.profitablecpmratenetwork.com/${ad.adUnitId}/invoke.js`;
+    // Using a reliable adsterra script source
+    script.src = `https://pl29411112.profitablecpmratenetwork.com/${ad.adUnitId || '286ef4dc1c3c9afc429b42567c2d2b99'}/invoke.js`;
     script.async = true;
     script.setAttribute('data-cfasync', 'false');
 
@@ -57,6 +58,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
 
     return () => {
       // Safe cleanup: just empty the innerHTML of our managed parent
+      // This prevents React from trying to remove nodes the script might have removed already
       if (parent) {
         parent.innerHTML = '';
       }
