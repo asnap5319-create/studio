@@ -17,10 +17,6 @@ interface SponsoredCardProps {
   };
 }
 
-/**
- * SponsoredCard with extreme isolation to prevent removeChild crash.
- * Using a clean innerHTML update to avoid React reconciliation conflicts.
- */
 export function SponsoredCard({ ad }: SponsoredCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -31,7 +27,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     const parent = containerRef.current;
     const containerId = `at-container-${ad.id}`;
     
-    // Clear parent to prevent DOM pollution before injecting
+    // Clear parent to prevent DOM pollution
     parent.innerHTML = ''; 
 
     const adWrapper = document.createElement('div');

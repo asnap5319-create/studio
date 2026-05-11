@@ -82,45 +82,37 @@ export default function RootFeedPage() {
   if (isLoading || (posts && !shuffledPosts)) {
     return (
       <div className="flex h-screen flex-col items-center justify-center text-white bg-black">
-        <div className="relative">
-             <div className="absolute inset-0 blur-xl bg-primary/20 animate-pulse rounded-full"></div>
-             <h1 className="text-4xl font-black text-primary italic relative z-10">A.snap</h1>
-        </div>
-        <p className="mt-6 font-bold tracking-widest uppercase text-[10px] text-primary/60 animate-pulse">Loading Feed...</p>
+        <h1 className="text-4xl font-black text-primary italic animate-pulse">A.snap</h1>
       </div>
     );
   }
 
   return (
     <div className="fixed inset-0 w-full h-screen flex flex-col text-white bg-black overflow-hidden">
-       <header className="flex items-center justify-between p-4 bg-black/40 backdrop-blur-md absolute top-0 left-0 right-0 z-50 shrink-0 border-b border-white/5">
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-black text-primary italic tracking-tighter" style={{filter: 'drop-shadow(0 0 8px hsl(var(--primary)))'}}>
-                  A.snap
-              </h1>
-            </div>
+       <header className="flex items-center justify-between p-4 bg-black/40 backdrop-blur-md absolute top-0 left-0 right-0 z-50 border-b border-white/5">
+            <h1 className="text-2xl font-black text-primary italic tracking-tighter">A.snap</h1>
             <div className="flex items-center gap-5">
                 {user ? (
                   <>
-                    <Link href="/notifications" className="relative hover:scale-110 transition-transform">
+                    <Link href="/notifications" className="relative">
                         <Heart className="h-7 w-7 text-white" />
                         {unreadNotificationsCount > 0 && (
-                          <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-600 rounded-full border-2 border-black flex items-center justify-center text-[10px] font-bold">
-                            {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
+                          <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-600 rounded-full flex items-center justify-center text-[10px] font-bold">
+                            {unreadNotificationsCount}
                           </span>
                         )}
                     </Link>
-                    <Link href="/messages" className="relative hover:scale-110 transition-transform">
+                    <Link href="/messages" className="relative">
                         <Send className="h-7 w-7 text-white -rotate-12" />
                         {unreadMessagesCount > 0 && (
-                          <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-600 rounded-full border-2 border-black flex items-center justify-center text-[10px] font-bold">
-                            {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
+                          <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-600 rounded-full flex items-center justify-center text-[10px] font-bold">
+                            {unreadMessagesCount}
                           </span>
                         )}
                     </Link>
                   </>
                 ) : (
-                  <Button asChild variant="ghost" size="sm" className="bg-primary/20 hover:bg-primary text-white font-bold rounded-full px-4 border border-primary/30">
+                  <Button asChild variant="ghost" size="sm" className="bg-primary/20 hover:bg-primary text-white font-bold rounded-full">
                     <Link href="/login?auth=true">Log In</Link>
                   </Button>
                 )}
@@ -132,10 +124,7 @@ export default function RootFeedPage() {
             <div className="flex h-full flex-col items-center justify-center text-center p-10 bg-black">
                 <Sparkles className="h-16 w-16 text-primary mb-6 animate-bounce" />
                 <h2 className="text-3xl font-black italic tracking-tighter text-white mb-3 uppercase">Welcome to A.snap</h2>
-                <p className="text-muted-foreground text-sm max-w-[280px] leading-relaxed mb-10">
-                    Share your first video and go viral!
-                </p>
-                <Button asChild className="px-10 py-7 text-lg font-black uppercase rounded-2xl bg-primary shadow-lg shadow-primary/30" variant="default">
+                <Button asChild className="px-10 py-7 text-lg font-black uppercase rounded-2xl bg-primary" variant="default">
                   <Link href="/create">Upload Now</Link>
                 </Button>
             </div>
