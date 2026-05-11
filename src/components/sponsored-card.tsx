@@ -18,8 +18,7 @@ interface SponsoredCardProps {
 }
 
 /**
- * SponsoredCard loads Adsterra ads in a completely isolated way
- * to prevent React "removeChild" crashes.
+ * SponsoredCard with Isolation to prevent removeChild crash.
  */
 export function SponsoredCard({ ad }: SponsoredCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -28,7 +27,6 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Use a unique ID for the container to avoid conflicts
     const containerId = `at-container-${ad.id}`;
     const parent = containerRef.current;
     
@@ -54,7 +52,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     setIsLoaded(true);
 
     return () => {
-      // Clean up manually to avoid React tree mismatches during unmounting
+      // Safe cleanup
       if (parent) {
         parent.innerHTML = '';
       }

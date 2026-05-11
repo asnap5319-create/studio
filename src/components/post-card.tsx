@@ -50,6 +50,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
 
   const { data: author, isLoading: isAuthorLoading } = useDoc<UserProfile>(authorRef);
   
+  // Blue Badge Check
   const isProfileAdmin = author?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const followCheckRef = useMemoFirebase(() => {
