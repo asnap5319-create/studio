@@ -27,9 +27,11 @@ function LoginForm() {
 
   useEffect(() => {
     if (!isUserLoading) {
-      // FORCE REDIRECT if visiting /login directly without auth flag
-      // This ensures "Video First" even if user has a direct login link.
-      if (user || !showAuth) {
+      // If no auth query param, always push to home feed (Video First)
+      if (!showAuth) {
+        router.replace('/');
+      } else if (user) {
+        // If logged in, go to home feed
         router.replace('/');
       } else {
         setIsRedirecting(false);
@@ -44,7 +46,7 @@ function LoginForm() {
              <div className="absolute inset-0 blur-2xl bg-primary/20 animate-pulse rounded-full"></div>
              <Loader2 className="animate-spin h-12 w-12 text-primary relative z-10" />
         </div>
-        <p className="mt-6 font-bold tracking-widest uppercase text-[10px] text-primary/80 animate-pulse">Security Verification...</p>
+        <p className="mt-6 font-bold tracking-widest uppercase text-[10px] text-primary/80 animate-pulse">Redirecting to Feed...</p>
       </div>
     );
   }
