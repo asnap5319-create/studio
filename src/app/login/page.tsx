@@ -26,8 +26,8 @@ function LoginForm() {
 
   useEffect(() => {
     if (!isUserLoading) {
-      // If user is already logged in, or if they just visited /login without auth flag,
-      // redirect them immediately to the root video feed.
+      // If user is already logged in, or if they visited /login without the explicit auth=true flag,
+      // push them to the video feed immediately.
       if (user || !showAuth) {
         router.replace('/');
       } else {
@@ -40,7 +40,7 @@ function LoginForm() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-black text-white">
         <Loader2 className="animate-spin h-10 w-10 text-primary mb-4" />
-        <p className="font-bold tracking-widest uppercase text-[10px] text-primary animate-pulse">Loading A.snap...</p>
+        <p className="font-bold tracking-widest uppercase text-[10px] text-primary animate-pulse">A.snap Security...</p>
       </div>
     );
   }
@@ -72,7 +72,7 @@ function LoginForm() {
           <Input 
             type="email" 
             placeholder="Email" 
-            className="h-12 text-base bg-secondary/50 border-white/10 rounded-xl" 
+            className="h-12 text-base bg-secondary/50 border-white/10 rounded-xl text-white" 
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -81,7 +81,7 @@ function LoginForm() {
           <Input 
             type="password" 
             placeholder="Password" 
-            className="h-12 text-base bg-secondary/50 border-white/10 rounded-xl" 
+            className="h-12 text-base bg-secondary/50 border-white/10 rounded-xl text-white" 
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required

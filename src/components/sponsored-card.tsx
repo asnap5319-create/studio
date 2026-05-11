@@ -19,7 +19,7 @@ interface SponsoredCardProps {
 
 /**
  * SponsoredCard Component - Adsterra Edition
- * Fixed: Uses an isolated DOM node and absolute cleanup to prevent React "removeChild" crashes.
+ * Isolated DOM node injection to prevent React "removeChild" crashes.
  */
 export function SponsoredCard({ ad }: SponsoredCardProps) {
   const adContainerRef = useRef<HTMLDivElement>(null);
@@ -30,10 +30,10 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
 
     const container = adContainerRef.current;
     
-    // Clear any previous artifacts
+    // Clear any previous artifacts manually
     container.innerHTML = '';
     
-    // Create an isolated wrapper that React doesn't touch
+    // Create an isolated wrapper that React's reconciliation engine won't touch
     const wrapper = document.createElement('div');
     wrapper.id = 'container-286ef4dc1c3c9afc429b42567c2d2b99';
     wrapper.style.width = '100%';
@@ -47,7 +47,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     script.async = true;
     script.setAttribute('data-cfasync', 'false');
     
-    // Append to our ref
+    // Append manually to the stable DOM ref
     container.appendChild(wrapper);
     container.appendChild(script);
     
@@ -69,7 +69,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
         <span className="text-[10px] font-black uppercase tracking-tighter text-white">Sponsored</span>
       </div>
 
-      {/* Main Ad Display Area */}
+      {/* Main Ad Display Area - Isolated Ref */}
       <div className="w-full max-w-md px-4 flex flex-col justify-center items-center z-10">
         {!isLoaded && (
           <div className="text-xs text-muted-foreground animate-pulse mb-4 font-bold uppercase tracking-widest">
@@ -77,7 +77,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
           </div>
         )}
         
-        {/* Isolated node for Adsterra to prevent React crashes */}
+        {/* Isolated node for Adsterra to prevent removeChild crash */}
         <div 
           ref={adContainerRef} 
           className="w-full flex justify-center items-center" 

@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 /**
- * Ensures that even within the (main) group, the user is sent to the absolute root.
+ * Redirects to the root feed to prevent conflicts and ensure consistent routing.
  */
 export default function MainGroupRedirect() {
   const router = useRouter();
@@ -13,5 +13,9 @@ export default function MainGroupRedirect() {
     router.replace('/');
   }, [router]);
 
-  return null;
+  return (
+    <div className="flex h-screen items-center justify-center bg-black text-white">
+      <p className="animate-pulse">Loading Feed...</p>
+    </div>
+  );
 }

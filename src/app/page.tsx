@@ -8,7 +8,7 @@ import type { Post } from '@/models/post';
 import type { Notification } from '@/models/notification';
 import type { Message } from '@/models/message';
 import Link from 'next/link';
-import { Heart, Database, RefreshCw, Send, ExternalLink, Loader2 } from 'lucide-react';
+import { Heart, Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMemo, useState, useEffect } from 'react';
 import { BottomNav } from "@/components/bottom-nav";
@@ -16,9 +16,9 @@ import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 
 const MOCK_ADS = [
   {
-    id: 'ad_1',
+    id: 'ad_286ef4dc',
     brandName: 'A.snap Premium',
-    brandLogo: 'https://picsum.photos/seed/asnap_logo_final/100/100',
+    brandLogo: 'https://picsum.photos/seed/asnap_logo/100/100',
     mediaUrl: '',
     caption: 'Be the star of A.snap! Upgrade to Premium today and unlock exclusive AI filters and 4K uploads. #AsnapPremium #ShortVideo',
     ctaText: 'Upgrade Now',
@@ -37,7 +37,7 @@ export default function RootFeedPage() {
     return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'));
   }, [firestore]);
 
-  const { data: posts, isLoading, error: postsError } = useCollection<Post>(postsQuery);
+  const { data: posts, isLoading } = useCollection<Post>(postsQuery);
 
   useEffect(() => {
     if (posts && !shuffledPosts) {
@@ -79,13 +79,6 @@ export default function RootFeedPage() {
     });
     return items;
   }, [shuffledPosts]);
-
-  const handleRefresh = () => {
-    window.location.reload();
-  };
-
-  const isPostIndexError = postsError?.message?.includes('index') || postsError?.message?.includes('INDEX');
-  const indexLink = postsError?.message?.match(/https:\/\/console\.firebase\.google\.com[^\s]*/)?.[0];
 
   if (isLoading || (posts && !shuffledPosts)) {
     return (
