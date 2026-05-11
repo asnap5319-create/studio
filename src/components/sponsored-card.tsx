@@ -27,7 +27,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     const parent = containerRef.current;
     const containerId = `at-container-${ad.id}-${Math.random().toString(36).substr(2, 9)}`;
     
-    // Clear the parent completely before adding new ad scripts
+    // Safety check to prevent removeChild crash
     parent.innerHTML = ''; 
 
     const adWrapper = document.createElement('div');
@@ -45,19 +45,15 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
 
     parent.appendChild(adWrapper);
     
-    // Use a small delay to ensure the DOM element is actually rendered before script runs
     const timeoutId = setTimeout(() => {
         parent.appendChild(script);
         setIsLoaded(true);
-    }, 100);
+    }, 150);
 
     return () => {
       clearTimeout(timeoutId);
-      // Clean up manually to prevent removeChild crash
       if (parent) {
-        while (parent.firstChild) {
-          parent.removeChild(parent.firstChild);
-        }
+        parent.innerHTML = ''; // Safer clean up
       }
     };
   }, [ad.id, ad.adUnitId]);
