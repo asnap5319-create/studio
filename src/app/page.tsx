@@ -9,12 +9,10 @@ import type { Post } from '@/models/post';
 import type { Notification } from '@/models/notification';
 import type { Message } from '@/models/message';
 import Link from 'next/link';
-import { Heart, Send, Sparkles, Loader2, BadgeCheck } from 'lucide-react';
+import { Heart, Send, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMemo, useState, useEffect } from 'react';
 import { BottomNav } from "@/components/bottom-nav";
-
-const ADMIN_EMAIL = "asnap5319@gmail.com";
 
 const MOCK_ADS = [
   {

@@ -27,7 +27,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     const parent = containerRef.current;
     const containerId = `at-container-${ad.id}-${Math.random().toString(36).substr(2, 9)}`;
     
-    // Safety check to prevent removeChild crash
+    // Safety check to clear previous state
     parent.innerHTML = ''; 
 
     const adWrapper = document.createElement('div');
@@ -46,7 +46,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     parent.appendChild(adWrapper);
     
     const timeoutId = setTimeout(() => {
-        if (parent.contains(adWrapper)) {
+        if (parent && parent.contains(adWrapper)) {
             parent.appendChild(script);
             setIsLoaded(true);
         }
@@ -54,8 +54,9 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
 
     return () => {
       clearTimeout(timeoutId);
-      // Use innerHTML instead of removeChild for safer cleanup
-      if (parent) parent.innerHTML = '';
+      if (parent) {
+        parent.innerHTML = ''; // Safely clear to avoid removeChild errors
+      }
     };
   }, [ad.id, ad.adUnitId]);
 
