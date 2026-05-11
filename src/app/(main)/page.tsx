@@ -4,8 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 /**
- * Redirects to the actual root feed to avoid build-time route collisions
- * and ensure the "Video First" experience.
+ * Ensures that even within the (main) group, the user is sent to the absolute root.
  */
 export default function MainGroupRedirect() {
   const router = useRouter();

@@ -19,44 +19,41 @@ interface SponsoredCardProps {
 
 /**
  * SponsoredCard Component - Adsterra Edition
- * Uses an isolated DOM container to prevent React from crashing when 
- * external scripts manipulate the DOM (fixes removeChild error).
+ * Fixed: Uses an isolated DOM node and absolute cleanup to prevent React "removeChild" crashes.
  */
 export function SponsoredCard({ ad }: SponsoredCardProps) {
   const adContainerRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    // Only run on client
     if (typeof window === 'undefined' || !adContainerRef.current) return;
 
     const container = adContainerRef.current;
     
-    // Clear previous content to avoid duplicates during re-renders
+    // Clear any previous artifacts
     container.innerHTML = '';
     
-    // Create the specific container required by Adsterra
-    const adPlaceholder = document.createElement('div');
-    adPlaceholder.id = 'container-286ef4dc1c3c9afc429b42567c2d2b99';
-    adPlaceholder.style.width = '100%';
-    adPlaceholder.style.minHeight = '250px';
-    adPlaceholder.style.display = 'flex';
-    adPlaceholder.style.justifyContent = 'center';
-    adPlaceholder.style.alignItems = 'center';
+    // Create an isolated wrapper that React doesn't touch
+    const wrapper = document.createElement('div');
+    wrapper.id = 'container-286ef4dc1c3c9afc429b42567c2d2b99';
+    wrapper.style.width = '100%';
+    wrapper.style.minHeight = '250px';
+    wrapper.style.display = 'flex';
+    wrapper.style.justifyContent = 'center';
+    wrapper.style.alignItems = 'center';
 
-    // Create the script tag
     const script = document.createElement('script');
     script.src = 'https://pl29411112.profitablecpmratenetwork.com/286ef4dc1c3c9afc429b42567c2d2b99/invoke.js';
     script.async = true;
     script.setAttribute('data-cfasync', 'false');
     
-    // Append elements to the isolated container
-    container.appendChild(adPlaceholder);
+    // Append to our ref
+    container.appendChild(wrapper);
     container.appendChild(script);
     
     setIsLoaded(true);
 
-    // Cleanup when component unmounts
+    // Cleanup: Completely wipe the container on unmount to prevent React/DOM conflicts
     return () => {
       if (container) {
         container.innerHTML = '';
@@ -80,10 +77,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
           </div>
         )}
         
-        {/* 
-            ISOLATED NODE: React manages this div, but we manually control its children.
-            This prevents "The node to be removed is not a child of this node" crashes.
-        */}
+        {/* Isolated node for Adsterra to prevent React crashes */}
         <div 
           ref={adContainerRef} 
           className="w-full flex justify-center items-center" 

@@ -26,8 +26,8 @@ function LoginForm() {
 
   useEffect(() => {
     if (!isUserLoading) {
-      // AGGRESSIVE REDIRECT: If someone visits /login directly without ?auth=true,
-      // or if they are already logged in, send them to the video feed instantly.
+      // If user is already logged in, or if they just visited /login without auth flag,
+      // redirect them immediately to the root video feed.
       if (user || !showAuth) {
         router.replace('/');
       } else {
@@ -40,7 +40,7 @@ function LoginForm() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-black text-white">
         <Loader2 className="animate-spin h-10 w-10 text-primary mb-4" />
-        <p className="font-bold tracking-widest uppercase text-[10px] text-primary animate-pulse">Entering A.snap...</p>
+        <p className="font-bold tracking-widest uppercase text-[10px] text-primary animate-pulse">Loading A.snap...</p>
       </div>
     );
   }

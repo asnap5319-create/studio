@@ -19,11 +19,11 @@ const MOCK_ADS = [
     id: 'ad_1',
     brandName: 'A.snap Premium',
     brandLogo: 'https://picsum.photos/seed/asnap_logo_final/100/100',
-    mediaUrl: 'https://res.cloudinary.com/demo/video/upload/w_1280,h_720,c_fill/dog.mp4',
+    mediaUrl: '',
     caption: 'Be the star of A.snap! Upgrade to Premium today and unlock exclusive AI filters and 4K uploads. #AsnapPremium #ShortVideo',
     ctaText: 'Upgrade Now',
     ctaUrl: '/profile',
-    isVideo: true,
+    adUnitId: '286ef4dc1c3c9afc429b42567c2d2b99'
   }
 ];
 
@@ -32,7 +32,6 @@ export default function RootFeedPage() {
   const { user } = useUser();
   const [shuffledPosts, setShuffledPosts] = useState<Post[] | null>(null);
 
-  // Core posts query
   const postsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'));
@@ -47,7 +46,6 @@ export default function RootFeedPage() {
     }
   }, [posts, shuffledPosts]);
 
-  // Notifications
   const notificationsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'users', user.uid, 'notifications'), orderBy('createdAt', 'desc'));
@@ -56,7 +54,6 @@ export default function RootFeedPage() {
   const { data: notifications } = useCollection<Notification>(notificationsQuery);
   const unreadNotificationsCount = notifications?.filter(n => !n.read).length || 0;
 
-  // Messages - This may fail if index is building, handled gracefully
   const unreadMessagesQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
@@ -99,51 +96,10 @@ export default function RootFeedPage() {
     );
   }
 
-  if (isPostIndexError) {
-    return (
-      <div className="flex h-screen flex-col items-center justify-center text-white bg-black p-8 text-center">
-        <div className="p-4 bg-primary/10 rounded-3xl mb-6 border border-primary/20">
-          <Database className="h-16 w-16 text-primary" />
-        </div>
-        <h2 className="text-2xl font-black italic uppercase mb-4 text-primary">Index Required</h2>
-        <p className="text-muted-foreground mb-8 text-sm leading-relaxed">
-          Google needs an index to show your content. Click the button below to create it in Firebase Console.
-        </p>
-        <div className="flex flex-col gap-3 w-full max-w-sm">
-            {indexLink && (
-                <Button asChild className="w-full py-7 text-lg font-black uppercase rounded-2xl bg-primary" variant="default">
-                    <a href={indexLink} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-5 w-5 mr-2" />
-                        Check Progress
-                    </a>
-                </Button>
-            )}
-            <Button onClick={handleRefresh} variant="outline" className="w-full py-7 text-lg font-black uppercase rounded-2xl border-white/10 hover:bg-white/5">
-                <RefreshCw className="h-5 w-5 mr-2" />
-                Refresh Page
-            </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="fixed inset-0 w-full h-screen flex flex-col text-white bg-black overflow-hidden">
        <header className="flex items-center justify-between p-4 bg-black/40 backdrop-blur-md absolute top-0 left-0 right-0 z-50 shrink-0 border-b border-white/5">
             <div className="flex items-center gap-2">
-              <div className="relative w-9 h-9 rounded-xl overflow-hidden border border-white/10 flex items-center justify-center bg-[#0a0a0a]">
-                 <svg viewBox="0 0 512 512" className="w-7 h-7">
-                    <defs>
-                      <linearGradient id="headerGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#ff0080" stopOpacity="1" />
-                        <stop offset="50%" stopColor="#ff3366" stopOpacity="1" />
-                        <stop offset="100%" stopColor="#ffcc33" stopOpacity="1" />
-                      </linearGradient>
-                    </defs>
-                    <path d="M150 400 L256 100 L362 400 M210 320 L302 320" stroke="url(#headerGrad)" strokeWidth="60" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                    <circle cx="390" cy="120" r="35" fill="#ff0080" />
-                 </svg>
-              </div>
               <h1 className="text-2xl font-black text-primary italic tracking-tighter" style={{filter: 'drop-shadow(0 0 8px hsl(var(--primary)))'}}>
                   A.snap
               </h1>
@@ -181,7 +137,7 @@ export default function RootFeedPage() {
             <div className="flex h-full flex-col items-center justify-center text-center p-10 bg-black">
                 <h2 className="text-3xl font-black italic tracking-tighter text-white mb-3 uppercase">Welcome to A.snap</h2>
                 <p className="text-muted-foreground text-sm max-w-[280px] leading-relaxed mb-10">
-                    Be the first to share a video and go viral!
+                    Share your first video and go viral!
                 </p>
                 <Button asChild className="px-10 py-7 text-lg font-black uppercase rounded-2xl bg-primary" variant="default">
                   <Link href="/create">Upload Now</Link>
