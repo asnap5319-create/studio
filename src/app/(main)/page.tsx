@@ -5,19 +5,15 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 /**
- * Resolved routing conflict by redirecting to root.
- * Main content is now in src/app/page.tsx
+ * Empty redirect to fix Next.js route conflict between /page.tsx and /(main)/page.tsx
+ * All content moved to root /page.tsx
  */
-export default function LegacyFeedPage() {
+export default function RedirectPage() {
   const router = useRouter();
 
   useEffect(() => {
     router.replace('/');
   }, [router]);
 
-  return (
-    <div className="flex h-screen items-center justify-center bg-black text-white">
-      <div className="animate-pulse font-black italic text-primary">A.snap...</div>
-    </div>
-  );
+  return null;
 }

@@ -72,7 +72,7 @@ export default function RootFeedPage() {
     let adIndex = 0;
     shuffledPosts.forEach((post, index) => {
       items.push({ type: 'post' as const, data: post });
-      if ((index + 1) % 3 === 0) {
+      if ((index + 1) % 4 === 0) {
         items.push({ type: 'ad' as const, data: MOCK_ADS[adIndex] });
         adIndex = (adIndex + 1) % MOCK_ADS.length;
       }
