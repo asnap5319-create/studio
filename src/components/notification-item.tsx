@@ -27,7 +27,6 @@ export function NotificationItem({ notification }: { notification: Notification 
 
     const { data: sender, isLoading } = useDoc<UserProfile>(senderRef);
 
-    // Check if current user is following the sender
     const followCheckRef = useMemoFirebase(() => {
         if (!firestore || !user || !notification.senderId) return null;
         return doc(firestore, 'user_followers', notification.senderId, 'followers', user.uid);
@@ -39,11 +38,7 @@ export function NotificationItem({ notification }: { notification: Notification 
     const handleFollowToggle = async (e: React.MouseEvent) => {
         e.stopPropagation();
         e.preventDefault();
-        
-        if (!firestore || !user || !notification.senderId) {
-            toast({ variant: "destructive", title: "Error", description: "Login to follow users." });
-            return;
-        }
+        if (!firestore || !user || !notification.senderId) return;
 
         const batch = writeBatch(firestore);
         const followedUserId = notification.senderId;
@@ -59,7 +54,6 @@ export function NotificationItem({ notification }: { notification: Notification 
             batch.set(followerDocRef, { createdAt: serverTimestamp() });
             batch.set(followingDocRef, { createdAt: serverTimestamp() });
             
-            // Send a notification back to them
             const notificationRef = doc(collection(firestore, 'users', followedUserId, 'notifications'));
             batch.set(notificationRef, {
                 type: 'follow',
@@ -72,99 +66,51 @@ export function NotificationItem({ notification }: { notification: Notification 
 
         try {
             await batch.commit();
-            toast({
-                title: isFollowing ? `Unfollowed ${sender?.username}` : `Following ${sender?.username}`,
-            });
+            toast({ title: isFollowing ? `Unfollowed ${sender?.username}` : `Following ${sender?.username}` });
         } catch (error) {
-            console.error("Error toggling follow from notification:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Action failed.' });
+            console.error("Error toggling follow:", error);
         }
     };
     
-    if (isLoading) {
-        return (
-            <div className="flex items-center space-x-4 p-4 border-b border-border">
-                <Skeleton className="h-12 w-12 rounded-full" />
-                <div className="space-y-2">
-                    <Skeleton className="h-4 w-48" />
-                </div>
-            </div>
-        );
-    }
-
+    if (isLoading) return <div className="p-4 border-b border-border"><Skeleton className="h-12 w-12 rounded-full" /></div>;
     if (!sender) return null;
 
     const isSenderAdmin = sender.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
     let message = '';
-    let extraContent = null;
-
     switch (notification.type) {
-        case 'follow':
-            message = 'started following you.';
-            break;
-        case 'like':
-            message = 'liked your post.';
-            break;
-        case 'comment':
-            message = 'commented on your post:';
-            extraContent = notification.content ? (
-                <p className="mt-1 p-2 bg-secondary/50 rounded-md text-sm italic text-muted-foreground border-l-2 border-primary">
-                    "{notification.content}"
-                </p>
-            ) : null;
-            break;
-        default:
-            break;
+        case 'follow': message = 'started following you.'; break;
+        case 'like': message = 'liked your post.'; break;
+        case 'comment': message = 'commented on your post.'; break;
     }
 
-    const timeAgo = notification.createdAt
-        ? formatDistanceToNow(notification.createdAt.toDate(), { addSuffix: true })
-        : '';
-
+    const timeAgo = notification.createdAt ? formatDistanceToNow(notification.createdAt.toDate(), { addSuffix: true }) : '';
 
     return (
         <div className="flex items-center gap-3 p-4 border-b border-border last:border-b-0 hover:bg-secondary/20 transition-colors">
-            <Link href={`/profile/${sender.id}`} onClick={(e) => e.stopPropagation()}>
+            <Link href={`/profile/${sender.id}`}>
                 <Avatar className="h-12 w-12 border-2 border-border">
                     <AvatarImage src={sender.profileImageUrl} />
-                    <AvatarFallback className="bg-primary/10 text-primary">{sender.username?.[0]?.toUpperCase()}</AvatarFallback>
+                    <AvatarFallback>{sender.username?.[0]?.toUpperCase()}</AvatarFallback>
                 </Avatar>
             </Link>
             <div className="flex-1 min-w-0">
                 <div className="flex flex-col">
-                    <div className="text-sm truncate">
+                    <div className="text-sm">
                         <div className="flex items-center gap-1 inline-flex">
-                            <Link href={`/profile/${sender.id}`} className="font-bold hover:underline">{sender.username}</Link>
+                            <Link href={`/profile/${sender.id}`} className="font-bold">{sender.username}</Link>
                             {isSenderAdmin && <BadgeCheck className="h-3 w-3 text-blue-400 fill-blue-400/20" />}
                         </div>
                         {' '}{message}
                     </div>
-                    {extraContent}
-                    <span className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider">{timeAgo}</span>
+                    <span className="text-[10px] text-muted-foreground mt-1">{timeAgo}</span>
                 </div>
             </div>
-            
-            <div className="flex items-center gap-2 shrink-0">
-                {notification.type === 'follow' ? (
-                    <Button 
-                        size="sm" 
-                        variant={isFollowing ? "secondary" : "default"}
-                        onClick={handleFollowToggle}
-                        className="h-8 font-bold"
-                    >
-                        {isFollowing ? 'Following' : 'Follow Back'}
-                    </Button>
-                ) : (
-                    notification.postId && (
-                        <div className="shrink-0">
-                            <div className="h-11 w-11 bg-secondary rounded overflow-hidden flex items-center justify-center border border-border">
-                                <Skeleton className="h-full w-full" />
-                            </div>
-                        </div>
-                    )
-                )}
-            </div>
+            {notification.type === 'follow' && (
+                <Button size="sm" variant={isFollowing ? "secondary" : "default"} onClick={handleFollowToggle} className="h-8 font-bold">
+                    {isFollowing ? 'Following' : 'Follow Back'}
+                </Button>
+            )}
         </div>
     );
 }

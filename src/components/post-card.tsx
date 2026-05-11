@@ -279,7 +279,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                 </Avatar>
                 <div className="flex items-center gap-1">
                     <p className="font-bold text-[15px] drop-shadow-lg">{author.username}</p>
-                    {isProfileAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />}
+                    {isProfileAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20 shadow-sm" />}
                 </div>
               </Link>
               {!isOwnPost && (

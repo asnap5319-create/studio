@@ -6,14 +6,13 @@ import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, collectionGroup, query, orderBy, where, limit } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search as SearchIcon, Play, X, Database, RefreshCw, UserSearch, BadgeCheck } from 'lucide-react';
+import { Search as SearchIcon, Play, X, BadgeCheck } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import type { UserProfile } from '@/models/user';
 import type { Post } from '@/models/post';
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { PostCard } from "@/components/post-card";
-import { Button } from '@/components/ui/button';
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
@@ -22,7 +21,6 @@ export default function SearchPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
 
-  // Query for all posts (Explore Grid)
   const explorePostsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'), limit(30));
@@ -30,7 +28,6 @@ export default function SearchPage() {
 
   const { data: posts, isLoading: isPostsLoading } = useCollection<Post>(explorePostsQuery);
 
-  // Query for users based on search
   const usersQuery = useMemoFirebase(() => {
     if (!firestore || searchQuery.length < 1) return null;
     const lowerQuery = searchQuery.toLowerCase().trim();
@@ -42,15 +39,11 @@ export default function SearchPage() {
     );
   }, [firestore, searchQuery]);
 
-  const { data: searchResults, isLoading: isSearching, error: searchError } = useCollection<UserProfile>(usersQuery);
-
-  const handleRefresh = () => {
-    window.location.reload();
-  };
+  const { data: searchResults, isLoading: isSearching } = useCollection<UserProfile>(usersQuery);
 
   return (
     <div className="flex h-full flex-col bg-background text-white overflow-hidden">
-      <div className="p-4 bg-background/80 backdrop-blur-md sticky top-0 z-20">
+      <div className="p-4 bg-background/80 backdrop-blur-md sticky top-0 z-20 border-b border-white/5">
         <div className="relative">
           <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -59,52 +52,16 @@ export default function SearchPage() {
             placeholder="Search username..."
             className="pl-10 h-10 bg-secondary border-none rounded-xl focus-visible:ring-1 focus-visible:ring-primary"
           />
-          {searchQuery && (
-            <button 
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1"
-            >
-              <X className="h-4 w-4 text-muted-foreground" />
-            </button>
-          )}
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-hide">
-        {searchError && (searchError.message.includes('index') || searchError.message.includes('INDEX')) && (
-            <div className="mx-4 p-4 bg-primary/10 rounded-xl border border-primary/20 text-center mb-6">
-                <Database className="h-8 w-8 text-primary mx-auto mb-2" />
-                <h3 className="font-bold text-sm mb-1">इंडेक्स बनाना पड़ेगा भाई!</h3>
-                <p className="text-xs text-muted-foreground mb-3">
-                    सर्च काम करने के लिए Google को इंडेक्स चाहिए। 
-                </p>
-                <Button variant="outline" size="sm" onClick={handleRefresh} className="w-full gap-2">
-                    <RefreshCw className="h-3 w-3" />
-                    रिफ्रेश करें
-                </Button>
-            </div>
-        )}
-
-        {searchQuery.length >= 1 && !searchError && (
-          <div className="px-4 pb-4 animate-in fade-in slide-in-from-top-2 duration-200">
-            <h2 className="text-sm font-bold text-muted-foreground mb-4 uppercase tracking-wider">Search Results</h2>
-            {isSearching ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="flex items-center gap-3 animate-pulse">
-                    <div className="h-12 w-12 rounded-full bg-secondary" />
-                    <div className="h-4 w-32 bg-secondary rounded" />
-                  </div>
-                ))}
-              </div>
-            ) : searchResults && searchResults.length > 0 ? (
-              <div className="space-y-4">
-                {searchResults.map((user) => (
-                  <Link 
-                    key={user.id} 
-                    href={`/profile/${user.id}`}
-                    className="flex items-center gap-3 p-2 hover:bg-secondary rounded-xl transition-colors"
-                  >
+        {searchQuery.length >= 1 && (
+          <div className="px-4 pb-4 animate-in fade-in slide-in-from-top-2">
+            <h2 className="text-sm font-bold text-muted-foreground my-4 uppercase tracking-wider">Users</h2>
+            <div className="space-y-4">
+                {searchResults?.map((user) => (
+                  <Link key={user.id} href={`/profile/${user.id}`} className="flex items-center gap-3 p-2 hover:bg-secondary rounded-xl transition-colors">
                     <Avatar className="h-12 w-12 border border-border">
                       <AvatarImage src={user.profileImageUrl} />
                       <AvatarFallback>{user.username?.[0]?.toUpperCase()}</AvatarFallback>
@@ -118,38 +75,20 @@ export default function SearchPage() {
                     </div>
                   </Link>
                 ))}
-              </div>
-            ) : (
-              <div className="text-center py-10">
-                <UserSearch className="h-12 w-12 text-muted-foreground mx-auto mb-2 opacity-20" />
-                <p className="text-muted-foreground">No user found</p>
-              </div>
-            )}
+            </div>
             <div className="h-px bg-border my-6" />
           </div>
         )}
 
         <div className="px-0.5 pb-20">
-          {!searchQuery && <h2 className="px-4 text-sm font-bold text-muted-foreground mb-4 uppercase tracking-wider">Explore</h2>}
           <div className="grid grid-cols-3 gap-0.5">
-            {isPostsLoading ? (
-              Array.from({ length: 9 }).map((_, i) => (
-                <div key={i} className="aspect-[9/16] bg-secondary animate-pulse" />
-              ))
-            ) : posts?.map((post) => (
-              <div 
-                key={post.id} 
-                className="aspect-[9/16] relative bg-secondary cursor-pointer group"
-                onClick={() => setSelectedPost(post)}
-              >
+            {posts?.map((post) => (
+              <div key={post.id} className="aspect-[9/16] relative bg-secondary cursor-pointer" onClick={() => setSelectedPost(post)}>
                  {post.mediaUrl.includes('video') || post.mediaUrl.includes('.mp4') ? (
                   <video src={post.mediaUrl} className="w-full h-full object-cover" muted loop playsInline />
                 ) : (
                   <Image src={post.mediaUrl} alt="" fill className="object-cover" />
                 )}
-                <div className="absolute top-2 right-2 text-white">
-                  <Play className="h-4 w-4 fill-white opacity-50" />
-                </div>
               </div>
             ))}
           </div>
@@ -158,14 +97,7 @@ export default function SearchPage() {
 
       <Dialog open={!!selectedPost} onOpenChange={(isOpen) => !isOpen && setSelectedPost(null)}>
         <DialogContent className="p-0 border-0 bg-black/90 w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center">
-            {selectedPost && (
-                <>
-                   <DialogTitle className="sr-only">Video Post</DialogTitle>
-                    <div className="relative w-full h-full">
-                        <PostCard post={selectedPost} />
-                    </div>
-                </>
-            )}
+            {selectedPost && <PostCard post={selectedPost} />}
         </DialogContent>
       </Dialog>
     </div>

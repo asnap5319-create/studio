@@ -31,13 +31,12 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     // The container ID Adsterra expects
     const containerId = 'container-286ef4dc1c3c9afc429b42567c2d2b99';
     
-    // Create the script element
-    const script = document.createElement('script');
-    script.src = 'https://pl29411112.profitablecpmratenetwork.com/286ef4dc1c3c9afc429b42567c2d2b99/invoke.js';
-    script.async = true;
-    script.setAttribute('data-cfasync', 'false');
+    // Clear the container completely before injection
+    const parent = containerRef.current;
+    parent.innerHTML = ''; 
 
     // Create a wrapper div that script will target
+    // This wrapper is what the external script will manipulate.
     const adWrapper = document.createElement('div');
     adWrapper.id = containerId;
     adWrapper.style.width = '100%';
@@ -46,16 +45,22 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     adWrapper.style.justifyContent = 'center';
     adWrapper.style.alignItems = 'center';
 
-    // Clear existing content safely and inject
-    const parent = containerRef.current;
-    parent.innerHTML = ''; 
+    // Create the script element
+    const script = document.createElement('script');
+    script.src = 'https://pl29411112.profitablecpmratenetwork.com/286ef4dc1c3c9afc429b42567c2d2b99/invoke.js';
+    script.async = true;
+    script.setAttribute('data-cfasync', 'false');
+
+    // Append them to the isolated parent
     parent.appendChild(adWrapper);
     parent.appendChild(script);
     
     setIsLoaded(true);
 
     return () => {
-      // Cleanup to prevent leaks and removeChild errors
+      // Cleanup by clearing the isolated parent. 
+      // Because React only manages the 'parent' div itself, clearing its innerHTML
+      // is safe and won't cause the "removeChild" node-not-found error.
       if (parent) {
         parent.innerHTML = '';
       }
