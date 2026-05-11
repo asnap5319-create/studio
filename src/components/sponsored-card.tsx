@@ -28,15 +28,14 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // The container ID Adsterra expects
-    const containerId = 'container-286ef4dc1c3c9afc429b42567c2d2b99';
-    
-    // Clear the container completely before injection
+    // Use a unique ID for each ad unit to avoid script conflicts
+    const containerId = `at-container-${ad.adUnitId || ad.id}`;
     const parent = containerRef.current;
+    
+    // Clear the parent completely before each injection
     parent.innerHTML = ''; 
 
-    // Create a wrapper div that script will target
-    // This wrapper is what the external script will manipulate.
+    // Create a safe wrapper div that the script will target
     const adWrapper = document.createElement('div');
     adWrapper.id = containerId;
     adWrapper.style.width = '100%';
@@ -45,27 +44,24 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     adWrapper.style.justifyContent = 'center';
     adWrapper.style.alignItems = 'center';
 
-    // Create the script element
     const script = document.createElement('script');
-    script.src = 'https://pl29411112.profitablecpmratenetwork.com/286ef4dc1c3c9afc429b42567c2d2b99/invoke.js';
+    script.src = `https://pl29411112.profitablecpmratenetwork.com/${ad.adUnitId}/invoke.js`;
     script.async = true;
     script.setAttribute('data-cfasync', 'false');
 
-    // Append them to the isolated parent
+    // Append wrapper first, then script
     parent.appendChild(adWrapper);
     parent.appendChild(script);
     
     setIsLoaded(true);
 
     return () => {
-      // Cleanup by clearing the isolated parent. 
-      // Because React only manages the 'parent' div itself, clearing its innerHTML
-      // is safe and won't cause the "removeChild" node-not-found error.
+      // Safe cleanup: just empty the innerHTML of our managed parent
       if (parent) {
         parent.innerHTML = '';
       }
     };
-  }, [ad.id]);
+  }, [ad.id, ad.adUnitId]);
 
   return (
     <div className="relative w-full h-full bg-black flex flex-col items-center justify-center overflow-hidden">
@@ -81,7 +77,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
           </div>
         )}
         
-        {/* Isolated div for script manipulation - React will not touch children of this div */}
+        {/* Isolated container for Adsterra's script - React will NOT manage children of this div */}
         <div 
           ref={containerRef} 
           className="w-full flex justify-center items-center" 

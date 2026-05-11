@@ -5,15 +5,15 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 /**
- * Mirror the feed behavior to ensure root path always shows videos.
+ * Root forwarder to avoid Vercel build conflicts.
+ * This ensures the (main) route group handles the feed.
  */
-export default function HomePage() {
+export default function RootPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // We rely on the (main)/page.tsx to handle the root path in NextJS route groups
-    // but if build conflicts occur, we can use this as a direct forwarder.
-  }, []);
+    router.replace('/');
+  }, [router]);
 
   return null;
 }
