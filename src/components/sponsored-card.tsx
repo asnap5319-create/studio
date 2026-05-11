@@ -27,7 +27,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     const parent = containerRef.current;
     const containerId = `at-container-${ad.id}-${Math.random().toString(36).substr(2, 9)}`;
     
-    // Safety check to prevent removeChild crash
+    // Safety check to prevent removeChild crash and clear previous state
     parent.innerHTML = ''; 
 
     const adWrapper = document.createElement('div');
@@ -46,14 +46,17 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     parent.appendChild(adWrapper);
     
     const timeoutId = setTimeout(() => {
-        parent.appendChild(script);
-        setIsLoaded(true);
+        // Double check parent still exists to avoid race conditions
+        if (parent && parent.contains(adWrapper)) {
+            parent.appendChild(script);
+            setIsLoaded(true);
+        }
     }, 150);
 
     return () => {
       clearTimeout(timeoutId);
       if (parent) {
-        parent.innerHTML = ''; // Safer clean up
+        parent.innerHTML = ''; // Safer clean up to prevent removeChild errors
       }
     };
   }, [ad.id, ad.adUnitId]);

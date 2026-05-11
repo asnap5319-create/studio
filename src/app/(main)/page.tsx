@@ -4,6 +4,10 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+/**
+ * Redundant route removed to fix Next.js build conflict with src/app/page.tsx.
+ * Redirects to the root feed page.
+ */
 export default function MainRedirectPage() {
   const router = useRouter();
 
@@ -11,9 +15,5 @@ export default function MainRedirectPage() {
     router.replace('/');
   }, [router]);
 
-  return (
-    <div className="flex h-screen items-center justify-center bg-black text-white">
-      <p className="animate-pulse">Loading feed...</p>
-    </div>
-  );
+  return null;
 }
