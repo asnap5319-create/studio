@@ -9,13 +9,13 @@ import type { Post } from '@/models/post';
 import type { Notification } from '@/models/notification';
 import type { Message } from '@/models/message';
 import Link from 'next/link';
-import { Heart, Send, Sparkles, Loader2 } from 'lucide-react';
+import { Heart, Send, Sparkles, Loader2, BadgeCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMemo, useState, useEffect } from 'react';
 
 const MOCK_ADS = [
   {
-    id: 'ad_286ef4dc',
+    id: 'ad_premium',
     brandName: 'A.snap Premium',
     brandLogo: 'https://picsum.photos/seed/asnap_logo/100/100',
     mediaUrl: '',

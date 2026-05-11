@@ -14,7 +14,7 @@ import { Heart, MessageCircle, Volume2, VolumeX, Share2, BadgeCheck } from 'luci
 import { Skeleton } from './ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { CommentSection } from './comment-section';
 import { ShareSheet } from './share-sheet';
 

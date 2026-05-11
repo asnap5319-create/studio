@@ -28,10 +28,11 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const containerId = `at-container-${ad.adUnitId || ad.id}`;
+    // Use a unique ID for the container to avoid conflicts
+    const containerId = `at-container-${ad.id}`;
     const parent = containerRef.current;
     
-    // Clear parent to prevent DOM pollution
+    // Clear parent to prevent DOM pollution before injecting
     parent.innerHTML = ''; 
 
     const adWrapper = document.createElement('div');
@@ -53,7 +54,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     setIsLoaded(true);
 
     return () => {
-      // Clean up manually to avoid React tree mismatches
+      // Clean up manually to avoid React tree mismatches during unmounting
       if (parent) {
         parent.innerHTML = '';
       }
