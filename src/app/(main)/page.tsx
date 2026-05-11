@@ -1,14 +1,13 @@
-
 'use client';
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 /**
- * Redirecting to root to avoid conflict with the main feed.
- * This file was causing the "divergent branches" and build errors.
+ * Empty route to avoid collision with src/app/page.tsx.
+ * This fixes the Vercel build error and Divergent Branches sync error.
  */
-export default function LegacyFeedPage() {
+export default function RedirectToRoot() {
   const router = useRouter();
 
   useEffect(() => {

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -19,6 +18,7 @@ interface SponsoredCardProps {
 
 /**
  * SponsoredCard with Isolation to prevent removeChild crash.
+ * Uses a unique script loading technique that is safer for React reconciler.
  */
 export function SponsoredCard({ ad }: SponsoredCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -52,7 +52,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     setIsLoaded(true);
 
     return () => {
-      // Safe cleanup
+      // Safe cleanup: instead of removeChild, we clear innerHTML
       if (parent) {
         parent.innerHTML = '';
       }
