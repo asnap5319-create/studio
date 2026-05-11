@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useDoc, useFirebase, useMemoFirebase, useUser } from '@/firebase';
@@ -10,7 +11,9 @@ import { formatDistanceToNow } from 'date-fns';
 import { doc, writeBatch, serverTimestamp, collection } from 'firebase/firestore';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus, UserCheck } from 'lucide-react';
+import { UserPlus, UserCheck, BadgeCheck } from 'lucide-react';
+
+const ADMIN_EMAIL = "asnap5319@gmail.com";
 
 export function NotificationItem({ notification }: { notification: Notification }) {
     const { firestore } = useFirebase();
@@ -91,6 +94,8 @@ export function NotificationItem({ notification }: { notification: Notification 
 
     if (!sender) return null;
 
+    const isSenderAdmin = sender.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
     let message = '';
     let extraContent = null;
 
@@ -128,10 +133,13 @@ export function NotificationItem({ notification }: { notification: Notification 
             </Link>
             <div className="flex-1 min-w-0">
                 <div className="flex flex-col">
-                    <p className="text-sm truncate">
-                        <Link href={`/profile/${sender.id}`} className="font-bold hover:underline">{sender.username}</Link>
+                    <div className="text-sm truncate">
+                        <div className="flex items-center gap-1 inline-flex">
+                            <Link href={`/profile/${sender.id}`} className="font-bold hover:underline">{sender.username}</Link>
+                            {isSenderAdmin && <BadgeCheck className="h-3 w-3 text-blue-400 fill-blue-400/20" />}
+                        </div>
                         {' '}{message}
-                    </p>
+                    </div>
                     {extraContent}
                     <span className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider">{timeAgo}</span>
                 </div>
@@ -149,13 +157,11 @@ export function NotificationItem({ notification }: { notification: Notification 
                     </Button>
                 ) : (
                     notification.postId && (
-                        <Link href={`/feed`} className="shrink-0">
+                        <div className="shrink-0">
                             <div className="h-11 w-11 bg-secondary rounded overflow-hidden flex items-center justify-center border border-border">
-                                {sender.profileImageUrl && (
-                                     <Skeleton className="h-full w-full" />
-                                )}
+                                <Skeleton className="h-full w-full" />
                             </div>
-                        </Link>
+                        </div>
                     )
                 )}
             </div>

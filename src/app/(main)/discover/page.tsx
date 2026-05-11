@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -5,7 +6,7 @@ import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, collectionGroup, query, orderBy, where, limit } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search as SearchIcon, Play, X, Database, RefreshCw, UserSearch } from 'lucide-react';
+import { Search as SearchIcon, Play, X, Database, RefreshCw, UserSearch, BadgeCheck } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import type { UserProfile } from '@/models/user';
@@ -14,6 +15,8 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { PostCard } from "@/components/post-card";
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+
+const ADMIN_EMAIL = "asnap5319@gmail.com";
 
 export default function SearchPage() {
   const { firestore } = useFirebase();
@@ -105,22 +108,28 @@ export default function SearchPage() {
               </div>
             ) : searchResults && searchResults.length > 0 ? (
               <div className="space-y-4">
-                {searchResults.map((user) => (
-                  <Link 
-                    key={user.id} 
-                    href={`/profile/${user.id}`}
-                    className="flex items-center gap-3 p-2 hover:bg-secondary rounded-xl transition-colors"
-                  >
-                    <Avatar className="h-12 w-12 border border-border">
-                      <AvatarImage src={user.profileImageUrl} />
-                      <AvatarFallback>{user.username?.[0]?.toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col">
-                      <span className="font-bold text-sm">{user.username}</span>
-                      <span className="text-xs text-muted-foreground">{user.name}</span>
-                    </div>
-                  </Link>
-                ))}
+                {searchResults.map((user) => {
+                  const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+                  return (
+                    <Link 
+                      key={user.id} 
+                      href={`/profile/${user.id}`}
+                      className="flex items-center gap-3 p-2 hover:bg-secondary rounded-xl transition-colors"
+                    >
+                      <Avatar className="h-12 w-12 border border-border">
+                        <AvatarImage src={user.profileImageUrl} />
+                        <AvatarFallback>{user.username?.[0]?.toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-sm">{user.username}</span>
+                            {isAdmin && <BadgeCheck className="h-3 w-3 text-blue-400 fill-blue-400/20" />}
+                        </div>
+                        <span className="text-xs text-muted-foreground">{user.name}</span>
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-10">

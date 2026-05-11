@@ -13,7 +13,7 @@ import type { Post } from '@/models/post';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Send, Play, Loader2 } from 'lucide-react';
+import { ArrowLeft, Send, Play, Loader2, BadgeCheck } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -31,6 +31,8 @@ import {
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { PostCard } from "@/components/post-card";
 import { useToast } from '@/hooks/use-toast';
+
+const ADMIN_EMAIL = "asnap5319@gmail.com";
 
 export default function ChatPage() {
   const { chatId } = useParams();
@@ -186,6 +188,8 @@ export default function ChatPage() {
 
   if (!user) return null;
 
+  const isOtherAdmin = otherUser?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
   return (
     <div className="flex h-full flex-col text-white bg-background max-w-lg mx-auto border-x border-border">
       <header className="flex items-center gap-3 p-4 border-b border-border sticky top-0 bg-background/80 backdrop-blur-md z-10">
@@ -199,7 +203,10 @@ export default function ChatPage() {
               <AvatarFallback>{otherUser.username?.[0]?.toUpperCase()}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
-              <span className="font-bold text-sm">{otherUser.username}</span>
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold text-sm">{otherUser.username}</span>
+                {isOtherAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />}
+              </div>
               <span className="text-[10px] text-green-500">Active now</span>
             </div>
           </Link>

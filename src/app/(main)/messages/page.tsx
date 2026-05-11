@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
@@ -8,10 +9,12 @@ import type { Message } from '@/models/message';
 import { useDoc } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
-import { ArrowLeft, MessageSquare, Database, RefreshCw, ExternalLink, Send } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Database, RefreshCw, ExternalLink, Send, BadgeCheck } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+
+const ADMIN_EMAIL = "asnap5319@gmail.com";
 
 function ChatItem({ chat, currentUserId }: { chat: Chat; currentUserId: string }) {
   const { firestore } = useFirebase();
@@ -39,6 +42,8 @@ function ChatItem({ chat, currentUserId }: { chat: Chat; currentUserId: string }
 
   if (!otherUser) return null;
 
+  const isOtherAdmin = otherUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
   return (
     <Link 
       href={`/messages/${chat.id}`}
@@ -58,9 +63,12 @@ function ChatItem({ chat, currentUserId }: { chat: Chat; currentUserId: string }
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-center mb-1">
-          <span className={cn("text-sm truncate", isUnread ? "font-black text-white" : "font-bold text-muted-foreground")}>
-            {otherUser.username}
-          </span>
+          <div className="flex items-center gap-1.5 truncate">
+            <span className={cn("text-sm truncate", isUnread ? "font-black text-white" : "font-bold text-muted-foreground")}>
+              {otherUser.username}
+            </span>
+            {isOtherAdmin && <BadgeCheck className="h-3 w-3 text-blue-400 fill-blue-400/20" />}
+          </div>
           {chat.lastMessageAt && (
             <span className={cn("text-[10px]", isUnread ? "text-primary font-bold" : "text-muted-foreground")}>
               {formatDistanceToNow(chat.lastMessageAt.toDate(), { addSuffix: false })}
@@ -99,7 +107,7 @@ export default function InboxPage() {
   return (
     <div className="flex h-full flex-col text-white bg-background max-w-lg mx-auto border-x border-border">
       <header className="flex items-center p-4 border-b border-border sticky top-0 bg-background/80 backdrop-blur-md z-10">
-        <Link href="/feed" className="p-2 -ml-2">
+        <Link href="/" className="p-2 -ml-2">
           <ArrowLeft />
         </Link>
         <h1 className="text-xl font-bold ml-4 uppercase italic tracking-tighter">Messages</h1>

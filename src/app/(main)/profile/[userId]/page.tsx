@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, setDoc, where, getDocs, documentId } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, Users, Search, X, ShieldCheck, Download } from "lucide-react";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, Users, Search, X, ShieldCheck, Download, BadgeCheck } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -38,6 +38,8 @@ function FollowListItem({ profile, onClose }: { profile: UserProfile; onClose: (
     const { firestore } = useFirebase();
     const { toast } = useToast();
     const isOwn = user?.uid === profile.id;
+
+    const isAdminProfile = profile.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
     const followCheckRef = useMemoFirebase(() => {
         if (!firestore || !user || isOwn) return null;
@@ -93,7 +95,10 @@ function FollowListItem({ profile, onClose }: { profile: UserProfile; onClose: (
                     <AvatarFallback>{profile.username?.[0]?.toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col truncate">
-                    <span className="font-bold text-sm truncate">{profile.username}</span>
+                    <div className="flex items-center gap-1">
+                        <span className="font-bold text-sm truncate">{profile.username}</span>
+                        {isAdminProfile && <BadgeCheck className="h-3 w-3 text-blue-400 fill-blue-400/20" />}
+                    </div>
                     <span className="text-xs text-muted-foreground truncate">{profile.name}</span>
                 </div>
             </Link>
@@ -230,18 +235,19 @@ export default function ProfilePage() {
         }
     };
 
-    // Admin check using the standardized email
-    const isAdmin = useMemo(() => {
-        if (!user?.email) return false;
-        return user.email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
-    }, [user]);
-
     const userProfileRef = useMemoFirebase(() => {
         if (!firestore || !userId) return null;
         return doc(firestore, 'users', userId);
     }, [firestore, userId]);
 
     const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
+
+    const isAdmin = useMemo(() => {
+        if (!user?.email) return false;
+        return user.email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    }, [user]);
+
+    const isProfileAdmin = userProfile?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
     const userPostsQuery = useMemoFirebase(() => {
         if (!firestore || !userId) return null;
@@ -377,7 +383,10 @@ export default function ProfilePage() {
             <div className="h-full bg-background text-white overflow-y-auto pb-20 scrollbar-hide">
                 <div className="p-4">
                     <div className="flex items-center justify-between">
-                        <h1 className="text-xl font-bold">{userProfile?.username || 'Profile'}</h1>
+                        <div className="flex items-center gap-1.5">
+                            <h1 className="text-xl font-bold">{userProfile?.username || 'Profile'}</h1>
+                            {isProfileAdmin && <BadgeCheck className="h-5 w-5 text-blue-400 fill-blue-400/20" />}
+                        </div>
                         {isOwnProfile && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -435,7 +444,10 @@ export default function ProfilePage() {
                         </div>
                     </div>
                     <div className="mt-4">
-                        <p className="font-bold">{userProfile?.name}</p>
+                        <div className="flex items-center gap-1.5 mb-1">
+                            <p className="font-bold">{userProfile?.name}</p>
+                            {isProfileAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />}
+                        </div>
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{userProfile?.bio || "Welcome to A.snap!"}</p>
                     </div>
                     <div className="flex gap-2 mt-6">

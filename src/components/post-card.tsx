@@ -10,7 +10,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
-import { Heart, MessageCircle, Volume2, VolumeX, Share2, Play } from 'lucide-react';
+import { Heart, MessageCircle, Volume2, VolumeX, Share2, Play, BadgeCheck } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -22,6 +22,8 @@ interface PostCardProps {
   post: Post;
   isFocused?: boolean; 
 }
+
+const ADMIN_EMAIL = "asnap5319@gmail.com";
 
 export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { firestore } = useFirebase();
@@ -63,6 +65,8 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
 
   const { data: likeData } = useDoc(likeRef);
   const isLiked = !!likeData;
+
+  const isAdmin = author?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const isVideo = post.mediaUrl.toLowerCase().includes('.mp4') || 
                   post.mediaUrl.toLowerCase().includes('.mov') || 
@@ -187,7 +191,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       ([entry]) => {
         setIsInView(entry.isIntersecting);
       },
-      { threshold: 0.7 } // Higher threshold for more accurate "current" video
+      { threshold: 0.7 }
     );
 
     if (cardRef.current) observer.observe(cardRef.current);
@@ -273,7 +277,10 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                   <AvatarImage src={author.profileImageUrl} />
                   <AvatarFallback>{author.name?.[0]}</AvatarFallback>
                 </Avatar>
-                <p className="font-bold text-[15px] drop-shadow-lg">{author.username}</p>
+                <div className="flex items-center gap-1">
+                    <p className="font-bold text-[15px] drop-shadow-lg">{author.username}</p>
+                    {isAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />}
+                </div>
               </Link>
               {!isOwnPost && (
                 <button className="px-3 py-1 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full text-xs font-bold transition-colors" onClick={handleFollowToggle}>

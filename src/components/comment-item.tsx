@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useDoc, useFirebase, useMemoFirebase, useUser } from '@/firebase';
 import type { Comment } from '@/models/comment';
 import type { UserProfile } from '@/models/user';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Heart } from 'lucide-react';
+import { Heart, BadgeCheck } from 'lucide-react';
 import { doc, updateDoc, increment, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { useState } from 'react';
@@ -14,6 +15,8 @@ interface CommentItemProps {
   comment: Comment;
   postOwnerId: string;
 }
+
+const ADMIN_EMAIL = "asnap5319@gmail.com";
 
 export function CommentItem({ comment, postOwnerId }: CommentItemProps) {
   const { firestore } = useFirebase();
@@ -34,6 +37,8 @@ export function CommentItem({ comment, postOwnerId }: CommentItemProps) {
 
   const { data: likeData } = useDoc(commentLikeRef);
   const isLiked = !!likeData;
+
+  const isAdmin = author?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const handleLike = async () => {
     if (!firestore || !user || isLiking) return;
@@ -68,10 +73,11 @@ export function CommentItem({ comment, postOwnerId }: CommentItemProps) {
       <div className="flex-1">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-sm">
-              <span className="font-bold mr-2">{author.username}</span>
-              {comment.content}
-            </p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="font-bold text-sm">{author.username}</span>
+              {isAdmin && <BadgeCheck className="h-3 w-3 text-blue-400 fill-blue-400/20" />}
+              <span className="text-sm">{comment.content}</span>
+            </div>
             <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
               <span>{comment.createdAt ? formatDistanceToNow(comment.createdAt.toDate()) : 'just now'}</span>
               {comment.likeCount && comment.likeCount > 0 && (

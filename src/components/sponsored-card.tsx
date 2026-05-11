@@ -19,22 +19,19 @@ interface SponsoredCardProps {
 
 /**
  * SponsoredCard Component - Adsterra Edition
- * Improved isolation to prevent removeChild crashes during React unmounts.
+ * Using isolation to prevent removeChild crashes during React unmounts.
  */
 export function SponsoredCard({ ad }: SponsoredCardProps) {
   const adContainerRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
-  const scriptIdRef = useRef<string>(`ad-script-${ad.id}`);
+  const scriptIdRef = useRef(`ad-script-${ad.id}-${Math.random().toString(36).substr(2, 9)}`);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !adContainerRef.current) return;
 
     const container = adContainerRef.current;
     
-    // Clear previous contents manually
-    container.innerHTML = '';
-    
-    // Create an isolated wrapper inside the ref
+    // Create an isolated wrapper inside the ref that React doesn't touch
     const wrapper = document.createElement('div');
     wrapper.id = 'container-286ef4dc1c3c9afc429b42567c2d2b99';
     wrapper.style.width = '100%';
@@ -49,19 +46,19 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     script.setAttribute('data-cfasync', 'false');
     script.id = scriptIdRef.current;
     
-    // Append manually to DOM outside of React's direct virtual-DOM observation
+    // Append manually
     container.appendChild(wrapper);
     container.appendChild(script);
     
     setIsLoaded(true);
 
-    // Cleanup: Remove all manual DOM nodes
+    // Cleanup: Remove all manual DOM nodes to avoid React unmount errors
     return () => {
       if (container) {
-        container.innerHTML = '';
+        while (container.firstChild) {
+          container.removeChild(container.firstChild);
+        }
       }
-      const existingScript = document.getElementById(scriptIdRef.current);
-      if (existingScript) existingScript.remove();
     };
   }, [ad.id]);
 
@@ -80,7 +77,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
           </div>
         )}
         
-        {/* Isolated container for Adsterra */}
+        {/* Isolate container for script injection */}
         <div 
           ref={adContainerRef} 
           className="w-full flex justify-center items-center adsterra-isolate" 
