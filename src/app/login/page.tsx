@@ -27,19 +27,20 @@ function LoginForm() {
 
   useEffect(() => {
     if (!isUserLoading) {
-      // If no auth query param, always push to home feed (Video First)
-      if (!showAuth) {
+      if (user) {
+        // Already logged in, go to home
         router.replace('/');
-      } else if (user) {
-        // If logged in, go to home feed
+      } else if (!showAuth) {
+        // No explicit auth intent, redirect to video feed root
         router.replace('/');
       } else {
+        // Show login form
         setIsRedirecting(false);
       }
     }
   }, [user, isUserLoading, router, showAuth]);
 
-  if (isUserLoading || isRedirecting || !showAuth) {
+  if (isUserLoading || isRedirecting) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-black text-white">
         <div className="relative">

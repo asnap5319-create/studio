@@ -20,14 +20,18 @@ interface SponsoredCardProps {
 export function SponsoredCard({ ad }: SponsoredCardProps) {
   const adContainerRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
-  const scriptIdRef = useRef(`ad-script-${ad.id}-${Math.random().toString(36).substr(2, 9)}`);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !adContainerRef.current) return;
 
     const container = adContainerRef.current;
     
-    // Create an isolated wrapper inside the ref that React doesn't touch
+    // Cleanup any existing content to prevent duplicates
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+
+    // Create an isolated wrapper inside the ref
     const wrapper = document.createElement('div');
     wrapper.id = 'container-286ef4dc1c3c9afc429b42567c2d2b99';
     wrapper.style.width = '100%';
@@ -40,7 +44,6 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     script.src = 'https://pl29411112.profitablecpmratenetwork.com/286ef4dc1c3c9afc429b42567c2d2b99/invoke.js';
     script.async = true;
     script.setAttribute('data-cfasync', 'false');
-    script.id = scriptIdRef.current;
     
     // Append manually to avoid React trying to manage these nodes
     container.appendChild(wrapper);
@@ -48,7 +51,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     
     setIsLoaded(true);
 
-    // Cleanup: Remove all manual DOM nodes to avoid React unmount errors (removeChild conflict)
+    // Cleanup logic: Only remove what we manually added
     return () => {
       if (container) {
         while (container.firstChild) {
@@ -73,7 +76,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
           </div>
         )}
         
-        {/* Isolate container for script injection to prevent removeChild crash */}
+        {/* Isolate container for script injection */}
         <div 
           ref={adContainerRef} 
           className="w-full flex justify-center items-center adsterra-isolate" 
