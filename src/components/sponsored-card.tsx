@@ -28,14 +28,12 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Use a unique ID for each ad unit to avoid script conflicts
     const containerId = `at-container-${ad.adUnitId || ad.id}`;
     const parent = containerRef.current;
     
-    // Clear the parent completely before each injection to avoid DOM pollution
+    // Clear parent to prevent DOM pollution
     parent.innerHTML = ''; 
 
-    // Create a safe wrapper div that the script will target
     const adWrapper = document.createElement('div');
     adWrapper.id = containerId;
     adWrapper.style.width = '100%';
@@ -49,14 +47,13 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     script.async = true;
     script.setAttribute('data-cfasync', 'false');
 
-    // Append wrapper first, then script
     parent.appendChild(adWrapper);
     parent.appendChild(script);
     
     setIsLoaded(true);
 
     return () => {
-      // Safe cleanup: just empty the innerHTML of our managed parent
+      // Clean up manually to avoid React tree mismatches
       if (parent) {
         parent.innerHTML = '';
       }
@@ -71,18 +68,8 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
       </div>
 
       <div className="w-full max-w-md px-4 flex flex-col items-center justify-center z-10">
-        {!isLoaded && (
-          <div className="flex flex-col items-center gap-3 mb-4">
-            <Loader2 className="h-6 w-6 text-primary animate-spin" />
-          </div>
-        )}
-        
-        {/* Isolated container for Adsterra's script */}
-        <div 
-          ref={containerRef} 
-          className="w-full flex justify-center items-center" 
-          style={{ minHeight: '250px' }}
-        />
+        {!isLoaded && <Loader2 className="h-6 w-6 text-primary animate-spin" />}
+        <div ref={containerRef} className="w-full flex justify-center items-center" style={{ minHeight: '250px' }} />
       </div>
 
       <div className="absolute bottom-24 left-0 right-0 p-4 text-center z-10">

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useDoc, useFirebase, useMemoFirebase, useUser } from '@/firebase';
@@ -42,10 +43,8 @@ export function CommentItem({ comment, postOwnerId }: CommentItemProps) {
   const handleLike = async () => {
     if (!firestore || !user || isLiking) return;
     setIsLiking(true);
-
     const commentRef = doc(firestore, 'users', postOwnerId, 'posts', comment.postId, 'comments', comment.id);
     const likeRef = doc(firestore, 'users', postOwnerId, 'posts', comment.postId, 'comments', comment.id, 'likes', user.uid);
-
     try {
       if (isLiked) {
         await deleteDoc(likeRef);
@@ -85,9 +84,7 @@ export function CommentItem({ comment, postOwnerId }: CommentItemProps) {
             </div>
           </div>
           <button onClick={handleLike} className="pt-1 px-2">
-            <Heart 
-              className={cn("h-3 w-3 transition-colors", isLiked ? "fill-primary text-primary" : "text-muted-foreground")} 
-            />
+            <Heart className={cn("h-3 w-3 transition-colors", isLiked ? "fill-primary text-primary" : "text-muted-foreground")} />
           </button>
         </div>
       </div>
