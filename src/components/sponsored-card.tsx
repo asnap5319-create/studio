@@ -48,14 +48,14 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
 
     // Clear existing content safely and inject
     const parent = containerRef.current;
-    parent.innerHTML = ''; // This is safe because containerRef is an empty isolated div
+    parent.innerHTML = ''; 
     parent.appendChild(adWrapper);
     parent.appendChild(script);
     
     setIsLoaded(true);
 
     return () => {
-      // Cleanup to prevent leaks
+      // Cleanup to prevent leaks and removeChild errors
       if (parent) {
         parent.innerHTML = '';
       }
@@ -76,10 +76,10 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
           </div>
         )}
         
-        {/* Dedicated isolated div for script manipulation */}
+        {/* Isolated div for script manipulation - React will not touch children of this div */}
         <div 
           ref={containerRef} 
-          className="w-full flex justify-center items-center adsterra-isolate" 
+          className="w-full flex justify-center items-center" 
           style={{ minHeight: '250px' }}
         />
       </div>
