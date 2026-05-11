@@ -27,7 +27,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     const parent = containerRef.current;
     const containerId = `at-container-${ad.id}`;
     
-    // Clear parent to prevent DOM pollution
+    // Safely cleanup previous ad content
     parent.innerHTML = ''; 
 
     const adWrapper = document.createElement('div');
@@ -49,7 +49,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     setIsLoaded(true);
 
     return () => {
-      // Safe cleanup using innerHTML to avoid removeChild errors
+      // Avoid removeChild errors by using innerHTML cleanup
       if (parent) {
         parent.innerHTML = '';
       }
