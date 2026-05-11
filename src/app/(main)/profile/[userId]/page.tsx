@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,7 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, setDoc, where, getDocs, documentId } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, Users, ShieldCheck, BadgeCheck } from "lucide-react";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, Users, ShieldCheck, BadgeCheck, Loader2 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -71,7 +70,7 @@ export default function ProfilePage() {
     const handleLogout = async () => {
         if (!auth) return;
         await signOut(auth);
-        router.push('/login');
+        router.push('/login?auth=true');
     };
 
     const handleFollowToggle = async () => {
