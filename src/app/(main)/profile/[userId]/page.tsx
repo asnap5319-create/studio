@@ -39,7 +39,7 @@ function FollowListItem({ profile, onClose }: { profile: UserProfile; onClose: (
     const { toast } = useToast();
     const isOwn = user?.uid === profile.id;
 
-    const isAdminProfile = profile.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    const isProfileAdmin = profile.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
     const followCheckRef = useMemoFirebase(() => {
         if (!firestore || !user || isOwn) return null;
@@ -97,7 +97,7 @@ function FollowListItem({ profile, onClose }: { profile: UserProfile; onClose: (
                 <div className="flex flex-col truncate">
                     <div className="flex items-center gap-1">
                         <span className="font-bold text-sm truncate">{profile.username}</span>
-                        {isAdminProfile && <BadgeCheck className="h-3 w-3 text-blue-400 fill-blue-400/20" />}
+                        {isProfileAdmin && <BadgeCheck className="h-3 w-3 text-blue-400 fill-blue-400/20" />}
                     </div>
                     <span className="text-xs text-muted-foreground truncate">{profile.name}</span>
                 </div>
@@ -545,7 +545,7 @@ export default function ProfilePage() {
                 <DialogContent className="p-0 border-0 bg-black/80 w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center overflow-hidden">
                     {selectedPost && (
                         <>
-                            <DialogTitle className="sr-only">Post Details by {userProfile?.username}</DialogTitle>
+                            <DialogTitle className="sr-only">Post Details</DialogTitle>
                             <PostCard post={selectedPost} />
                         </>
                     )}

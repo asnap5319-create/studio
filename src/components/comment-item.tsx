@@ -38,7 +38,7 @@ export function CommentItem({ comment, postOwnerId }: CommentItemProps) {
   const { data: likeData } = useDoc(commentLikeRef);
   const isLiked = !!likeData;
 
-  const isAdmin = author?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  const isProfileAdmin = author?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const handleLike = async () => {
     if (!firestore || !user || isLiking) return;
@@ -75,7 +75,7 @@ export function CommentItem({ comment, postOwnerId }: CommentItemProps) {
           <div>
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="font-bold text-sm">{author.username}</span>
-              {isAdmin && <BadgeCheck className="h-3 w-3 text-blue-400 fill-blue-400/20" />}
+              {isProfileAdmin && <BadgeCheck className="h-3 w-3 text-blue-400 fill-blue-400/20" />}
               <span className="text-sm">{comment.content}</span>
             </div>
             <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">

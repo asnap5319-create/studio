@@ -10,7 +10,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
-import { Heart, MessageCircle, Volume2, VolumeX, Share2, Play, BadgeCheck } from 'lucide-react';
+import { Heart, MessageCircle, Volume2, VolumeX, Share2, BadgeCheck } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -66,7 +66,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { data: likeData } = useDoc(likeRef);
   const isLiked = !!likeData;
 
-  const isAdmin = author?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  const isProfileAdmin = author?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const isVideo = post.mediaUrl.toLowerCase().includes('.mp4') || 
                   post.mediaUrl.toLowerCase().includes('.mov') || 
@@ -279,7 +279,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                 </Avatar>
                 <div className="flex items-center gap-1">
                     <p className="font-bold text-[15px] drop-shadow-lg">{author.username}</p>
-                    {isAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />}
+                    {isProfileAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />}
                 </div>
               </Link>
               {!isOwnPost && (

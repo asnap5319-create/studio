@@ -17,10 +17,6 @@ interface SponsoredCardProps {
   };
 }
 
-/**
- * SponsoredCard Component - Adsterra Edition
- * Using isolation to prevent removeChild crashes during React unmounts.
- */
 export function SponsoredCard({ ad }: SponsoredCardProps) {
   const adContainerRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -46,13 +42,13 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     script.setAttribute('data-cfasync', 'false');
     script.id = scriptIdRef.current;
     
-    // Append manually
+    // Append manually to avoid React trying to manage these nodes
     container.appendChild(wrapper);
     container.appendChild(script);
     
     setIsLoaded(true);
 
-    // Cleanup: Remove all manual DOM nodes to avoid React unmount errors
+    // Cleanup: Remove all manual DOM nodes to avoid React unmount errors (removeChild conflict)
     return () => {
       if (container) {
         while (container.firstChild) {
@@ -71,13 +67,13 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
 
       <div className="w-full max-w-md px-4 flex flex-col justify-center items-center z-10">
         {!isLoaded && (
-          <div className="flex flex-col items-center gap-3">
+          <div className="flex flex-col items-center gap-3 mb-4">
             <Loader2 className="h-6 w-6 text-primary animate-spin" />
             <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Loading Ad...</span>
           </div>
         )}
         
-        {/* Isolate container for script injection */}
+        {/* Isolate container for script injection to prevent removeChild crash */}
         <div 
           ref={adContainerRef} 
           className="w-full flex justify-center items-center adsterra-isolate" 

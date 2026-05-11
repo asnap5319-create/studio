@@ -2,14 +2,14 @@
 'use client';
 
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, doc, collectionGroup } from 'firebase/firestore';
+import { collection, query, where, orderBy, doc } from 'firebase/firestore';
 import type { Chat } from '@/models/chat';
 import type { UserProfile } from '@/models/user';
 import type { Message } from '@/models/message';
 import { useDoc } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
-import { ArrowLeft, MessageSquare, Database, RefreshCw, ExternalLink, Send, BadgeCheck } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Database, RefreshCw, Send, BadgeCheck } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -27,7 +27,6 @@ function ChatItem({ chat, currentUserId }: { chat: Chat; currentUserId: string }
 
   const { data: otherUser } = useDoc<UserProfile>(otherUserRef);
 
-  // Check unread for this specific chat
   const unreadQuery = useMemoFirebase(() => {
     if (!firestore || !currentUserId || !chat.id) return null;
     return query(
@@ -41,8 +40,6 @@ function ChatItem({ chat, currentUserId }: { chat: Chat; currentUserId: string }
   const isUnread = unreadMessages && unreadMessages.length > 0;
 
   if (!otherUser) return null;
-
-  const isOtherAdmin = otherUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   return (
     <Link 
@@ -67,7 +64,7 @@ function ChatItem({ chat, currentUserId }: { chat: Chat; currentUserId: string }
             <span className={cn("text-sm truncate", isUnread ? "font-black text-white" : "font-bold text-muted-foreground")}>
               {otherUser.username}
             </span>
-            {isOtherAdmin && <BadgeCheck className="h-3 w-3 text-blue-400 fill-blue-400/20" />}
+            {otherUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && <BadgeCheck className="h-3 w-3 text-blue-400 fill-blue-400/20" />}
           </div>
           {chat.lastMessageAt && (
             <span className={cn("text-[10px]", isUnread ? "text-primary font-bold" : "text-muted-foreground")}>
@@ -98,12 +95,6 @@ export default function InboxPage() {
 
   const { data: chats, isLoading, error } = useCollection<Chat>(chatsQuery);
 
-  const handleRefresh = () => {
-    window.location.reload();
-  };
-
-  const indexLink = error?.message?.match(/https:\/\/console\.firebase\.google\.com[^\s]*/)?.[0];
-
   return (
     <div className="flex h-full flex-col text-white bg-background max-w-lg mx-auto border-x border-border">
       <header className="flex items-center p-4 border-b border-border sticky top-0 bg-background/80 backdrop-blur-md z-10">
@@ -118,15 +109,12 @@ export default function InboxPage() {
             <div className="m-6 p-8 bg-primary/10 rounded-3xl border border-primary/20 text-center shadow-2xl">
                 <Database className="h-14 w-14 text-primary mx-auto mb-6" />
                 <h3 className="font-black text-xl italic uppercase mb-2">चैट लोड हो रही है...</h3>
-                <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-                    Google "Index" बना रहा है। आपने console में जो बटन दबाया है, उसका असर कुछ ही मिनटों में दिखने लगेगा।
+                <p className="text-sm text-muted-foreground mb-6">
+                    Google "Index" बना रहा है। कृपया कुछ मिनट प्रतीक्षा करें।
                 </p>
-                <div className="flex flex-col gap-3">
-                    <Button variant="outline" onClick={handleRefresh} className="w-full py-6 rounded-2xl font-black uppercase border-white/10 hover:bg-white/5">
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        रिफ्रेश करें
-                    </Button>
-                </div>
+                <Button variant="outline" onClick={() => window.location.reload()} className="w-full">
+                    <RefreshCw className="h-4 w-4 mr-2" /> रिफ्रेश करें
+                </Button>
             </div>
         )}
 
@@ -135,10 +123,7 @@ export default function InboxPage() {
              {[1,2,3,4,5].map(i => (
                <div key={i} className="flex gap-4 animate-pulse">
                   <div className="h-14 w-14 rounded-2xl bg-secondary" />
-                  <div className="flex-1 space-y-3 py-2">
-                    <div className="h-4 w-24 bg-secondary rounded" />
-                    <div className="h-3 w-48 bg-secondary rounded" />
-                  </div>
+                  <div className="flex-1 space-y-3 py-2"><div className="h-4 w-24 bg-secondary rounded" /><div className="h-3 w-48 bg-secondary rounded" /></div>
                </div>
              ))}
           </div>
@@ -150,16 +135,11 @@ export default function InboxPage() {
           </div>
         ) : !error && (
           <div className="flex flex-col items-center justify-center h-[70vh] text-center p-10">
-            <div className="w-20 h-20 bg-secondary/50 rounded-full flex items-center justify-center mb-6 border border-white/5">
+            <div className="w-20 h-20 bg-secondary/50 rounded-full flex items-center justify-center mb-6">
                 <Send className="h-10 w-10 text-muted-foreground -rotate-12" />
             </div>
             <h2 className="text-2xl font-black italic uppercase text-white mb-2">Your Inbox</h2>
-            <p className="text-muted-foreground text-sm max-w-[200px] leading-relaxed">
-                दोस्तों को वीडियो भेजें और चैट शुरू करें!
-            </p>
-            <Button asChild className="mt-8 rounded-xl font-bold bg-secondary/80 hover:bg-secondary border border-white/5" variant="ghost">
-                <Link href="/discover">Find Friends</Link>
-            </Button>
+            <p className="text-muted-foreground text-sm">दोस्तों को वीडियो भेजें और चैट शुरू करें!</p>
           </div>
         )}
       </div>

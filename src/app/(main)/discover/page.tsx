@@ -14,13 +14,11 @@ import type { Post } from '@/models/post';
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { PostCard } from "@/components/post-card";
 import { Button } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
 export default function SearchPage() {
   const { firestore } = useFirebase();
-  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
 
@@ -32,7 +30,7 @@ export default function SearchPage() {
 
   const { data: posts, isLoading: isPostsLoading } = useCollection<Post>(explorePostsQuery);
 
-  // Query for users based on search (prefix match on username_lowercase)
+  // Query for users based on search
   const usersQuery = useMemoFirebase(() => {
     if (!firestore || searchQuery.length < 1) return null;
     const lowerQuery = searchQuery.toLowerCase().trim();
@@ -52,14 +50,13 @@ export default function SearchPage() {
 
   return (
     <div className="flex h-full flex-col bg-background text-white overflow-hidden">
-      {/* Search Header */}
       <div className="p-4 bg-background/80 backdrop-blur-md sticky top-0 z-20">
         <div className="relative">
           <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search username (e.g. abhishek)..."
+            placeholder="Search username..."
             className="pl-10 h-10 bg-secondary border-none rounded-xl focus-visible:ring-1 focus-visible:ring-primary"
           />
           {searchQuery && (
@@ -74,26 +71,20 @@ export default function SearchPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-hide">
-        {/* Search Error (Index missing handling) */}
         {searchError && (searchError.message.includes('index') || searchError.message.includes('INDEX')) && (
             <div className="mx-4 p-4 bg-primary/10 rounded-xl border border-primary/20 text-center mb-6">
                 <Database className="h-8 w-8 text-primary mx-auto mb-2" />
                 <h3 className="font-bold text-sm mb-1">इंडेक्स बनाना पड़ेगा भाई!</h3>
                 <p className="text-xs text-muted-foreground mb-3">
                     सर्च काम करने के लिए Google को इंडेक्स चाहिए। 
-                    नीचे दिए गए लिंक पर क्लिक करें और 'Create Index' बटन दबाएं।
                 </p>
                 <Button variant="outline" size="sm" onClick={handleRefresh} className="w-full gap-2">
                     <RefreshCw className="h-3 w-3" />
-                    बनाने के बाद रिफ्रेश करें
+                    रिफ्रेश करें
                 </Button>
-                <div className="mt-4 text-[10px] opacity-50 break-all text-left font-mono overflow-hidden max-h-20">
-                    {searchError.message}
-                </div>
             </div>
         )}
 
-        {/* Search Results */}
         {searchQuery.length >= 1 && !searchError && (
           <div className="px-4 pb-4 animate-in fade-in slide-in-from-top-2 duration-200">
             <h2 className="text-sm font-bold text-muted-foreground mb-4 uppercase tracking-wider">Search Results</h2>
@@ -108,92 +99,63 @@ export default function SearchPage() {
               </div>
             ) : searchResults && searchResults.length > 0 ? (
               <div className="space-y-4">
-                {searchResults.map((user) => {
-                  const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-                  return (
-                    <Link 
-                      key={user.id} 
-                      href={`/profile/${user.id}`}
-                      className="flex items-center gap-3 p-2 hover:bg-secondary rounded-xl transition-colors"
-                    >
-                      <Avatar className="h-12 w-12 border border-border">
-                        <AvatarImage src={user.profileImageUrl} />
-                        <AvatarFallback>{user.username?.[0]?.toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-sm">{user.username}</span>
-                            {isAdmin && <BadgeCheck className="h-3 w-3 text-blue-400 fill-blue-400/20" />}
-                        </div>
-                        <span className="text-xs text-muted-foreground">{user.name}</span>
+                {searchResults.map((user) => (
+                  <Link 
+                    key={user.id} 
+                    href={`/profile/${user.id}`}
+                    className="flex items-center gap-3 p-2 hover:bg-secondary rounded-xl transition-colors"
+                  >
+                    <Avatar className="h-12 w-12 border border-border">
+                      <AvatarImage src={user.profileImageUrl} />
+                      <AvatarFallback>{user.username?.[0]?.toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-sm">{user.username}</span>
+                          {user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && <BadgeCheck className="h-3 w-3 text-blue-400 fill-blue-400/20" />}
                       </div>
-                    </Link>
-                  );
-                })}
+                      <span className="text-xs text-muted-foreground">{user.name}</span>
+                    </div>
+                  </Link>
+                ))}
               </div>
             ) : (
               <div className="text-center py-10">
                 <UserSearch className="h-12 w-12 text-muted-foreground mx-auto mb-2 opacity-20" />
-                <p className="text-muted-foreground">No user found for &quot;{searchQuery}&quot;</p>
-                <p className="text-[10px] text-muted-foreground mt-2 px-10">
-                    Note: Only users who have updated their profile recently will appear here.
-                </p>
+                <p className="text-muted-foreground">No user found</p>
               </div>
             )}
             <div className="h-px bg-border my-6" />
           </div>
         )}
 
-        {/* Explore Grid */}
         <div className="px-0.5 pb-20">
           {!searchQuery && <h2 className="px-4 text-sm font-bold text-muted-foreground mb-4 uppercase tracking-wider">Explore</h2>}
-          
-          {isPostsLoading ? (
-            <div className="grid grid-cols-3 gap-0.5">
-              {Array.from({ length: 9 }).map((_, i) => (
+          <div className="grid grid-cols-3 gap-0.5">
+            {isPostsLoading ? (
+              Array.from({ length: 9 }).map((_, i) => (
                 <div key={i} className="aspect-[9/16] bg-secondary animate-pulse" />
-              ))}
-            </div>
-          ) : posts && posts.length > 0 ? (
-            <div className="grid grid-cols-3 gap-0.5">
-              {posts.map((post) => (
-                <div 
-                  key={post.id} 
-                  className="aspect-[9/16] relative bg-secondary cursor-pointer group"
-                  onClick={() => setSelectedPost(post)}
-                >
-                   {post.mediaUrl.includes('video') || post.mediaUrl.includes('.mp4') ? (
-                    <video
-                        src={post.mediaUrl}
-                        className="w-full h-full object-cover"
-                        muted
-                        loop
-                        playsInline
-                    />
-                  ) : (
-                    <Image 
-                      src={post.mediaUrl}
-                      alt={post.caption || 'Explore post'}
-                      fill
-                      className="object-cover"
-                    />
-                  )}
-                  <div className="absolute top-2 right-2 text-white">
-                    <Play className="h-4 w-4 fill-white opacity-50" />
-                  </div>
+              ))
+            ) : posts?.map((post) => (
+              <div 
+                key={post.id} 
+                className="aspect-[9/16] relative bg-secondary cursor-pointer group"
+                onClick={() => setSelectedPost(post)}
+              >
+                 {post.mediaUrl.includes('video') || post.mediaUrl.includes('.mp4') ? (
+                  <video src={post.mediaUrl} className="w-full h-full object-cover" muted loop playsInline />
+                ) : (
+                  <Image src={post.mediaUrl} alt="" fill className="object-cover" />
+                )}
+                <div className="absolute top-2 right-2 text-white">
+                  <Play className="h-4 w-4 fill-white opacity-50" />
                 </div>
-              ))}
-            </div>
-          ) : (
-             <div className="flex flex-col items-center justify-center p-20 text-center opacity-50">
-                <SearchIcon className="h-16 w-16 mb-4" />
-                <p>No content to explore yet.</p>
-            </div>
-          )}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Post Viewer Modal */}
       <Dialog open={!!selectedPost} onOpenChange={(isOpen) => !isOpen && setSelectedPost(null)}>
         <DialogContent className="p-0 border-0 bg-black/90 w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center">
             {selectedPost && (
