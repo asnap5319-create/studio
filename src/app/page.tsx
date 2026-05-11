@@ -68,7 +68,7 @@ export default function RootFeedPage() {
 
   const feedItems = useMemo(() => {
     if (!shuffledPosts) return [];
-    const items = [];
+  const items: { type: 'post' | 'ad'; data: any }[] = [];
     let adIndex = 0;
     shuffledPosts.forEach((post, index) => {
       items.push({ type: 'post' as const, data: post });
