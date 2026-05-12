@@ -1,18 +1,9 @@
-
-'use client';
-
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { redirect } from 'next/navigation';
 
 /**
- * Legacy feed route. Redirects to root.
+ * Next.js 15 Fix: Converted to Server Component to resolve build errors.
+ * Legacy feed route redirecting to root.
  */
 export default function FeedRedirect() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.replace('/');
-  }, [router]);
-
-  return null;
+  redirect('/');
 }

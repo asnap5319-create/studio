@@ -1,19 +1,9 @@
-
-'use client';
-
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { redirect } from 'next/navigation';
 
 /**
- * Redundant route removed to fix Next.js build conflict with src/app/page.tsx.
- * Redirects to the root feed page.
+ * Next.js 15 Fix: Converted to Server Component to resolve client manifest ENOENT errors.
+ * Redirects the root of the (main) group to the absolute root feed.
  */
 export default function MainRedirectPage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.replace('/');
-  }, [router]);
-
-  return null;
+  redirect('/');
 }
