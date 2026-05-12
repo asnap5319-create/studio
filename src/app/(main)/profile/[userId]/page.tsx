@@ -55,12 +55,24 @@ export default function ProfilePage() {
     // Blue Badge Check
     const isProfileAdmin = userProfile?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
+    // Stats Queries
     const userPostsQuery = useMemoFirebase(() => {
         if (!firestore || !userId) return null;
         return query(collection(firestore, 'users', userId, 'posts'), orderBy('createdAt', 'desc'));
     }, [firestore, userId]);
-
     const { data: posts } = useCollection<Post>(userPostsQuery);
+
+    const followersQuery = useMemoFirebase(() => {
+        if (!firestore || !userId) return null;
+        return query(collection(firestore, 'user_followers', userId, 'followers'));
+    }, [firestore, userId]);
+    const { data: followers } = useCollection(followersQuery);
+
+    const followingQuery = useMemoFirebase(() => {
+        if (!firestore || !userId) return null;
+        return query(collection(firestore, 'user_following', userId, 'following'));
+    }, [firestore, userId]);
+    const { data: following } = useCollection(followingQuery);
 
     const followCheckRef = useMemoFirebase(() => {
         if (!firestore || !user || !userId || isOwnProfile) return null;
@@ -129,6 +141,8 @@ export default function ProfilePage() {
                     </Avatar>
                     <div className="flex flex-1 justify-around text-center">
                         <div><p className="font-bold">{posts?.length || 0}</p><p className="text-xs text-muted-foreground">Posts</p></div>
+                        <div><p className="font-bold">{followers?.length || 0}</p><p className="text-xs text-muted-foreground">Followers</p></div>
+                        <div><p className="font-bold">{following?.length || 0}</p><p className="text-xs text-muted-foreground">Following</p></div>
                     </div>
                 </div>
                 <div className="mt-4">
