@@ -3,6 +3,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import { FirebaseClientProvider } from "@/firebase/client-provider";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
 
 export const metadata: Metadata = {
@@ -51,6 +52,7 @@ export default function RootLayout({
         <FirebaseClientProvider>
           {children}
         </FirebaseClientProvider>
+        <SpeedInsights />
         <Toaster />
         <Script id="register-sw" strategy="afterInteractive">
           {`
