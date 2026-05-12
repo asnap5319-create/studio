@@ -1,9 +1,10 @@
+
 import { redirect } from 'next/navigation';
 
 /**
- * Next.js 15 Fix: Converted to Server Component to resolve client manifest ENOENT errors.
- * Redirects the root of the (main) group to the absolute root feed.
+ * Redirects the route group root to the actual root feed.
+ * This prevents conflicts between src/app/page.tsx and src/app/(main)/page.tsx
  */
-export default function MainRedirectPage() {
+export default function RootRedirect() {
   redirect('/');
 }
