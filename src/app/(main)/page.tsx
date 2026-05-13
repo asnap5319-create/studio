@@ -2,11 +2,9 @@
 import { redirect } from 'next/navigation';
 
 /**
- * Next.js 15 Build Fix:
- * To resolve the 'page_client-reference-manifest.js' ENOENT error,
- * we handle the root path in the top-level src/app/page.tsx.
- * This file redirects to root to ensure clean manifest generation.
+ * Redirects legacy route group page to the root Home feed.
+ * This fixes the Next.js 15 routing conflict that causes manifest errors.
  */
-export default function MainPageRedirect() {
+export default function LegacyMainPage() {
   redirect('/');
 }
