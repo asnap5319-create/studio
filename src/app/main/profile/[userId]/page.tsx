@@ -1,9 +1,10 @@
+
 'use client';
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogTitle, DialogHeader } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,8 +16,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
-import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, setDoc, where, getDocs, documentId } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, Users, ShieldCheck, BadgeCheck, Loader2 } from "lucide-react";
+import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp } from "firebase/firestore";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -25,7 +26,6 @@ import type { Post } from "@/models/post";
 import type { UserProfile } from "@/models/user";
 import { PostCard } from "@/components/post-card";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
@@ -137,15 +137,15 @@ export default function ProfilePage() {
                         <AvatarFallback>{userProfile?.username?.[0]}</AvatarFallback>
                     </Avatar>
                     <div className="flex flex-1 justify-around text-center">
-                        <div className="cursor-default">
+                        <div>
                           <p className="font-bold text-lg">{posts?.length || 0}</p>
                           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Posts</p>
                         </div>
-                        <div className="cursor-default">
+                        <div>
                           <p className="font-bold text-lg">{followers?.length || 0}</p>
                           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Followers</p>
                         </div>
-                        <div className="cursor-default">
+                        <div>
                           <p className="font-bold text-lg">{following?.length || 0}</p>
                           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Following</p>
                         </div>

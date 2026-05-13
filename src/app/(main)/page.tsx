@@ -1,8 +1,9 @@
+
 import { redirect } from 'next/navigation';
 
 /**
- * Next.js 15 routing fix.
- * Redirects the route group root back to the application root to avoid manifest conflicts.
+ * FIX: This file was causing a "Manifest ENOENT" error because it conflicted with src/app/page.tsx.
+ * By making it a simple server component redirect, we resolve the Next.js 15 route group bug.
  */
 export default function ManifestFixPage() {
   redirect('/');

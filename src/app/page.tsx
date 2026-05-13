@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
@@ -67,6 +68,7 @@ export default function RootFeedPage() {
 
   const feedItems = useMemo(() => {
     if (!shuffledPosts) return [];
+    // FIXED: Explicitly typing the items array to avoid Next.js build errors
     const items: { type: 'post' | 'ad'; data: any }[] = [];
     let adIndex = 0;
     shuffledPosts.forEach((post, index) => {
