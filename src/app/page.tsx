@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
@@ -13,6 +12,7 @@ import { Heart, Send, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMemo, useState, useEffect } from 'react';
 import { BottomNav } from "@/components/bottom-nav";
+import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 
 const MOCK_ADS = [
   {
@@ -68,7 +68,6 @@ export default function RootFeedPage() {
 
   const feedItems = useMemo(() => {
     if (!shuffledPosts) return [];
-    // FIXED: Explicitly typing the items array to avoid Next.js build errors
     const items: { type: 'post' | 'ad'; data: any }[] = [];
     let adIndex = 0;
     shuffledPosts.forEach((post, index) => {
@@ -142,6 +141,7 @@ export default function RootFeedPage() {
             </div>
         ))}
       </div>
+      <PwaInstallPrompt />
       <BottomNav />
     </div>
   );
