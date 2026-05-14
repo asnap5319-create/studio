@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Sparkles, Info, Loader2, Play } from 'lucide-react';
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 interface SponsoredCardProps {
   ad: {
@@ -27,7 +28,8 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
 
     const parent = containerRef.current;
     const adUnitId = ad.adUnitId || '286ef4dc1c3c9afc429b42567c2d2b99';
-    const containerId = `at-container-${adUnitId}`;
+    // Adsterra strictly looks for "container-[id]"
+    const containerId = `container-${adUnitId}`;
     
     // Clear previous content
     parent.innerHTML = ''; 
@@ -35,6 +37,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     const adWrapper = document.createElement('div');
     adWrapper.id = containerId;
     adWrapper.style.width = '100%';
+    adWrapper.style.minHeight = '250px';
     adWrapper.style.display = 'flex';
     adWrapper.style.justifyContent = 'center';
     adWrapper.style.alignItems = 'center';
@@ -44,22 +47,25 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     script.async = true;
     script.setAttribute('data-cfasync', 'false');
     
-    script.onload = () => setIsLoaded(true);
+    script.onload = () => {
+      console.log("Adsterra script loaded successfully");
+      setIsLoaded(true);
+    };
     script.onerror = () => {
-      console.error("Ad script failed to load");
+      console.error("Adsterra script failed to load");
       setHasError(true);
     };
 
     parent.appendChild(adWrapper);
     
-    // Inject script after a short delay to ensure container is in DOM
+    // Inject script into the head or the container to trigger Adsterra's invoke
     const timeoutId = setTimeout(() => {
         try {
             parent.appendChild(script);
         } catch (e) {
             setHasError(true);
         }
-    }, 200);
+    }, 500);
 
     return () => {
       clearTimeout(timeoutId);
@@ -80,7 +86,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
         {!isLoaded && !hasError && (
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="h-8 w-8 text-primary animate-spin" />
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Loading Ad...</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Loading Premium Ad...</p>
           </div>
         )}
 
@@ -88,7 +94,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
         <div 
           ref={containerRef} 
           className={cn(
-            "w-full flex justify-center items-center transition-opacity duration-500",
+            "w-full flex justify-center items-center transition-opacity duration-700",
             isLoaded ? "opacity-100" : "opacity-0"
           )} 
         />
@@ -96,7 +102,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
         {/* Fallback Content if Ad fails or is loading */}
         {(hasError || !isLoaded) && (
           <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
-            <div className="relative w-full aspect-[9/16] max-h-[70vh] rounded-3xl overflow-hidden border border-white/5 bg-secondary/20 flex flex-col">
+            <div className="relative w-full aspect-[9/16] max-h-[70vh] rounded-3xl overflow-hidden border border-white/10 bg-secondary/20 flex flex-col shadow-2xl">
               <div className="flex-1 relative bg-black">
                  <Image 
                   src={ad.mediaUrl || "https://picsum.photos/seed/asnap-ad/600/1000"} 
@@ -109,12 +115,12 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
                     <Play className="w-16 h-16 text-white/20" />
                  </div>
               </div>
-              <div className="p-6 bg-secondary/40 backdrop-blur-xl">
+              <div className="p-6 bg-secondary/40 backdrop-blur-xl border-t border-white/5">
                  <h2 className="text-xl font-black uppercase italic text-primary mb-2">{ad.brandName}</h2>
                  <p className="text-xs text-muted-foreground mb-6 line-clamp-3">{ad.caption}</p>
                  <a 
                   href={ad.ctaUrl} 
-                  className="block w-full py-4 bg-primary text-white font-black uppercase text-sm rounded-xl shadow-lg shadow-primary/20 active:scale-95 transition-all"
+                  className="block w-full py-4 bg-primary text-white font-black uppercase text-sm rounded-xl shadow-[0_0_20px_rgba(var(--primary),0.4)] active:scale-95 transition-all"
                  >
                   {ad.ctaText}
                  </a>
@@ -126,16 +132,11 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
 
       {/* Bottom Info */}
       <div className="absolute bottom-24 left-0 right-0 p-4 text-center z-20">
-        <div className="flex items-center justify-center gap-2 opacity-30 hover:opacity-100 transition-opacity">
+        <div className="flex items-center justify-center gap-2 opacity-30 hover:opacity-100 transition-opacity cursor-help">
           <Info size={12} className="text-white" />
-          <p className="text-[10px] text-white uppercase tracking-widest font-bold">Premium Ad Network</p>
+          <p className="text-[10px] text-white uppercase tracking-widest font-bold">Adsterra Premium Network</p>
         </div>
       </div>
     </div>
   );
-}
-
-// Simple CN helper since it might be needed
-function cn(...inputs: any[]) {
-    return inputs.filter(Boolean).join(' ');
 }
