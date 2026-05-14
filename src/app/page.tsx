@@ -4,10 +4,11 @@ import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collectionGroup, query, orderBy, limit } from 'firebase/firestore';
 import { PostCard } from '@/components/post-card';
 import { SponsoredCard } from '@/components/sponsored-card';
-import { Loader2 } from 'lucide-react';
+import { Loader2, MessageCircle, Bell } from 'lucide-react';
 import type { Post } from '@/models/post';
 import { BottomNav } from "@/components/bottom-nav";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
+import Link from 'next/link';
 
 export default function HomePage() {
   const { firestore } = useFirebase();
@@ -42,7 +43,22 @@ export default function HomePage() {
   }
 
   return (
-    <div className="h-screen bg-black overflow-y-scroll snap-y snap-mandatory scrollbar-hide">
+    <div className="h-screen bg-black overflow-y-scroll snap-y snap-mandatory scrollbar-hide relative">
+      {/* Top Navigation Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent pointer-events-none">
+        <h1 className="text-2xl font-black text-primary italic tracking-tighter drop-shadow-lg pointer-events-auto">
+          A.snap
+        </h1>
+        <div className="flex items-center gap-4 pointer-events-auto">
+          <Link href="/notifications" className="p-2 bg-black/20 backdrop-blur-md rounded-full border border-white/10 hover:bg-black/40 transition-colors">
+            <Bell className="w-6 h-6 text-white" />
+          </Link>
+          <Link href="/messages" className="p-2 bg-black/20 backdrop-blur-md rounded-full border border-white/10 hover:bg-black/40 transition-colors">
+            <MessageCircle className="w-6 h-6 text-white" />
+          </Link>
+        </div>
+      </header>
+
       {isLoading ? (
         <div className="flex h-full items-center justify-center text-white">
           <Loader2 className="animate-spin h-10 w-10 text-primary" />
