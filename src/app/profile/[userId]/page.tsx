@@ -2,7 +2,7 @@
 import { useState, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -269,6 +269,41 @@ export default function ProfilePage() {
                         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <Play className="text-white h-6 w-6 fill-white" />
                         </div>
+
+                        {/* 3-Dots Menu on every Grid Video */}
+                        <div className="absolute top-1 right-1 z-10">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 bg-black/30 backdrop-blur-md rounded-full text-white border border-white/10 p-0">
+                                        <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-xl min-w-[140px] p-1 shadow-2xl">
+                                    <DropdownMenuItem className="p-2 text-xs rounded-lg focus:bg-white/10 cursor-default flex items-center gap-2">
+                                        <Eye className="h-3 w-3" /> 
+                                        <span>{post.viewCount || 0} Views</span>
+                                    </DropdownMenuItem>
+                                    
+                                    {isOwnProfile && (
+                                        <>
+                                            <DropdownMenuSeparator className="bg-white/5" />
+                                            <DropdownMenuItem 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setPostToDelete(post);
+                                                    setIsDeleteDialogOpen(true);
+                                                }}
+                                                className="p-2 text-xs rounded-lg focus:bg-destructive/10 text-destructive font-bold cursor-pointer flex items-center gap-2"
+                                            >
+                                                <Trash2 className="h-3 w-3" /> 
+                                                <span>Delete</span>
+                                            </DropdownMenuItem>
+                                        </>
+                                    )}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+
                         {/* Instagram style View Count overlay */}
                         <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 text-[10px] font-black text-white drop-shadow-md">
                             <Eye className="h-3 w-3" />
