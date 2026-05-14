@@ -20,13 +20,11 @@ export default function HomePage() {
 
   const { data: posts, isLoading } = useCollection<Post>(postsQuery);
 
-  // FIXED: Explicit type to prevent TypeScript build errors
   const items: { type: 'post' | 'ad'; data: any }[] = [];
 
   if (posts) {
     posts.forEach((post, index) => {
       items.push({ type: 'post', data: post });
-      // Insert an ad every 4 posts
       if ((index + 1) % 4 === 0) {
         items.push({
           type: 'ad',
