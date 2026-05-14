@@ -21,7 +21,6 @@ export default function HomePage() {
 
   const postsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // We still fetch by latest to get new content, then shuffle on client
     return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'), limit(40));
   }, [firestore]);
 
@@ -30,14 +29,15 @@ export default function HomePage() {
   const items = useMemo(() => {
     if (!posts || !isClient) return [];
 
-    // Create a copy and shuffle the posts array
+    // Create a copy and shuffle the posts array for random feed every visit
     const shuffledPosts = [...posts].sort(() => Math.random() - 0.5);
     
     const displayItems: { type: 'post' | 'ad'; data: any }[] = [];
 
     shuffledPosts.forEach((post, index) => {
       displayItems.push({ type: 'post', data: post });
-      // Insert an ad every 4 posts
+      
+      // Insert an ad every 4 posts to ensure consistent monetization
       if ((index + 1) % 4 === 0) {
         displayItems.push({
           type: 'ad',
@@ -46,9 +46,10 @@ export default function HomePage() {
             brandName: "A.snap Premium",
             brandLogo: "/logo.svg",
             mediaUrl: `https://picsum.photos/seed/ad-${index}/600/1000`,
-            caption: "Experience the world in full screen. Join the community today!",
+            caption: "Experience the world in full screen. Join the A.snap community today for an ad-free premium experience!",
             ctaText: "Join Now",
-            ctaUrl: "/signup"
+            ctaUrl: "/signup",
+            adUnitId: '286ef4dc1c3c9afc429b42567c2d2b99'
           }
         });
       }
