@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,7 +19,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Input } from "@/components/ui/input";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, where } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, Search, UserMinus, UserPlus } from "lucide-react";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, Search, Eye } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -36,7 +37,6 @@ const ADMIN_EMAIL = "asnap5319@gmail.com";
 function UserListItem({ targetUserId, currentUserId, searchTerm }: { targetUserId: string, currentUserId?: string, searchTerm: string }) {
     const { firestore } = useFirebase();
     const router = useRouter();
-    const { toast } = useToast();
     
     const userRef = useMemoFirebase(() => firestore ? doc(firestore, 'users', targetUserId) : null, [firestore, targetUserId]);
     const { data: profile } = useDoc<UserProfile>(userRef);
@@ -50,7 +50,6 @@ function UserListItem({ targetUserId, currentUserId, searchTerm }: { targetUserI
 
     const isTargetAdmin = profile?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-    // Client-side search filtering
     if (searchTerm && profile) {
         const lowerSearch = searchTerm.toLowerCase();
         const matchesUsername = profile.username?.toLowerCase().includes(lowerSearch);
@@ -118,7 +117,6 @@ export default function ProfilePage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [postToDelete, setPostToDelete] = useState<Post | null>(null);
     
-    // Followers/Following Lists
     const [listType, setListType] = useState<'followers' | 'following' | null>(null);
     const [listSearch, setListSearch] = useState('');
 
@@ -186,10 +184,16 @@ export default function ProfilePage() {
 
     const confirmDeletePost = async () => {
         if (!firestore || !user || !postToDelete) return;
-        await deleteDoc(doc(firestore, 'users', user.uid, 'posts', postToDelete.id));
-        setIsDeleteDialogOpen(false);
-        setPostToDelete(null);
-        toast({ title: "Video Deleted" });
+        try {
+            await deleteDoc(doc(firestore, 'users', user.uid, 'posts', postToDelete.id));
+            setIsDeleteDialogOpen(false);
+            setPostToDelete(null);
+            setSelectedPost(null);
+            toast({ title: "सफलता ✅", description: "वीडियो डिलीट हो गया।" });
+        } catch (error) {
+            console.error("Delete error:", error);
+            toast({ variant: "destructive", title: "गलती ❌", description: "वीडियो डिलीट नहीं हो पाया।" });
+        }
     };
 
     const activeList = listType === 'followers' ? followers : following;
@@ -206,8 +210,8 @@ export default function ProfilePage() {
                 {isOwnProfile && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical /></Button></DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-secondary text-white border-white/10">
-                            <DropdownMenuItem onClick={handleLogout} className="text-destructive font-bold"><LogOut className="mr-2 h-4 w-4" /> Logout</DropdownMenuItem>
+                        <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[160px] p-2">
+                            <DropdownMenuItem onClick={handleLogout} className="text-destructive font-bold p-3 rounded-xl focus:bg-destructive/10"><LogOut className="mr-2 h-4 w-4" /> Logout</DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )}
@@ -266,6 +270,11 @@ export default function ProfilePage() {
                         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <Play className="text-white h-6 w-6 fill-white" />
                         </div>
+                        {/* Instagram style View Count overlay */}
+                        <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 text-[10px] font-black text-white drop-shadow-md">
+                            <Eye className="h-3 w-3" />
+                            {post.viewCount || 0}
+                        </div>
                     </div>
                 ))}
                 {(!posts || posts.length === 0) && (
@@ -276,7 +285,6 @@ export default function ProfilePage() {
                 )}
             </div>
 
-            {/* Followers/Following List Sheet */}
             <Sheet open={!!listType} onOpenChange={(open) => !open && setListType(null)}>
                 <SheetContent side="bottom" className="h-[80vh] rounded-t-3xl bg-background border-white/10 p-0 overflow-hidden">
                     <SheetHeader className="p-4 border-b border-white/5 flex flex-row items-center justify-center">
@@ -289,7 +297,7 @@ export default function ProfilePage() {
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input 
-                                placeholder="Search by name or username..." 
+                                placeholder="Search..." 
                                 className="pl-10 h-10 bg-secondary/50 border-none rounded-xl text-sm"
                                 value={listSearch}
                                 onChange={(e) => setListSearch(e.target.value)}
@@ -319,44 +327,65 @@ export default function ProfilePage() {
             </Sheet>
 
             {isOwnProfile && userProfile && <EditProfileSheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen} userProfile={userProfile} />}
+            
             <Dialog open={!!selectedPost} onOpenChange={(isOpen) => !isOpen && setSelectedPost(null)}>
-                <DialogContent className="p-0 border-0 bg-black/90 w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center overflow-hidden">
+                <DialogContent className="p-0 border-0 bg-black/95 w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center overflow-hidden">
                     {selectedPost && (
                       <div className="w-full h-full relative">
                         <PostCard post={selectedPost} />
-                        {isOwnProfile && (
-                          <Button 
-                            variant="destructive" 
-                            size="icon" 
-                            className="absolute top-4 right-14 z-50 rounded-full h-10 w-10 shadow-xl" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setPostToDelete(selectedPost);
-                              setIsDeleteDialogOpen(true);
-                            }}
-                          >
-                            <Trash2 size={18} />
-                          </Button>
-                        )}
+                        
+                        {/* 3-Dots Menu Overlay on Preview */}
+                        <div className="absolute top-4 right-4 z-50">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-10 w-10 bg-black/20 backdrop-blur-md rounded-full text-white border border-white/10">
+                                        <MoreVertical className="h-5 w-5" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[180px] p-2 shadow-2xl">
+                                    <DropdownMenuItem className="p-3 rounded-xl focus:bg-white/10 cursor-pointer flex items-center gap-3">
+                                        <Eye className="h-4 w-4" /> 
+                                        <span>{selectedPost.viewCount || 0} Views</span>
+                                    </DropdownMenuItem>
+                                    
+                                    {isOwnProfile && (
+                                        <>
+                                            <div className="h-px bg-white/5 my-1" />
+                                            <DropdownMenuItem 
+                                                onClick={() => {
+                                                    setPostToDelete(selectedPost);
+                                                    setIsDeleteDialogOpen(true);
+                                                }}
+                                                className="p-3 rounded-xl focus:bg-destructive/10 text-destructive font-black cursor-pointer flex items-center gap-3"
+                                            >
+                                                <Trash2 className="h-4 w-4" /> 
+                                                <span>Delete Post</span>
+                                            </DropdownMenuItem>
+                                        </>
+                                    )}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
                       </div>
                     )}
                 </DialogContent>
             </Dialog>
 
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent className="bg-background text-white rounded-3xl border-white/10">
+                <AlertDialogContent className="bg-[#121212] text-white rounded-3xl border-white/10 max-w-[85vw] sm:max-w-md">
                     <AlertDialogHeader>
-                      <AlertDialogTitle className="text-xl font-black uppercase italic">Delete Video?</AlertDialogTitle>
-                      <AlertDialogDescription className="text-muted-foreground">
-                        This action cannot be undone. Your video will be removed from the feed.
+                      <AlertDialogTitle className="text-xl font-black uppercase italic text-center">डिलीट करें?</AlertDialogTitle>
+                      <AlertDialogDescription className="text-muted-foreground text-center">
+                        क्या आप वाकई इस वीडियो को डिलीट करना चाहते हैं? यह वापस नहीं आएगा।
                       </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter className="gap-2">
-                        <AlertDialogCancel className="rounded-xl border-white/10">Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDeletePost} className="bg-destructive hover:bg-destructive/90 rounded-xl font-bold">Delete</AlertDialogAction>
+                    <AlertDialogFooter className="flex-col gap-2 sm:flex-row mt-4">
+                        <AlertDialogCancel className="rounded-xl border-white/10 bg-transparent text-white hover:bg-white/5 h-12">Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDeletePost} className="bg-destructive hover:bg-destructive/90 rounded-xl font-black h-12">Delete</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
             <PwaInstallPrompt />
             <BottomNav />
         </div>
