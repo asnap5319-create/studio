@@ -1,5 +1,5 @@
 'use client';
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -14,9 +14,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
-import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2 } from "lucide-react";
+import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, where } from "firebase/firestore";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, Search, UserMinus, UserPlus } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -27,8 +29,73 @@ import { PostCard } from "@/components/post-card";
 import { useToast } from "@/hooks/use-toast";
 import { BottomNav } from "@/components/bottom-nav";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
+
+function UserListItem({ targetUserId, currentUserId }: { targetUserId: string, currentUserId?: string }) {
+    const { firestore } = useFirebase();
+    const router = useRouter();
+    const { toast } = useToast();
+    
+    const userRef = useMemoFirebase(() => firestore ? doc(firestore, 'users', targetUserId) : null, [firestore, targetUserId]);
+    const { data: profile } = useDoc<UserProfile>(userRef);
+
+    const followCheckRef = useMemoFirebase(() => {
+        if (!firestore || !currentUserId || targetUserId === currentUserId) return null;
+        return doc(firestore, 'user_followers', targetUserId, 'followers', currentUserId);
+    }, [firestore, currentUserId, targetUserId]);
+    const { data: followCheck } = useDoc(followCheckRef);
+    const isFollowing = !!followCheck;
+
+    const isTargetAdmin = profile?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
+    const handleFollowToggle = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!firestore || !currentUserId || targetUserId === currentUserId) return;
+        const batch = writeBatch(firestore);
+        const followerDocRef = doc(firestore, 'user_followers', targetUserId, 'followers', currentUserId);
+        const followingDocRef = doc(firestore, 'user_following', currentUserId, 'following', targetUserId);
+
+        if (isFollowing) {
+            batch.delete(followerDocRef);
+            batch.delete(followingDocRef);
+        } else {
+            batch.set(followerDocRef, { createdAt: serverTimestamp() });
+            batch.set(followingDocRef, { createdAt: serverTimestamp() });
+            const notificationRef = doc(collection(firestore, 'users', targetUserId, 'notifications'));
+            batch.set(notificationRef, {
+                type: 'follow', senderId: currentUserId, recipientId: targetUserId, read: false, createdAt: serverTimestamp(),
+            });
+        }
+        await batch.commit();
+    };
+
+    if (!profile) return null;
+
+    return (
+        <div className="flex items-center justify-between p-3 hover:bg-secondary/20 rounded-2xl transition-colors cursor-pointer" onClick={() => router.push(`/profile/${targetUserId}`)}>
+            <div className="flex items-center gap-3 min-w-0">
+                <Avatar className="h-12 w-12 border border-white/5">
+                    <AvatarImage src={profile.profileImageUrl} className="object-cover" />
+                    <AvatarFallback>{profile.username?.[0]}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                    <div className="flex items-center gap-1">
+                        <p className="font-bold text-sm truncate">{profile.username}</p>
+                        {isTargetAdmin && <BadgeCheck className="h-3.5 w-3.5 text-blue-400 fill-blue-400/20" />}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">{profile.name}</p>
+                </div>
+            </div>
+            {currentUserId && targetUserId !== currentUserId && (
+                <Button size="sm" variant={isFollowing ? "secondary" : "default"} onClick={handleFollowToggle} className="h-8 rounded-xl font-bold px-4">
+                    {isFollowing ? 'Following' : 'Follow'}
+                </Button>
+            )}
+        </div>
+    );
+}
 
 export default function ProfilePage() {
     const params = useParams();
@@ -42,6 +109,10 @@ export default function ProfilePage() {
     const [selectedPost, setSelectedPost] = useState<Post | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [postToDelete, setPostToDelete] = useState<Post | null>(null);
+    
+    // Followers/Following Lists
+    const [listType, setListType] = useState<'followers' | 'following' | null>(null);
+    const [listSearch, setListSearch] = useState('');
 
     const isOwnProfile = user?.uid === userId;
     
@@ -51,7 +122,6 @@ export default function ProfilePage() {
     }, [firestore, userId]);
 
     const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
-
     const isProfileAdmin = userProfile?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
     const userPostsQuery = useMemoFirebase(() => {
@@ -114,6 +184,12 @@ export default function ProfilePage() {
         toast({ title: "Video Deleted" });
     };
 
+    // Filtered lists for the search inside followers/following
+    const activeList = listType === 'followers' ? followers : following;
+    // We can't easily search the names without fetching all profiles first, 
+    // but we can at least display the list and let useDoc handle individual fetches.
+    // For a real "insta-like" search, we'd need a more complex indexing or fetch logic.
+
     if (isUserLoading || isProfileLoading) return <div className="h-screen flex items-center justify-center bg-black"><Loader2 className="animate-spin text-primary" /></div>;
     
     return (
@@ -127,7 +203,7 @@ export default function ProfilePage() {
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-secondary text-white border-white/10">
-                            <DropdownMenuItem onClick={handleLogout} className="text-destructive"><LogOut className="mr-2 h-4 w-4" /> Logout</DropdownMenuItem>
+                            <DropdownMenuItem onClick={handleLogout} className="text-destructive font-bold"><LogOut className="mr-2 h-4 w-4" /> Logout</DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )}
@@ -144,13 +220,13 @@ export default function ProfilePage() {
                           <p className="font-bold text-lg">{posts?.length || 0}</p>
                           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Posts</p>
                         </div>
-                        <div className="cursor-default">
-                          <p className="font-bold text-lg">{followers?.length || 0}</p>
-                          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Followers</p>
+                        <div className="cursor-pointer group active:scale-95 transition-transform" onClick={() => setListType('followers')}>
+                          <p className="font-bold text-lg group-hover:text-primary transition-colors">{followers?.length || 0}</p>
+                          <p className="text-[10px] uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors">Followers</p>
                         </div>
-                        <div className="cursor-default">
-                          <p className="font-bold text-lg">{following?.length || 0}</p>
-                          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Following</p>
+                        <div className="cursor-pointer group active:scale-95 transition-transform" onClick={() => setListType('following')}>
+                          <p className="font-bold text-lg group-hover:text-primary transition-colors">{following?.length || 0}</p>
+                          <p className="text-[10px] uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors">Following</p>
                         </div>
                     </div>
                 </div>
@@ -195,6 +271,43 @@ export default function ProfilePage() {
                   </div>
                 )}
             </div>
+
+            {/* Followers/Following List Sheet */}
+            <Sheet open={!!listType} onOpenChange={(open) => !open && setListType(null)}>
+                <SheetContent side="bottom" className="h-[80vh] rounded-t-3xl bg-background border-white/10 p-0 overflow-hidden">
+                    <SheetHeader className="p-4 border-b border-white/5 flex flex-row items-center justify-center">
+                        <SheetTitle className="text-center text-lg font-black uppercase italic">
+                            {listType === 'followers' ? 'Followers' : 'Following'}
+                        </SheetTitle>
+                    </SheetHeader>
+                    
+                    <div className="p-4">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input 
+                                placeholder="Search..." 
+                                className="pl-10 h-10 bg-secondary/50 border-none rounded-xl text-sm"
+                                value={listSearch}
+                                onChange={(e) => setListSearch(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <ScrollArea className="flex-1 px-2 h-full">
+                        <div className="space-y-1 pb-20">
+                            {activeList && activeList.length > 0 ? (
+                                activeList.map((item) => (
+                                    <UserListItem key={item.id} targetUserId={item.id} currentUserId={user?.uid} />
+                                ))
+                            ) : (
+                                <div className="text-center py-20 opacity-30 text-sm font-bold uppercase tracking-widest">
+                                    No {listType} yet
+                                </div>
+                            )}
+                        </div>
+                    </ScrollArea>
+                </SheetContent>
+            </Sheet>
 
             {isOwnProfile && userProfile && <EditProfileSheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen} userProfile={userProfile} />}
             <Dialog open={!!selectedPost} onOpenChange={(isOpen) => !isOpen && setSelectedPost(null)}>
