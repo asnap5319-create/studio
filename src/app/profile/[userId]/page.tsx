@@ -103,6 +103,7 @@ export default function ProfilePage() {
             });
         }
         await batch.commit();
+        toast({ title: isFollowing ? "Unfollowed" : "Following" });
     };
 
     const confirmDeletePost = async () => {
@@ -110,13 +111,14 @@ export default function ProfilePage() {
         await deleteDoc(doc(firestore, 'users', user.uid, 'posts', postToDelete.id));
         setIsDeleteDialogOpen(false);
         setPostToDelete(null);
+        toast({ title: "Video Deleted" });
     };
 
     if (isUserLoading || isProfileLoading) return <div className="h-screen flex items-center justify-center bg-black"><Loader2 className="animate-spin text-primary" /></div>;
     
     return (
         <div className="min-h-screen bg-background text-white overflow-y-auto pb-24">
-            <div className="p-4 flex items-center justify-between">
+            <div className="p-4 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-20">
                 <div className="flex items-center gap-1.5">
                     <h1 className="text-xl font-bold">{userProfile?.username || "Profile"}</h1>
                     {isProfileAdmin && <BadgeCheck className="h-5 w-5 text-blue-400 fill-blue-400/20" />}
@@ -138,15 +140,15 @@ export default function ProfilePage() {
                         <AvatarFallback>{userProfile?.username?.[0]}</AvatarFallback>
                     </Avatar>
                     <div className="flex flex-1 justify-around text-center">
-                        <div>
+                        <div className="cursor-default">
                           <p className="font-bold text-lg">{posts?.length || 0}</p>
                           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Posts</p>
                         </div>
-                        <div>
+                        <div className="cursor-default">
                           <p className="font-bold text-lg">{followers?.length || 0}</p>
                           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Followers</p>
                         </div>
-                        <div>
+                        <div className="cursor-default">
                           <p className="font-bold text-lg">{following?.length || 0}</p>
                           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Following</p>
                         </div>
@@ -161,13 +163,13 @@ export default function ProfilePage() {
                 </div>
                 <div className="flex gap-2 mt-6">
                     {isOwnProfile ? (
-                        <Button className="flex-1 font-black uppercase text-xs rounded-xl h-11" onClick={() => setIsEditSheetOpen(true)}>Edit Profile</Button>
+                        <Button className="flex-1 font-black uppercase text-xs rounded-xl h-11 bg-secondary hover:bg-secondary/80" onClick={() => setIsEditSheetOpen(true)}>Edit Profile</Button>
                     ) : (
                         <>
-                            <Button className="flex-1 font-black uppercase text-xs rounded-xl h-11" onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"}>
+                            <Button className="flex-1 font-black uppercase text-xs rounded-xl h-11 shadow-lg" onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"}>
                                 {isFollowing ? 'Following' : 'Follow'}
                             </Button>
-                            <Button className="flex-1 font-black uppercase text-xs rounded-xl h-11" variant="secondary" onClick={() => router.push(`/messages/${[user?.uid, userId].sort().join('_')}`)}>Message</Button>
+                            <Button className="flex-1 font-black uppercase text-xs rounded-xl h-11 bg-secondary hover:bg-secondary/80" onClick={() => router.push(`/messages/${[user?.uid, userId].sort().join('_')}`)}>Message</Button>
                         </>
                     )}
                 </div>
@@ -204,7 +206,7 @@ export default function ProfilePage() {
                           <Button 
                             variant="destructive" 
                             size="icon" 
-                            className="absolute top-4 right-14 z-50 rounded-full" 
+                            className="absolute top-4 right-14 z-50 rounded-full h-10 w-10 shadow-xl" 
                             onClick={(e) => {
                               e.stopPropagation();
                               setPostToDelete(selectedPost);

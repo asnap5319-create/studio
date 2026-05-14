@@ -44,16 +44,16 @@ export default function HomePage() {
 
   return (
     <div className="h-screen bg-black overflow-y-scroll snap-y snap-mandatory scrollbar-hide relative">
-      {/* Top Navigation Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent pointer-events-none">
-        <h1 className="text-2xl font-black text-primary italic tracking-tighter drop-shadow-lg pointer-events-auto">
+      {/* Top Navigation Header - Restored with Icons */}
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
+        <h1 className="text-2xl font-black text-primary italic tracking-tighter drop-shadow-[0_2px_10px_rgba(var(--primary),0.5)] pointer-events-auto">
           A.snap
         </h1>
-        <div className="flex items-center gap-4 pointer-events-auto">
-          <Link href="/notifications" className="p-2 bg-black/20 backdrop-blur-md rounded-full border border-white/10 hover:bg-black/40 transition-colors">
+        <div className="flex items-center gap-3 pointer-events-auto">
+          <Link href="/notifications" className="p-2.5 bg-black/30 backdrop-blur-xl rounded-full border border-white/10 hover:bg-black/50 transition-all active:scale-90">
             <Bell className="w-6 h-6 text-white" />
           </Link>
-          <Link href="/messages" className="p-2 bg-black/20 backdrop-blur-md rounded-full border border-white/10 hover:bg-black/40 transition-colors">
+          <Link href="/messages" className="p-2.5 bg-black/30 backdrop-blur-xl rounded-full border border-white/10 hover:bg-black/50 transition-all active:scale-90">
             <MessageCircle className="w-6 h-6 text-white" />
           </Link>
         </div>
@@ -75,7 +75,7 @@ export default function HomePage() {
         )
       )) : (
         <div className="flex h-full items-center justify-center text-white p-10 text-center">
-            <p className="text-muted-foreground">No posts yet. Be the first to share your world!</p>
+            <p className="text-muted-foreground font-bold uppercase tracking-widest opacity-30">No posts yet. Share your world!</p>
         </div>
       )}
       <PwaInstallPrompt />
