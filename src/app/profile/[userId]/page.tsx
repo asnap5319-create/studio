@@ -33,7 +33,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
-function UserListItem({ targetUserId, currentUserId }: { targetUserId: string, currentUserId?: string }) {
+function UserListItem({ targetUserId, currentUserId, searchTerm }: { targetUserId: string, currentUserId?: string, searchTerm: string }) {
     const { firestore } = useFirebase();
     const router = useRouter();
     const { toast } = useToast();
@@ -49,6 +49,16 @@ function UserListItem({ targetUserId, currentUserId }: { targetUserId: string, c
     const isFollowing = !!followCheck;
 
     const isTargetAdmin = profile?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
+    // Client-side search filtering
+    if (searchTerm && profile) {
+        const lowerSearch = searchTerm.toLowerCase();
+        const matchesUsername = profile.username?.toLowerCase().includes(lowerSearch);
+        const matchesName = profile.name?.toLowerCase().includes(lowerSearch);
+        if (!matchesUsername && !matchesName) return null;
+    }
+
+    if (!profile) return null;
 
     const handleFollowToggle = async (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -70,8 +80,6 @@ function UserListItem({ targetUserId, currentUserId }: { targetUserId: string, c
         }
         await batch.commit();
     };
-
-    if (!profile) return null;
 
     return (
         <div className="flex items-center justify-between p-3 hover:bg-secondary/20 rounded-2xl transition-colors cursor-pointer" onClick={() => router.push(`/profile/${targetUserId}`)}>
@@ -184,11 +192,7 @@ export default function ProfilePage() {
         toast({ title: "Video Deleted" });
     };
 
-    // Filtered lists for the search inside followers/following
     const activeList = listType === 'followers' ? followers : following;
-    // We can't easily search the names without fetching all profiles first, 
-    // but we can at least display the list and let useDoc handle individual fetches.
-    // For a real "insta-like" search, we'd need a more complex indexing or fetch logic.
 
     if (isUserLoading || isProfileLoading) return <div className="h-screen flex items-center justify-center bg-black"><Loader2 className="animate-spin text-primary" /></div>;
     
@@ -220,11 +224,11 @@ export default function ProfilePage() {
                           <p className="font-bold text-lg">{posts?.length || 0}</p>
                           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Posts</p>
                         </div>
-                        <div className="cursor-pointer group active:scale-95 transition-transform" onClick={() => setListType('followers')}>
+                        <div className="cursor-pointer group active:scale-95 transition-transform" onClick={() => { setListType('followers'); setListSearch(''); }}>
                           <p className="font-bold text-lg group-hover:text-primary transition-colors">{followers?.length || 0}</p>
                           <p className="text-[10px] uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors">Followers</p>
                         </div>
-                        <div className="cursor-pointer group active:scale-95 transition-transform" onClick={() => setListType('following')}>
+                        <div className="cursor-pointer group active:scale-95 transition-transform" onClick={() => { setListType('following'); setListSearch(''); }}>
                           <p className="font-bold text-lg group-hover:text-primary transition-colors">{following?.length || 0}</p>
                           <p className="text-[10px] uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors">Following</p>
                         </div>
@@ -285,7 +289,7 @@ export default function ProfilePage() {
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input 
-                                placeholder="Search..." 
+                                placeholder="Search by name or username..." 
                                 className="pl-10 h-10 bg-secondary/50 border-none rounded-xl text-sm"
                                 value={listSearch}
                                 onChange={(e) => setListSearch(e.target.value)}
@@ -297,7 +301,12 @@ export default function ProfilePage() {
                         <div className="space-y-1 pb-20">
                             {activeList && activeList.length > 0 ? (
                                 activeList.map((item) => (
-                                    <UserListItem key={item.id} targetUserId={item.id} currentUserId={user?.uid} />
+                                    <UserListItem 
+                                        key={item.id} 
+                                        targetUserId={item.id} 
+                                        currentUserId={user?.uid} 
+                                        searchTerm={listSearch}
+                                    />
                                 ))
                             ) : (
                                 <div className="text-center py-20 opacity-30 text-sm font-bold uppercase tracking-widest">
