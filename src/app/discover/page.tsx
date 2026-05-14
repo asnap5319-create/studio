@@ -98,7 +98,12 @@ export default function SearchPage() {
 
       <Dialog open={!!selectedPost} onOpenChange={(isOpen) => !isOpen && setSelectedPost(null)}>
         <DialogContent className="p-0 border-0 bg-black/90 w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center">
-            {selectedPost && <PostCard post={selectedPost} />}
+            {selectedPost && (
+              <>
+                <DialogTitle className="sr-only">Post Preview</DialogTitle>
+                <PostCard post={selectedPost} />
+              </>
+            )}
         </DialogContent>
       </Dialog>
       <PwaInstallPrompt />

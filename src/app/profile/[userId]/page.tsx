@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -332,6 +331,7 @@ export default function ProfilePage() {
                 <DialogContent className="p-0 border-0 bg-black/95 w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center overflow-hidden">
                     {selectedPost && (
                       <div className="w-full h-full relative">
+                        <DialogTitle className="sr-only">Post Preview</DialogTitle>
                         <PostCard post={selectedPost} />
                         
                         {/* 3-Dots Menu Overlay on Preview */}
