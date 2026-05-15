@@ -17,7 +17,8 @@ interface SponsoredCardProps {
     caption: string;
     ctaText: string;
     ctaUrl: string;
-    adUnitId?: string;
+    adUnitId: string;
+    adScriptDomain: string;
   };
 }
 
@@ -61,36 +62,42 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
   useEffect(() => {
     if (!containerRef.current || !isInView || isLoaded) return;
 
-    // Latest Ad ID from user
-    const adUnitId = ad.adUnitId || 'e915f8c7cce368f440d031fe8ec12184';
+    // Latest Ad Unit Info
+    const adUnitId = ad.adUnitId;
+    const adScriptDomain = ad.adScriptDomain;
     const uniqueContainerId = `container-${adUnitId}-${ad.id}`;
     
     const parent = containerRef.current;
     parent.innerHTML = ''; 
 
-    // Create wrapper
+    // Create unique wrapper for script target
     const adWrapper = document.createElement('div');
     adWrapper.id = uniqueContainerId;
-    adWrapper.className = "w-full min-h-[350px] flex items-center justify-center overflow-hidden z-20 rounded-2xl";
+    adWrapper.className = "w-full min-h-[350px] flex items-center justify-center overflow-hidden z-20 rounded-2xl bg-black/20";
     parent.appendChild(adWrapper);
 
-    // Adsterra Script Injection - NEW URL STRUCTURE
+    // Adsterra Script Injection Logic
+    // Path structure: domain/fd/68/cb/unitid.js
+    const scriptPath = adUnitId.match(/.{1,2}/g)?.slice(0, 3).join('/') || '';
+    const scriptUrl = `https://${adScriptDomain}/${scriptPath}/${adUnitId}.js`;
+
     const script = document.createElement('script');
-    script.src = `https://pl29453309.profitablecpmratenetwork.com/e9/15/f8/${adUnitId}.js`;
+    script.src = scriptUrl;
     script.async = true;
     script.setAttribute('data-cfasync', 'false');
     
     script.onload = () => {
-      console.log(`[Adsterra] Ad script loaded for ${ad.id}`);
+      console.log(`[Adsterra] Script loaded for Unit ${adUnitId}`);
+      // Give it some time to render inside the container
       setTimeout(() => {
         if (adWrapper.children.length > 0) {
           setIsLoaded(true);
         }
-      }, 2500);
+      }, 3000);
     };
 
-    script.onerror = () => {
-      console.error(`[Adsterra] Script failed to load for ${ad.id}`);
+    script.onerror = (e) => {
+      console.error(`[Adsterra] Script failed to load for Unit ${adUnitId}`, e);
       setHasError(true);
     };
 
@@ -99,39 +106,39 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     return () => {
       if (parent) parent.innerHTML = '';
     };
-  }, [ad.id, ad.adUnitId, isInView, isLoaded]);
+  }, [ad.id, ad.adUnitId, ad.adScriptDomain, isInView, isLoaded]);
 
   return (
     <div ref={cardRef} className="relative w-full h-screen bg-black overflow-hidden select-none">
       
-      {/* Background Fullscreen Visual (Fallback/Poster) */}
+      {/* Immersive Fullscreen Background Visual */}
       <div className="absolute inset-0 z-0">
         <Image 
           src={ad.mediaUrl || `https://picsum.photos/seed/${ad.id}-bg/1080/1920`} 
-          alt="Ad Visual" 
+          alt="Sponsored Background" 
           fill 
           className="object-cover opacity-60"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-black/95" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black/95" />
       </div>
 
       {/* Premium Header */}
       <div className="absolute top-0 left-0 right-0 z-30 p-6 pt-12 flex items-center justify-between pointer-events-none">
         <h2 className="text-4xl font-black italic tracking-tighter text-primary drop-shadow-[0_2px_15px_rgba(var(--primary),0.7)] pointer-events-auto">A.snap</h2>
-        <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-2xl px-5 py-2 rounded-full border border-white/10 pointer-events-auto">
+        <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-3xl px-5 py-2 rounded-full border border-white/10 pointer-events-auto">
           <Sparkles className="h-3 w-3 text-primary animate-pulse" />
           <p className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Sponsored</p>
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6">
+      {/* Actual Ad Content Area */}
+      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 mt-12 mb-24">
         <div 
           ref={containerRef} 
           className={cn(
-            "w-full transition-all duration-700",
-            isLoaded ? "opacity-100 scale-100" : "opacity-0 scale-90 pointer-events-none"
+            "w-full max-w-sm transition-all duration-1000",
+            isLoaded ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
           )} 
         />
 
@@ -141,73 +148,73 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
                 <div className="absolute inset-0 blur-3xl bg-primary/40 animate-pulse rounded-full"></div>
                 <Loader2 className="animate-spin h-14 w-14 text-primary relative z-10" />
             </div>
-            <p className="mt-8 text-[11px] font-black uppercase tracking-[0.5em] text-white animate-pulse">
-                Fetching Offer...
+            <p className="mt-8 text-[11px] font-black uppercase tracking-[0.5em] text-white/80 animate-pulse">
+                Loading Best Offer...
             </p>
           </div>
         )}
         
         {(hasError || (!isLoaded && !isInView)) && (
-          <div className="text-center p-8 bg-black/60 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 max-w-xs shadow-2xl animate-in zoom-in-90 duration-500">
-            <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <Sparkles className="w-8 h-8 text-primary" />
+          <div className="text-center p-10 bg-black/60 backdrop-blur-3xl rounded-[3rem] border border-white/10 max-w-xs shadow-2xl animate-in zoom-in-95 duration-700">
+            <div className="w-20 h-20 bg-primary/20 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                <Sparkles className="w-10 h-10 text-primary" />
             </div>
-            <h3 className="font-black uppercase text-base mb-2 tracking-tight">Premium Selection</h3>
-            <p className="text-[11px] text-muted-foreground mb-6 uppercase tracking-widest leading-relaxed">Exclusive deals curated for you.</p>
-            <Button className="w-full h-12 rounded-xl bg-primary font-black uppercase text-xs tracking-widest shadow-xl" onClick={() => window.open(ad.ctaUrl, '_blank')}>
-              Explore Now
+            <h3 className="font-black uppercase text-lg mb-2 tracking-tight">Premium Brand</h3>
+            <p className="text-[11px] text-muted-foreground mb-8 uppercase tracking-widest leading-relaxed">Unlock exclusive digital rewards and offers curated for you.</p>
+            <Button className="w-full h-14 rounded-2xl bg-primary font-black uppercase text-xs tracking-[0.2em] shadow-xl hover:scale-105 active:scale-95 transition-all" onClick={() => window.open(ad.ctaUrl, '_blank')}>
+              Explore Store
             </Button>
           </div>
         )}
       </div>
 
-      {/* Sidebar Controls (Reel Style) */}
-      <div className="absolute right-4 bottom-32 flex flex-col gap-7 z-40 items-center" onClick={(e) => e.stopPropagation()}>
+      {/* Reel-Style Interaction Sidebar */}
+      <div className="absolute right-4 bottom-40 flex flex-col gap-8 z-40 items-center" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center cursor-pointer group" onClick={toggleLike}>
-                <div className="p-3 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 group-active:scale-150 transition-all shadow-xl">
-                    <Heart className={cn("h-8 w-8", isLiked ? "fill-primary text-primary" : "text-white")} />
+                <div className="p-3.5 bg-black/50 backdrop-blur-3xl rounded-full border border-white/10 group-active:scale-150 transition-all shadow-2xl">
+                    <Heart className={cn("h-8 w-8 transition-colors", isLiked ? "fill-primary text-primary" : "text-white")} />
                 </div>
-                <span className="text-[12px] font-black mt-2 text-white drop-shadow-md">{likeCount}</span>
+                <span className="text-[12px] font-black mt-2 text-white drop-shadow-lg">{likeCount}</span>
             </div>
             
             <div className="flex flex-col items-center cursor-pointer group" onClick={incrementComment}>
-                <div className="p-3 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 group-active:scale-125 transition-all shadow-xl">
+                <div className="p-3.5 bg-black/50 backdrop-blur-3xl rounded-full border border-white/10 group-active:scale-125 transition-all shadow-2xl">
                   <MessageCircle className="h-8 w-8 text-white" />
                 </div>
-                <span className="text-[12px] font-black mt-2 text-white drop-shadow-md">{commentCount}</span>
+                <span className="text-[12px] font-black mt-2 text-white drop-shadow-lg">{commentCount}</span>
             </div>
             
             <div className="flex flex-col items-center cursor-pointer group" onClick={incrementShare}>
-                <div className="p-3 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 group-active:rotate-12 transition-all shadow-xl">
+                <div className="p-3.5 bg-black/50 backdrop-blur-3xl rounded-full border border-white/10 group-active:rotate-12 transition-all shadow-2xl">
                   <Share2 className="h-8 w-8 text-white" />
                 </div>
-                <span className="text-[12px] font-black mt-2 text-white drop-shadow-md">{shareCount}</span>
+                <span className="text-[12px] font-black mt-2 text-white drop-shadow-lg">{shareCount}</span>
             </div>
       </div>
 
-      {/* Bottom Info & CTA */}
-      <div className="absolute bottom-0 left-0 right-0 p-6 pb-24 bg-gradient-to-t from-black via-black/50 to-transparent text-white z-30 space-y-5">
+      {/* Bottom Information and CTA */}
+      <div className="absolute bottom-0 left-0 right-0 p-6 pb-28 bg-gradient-to-t from-black via-black/40 to-transparent text-white z-30 space-y-5">
           <div className="flex items-center gap-3">
-              <Avatar className="h-11 w-11 border-2 border-primary shadow-xl">
+              <Avatar className="h-12 w-12 border-2 border-primary shadow-2xl">
                   <AvatarImage src="/logo.svg" />
                   <AvatarFallback>A</AvatarFallback>
               </Avatar>
               <div className="flex items-center gap-1.5">
-                  <span className="font-black text-[15px] tracking-tight">{ad.brandName}</span>
+                  <span className="font-black text-[16px] tracking-tight">{ad.brandName}</span>
                   <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />
               </div>
           </div>
           
-          <p className="text-sm font-bold leading-relaxed pr-16 line-clamp-2 opacity-95 drop-shadow-md">
+          <p className="text-sm font-bold leading-relaxed pr-20 line-clamp-2 opacity-90 drop-shadow-md">
               {ad.caption}
           </p>
 
           <Button 
             onClick={() => window.open(ad.ctaUrl || '#', '_blank')} 
-            className="w-full h-15 bg-white text-black hover:bg-white/90 rounded-2xl font-black flex justify-between px-7 items-center shadow-[0_10px_30px_rgba(0,0,0,0.5)] active:scale-95 transition-all border-none"
+            className="w-full h-16 bg-white text-black hover:bg-white/95 rounded-2xl font-black flex justify-between px-8 items-center shadow-[0_20px_40px_rgba(0,0,0,0.6)] active:scale-95 transition-all border-none"
           >
-              <span className="text-[11px] uppercase tracking-[0.25em]">{ad.ctaText || 'Learn More'}</span>
-              <ChevronRight className="h-5 w-5 text-primary" />
+              <span className="text-[11px] uppercase tracking-[0.3em]">{ad.ctaText || 'Learn More'}</span>
+              <ChevronRight className="h-6 w-6 text-primary" />
           </Button>
       </div>
     </div>

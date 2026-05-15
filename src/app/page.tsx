@@ -52,19 +52,20 @@ export default function HomePage() {
     shuffledPosts.forEach((post, index) => {
       items.push({ type: 'post', data: post });
       
-      // INSERT ADS EVERY 2nd POST
+      // INSERT ADS EVERY 2nd POST for maximum earning
       if ((index + 1) % 2 === 0) {
         items.push({
           type: 'ad',
           data: {
             id: `ad-${index}-${Math.random().toString(36).substring(7)}`,
-            brandName: "A.snap Ads",
+            brandName: "A.snap Premium",
             brandLogo: "/logo.svg",
             mediaUrl: `https://picsum.photos/seed/ad-${index}/1080/1920`,
-            caption: "Special Offer: Experience visual storytelling like never before. Shop exclusive collections now! #asnap #style",
-            ctaText: "Shop Now",
-            ctaUrl: "https://pl29453309.profitablecpmratenetwork.com/e9/15/f8/e915f8c7cce368f440d031fe8ec12184.js",
-            adUnitId: 'e915f8c7cce368f440d031fe8ec12184'
+            caption: "Explore the next generation of visual storytelling. Tap to unlock exclusive deals! #asnap #premium #deals",
+            ctaText: "Explore Now",
+            ctaUrl: "https://pl29453913.profitablecpmratenetwork.com/fd/68/cb/fd68cb6250942c8fd08d481733648461.js",
+            adUnitId: 'fd68cb6250942c8fd08d481733648461',
+            adScriptDomain: 'pl29453913.profitablecpmratenetwork.com'
           }
         });
       }
