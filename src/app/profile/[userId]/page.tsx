@@ -350,7 +350,7 @@ export default function ProfilePage() {
                         <DialogTitle className="sr-only">Post Preview</DialogTitle>
                         <PostCard post={selectedPost} />
                         
-                        {/* 3 DOTS MENU RE-ADDED FOR OWN PROFILE OR ADMIN */}
+                        {/* 3 DOTS MENU FOR OWN PROFILE OR ADMIN */}
                         {(isOwnProfile || isCurrentUserAdmin) && (
                             <div className="absolute top-4 right-4 z-50">
                                 <DropdownMenu>
@@ -365,9 +365,8 @@ export default function ProfilePage() {
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[180px] p-2 shadow-2xl">
                                         <DropdownMenuItem onClick={() => {
-                                            // Handle Share within Dialog
                                             toast({ title: "Link Copied! 🔗" });
-                                        }} className="font-bold p-3 rounded-xl focus:bg-white/10">
+                                        }} className="font-bold p-3 rounded-xl focus:bg-white/10 cursor-pointer">
                                             <Share2 className="mr-3 h-4 w-4" /> Share Post
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator className="bg-white/5 my-1" />
@@ -376,7 +375,7 @@ export default function ProfilePage() {
                                                 setPostToDelete(selectedPost);
                                                 setIsDeleteDialogOpen(true);
                                             }} 
-                                            className="text-destructive font-black p-3 rounded-xl focus:bg-destructive/10"
+                                            className="text-destructive font-black p-3 rounded-xl focus:bg-destructive/10 cursor-pointer"
                                         >
                                             <Trash2 className="mr-3 h-4 w-4" /> Delete Video
                                         </DropdownMenuItem>
