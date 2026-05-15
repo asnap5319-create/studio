@@ -37,8 +37,8 @@ export default function HomePage() {
     shuffledPosts.forEach((post, index) => {
       displayItems.push({ type: 'post', data: post });
       
-      // Insert an ad every 4 posts to ensure consistent monetization
-      if ((index + 1) % 4 === 0) {
+      // Insert an ad every 2 posts as requested for better earning
+      if ((index + 1) % 2 === 0) {
         displayItems.push({
           type: 'ad',
           data: {
@@ -47,7 +47,7 @@ export default function HomePage() {
             brandLogo: "/logo.svg",
             mediaUrl: `https://picsum.photos/seed/ad-${index}/600/1000`,
             caption: "Experience the world in full screen. Join the A.snap community today for an ad-free premium experience!",
-            ctaText: "Join Now",
+            ctaText: "Unlock Now",
             ctaUrl: "/signup",
             adUnitId: '286ef4dc1c3c9afc429b42567c2d2b99'
           }

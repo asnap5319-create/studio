@@ -24,6 +24,21 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+  
+  // Simulated social state for Ads
+  const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0); // Initial likes set to 0 as requested
+
+  const toggleLike = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isLiked) {
+      setIsLiked(false);
+      setLikeCount(prev => prev - 1);
+    } else {
+      setIsLiked(true);
+      setLikeCount(prev => prev + 1);
+    }
+  };
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -38,11 +53,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     // Create the container Adsterra expects
     const adWrapper = document.createElement('div');
     adWrapper.id = containerId;
-    adWrapper.style.width = '100%';
-    adWrapper.style.minHeight = '250px';
-    adWrapper.style.display = 'flex';
-    adWrapper.style.justifyContent = 'center';
-    adWrapper.style.alignItems = 'center';
+    adWrapper.className = "w-full min-h-[250px] flex justify-center items-center";
     parent.appendChild(adWrapper);
 
     // Create the Adsterra script
@@ -102,40 +113,40 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
 
         {/* Fallback Premium UI if Adsterra is blocked/loading */}
         {(!isLoaded || hasError) && (
-          <div className="absolute inset-0 flex flex-col bg-sky-500">
+          <div className="absolute inset-0 flex flex-col bg-[#0077b6]">
              {/* Poster Image Section */}
              <div className="relative flex-1 flex flex-col items-center justify-center p-6">
                 <div className="absolute top-24 left-6 z-20 max-w-[200px]">
-                    <h1 className="text-4xl font-black text-white italic leading-tight drop-shadow-2xl">PREMIUM DEALS</h1>
-                    <p className="text-[10px] text-white font-bold mt-2 bg-black/20 w-fit px-2 py-1 rounded">Exclusive Collection</p>
+                    <h1 className="text-4xl font-black text-white italic leading-tight drop-shadow-2xl uppercase">PREMIUM DEALS</h1>
+                    <p className="text-[10px] text-white font-bold mt-2 bg-black/20 w-fit px-2 py-1 rounded">Flash Sale Live</p>
                 </div>
 
                 <div className="absolute top-24 right-6 z-20 text-right">
-                    <p className="text-white font-black text-sm italic">UP TO</p>
-                    <h2 className="text-7xl font-black text-white italic leading-none">60<span className="text-3xl">%</span></h2>
-                    <p className="text-white font-black text-sm italic">OFF*</p>
+                    <p className="text-white font-black text-sm italic uppercase">SALE UP TO</p>
+                    <h2 className="text-7xl font-black text-white italic leading-none">50<span className="text-3xl">%</span></h2>
+                    <p className="text-white font-black text-sm italic uppercase">OFF NOW</p>
                 </div>
 
                 <div className="relative w-full aspect-square max-w-[320px] mt-20">
-                    <div className="absolute inset-0 bg-white/20 blur-3xl rounded-full scale-110 animate-pulse"></div>
+                    <div className="absolute inset-0 bg-white/10 blur-3xl rounded-full scale-110 animate-pulse"></div>
                     <Image 
-                        src="https://picsum.photos/seed/premium-shoes/600/600" 
+                        src={`https://picsum.photos/seed/${ad.id}/600/600`} 
                         alt="Product" 
                         fill 
-                        className="object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.5)]"
+                        className="object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.6)]"
                     />
                 </div>
 
                 <div className="mt-12 w-full max-w-[350px]">
-                    <Button onClick={() => window.open(ad.ctaUrl || '#', '_blank')} className="w-full h-14 bg-white text-sky-600 hover:bg-white/90 rounded-2xl font-black flex justify-between px-6 items-center shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
-                        <span className="text-sm">Claim Your Discount Now</span>
+                    <Button onClick={() => window.open(ad.ctaUrl || '#', '_blank')} className="w-full h-14 bg-white text-[#0077b6] hover:bg-white/90 rounded-2xl font-black flex justify-between px-6 items-center shadow-2xl">
+                        <span className="text-sm uppercase">{ad.ctaText || 'Shop Collection'}</span>
                         <ChevronRight className="h-5 w-5" />
                     </Button>
                 </div>
              </div>
 
              {/* Bottom Info Section */}
-             <div className="p-4 bg-gradient-to-t from-black/90 to-transparent text-white pb-24">
+             <div className="p-4 bg-gradient-to-t from-black/90 via-black/40 to-transparent text-white pb-24">
                 <div className="flex items-center gap-3 mb-4">
                     <Avatar className="h-10 w-10 border-2 border-white/20">
                         <AvatarImage src="/logo.svg" />
@@ -143,14 +154,13 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
                     </Avatar>
                     <div className="flex flex-col">
                         <div className="flex items-center gap-1">
-                            <span className="font-black text-sm">asnap_premium</span>
-                            <BadgeCheck className="h-3.5 w-3.5 text-white fill-white/20" />
+                            <span className="font-black text-sm">asnap_ads</span>
+                            <BadgeCheck className="h-3.5 w-3.5 text-blue-400 fill-blue-400/20" />
                         </div>
                     </div>
-                    <Button variant="outline" size="sm" className="ml-2 h-7 rounded-lg border-white/40 bg-transparent text-white text-[10px] font-black uppercase">Follow</Button>
                 </div>
 
-                <p className="text-xs font-bold drop-shadow-md pr-12 line-clamp-2">Get ready for the biggest sale of the season! Join millions of users and start earning today.</p>
+                <p className="text-xs font-bold drop-shadow-md pr-12 line-clamp-2">{ad.caption}</p>
                 
                 <div className="mt-3 flex items-center gap-2">
                     <div className="flex -space-x-2">
@@ -160,7 +170,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
                             </div>
                         ))}
                     </div>
-                    <p className="text-[10px] font-medium text-white/80">Followed by <span className="font-black">trending_now</span> and <span className="font-black">5.2M others</span></p>
+                    <p className="text-[10px] font-medium text-white/80">Claimed by <span className="font-black">trending_shop</span> and <span className="font-black">12.5K others</span></p>
                 </div>
              </div>
           </div>
@@ -169,24 +179,24 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
         {!isLoaded && !hasError && (
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="animate-spin h-8 w-8 text-primary" />
-            <p className="text-[10px] font-black uppercase tracking-widest opacity-50">Loading Offer...</p>
+            <p className="text-[10px] font-black uppercase tracking-widest opacity-50">Fetching Best Offer...</p>
           </div>
         )}
       </div>
 
-      {/* Side Action Buttons */}
+      {/* Side Action Buttons - Instagram Style */}
       <div className="absolute right-3 bottom-24 flex flex-col gap-6 z-40 items-center" onClick={(e) => e.stopPropagation()}>
-            <div className="flex flex-col items-center">
-                <Heart className="h-8 w-8 text-white drop-shadow-lg" />
-                <span className="text-[10px] font-black mt-1">4.2K</span>
+            <div className="flex flex-col items-center cursor-pointer group" onClick={toggleLike}>
+                <Heart className={cn("h-8 w-8 drop-shadow-lg transition-all active:scale-125", isLiked ? "fill-primary text-primary" : "text-white")} />
+                <span className="text-[10px] font-black mt-1">{likeCount}</span>
             </div>
             <div className="flex flex-col items-center">
                 <MessageCircle className="h-8 w-8 text-white drop-shadow-lg" />
-                <span className="text-[10px] font-black mt-1">12</span>
+                <span className="text-[10px] font-black mt-1">0</span>
             </div>
             <div className="flex flex-col items-center">
                 <Share2 className="h-8 w-8 text-white drop-shadow-lg" />
-                <span className="text-[10px] font-black mt-1">45</span>
+                <span className="text-[10px] font-black mt-1">0</span>
             </div>
             <MoreVertical className="h-6 w-6 text-white drop-shadow-lg" />
       </div>
