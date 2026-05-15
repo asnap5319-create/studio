@@ -30,7 +30,7 @@ export default function HomePage() {
   const items = useMemo(() => {
     if (!posts || !isClient) return [];
 
-    // Shuffle posts for a fresh feel every time
+    // Shuffle posts for a fresh feel
     const shuffledPosts = [...posts].sort(() => Math.random() - 0.5);
     
     const displayItems: { type: 'post' | 'ad'; data: any }[] = [];
@@ -38,7 +38,7 @@ export default function HomePage() {
     shuffledPosts.forEach((post, index) => {
       displayItems.push({ type: 'post', data: post });
       
-      // INSERT ADS EVERY 2 POSTS FOR MAXIMUM EARNING
+      // INSERT ADS EVERY 2nd POST FOR MAX EARNINGS
       if ((index + 1) % 2 === 0) {
         displayItems.push({
           type: 'ad',
@@ -47,8 +47,8 @@ export default function HomePage() {
             brandName: "A.snap Premium",
             brandLogo: "/logo.svg",
             mediaUrl: `https://picsum.photos/seed/ad-${index}/600/1000`,
-            caption: "Explore world-class products and exclusive offers! Upgrade your style today. #asnap #deals",
-            ctaText: "Shop Collection",
+            caption: "Explore world-class visual content and exclusive offers! Upgrade your experience today. #asnap #premium",
+            ctaText: "Explore Now",
             ctaUrl: "https://pl29411112.profitablecpmratenetwork.com/286ef4dc1c3c9afc429b42567c2d2b99/invoke.js",
             adUnitId: '286ef4dc1c3c9afc429b42567c2d2b99'
           }

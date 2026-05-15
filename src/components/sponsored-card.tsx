@@ -23,10 +23,12 @@ interface SponsoredCardProps {
 
 export function SponsoredCard({ ad }: SponsoredCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [isInView, setIsInView] = useState(false);
   
-  // Real-time social interaction state (Insta-style)
+  // Real-time social interaction state
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [commentCount, setCommentCount] = useState(0);
@@ -48,61 +50,76 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     setShareCount(prev => prev + 1);
   };
 
+  // Intersection Observer to detect when the ad is in view
   useEffect(() => {
-    if (!containerRef.current) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsInView(true);
+      }
+    }, { threshold: 0.5 });
 
+    if (cardRef.current) observer.observe(cardRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!containerRef.current || !isInView) return;
+
+    // Use a unique ID for the container for each ad instance
     const adUnitId = ad.adUnitId || '286ef4dc1c3c9afc429b42567c2d2b99';
-    const containerId = `container-${adUnitId}`;
+    const uniqueContainerId = `container-${adUnitId}-${ad.id}`;
     
-    // Clear previous content
     const parent = containerRef.current;
     parent.innerHTML = ''; 
 
-    // Create the container DIV that Adsterra script looks for
     const adWrapper = document.createElement('div');
-    adWrapper.id = containerId;
+    adWrapper.id = uniqueContainerId;
     adWrapper.className = "w-full flex justify-center items-center overflow-hidden min-h-[250px]";
     parent.appendChild(adWrapper);
 
-    // Create and append the script
     const script = document.createElement('script');
     script.src = `https://pl29411112.profitablecpmratenetwork.com/${adUnitId}/invoke.js`;
     script.async = true;
     script.setAttribute('data-cfasync', 'false');
     
     script.onload = () => {
-      setIsLoaded(true);
+      // Small delay to let the ad script render into the DOM
+      setTimeout(() => setIsLoaded(true), 1500);
     };
     script.onerror = () => {
       setHasError(true);
     };
 
-    // Append script after a short delay to ensure DOM is ready
-    const timeoutId = setTimeout(() => {
-        try {
-            parent.appendChild(script);
-        } catch (e) {
-            setHasError(true);
-        }
-    }, 500);
+    try {
+      parent.appendChild(script);
+    } catch (e) {
+      setHasError(true);
+    }
+
+    // Protection: If ad doesn't load in 5 seconds, show fallback
+    const timer = setTimeout(() => {
+      if (!isLoaded) setHasError(true);
+    }, 5000);
 
     return () => {
-      clearTimeout(timeoutId);
+      clearTimeout(timer);
       if (parent) parent.innerHTML = '';
     };
-  }, [ad.id, ad.adUnitId]);
+  }, [ad.id, ad.adUnitId, isInView, isLoaded]);
 
   return (
-    <div className="relative w-full h-screen bg-black flex flex-col items-center justify-center overflow-hidden select-none">
+    <div ref={cardRef} className="relative w-full h-screen bg-black flex flex-col items-center justify-center overflow-hidden select-none">
       
       {/* Top Header */}
       <div className="absolute top-0 left-0 right-0 z-30 p-4 pt-12 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent">
         <div className="flex items-center gap-2">
             <h2 className="text-2xl font-black italic tracking-tighter text-primary drop-shadow-[0_2px_10px_rgba(var(--primary),0.5)]">A.snap</h2>
         </div>
-        <p className="text-[10px] font-black text-white/80 uppercase tracking-[0.2em] bg-black/40 px-3 py-1 rounded-full border border-white/10 backdrop-blur-md">
-          Sponsored
-        </p>
+        <div className="flex flex-col items-end">
+          <p className="text-[10px] font-black text-white/90 uppercase tracking-[0.2em] bg-black/40 px-3 py-1 rounded-full border border-white/10 backdrop-blur-md">
+            Sponsored
+          </p>
+        </div>
       </div>
 
       {/* Main Content Area */}
@@ -113,7 +130,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
           ref={containerRef} 
           className={cn(
             "w-full flex justify-center items-center transition-all duration-1000",
-            isLoaded ? "opacity-100 scale-100" : "opacity-0 scale-95 absolute"
+            isLoaded && !hasError ? "opacity-100 scale-100" : "opacity-0 scale-95 absolute"
           )} 
         />
 
@@ -130,10 +147,10 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
 
                 <div className="relative z-20 text-center space-y-4 mb-8">
                     <div className="inline-block px-3 py-1 bg-primary rounded-lg shadow-lg animate-bounce">
-                        <p className="text-[10px] font-black uppercase text-white">Best Offer Live</p>
+                        <p className="text-[10px] font-black uppercase text-white">Featured Offer</p>
                     </div>
                     <h1 className="text-5xl font-black text-white italic leading-[0.9] drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)] uppercase">
-                        SPECIAL <br/> <span className="text-primary text-7xl">SALE</span> <br/> TODAY
+                        PREMIUM <br/> <span className="text-primary text-7xl">SALE</span> <br/> LIVE NOW
                     </h1>
                 </div>
 
@@ -141,7 +158,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
                     <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full scale-125 animate-pulse"></div>
                     <Image 
                         src={`https://picsum.photos/seed/${ad.id}/600/600`} 
-                        alt="Featured Product" 
+                        alt="Product" 
                         fill 
                         className="object-contain drop-shadow-[0_30px_60px_rgba(0,0,0,0.7)]"
                     />
@@ -166,7 +183,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
                     </Avatar>
                     <div className="flex flex-col">
                         <div className="flex items-center gap-1.5">
-                            <span className="font-black text-sm tracking-tight">asnap_ads</span>
+                            <span className="font-black text-sm tracking-tight">asnap_premium</span>
                             <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />
                         </div>
                     </div>
@@ -178,14 +195,14 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
           </div>
         )}
 
-        {!isLoaded && !hasError && (
+        {!isLoaded && !hasError && isInView && (
           <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md">
             <div className="relative">
                 <div className="absolute inset-0 blur-xl bg-primary/30 animate-pulse rounded-full"></div>
                 <Loader2 className="animate-spin h-10 w-10 text-primary relative z-10" />
             </div>
             <p className="mt-4 text-[10px] font-black uppercase tracking-[0.3em] text-primary/80 animate-pulse">
-                Fetching Real Ads...
+                Loading Official Ad...
             </p>
           </div>
         )}
