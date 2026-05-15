@@ -11,7 +11,6 @@ import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
 import { Heart, MessageCircle, Volume2, VolumeX, Share2, BadgeCheck, Loader2 } from 'lucide-react';
-import { Skeleton } from './ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -25,6 +24,9 @@ interface PostCardProps {
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
+// Global variable to keep track of mute state across components
+let globalMuted = true;
+
 export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { firestore } = useFirebase();
   const { user } = useUser();
@@ -35,7 +37,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const tapTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [isInView, setIsInView] = useState(isFocused);
-  const [isMuted, setIsMuted] = useState(true); // Default to muted for auto-play success
+  const [isMuted, setIsMuted] = useState(globalMuted); 
   const [showVolumeIcon, setShowVolumeIcon] = useState(false);
   const [showBigHeart, setShowBigHeart] = useState(false);
   const [isCommentSheetOpen, setIsCommentSheetOpen] = useState(false);
@@ -49,7 +51,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     return doc(firestore, 'users', post.userId);
   }, [firestore, post.userId]);
 
-  const { data: author, isLoading: isAuthorLoading } = useDoc<UserProfile>(authorRef);
+  const { data: author } = useDoc<UserProfile>(authorRef);
   
   const isProfileAdmin = author?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
@@ -74,11 +76,23 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                   post.mediaUrl.toLowerCase().includes('video') || 
                   post.mediaUrl.includes('res.cloudinary.com');
 
+  // Synchronize local mute state with global state when component is in view
+  useEffect(() => {
+    if (isInView) {
+      setIsMuted(globalMuted);
+    }
+  }, [isInView]);
+
   const toggleMute = () => {
     if (!isVideo || !videoRef.current) return;
-    const currentlyMuted = !isMuted;
-    videoRef.current.muted = currentlyMuted;
-    setIsMuted(currentlyMuted);
+    const newMuteState = !isMuted;
+    globalMuted = newMuteState; // Update global state
+    
+    // Update all video elements on screen (TikTok/Insta style)
+    const allVideos = document.querySelectorAll('video');
+    allVideos.forEach(v => { v.muted = newMuteState; });
+    
+    setIsMuted(newMuteState);
     setShowVolumeIcon(true);
     setTimeout(() => setShowVolumeIcon(false), 800);
   };
@@ -161,9 +175,11 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     if (!video) return;
     
     if (isInView) {
+      video.muted = globalMuted; // Always sync with global before playing
+      setIsMuted(globalMuted);
       video.play().catch(() => {
+          // If play fails due to audio policy, force mute and play
           video.muted = true;
-          setIsMuted(true);
           video.play().catch(() => {});
       });
       
@@ -208,7 +224,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       
       {showVolumeIcon && isVideo && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-          <div className="p-5 rounded-full bg-black/40">
+          <div className="p-5 rounded-full bg-black/40 backdrop-blur-md">
             {isMuted ? <VolumeX size={40} className="text-white" /> : <Volume2 size={40} className="text-white" />}
           </div>
         </div>
