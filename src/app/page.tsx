@@ -74,7 +74,7 @@ export default function HomePage() {
     <div className="h-screen bg-black overflow-y-scroll snap-y snap-mandatory scrollbar-hide relative touch-pan-y">
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
         <div className="flex items-center gap-4 pointer-events-auto">
-          <h1 className="text-3xl font-black text-primary italic tracking-tighter drop-shadow-[0_2px_15px_rgba(var(--primary),0.6)]">
+          <h1 className="text-3xl font-black text-primary italic tracking-tighter drop-shadow-[0_2px_15_rgba(var(--primary),0.6)]">
             A.snap
           </h1>
           <button 
