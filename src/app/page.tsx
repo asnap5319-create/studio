@@ -17,16 +17,16 @@ export default function HomePage() {
   const [displayItems, setDisplayItems] = useState<{ type: 'post' | 'ad'; data: any }[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Fetch the latest 60 posts to have a good pool for randomization
+  // Fetch pool of posts
   const postsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'), limit(60));
+    return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'), limit(50));
   }, [firestore]);
 
   const { data: posts, isLoading } = useCollection<Post>(postsQuery);
 
   /**
-   * Fisher-Yates Shuffle Algorithm for true randomization
+   * Fisher-Yates Shuffle Algorithm for dynamic randomization
    */
   const shuffleArray = useCallback((array: any[]) => {
     const newArray = [...array];
@@ -38,19 +38,18 @@ export default function HomePage() {
   }, []);
 
   /**
-   * Build the feed with shuffled posts and ads every 2nd item
+   * Build the feed with shuffled posts and ads interleaved
    */
   const buildFeed = useCallback(() => {
     if (!posts || posts.length === 0) return;
 
     setIsRefreshing(true);
     
-    // 1. Shuffle the posts pool
+    // Shuffle the pool for variety
     const shuffledPosts = shuffleArray(posts);
     
     const items: { type: 'post' | 'ad'; data: any }[] = [];
 
-    // 2. Interleave posts with Ads every 2nd post
     shuffledPosts.forEach((post, index) => {
       items.push({ type: 'post', data: post });
       
@@ -59,7 +58,7 @@ export default function HomePage() {
         items.push({
           type: 'ad',
           data: {
-            id: `ad-${index}-${post.id}-${Math.random().toString(36).substr(2, 9)}`,
+            id: `ad-${index}-${Math.random().toString(36).substring(7)}`,
             brandName: "A.snap Premium",
             brandLogo: "/logo.svg",
             mediaUrl: `https://picsum.photos/seed/ad-${index}-${Math.random()}/600/1000`,
@@ -73,12 +72,10 @@ export default function HomePage() {
     });
 
     setDisplayItems(items);
-    
-    // Small timeout to simulate refresh feel
-    setTimeout(() => setIsRefreshing(false), 500);
+    setTimeout(() => setIsRefreshing(false), 800);
   }, [posts, shuffleArray]);
 
-  // Initial load on client
+  // Handle hydration-safe initial feed build
   useEffect(() => {
     if (posts && posts.length > 0 && displayItems.length === 0) {
       buildFeed();
@@ -93,7 +90,6 @@ export default function HomePage() {
           <h1 className="text-3xl font-black text-primary italic tracking-tighter drop-shadow-[0_2px_15px_rgba(var(--primary),0.6)]">
             A.snap
           </h1>
-          {/* Refresh Button for User Control */}
           <button 
             onClick={buildFeed}
             className="p-2 bg-white/5 backdrop-blur-md rounded-full border border-white/10 active:rotate-180 transition-transform duration-500"
@@ -112,7 +108,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Loading Screen */}
+      {/* Main Feed Container */}
       {isLoading && displayItems.length === 0 ? (
         <div className="flex h-screen items-center justify-center bg-black">
           <div className="flex flex-col items-center gap-4">
@@ -120,12 +116,12 @@ export default function HomePage() {
                 <div className="absolute inset-0 blur-2xl bg-primary/20 animate-pulse rounded-full"></div>
                 <Loader2 className="animate-spin h-12 w-12 text-primary relative z-10" />
              </div>
-             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/60 animate-pulse">Algorithmic Feed...</p>
+             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/60 animate-pulse">Building Fresh Feed...</p>
           </div>
         </div>
       ) : displayItems.length > 0 ? (
-        displayItems.map((item, idx) => (
-          <div key={`${item.type}-${item.data.id || idx}`} className="h-screen w-full snap-start snap-always">
+        displayItems.map((item) => (
+          <div key={`${item.type}-${item.data.id}`} className="h-screen w-full snap-start snap-always">
             {item.type === 'post' ? (
               <PostCard post={item.data} />
             ) : (

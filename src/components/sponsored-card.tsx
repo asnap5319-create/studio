@@ -55,50 +55,67 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
         setIsInView(true);
+        console.log(`[AdDebug] Ad ${ad.id} is now in view. Starting load...`);
       }
     }, { threshold: 0.5 });
 
     if (cardRef.current) observer.observe(cardRef.current);
     return () => observer.disconnect();
-  }, []);
+  }, [ad.id]);
 
   useEffect(() => {
-    if (!containerRef.current || !isInView) return;
+    if (!containerRef.current || !isInView || isLoaded) return;
 
-    // Use a unique ID for the container for each ad instance
     const adUnitId = ad.adUnitId || '286ef4dc1c3c9afc429b42567c2d2b99';
     const uniqueContainerId = `container-${adUnitId}-${ad.id}`;
     
     const parent = containerRef.current;
     parent.innerHTML = ''; 
 
+    // Create a specific container that the script expects
     const adWrapper = document.createElement('div');
     adWrapper.id = uniqueContainerId;
-    adWrapper.className = "w-full flex justify-center items-center overflow-hidden min-h-[300px] transition-all duration-700";
+    adWrapper.className = "w-full flex justify-center items-center overflow-hidden min-h-[300px]";
     parent.appendChild(adWrapper);
 
+    // Create the Adsterra script
     const script = document.createElement('script');
     script.src = `https://pl29411112.profitablecpmratenetwork.com/${adUnitId}/invoke.js`;
     script.async = true;
     script.setAttribute('data-cfasync', 'false');
     
     script.onload = () => {
-      // Small delay to let the ad script render into the DOM
-      setTimeout(() => setIsLoaded(true), 2000);
+      console.log(`[AdDebug] Script loaded for ${ad.id}. Waiting for rendering...`);
+      // Give it time to render the iframe
+      setTimeout(() => {
+        const hasContent = adWrapper.innerHTML.length > 0;
+        if (hasContent) {
+          setIsLoaded(true);
+          console.log(`[AdDebug] Ad ${ad.id} rendered successfully.`);
+        } else {
+          console.warn(`[AdDebug] Ad ${ad.id} script loaded but no content rendered.`);
+        }
+      }, 3000);
     };
-    script.onerror = () => {
+
+    script.onerror = (e) => {
+      console.error(`[AdDebug] Script failed to load for ${ad.id}:`, e);
       setHasError(true);
     };
 
     try {
       parent.appendChild(script);
     } catch (e) {
+      console.error(`[AdDebug] Error appending script for ${ad.id}:`, e);
       setHasError(true);
     }
 
-    // Protection: If ad doesn't load in 8 seconds, show fallback
+    // Safety timeout: If ad doesn't load in 8 seconds, show fallback
     const timer = setTimeout(() => {
-      if (!isLoaded) setHasError(true);
+      if (!isLoaded) {
+        console.warn(`[AdDebug] Ad ${ad.id} timed out. Showing fallback.`);
+        setHasError(true);
+      }
     }, 8000);
 
     return () => {
@@ -110,7 +127,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
   return (
     <div ref={cardRef} className="relative w-full h-screen bg-black flex flex-col items-center justify-center overflow-hidden select-none">
       
-      {/* Dynamic Background Poster (Prevents Black Screen) */}
+      {/* Background Poster (Prevents Black Screen) */}
       <div className="absolute inset-0 z-0">
         <Image 
           src={`https://picsum.photos/seed/${ad.id}-reel/1080/1920`} 
@@ -143,11 +160,11 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
           ref={containerRef} 
           className={cn(
             "w-full flex justify-center items-center transition-all duration-1000 transform",
-            isLoaded && !hasError ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 translate-y-10 absolute"
+            isLoaded && !hasError ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 translate-y-10 absolute pointer-events-none"
           )} 
         />
 
-        {/* Premium Fallback UI (Always ready to show) */}
+        {/* Premium Fallback UI (Ensures NO BLACK SCREEN) */}
         {(!isLoaded || hasError) && (
           <div className="w-full max-w-[360px] animate-in fade-in zoom-in duration-500">
              <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.8)] bg-secondary/20 backdrop-blur-xl">
@@ -158,6 +175,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
                       alt="Product" 
                       fill 
                       className="object-cover" 
+                      data-ai-hint="luxury product"
                     />
                     <div className="absolute top-4 left-4">
                         <span className="bg-primary px-3 py-1 rounded-lg text-[10px] font-black uppercase text-white shadow-xl">Top Deal</span>
@@ -184,7 +202,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
 
         {/* Loading Spinner State */}
         {!isLoaded && !hasError && isInView && (
-          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/40 backdrop-blur-md">
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center pointer-events-none">
             <div className="relative">
                 <div className="absolute inset-0 blur-2xl bg-primary/40 animate-pulse rounded-full"></div>
                 <Loader2 className="animate-spin h-14 w-14 text-primary relative z-10" />
@@ -196,7 +214,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
         )}
       </div>
 
-      {/* Social Sidebar (Insta Style) */}
+      {/* Social Sidebar */}
       <div className="absolute right-4 bottom-24 flex flex-col gap-6 z-40 items-center" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center cursor-pointer group" onClick={toggleLike}>
                 <div className="relative p-3 bg-black/20 backdrop-blur-md rounded-full border border-white/5 hover:bg-black/40 transition-all">
