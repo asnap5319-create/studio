@@ -54,9 +54,8 @@ export default function HomePage() {
             id: adId,
             brandName: "A.snap Premium",
             brandLogo: "/logo.svg",
-            ctaText: "PLAY PREMIUM GAME",
-            // FIXED: Using a more reliable landing page format for Adsterra
-            ctaUrl: `https://${adDomain}/v79vzq8f?key=${adUnitId}`,
+            ctaText: "LEARN MORE",
+            ctaUrl: `https://${adDomain}`, // Fallback to domain if script is just code
             adUnitId: adUnitId,
             adScriptDomain: adDomain
           }
