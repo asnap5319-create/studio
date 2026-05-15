@@ -16,7 +16,6 @@ export default function HomePage() {
   const [displayItems, setDisplayItems] = useState<{ type: 'post' | 'ad'; data: any }[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Fetch pool of posts - limit 50 for good coverage
   const postsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'), limit(50));
@@ -24,9 +23,6 @@ export default function HomePage() {
 
   const { data: posts, isLoading } = useCollection<Post>(postsQuery);
 
-  /**
-   * Fisher-Yates Shuffle Algorithm for high-performance randomization
-   */
   const shuffleArray = useCallback((array: any[]) => {
     const newArray = [...array];
     for (let i = newArray.length - 1; i > 0; i--) {
@@ -36,23 +32,17 @@ export default function HomePage() {
     return newArray;
   }, []);
 
-  /**
-   * Build the feed with shuffled posts and ads interleaved every 2nd post
-   */
   const buildFeed = useCallback(() => {
     if (!posts || posts.length === 0) return;
 
     setIsRefreshing(true);
-    
-    // Shuffle the current posts
     const shuffledPosts = shuffleArray(posts);
-    
     const items: { type: 'post' | 'ad'; data: any }[] = [];
 
     shuffledPosts.forEach((post, index) => {
       items.push({ type: 'post', data: post });
       
-      // INSERT ADS EVERY 2nd POST for maximum earning
+      // INSERT ADS EVERY 2nd POST CONTINUOUSLY
       if ((index + 1) % 2 === 0) {
         items.push({
           type: 'ad',
@@ -82,7 +72,7 @@ export default function HomePage() {
   }, [posts, buildFeed, displayItems.length]);
 
   return (
-    <div className="h-screen bg-black overflow-y-scroll snap-y snap-mandatory scrollbar-hide relative">
+    <div className="h-screen bg-black overflow-y-scroll snap-y snap-mandatory scrollbar-hide relative touch-pan-y">
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
         <div className="flex items-center gap-4 pointer-events-auto">
           <h1 className="text-3xl font-black text-primary italic tracking-tighter drop-shadow-[0_2px_15px_rgba(var(--primary),0.6)]">
@@ -118,7 +108,7 @@ export default function HomePage() {
         </div>
       ) : displayItems.length > 0 ? (
         displayItems.map((item) => (
-          <div key={`${item.type}-${item.data.id}`} className="h-screen w-full snap-start snap-always">
+          <div key={`${item.type}-${item.data.id}`} className="h-screen w-full snap-start snap-always overflow-hidden flex flex-col">
             {item.type === 'post' ? (
               <PostCard post={item.data} />
             ) : (
