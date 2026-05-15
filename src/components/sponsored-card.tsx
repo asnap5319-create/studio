@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ChevronRight, Heart, MessageCircle, Share2, MoreVertical, BadgeCheck, Loader2, Sparkles } from 'lucide-react';
+import { ChevronRight, Heart, MessageCircle, Share2, BadgeCheck, Loader2, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -61,32 +61,32 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
   useEffect(() => {
     if (!containerRef.current || !isInView || isLoaded) return;
 
-    const adUnitId = ad.adUnitId || '286ef4dc1c3c9afc429b42567c2d2b99';
+    // Latest Ad ID from user
+    const adUnitId = ad.adUnitId || 'e915f8c7cce368f440d031fe8ec12184';
     const uniqueContainerId = `container-${adUnitId}-${ad.id}`;
     
     const parent = containerRef.current;
     parent.innerHTML = ''; 
 
-    // Create a wrapper for the ad
+    // Create wrapper
     const adWrapper = document.createElement('div');
     adWrapper.id = uniqueContainerId;
-    adWrapper.className = "w-full min-h-[300px] flex items-center justify-center overflow-hidden z-20";
+    adWrapper.className = "w-full min-h-[350px] flex items-center justify-center overflow-hidden z-20 rounded-2xl";
     parent.appendChild(adWrapper);
 
-    // Create the Adsterra script
+    // Adsterra Script Injection - NEW URL STRUCTURE
     const script = document.createElement('script');
-    script.src = `https://pl29411112.profitablecpmratenetwork.com/${adUnitId}/invoke.js`;
+    script.src = `https://pl29453309.profitablecpmratenetwork.com/e9/15/f8/${adUnitId}.js`;
     script.async = true;
     script.setAttribute('data-cfasync', 'false');
     
     script.onload = () => {
       console.log(`[Adsterra] Ad script loaded for ${ad.id}`);
-      // Give it some time to render
       setTimeout(() => {
         if (adWrapper.children.length > 0) {
           setIsLoaded(true);
         }
-      }, 2000);
+      }, 2500);
     };
 
     script.onerror = () => {
@@ -104,7 +104,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
   return (
     <div ref={cardRef} className="relative w-full h-screen bg-black overflow-hidden select-none">
       
-      {/* Background Layer (Fallback/Poster) */}
+      {/* Background Fullscreen Visual (Fallback/Poster) */}
       <div className="absolute inset-0 z-0">
         <Image 
           src={ad.mediaUrl || `https://picsum.photos/seed/${ad.id}-bg/1080/1920`} 
@@ -113,98 +113,100 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
           className="object-cover opacity-60"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/90" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-black/95" />
       </div>
 
-      {/* Header Info */}
+      {/* Premium Header */}
       <div className="absolute top-0 left-0 right-0 z-30 p-6 pt-12 flex items-center justify-between pointer-events-none">
-        <h2 className="text-3xl font-black italic tracking-tighter text-primary drop-shadow-[0_2px_15px_rgba(var(--primary),0.6)] pointer-events-auto">A.snap</h2>
-        <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-xl px-4 py-1.5 rounded-full border border-white/10 pointer-events-auto">
+        <h2 className="text-4xl font-black italic tracking-tighter text-primary drop-shadow-[0_2px_15px_rgba(var(--primary),0.7)] pointer-events-auto">A.snap</h2>
+        <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-2xl px-5 py-2 rounded-full border border-white/10 pointer-events-auto">
           <Sparkles className="h-3 w-3 text-primary animate-pulse" />
-          <p className="text-[10px] font-black text-white uppercase tracking-widest">Sponsored</p>
+          <p className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Sponsored</p>
         </div>
       </div>
 
-      {/* Main Ad Area */}
-      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-4">
+      {/* Main Content Area */}
+      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6">
         <div 
           ref={containerRef} 
           className={cn(
             "w-full transition-all duration-700",
-            isLoaded ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
+            isLoaded ? "opacity-100 scale-100" : "opacity-0 scale-90 pointer-events-none"
           )} 
         />
 
         {!isLoaded && !hasError && isInView && (
           <div className="flex flex-col items-center justify-center">
             <div className="relative">
-                <div className="absolute inset-0 blur-2xl bg-primary/40 animate-pulse rounded-full"></div>
+                <div className="absolute inset-0 blur-3xl bg-primary/40 animate-pulse rounded-full"></div>
                 <Loader2 className="animate-spin h-14 w-14 text-primary relative z-10" />
             </div>
-            <p className="mt-6 text-[10px] font-black uppercase tracking-[0.4em] text-white animate-pulse">
-                Fetching Best Offer...
+            <p className="mt-8 text-[11px] font-black uppercase tracking-[0.5em] text-white animate-pulse">
+                Fetching Offer...
             </p>
           </div>
         )}
         
-        {hasError && (
-          <div className="text-center p-6 bg-white/5 backdrop-blur-md rounded-3xl border border-white/10 max-w-xs">
-            <Sparkles className="w-10 h-10 text-primary mx-auto mb-4" />
-            <h3 className="font-black uppercase text-sm mb-2">Exclusive Offer</h3>
-            <p className="text-xs text-muted-foreground mb-4">Click below to check out this premium collection.</p>
-            <Button className="w-full rounded-xl bg-primary" onClick={() => window.open(ad.ctaUrl, '_blank')}>
-              View More
+        {(hasError || (!isLoaded && !isInView)) && (
+          <div className="text-center p-8 bg-black/60 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 max-w-xs shadow-2xl animate-in zoom-in-90 duration-500">
+            <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <Sparkles className="w-8 h-8 text-primary" />
+            </div>
+            <h3 className="font-black uppercase text-base mb-2 tracking-tight">Premium Selection</h3>
+            <p className="text-[11px] text-muted-foreground mb-6 uppercase tracking-widest leading-relaxed">Exclusive deals curated for you.</p>
+            <Button className="w-full h-12 rounded-xl bg-primary font-black uppercase text-xs tracking-widest shadow-xl" onClick={() => window.open(ad.ctaUrl, '_blank')}>
+              Explore Now
             </Button>
           </div>
         )}
       </div>
 
-      {/* Social Sidebar */}
-      <div className="absolute right-4 bottom-32 flex flex-col gap-6 z-40 items-center" onClick={(e) => e.stopPropagation()}>
-            <div className="flex flex-col items-center cursor-pointer" onClick={toggleLike}>
-                <div className="p-3 bg-black/30 backdrop-blur-md rounded-full border border-white/10 active:scale-150 transition-transform">
+      {/* Sidebar Controls (Reel Style) */}
+      <div className="absolute right-4 bottom-32 flex flex-col gap-7 z-40 items-center" onClick={(e) => e.stopPropagation()}>
+            <div className="flex flex-col items-center cursor-pointer group" onClick={toggleLike}>
+                <div className="p-3 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 group-active:scale-150 transition-all shadow-xl">
                     <Heart className={cn("h-8 w-8", isLiked ? "fill-primary text-primary" : "text-white")} />
                 </div>
-                <span className="text-[11px] font-black mt-1.5 text-white">{likeCount}</span>
+                <span className="text-[12px] font-black mt-2 text-white drop-shadow-md">{likeCount}</span>
             </div>
             
-            <div className="flex flex-col items-center cursor-pointer" onClick={incrementComment}>
-                <div className="p-3 bg-black/30 backdrop-blur-md rounded-full border border-white/10 active:scale-125 transition-transform">
+            <div className="flex flex-col items-center cursor-pointer group" onClick={incrementComment}>
+                <div className="p-3 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 group-active:scale-125 transition-all shadow-xl">
                   <MessageCircle className="h-8 w-8 text-white" />
                 </div>
-                <span className="text-[11px] font-black mt-1.5 text-white">{commentCount}</span>
+                <span className="text-[12px] font-black mt-2 text-white drop-shadow-md">{commentCount}</span>
             </div>
             
-            <div className="flex flex-col items-center cursor-pointer" onClick={incrementShare}>
-                <div className="p-3 bg-black/30 backdrop-blur-md rounded-full border border-white/10 active:rotate-12 transition-transform">
+            <div className="flex flex-col items-center cursor-pointer group" onClick={incrementShare}>
+                <div className="p-3 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 group-active:rotate-12 transition-all shadow-xl">
                   <Share2 className="h-8 w-8 text-white" />
                 </div>
-                <span className="text-[11px] font-black mt-1.5 text-white">{shareCount}</span>
+                <span className="text-[12px] font-black mt-2 text-white drop-shadow-md">{shareCount}</span>
             </div>
       </div>
 
-      {/* Bottom CTA Area */}
-      <div className="absolute bottom-0 left-0 right-0 p-6 pb-20 bg-gradient-to-t from-black via-black/40 to-transparent text-white z-30 space-y-4">
+      {/* Bottom Info & CTA */}
+      <div className="absolute bottom-0 left-0 right-0 p-6 pb-24 bg-gradient-to-t from-black via-black/50 to-transparent text-white z-30 space-y-5">
           <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10 border-2 border-primary">
+              <Avatar className="h-11 w-11 border-2 border-primary shadow-xl">
                   <AvatarImage src="/logo.svg" />
                   <AvatarFallback>A</AvatarFallback>
               </Avatar>
               <div className="flex items-center gap-1.5">
-                  <span className="font-black text-sm tracking-tight">{ad.brandName}</span>
+                  <span className="font-black text-[15px] tracking-tight">{ad.brandName}</span>
                   <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />
               </div>
           </div>
           
-          <p className="text-sm font-bold leading-relaxed pr-16 line-clamp-2 opacity-90">
+          <p className="text-sm font-bold leading-relaxed pr-16 line-clamp-2 opacity-95 drop-shadow-md">
               {ad.caption}
           </p>
 
           <Button 
             onClick={() => window.open(ad.ctaUrl || '#', '_blank')} 
-            className="w-full h-14 bg-white text-black hover:bg-white/90 rounded-2xl font-black flex justify-between px-6 items-center shadow-2xl active:scale-95 transition-transform"
+            className="w-full h-15 bg-white text-black hover:bg-white/90 rounded-2xl font-black flex justify-between px-7 items-center shadow-[0_10px_30px_rgba(0,0,0,0.5)] active:scale-95 transition-all border-none"
           >
-              <span className="text-xs uppercase tracking-[0.2em]">{ad.ctaText || 'Explore Now'}</span>
+              <span className="text-[11px] uppercase tracking-[0.25em]">{ad.ctaText || 'Learn More'}</span>
               <ChevronRight className="h-5 w-5 text-primary" />
           </Button>
       </div>

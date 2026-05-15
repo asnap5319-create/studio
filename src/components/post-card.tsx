@@ -35,7 +35,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const tapTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [isInView, setIsInView] = useState(isFocused);
-  const [isMuted, setIsMuted] = useState(false); // Start unmuted but handle browser policy
+  const [isMuted, setIsMuted] = useState(true); // Default to muted for auto-play success
   const [showVolumeIcon, setShowVolumeIcon] = useState(false);
   const [showBigHeart, setShowBigHeart] = useState(false);
   const [isCommentSheetOpen, setIsCommentSheetOpen] = useState(false);
@@ -72,8 +72,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const isVideo = post.mediaUrl.toLowerCase().includes('.mp4') || 
                   post.mediaUrl.toLowerCase().includes('.mov') || 
                   post.mediaUrl.toLowerCase().includes('video') || 
-                  post.mediaUrl.includes('res.cloudinary.com') ||
-                  post.mediaUrl.includes('firebasestorage.googleapis.com');
+                  post.mediaUrl.includes('res.cloudinary.com');
 
   const toggleMute = () => {
     if (!isVideo || !videoRef.current) return;
@@ -162,8 +161,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     if (!video) return;
     
     if (isInView) {
-      video.play().catch(err => {
-          // If browser blocks autoplay with audio, mute and try again
+      video.play().catch(() => {
           video.muted = true;
           setIsMuted(true);
           video.play().catch(() => {});
@@ -182,29 +180,26 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   return (
     <div ref={cardRef} className="relative w-full h-full bg-black overflow-hidden select-none" onClick={handleTap}>
       {isVideo ? (
-        <>
-          <video 
-              ref={videoRef} 
-              src={post.mediaUrl} 
-              className="object-contain w-full h-full" 
-              loop 
-              playsInline 
-              muted={isMuted} 
-              preload="auto" 
-              onLoadStart={() => setIsVideoLoading(true)}
-              onCanPlay={() => setIsVideoLoading(false)}
-          />
-          {isVideoLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px] z-20">
-              <Loader2 className="w-10 h-10 text-primary animate-spin" />
-            </div>
-          )}
-        </>
+        <video 
+            ref={videoRef} 
+            src={post.mediaUrl} 
+            className="object-contain w-full h-full" 
+            loop 
+            playsInline 
+            muted={isMuted} 
+            preload="auto" 
+            onCanPlay={() => setIsVideoLoading(false)}
+        />
       ) : (
         <Image src={post.mediaUrl} alt={post.caption || 'Post'} fill className="object-contain" priority />
       )}
 
-      {/* Social Overlays */}
+      {isVideo && isVideoLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-20">
+          <Loader2 className="w-10 h-10 text-primary animate-spin" />
+        </div>
+      )}
+
       {showBigHeart && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
           <Heart className="w-32 h-32 text-primary fill-primary animate-heart-pop" />
@@ -213,47 +208,39 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       
       {showVolumeIcon && isVideo && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-          <div className="p-5 rounded-full bg-black/40 backdrop-blur-sm">
+          <div className="p-5 rounded-full bg-black/40">
             {isMuted ? <VolumeX size={40} className="text-white" /> : <Volume2 size={40} className="text-white" />}
           </div>
         </div>
       )}
 
-      {/* Bottom Content Info */}
       <div className="absolute bottom-0 left-0 right-0 p-4 pb-20 bg-gradient-to-t from-black via-black/40 to-transparent text-white z-10" onClick={(e) => e.stopPropagation()}>
-        {isAuthorLoading ? (
-            <div className="flex items-center gap-2">
-                <Skeleton className="h-10 w-10 rounded-full" /><Skeleton className="h-4 w-24" />
-            </div>
-        ) : (
-          author && (
-            <div className="flex items-center gap-3 mb-3">
-              <Link href={`/profile/${author.id}`} className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                <Avatar className="h-11 w-11 border-2 border-primary">
-                  <AvatarImage src={author.profileImageUrl} className="object-cover" />
-                  <AvatarFallback>{author.name?.[0]}</AvatarFallback>
-                </Avatar>
-                <div className="flex items-center gap-1">
-                    <p className="font-bold text-[15px] drop-shadow-lg">{author.username}</p>
-                    {isProfileAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />}
-                </div>
-              </Link>
-              {!isOwnPost && (
-                <button className="px-3 py-1 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full text-xs font-bold transition-colors" onClick={handleFollowToggle}>
-                  {isFollowing ? 'Following' : 'Follow'}
-                </button>
-              )}
-            </div>
-          )
+        {author && (
+          <div className="flex items-center gap-3 mb-3">
+            <Link href={`/profile/${author.id}`} className="flex items-center gap-2">
+              <Avatar className="h-11 w-11 border-2 border-primary">
+                <AvatarImage src={author.profileImageUrl} className="object-cover" />
+                <AvatarFallback>{author.name?.[0]}</AvatarFallback>
+              </Avatar>
+              <div className="flex items-center gap-1">
+                  <p className="font-bold text-[15px]">{author.username}</p>
+                  {isProfileAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />}
+              </div>
+            </Link>
+            {!isOwnPost && (
+              <button className="px-3 py-1 bg-white/10 rounded-full text-xs font-bold" onClick={handleFollowToggle}>
+                {isFollowing ? 'Following' : 'Follow'}
+              </button>
+            )}
+          </div>
         )}
         <p className="text-sm line-clamp-2 drop-shadow-md pr-12">{post.caption}</p>
       </div>
 
-      {/* Right Side Actions */}
       <div className="absolute right-3 bottom-24 flex flex-col gap-6 z-10" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center">
                 <Button variant="ghost" size="icon" className="text-white h-12 w-12 hover:bg-transparent" onClick={isLiked ? handleUnlike : handleLike}>
-                    <Heart className={cn("h-9 w-9 transition-all active:scale-125", isLiked ? "fill-primary text-primary" : "text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]")} />
+                    <Heart className={cn("h-9 w-9 transition-all active:scale-125", isLiked ? "fill-primary text-primary" : "text-white drop-shadow-md")} />
                 </Button>
                 <span className="text-xs font-bold mt-1 drop-shadow-md">{post.likeCount}</span>
             </div>
@@ -262,7 +249,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                 <Sheet open={isCommentSheetOpen} onOpenChange={setIsCommentSheetOpen}>
                   <SheetTrigger asChild>
                     <Button variant="ghost" size="icon" className="text-white h-12 w-12 hover:bg-transparent">
-                        <MessageCircle className="h-9 w-9 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+                        <MessageCircle className="h-9 w-9 drop-shadow-md" />
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-2xl overflow-hidden border-border bg-background">
@@ -276,7 +263,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                 <Sheet open={isShareSheetOpen} onOpenChange={setIsShareSheetOpen}>
                   <SheetTrigger asChild>
                     <Button variant="ghost" size="icon" className="text-white h-12 w-12 hover:bg-transparent">
-                        <Share2 className="h-9 w-9 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+                        <Share2 className="h-9 w-9 drop-shadow-md" />
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-2xl overflow-hidden border-border bg-background">
