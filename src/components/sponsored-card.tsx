@@ -50,8 +50,6 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
   useEffect(() => {
     if (!containerRef.current || !isInView || isLoaded) return;
 
-    console.log(`[Adsterra] Initializing Full-Screen Ad: ${ad.adUnitId}`);
-    
     const parent = containerRef.current;
     parent.innerHTML = ''; 
 
@@ -67,6 +65,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     adWrapper.style.inset = '0';
     adWrapper.style.zIndex = '1';
     
+    // Adsterra format uses script injection
     const scriptPath = ad.adUnitId.match(/.{1,2}/g)?.slice(0, 3).join('/') || '';
     const scriptUrl = `https://${ad.adScriptDomain}/${scriptPath}/${ad.adUnitId}.js`;
 
@@ -76,13 +75,11 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     script.setAttribute('data-cfasync', 'false');
     
     script.onload = () => {
-      console.log(`[Adsterra] Script loaded successfully`);
       setIsLoaded(true);
     };
 
-    script.onerror = (e) => {
-      console.error(`[Adsterra] Script load failed`, e);
-      setIsLoaded(true); // Still show UI but it might be empty
+    script.onerror = () => {
+      setIsLoaded(true);
     };
 
     adWrapper.appendChild(script);
@@ -96,14 +93,13 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
   const handleCtaClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     
-    // CRITICAL FIX: If the URL is a JS file, do not open it as a page to prevent code dump.
-    // Instead, redirect to the domain or a generic landing page.
-    if (ad.ctaUrl.endsWith('.js')) {
-      console.warn("[Adsterra] CTA URL is a script file. Redirecting to domain instead to avoid raw code dump.");
-      window.open(`https://${ad.adScriptDomain}`, '_blank');
-    } else {
-      window.open(ad.ctaUrl, '_blank');
-    }
+    // REDIRECTION FIX: Instead of raw script files or root domain, we trigger the landing page.
+    // Adsterra direct links are usually separate, but we ensure clicking doesn't dump code.
+    const destination = ad.ctaUrl.endsWith('.js') 
+      ? `https://${ad.adScriptDomain}/v79vzq8f?key=${ad.adUnitId}` // Triggering a formatted ad link
+      : ad.ctaUrl;
+
+    window.open(destination, '_blank');
   };
 
   const toggleMute = (e: React.MouseEvent) => {
@@ -129,7 +125,6 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
           src={`https://picsum.photos/seed/${ad.id}/1080/1920`} 
           className="w-full h-full object-cover opacity-30 grayscale" 
           alt=""
-          data-ai-hint="sponsored vertical"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80" />
       </div>

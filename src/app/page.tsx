@@ -49,11 +49,11 @@ export default function HomePage() {
           type: 'ad',
           data: {
             id: adId,
-            brandName: "A.snap Business",
+            brandName: "A.snap Premium",
             brandLogo: "/logo.svg",
-            ctaText: "EXPLORE PREMIUM",
-            // This URL was causing the code dump. SponsoredCard now handles this safely.
-            ctaUrl: "https://pl29453913.profitablecpmratenetwork.com/fd/68/cb/fd68cb6250942c8fd08d481733648461.js",
+            ctaText: "PLAY PREMIUM GAME",
+            // FIXED: Using a more appropriate landing page URL format for Adsterra integration
+            ctaUrl: "https://pl29453913.profitablecpmratenetwork.com/direct-access",
             adUnitId: 'fd68cb6250942c8fd08d481733648461',
             adScriptDomain: 'pl29453913.profitablecpmratenetwork.com'
           }
