@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -150,7 +151,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => { 
         setIsInView(entry.isIntersecting); 
-    }, { threshold: 0.6 }); // Improved sensitivity
+    }, { threshold: 0.8 }); // HIGH SENSITIVITY for better playback
     if (cardRef.current) observer.observe(cardRef.current);
     return () => observer.disconnect();
   }, []);
@@ -204,7 +205,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
           </div>
         </div>
       )}
-      <div className="absolute bottom-0 left-0 right-0 p-4 pb-20 bg-gradient-to-t from-black/95 via-black/40 to-transparent text-white z-10" onClick={(e) => e.stopPropagation()}>
+      <div className="absolute bottom-0 left-0 right-0 p-4 pb-20 bg-gradient-to-t from-black via-black/40 to-transparent text-white z-10" onClick={(e) => e.stopPropagation()}>
         {isAuthorLoading ? (
             <div className="flex items-center gap-2">
                 <Skeleton className="h-10 w-10 rounded-full" /><Skeleton className="h-4 w-24" />
