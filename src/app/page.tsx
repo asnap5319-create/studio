@@ -49,11 +49,9 @@ export default function HomePage() {
           type: 'ad',
           data: {
             id: adId,
-            brandName: "A.snap Premium",
+            brandName: "Sponsored Ad",
             brandLogo: "/logo.svg",
-            mediaUrl: "https://res.cloudinary.com/dipz5jsls/video/upload/v1740316496/u0t9yub78h5y1q6c5o2y.mp4",
-            caption: "Get the ultimate immersive experience with A.snap Premium. No more interruptions! #asnap #reels #india",
-            ctaText: "EXPLORE PREMIUM",
+            ctaText: "EXPLORE NOW",
             ctaUrl: "https://pl29453913.profitablecpmratenetwork.com/fd/68/cb/fd68cb6250942c8fd08d481733648461.js",
             adUnitId: 'fd68cb6250942c8fd08d481733648461',
             adScriptDomain: 'pl29453913.profitablecpmratenetwork.com'

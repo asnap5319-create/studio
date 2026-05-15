@@ -2,13 +2,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ChevronRight, Heart, MessageCircle, Share2, BadgeCheck, Loader2, Sparkles, Volume2, VolumeX } from 'lucide-react';
-import Image from 'next/image';
+import { ChevronRight, Heart, MessageCircle, Share2, BadgeCheck, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 
-// Global variable to sync mute state from PostCard
+// Global mute state sync
 let globalMuted = true;
 
 interface SponsoredCardProps {
@@ -16,8 +14,6 @@ interface SponsoredCardProps {
     id: string;
     brandName: string;
     brandLogo: string;
-    mediaUrl: string;
-    caption: string;
     ctaText: string;
     ctaUrl: string;
     adUnitId: string;
@@ -28,30 +24,12 @@ interface SponsoredCardProps {
 export function SponsoredCard({ ad }: SponsoredCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
   
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(false);
   const [isMuted, setIsMuted] = useState(globalMuted);
-  const [showVolumeIcon, setShowVolumeIcon] = useState(false);
-  
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(Math.floor(Math.random() * 5000) + 1000);
-
-  // Sync mute state globally
-  const toggleMute = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const newMuteState = !isMuted;
-    globalMuted = newMuteState;
-    
-    // Update all video elements
-    const allVideos = document.querySelectorAll('video');
-    allVideos.forEach(v => { v.muted = newMuteState; });
-    
-    setIsMuted(newMuteState);
-    setShowVolumeIcon(true);
-    setTimeout(() => setShowVolumeIcon(false), 800);
-  };
 
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => {
@@ -62,66 +40,50 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     return () => observer.disconnect();
   }, []);
 
-  // Handle Video Playback & Mute Sync
-  useEffect(() => {
-    if (videoRef.current) {
-      if (isInView) {
-        setIsMuted(globalMuted);
-        videoRef.current.muted = globalMuted;
-        videoRef.current.play().catch((err) => {
-            console.warn("[Video] Autoplay blocked, playing muted.", err);
-            videoRef.current!.muted = true;
-            videoRef.current!.play().catch(() => {});
-        });
-      } else {
-        videoRef.current.pause();
-      }
-    }
-  }, [isInView]);
-
-  // Load Adsterra Script with requested CSS Fixes
+  // Adsterra Script Injection with Requested CSS Fixes
   useEffect(() => {
     if (!containerRef.current || !isInView || isLoaded) return;
 
-    const adUnitId = ad.adUnitId;
-    const adScriptDomain = ad.adScriptDomain;
-    
-    console.log(`[Adsterra] Initializing unit: ${adUnitId}`);
+    console.log(`[Adsterra] Root Debug: Initializing Ad Unit ${ad.adUnitId}`);
     
     const parent = containerRef.current;
     parent.innerHTML = ''; 
 
-    // Create a container that strictly follows the requested CSS
+    // Create the Ad Container with EXACT requested CSS
     const adWrapper = document.createElement('div');
-    adWrapper.id = `ad-container-${adUnitId}`;
+    adWrapper.id = `at-container-${ad.adUnitId}`;
     adWrapper.style.width = '100%';
     adWrapper.style.height = '100%';
     adWrapper.style.display = 'flex';
     adWrapper.style.justifyContent = 'center';
     adWrapper.style.alignItems = 'center';
     adWrapper.style.overflow = 'hidden';
-    adWrapper.style.zIndex = '50';
+    adWrapper.style.position = 'relative';
+    adWrapper.style.zIndex = '1';
     
-    parent.appendChild(adWrapper);
-
-    const scriptPath = adUnitId.match(/.{1,2}/g)?.slice(0, 3).join('/') || '';
-    const scriptUrl = `https://${adScriptDomain}/${scriptPath}/${adUnitId}.js`;
+    // Applying the specific fix for video ads
+    const scriptPath = ad.adUnitId.match(/.{1,2}/g)?.slice(0, 3).join('/') || '';
+    const scriptUrl = `https://${ad.adScriptDomain}/${scriptPath}/${ad.adUnitId}.js`;
 
     const script = document.createElement('script');
     script.src = scriptUrl;
     script.async = true;
     script.setAttribute('data-cfasync', 'false');
     
+    // WebView Optimization simulated via attributes
+    script.setAttribute('data-media-playback-requires-gesture', 'false');
+    
     script.onload = () => {
-      console.log(`[Adsterra] Script loaded successfully: ${adUnitId}`);
+      console.log(`[Adsterra] Script Successfully Injected. Creative should render in container.`);
       setIsLoaded(true);
     };
 
     script.onerror = (e) => {
-      console.error(`[Adsterra] Script load failed: ${adUnitId}`, e);
+      console.error(`[Adsterra] Critical Error: Script failed to load for ${ad.adUnitId}`, e);
     };
 
-    parent.appendChild(script);
+    adWrapper.appendChild(script);
+    parent.appendChild(adWrapper);
 
     return () => {
       if (parent) parent.innerHTML = '';
@@ -131,57 +93,44 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
   return (
     <div 
       ref={cardRef} 
-      className="relative w-full h-full bg-black overflow-hidden flex flex-col snap-start snap-always" 
+      className="relative w-full h-screen bg-black overflow-hidden flex flex-col snap-start snap-always" 
       onClick={() => window.open(ad.ctaUrl, '_blank')}
     >
-      {/* 1. Immersive Video/Media Content (Fallback & Background) */}
-      <div className="absolute inset-0 z-0">
-        <video 
-          ref={videoRef}
-          src={ad.mediaUrl} 
-          className="w-full h-full object-cover"
-          loop
-          muted={isMuted}
-          playsInline
-          autoPlay
-          preload="auto"
-          poster={`https://picsum.photos/seed/${ad.id}/1080/1920`}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/90" />
-      </div>
-
-      {/* 2. Actual Ad Script Container (Injected Creative) */}
+      {/* Adsterra Real Creative Container - No Placeholder background */}
       <div 
         ref={containerRef} 
-        className="absolute inset-0 z-10 pointer-events-none"
+        className="absolute inset-0 z-10"
         style={{ 
           width: '100%', 
           height: '100%', 
           display: 'flex', 
           justifyContent: 'center', 
-          alignItems: 'center' 
+          alignItems: 'center',
+          backgroundColor: '#000' // Solid black to prevent seeing through
         }} 
       />
 
-      {/* Mute Toggle Overlay */}
-      {showVolumeIcon && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-40">
-          <div className="p-5 rounded-full bg-black/40 backdrop-blur-md">
-            {isMuted ? <VolumeX size={40} className="text-white" /> : <Volume2 size={40} className="text-white" />}
-          </div>
-        </div>
-      )}
-
-      {/* Ad Header */}
+      {/* Ad Overlay UI - Minimalist like Instagram */}
       <div className="absolute top-0 left-0 right-0 z-30 p-6 pt-12 flex items-center justify-between pointer-events-none">
-        <h2 className="text-3xl font-black italic tracking-tighter text-primary drop-shadow-[0_2px_15px_rgba(var(--primary),0.7)]">A.snap</h2>
-        <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-3xl px-4 py-1.5 rounded-full border border-white/10">
-          <Sparkles className="h-3 w-3 text-primary animate-pulse" />
-          <p className="text-[10px] font-black text-white uppercase tracking-widest">Sponsored</p>
+        <div className="flex items-center gap-3 pointer-events-auto">
+            <div className="w-10 h-10 rounded-full bg-secondary border border-white/10 flex items-center justify-center overflow-hidden">
+                {/* Brand Logo or Ad ID Placeholder */}
+                <div className="font-black text-[10px] text-primary">AD</div>
+            </div>
+            <div className="flex flex-col">
+                <div className="flex items-center gap-1.5">
+                    <span className="font-black text-sm tracking-tight text-white drop-shadow-md">{ad.brandName}</span>
+                    <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />
+                </div>
+                <div className="flex items-center gap-1 opacity-80">
+                    <Sparkles className="h-2 w-2 text-primary" />
+                    <span className="text-[10px] font-bold text-white uppercase tracking-widest">Sponsored</span>
+                </div>
+            </div>
         </div>
       </div>
 
-      {/* Social Sidebar */}
+      {/* Sidebar Controls */}
       <div className="absolute right-3 bottom-24 flex flex-col gap-6 z-40 items-center" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center">
                 <Button 
@@ -203,41 +152,19 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
                 <Button variant="ghost" size="icon" className="text-white h-12 w-12 hover:bg-transparent" onClick={(e) => e.stopPropagation()}>
                   <MessageCircle className="h-9 w-9 drop-shadow-md" />
                 </Button>
-                <span className="text-xs font-bold mt-1 text-white drop-shadow-md">{Math.floor(likeCount/10)}</span>
+                <span className="text-xs font-bold mt-1 text-white drop-shadow-md">{Math.floor(likeCount/12)}</span>
             </div>
 
-            <div className="flex flex-col items-center" onClick={toggleMute}>
-                <Button variant="ghost" size="icon" className="text-white h-12 w-12 hover:bg-transparent">
-                  {isMuted ? <VolumeX className="h-9 w-9 drop-shadow-md" /> : <Volume2 className="h-9 w-9 drop-shadow-md" />}
-                </Button>
-                <span className="text-xs font-bold mt-1 text-white drop-shadow-md">{isMuted ? 'Muted' : 'Sound'}</span>
-            </div>
-            
-            <div className="flex flex-col items-center" onClick={(e) => { e.stopPropagation(); window.open(ad.ctaUrl, '_blank'); }}>
-                <Button variant="ghost" size="icon" className="text-white h-12 w-12 hover:bg-transparent">
+            <div className="flex flex-col items-center">
+                <Button variant="ghost" size="icon" className="text-white h-12 w-12 hover:bg-transparent" onClick={(e) => e.stopPropagation()}>
                   <Share2 className="h-9 w-9 drop-shadow-md" />
                 </Button>
                 <span className="text-xs font-bold mt-1 text-white drop-shadow-md">Share</span>
             </div>
       </div>
 
-      {/* Bottom Information and CTA */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 pb-24 bg-gradient-to-t from-black via-black/20 to-transparent text-white z-30 space-y-4 pointer-events-none">
-          <div className="flex items-center gap-3 pointer-events-auto">
-              <Avatar className="h-10 w-10 border-2 border-primary shadow-2xl">
-                  <AvatarImage src={ad.brandLogo} className="object-cover" />
-                  <AvatarFallback className="bg-primary/20 text-primary">AD</AvatarFallback>
-              </Avatar>
-              <div className="flex items-center gap-1.5">
-                  <span className="font-black text-[15px] tracking-tight">{ad.brandName}</span>
-                  <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />
-              </div>
-          </div>
-          
-          <p className="text-sm font-bold leading-relaxed pr-20 line-clamp-2 opacity-90 drop-shadow-md pointer-events-auto">
-              {ad.caption}
-          </p>
-
+      {/* Bottom CTA Button */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 pb-24 bg-gradient-to-t from-black via-transparent to-transparent z-30 pointer-events-none">
           <Button 
             className="w-full h-14 bg-white text-black hover:bg-white/95 rounded-2xl font-black flex justify-between px-6 items-center shadow-2xl pointer-events-auto active:scale-95 transition-all"
             onClick={() => window.open(ad.ctaUrl, '_blank')}
