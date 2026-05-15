@@ -42,10 +42,8 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
   const toggleMute = (e: React.MouseEvent) => {
     e.stopPropagation();
     const newMuteState = !isMuted;
-    // Update global reference for other cards
-    (window as any).globalMuted = newMuteState;
     globalMuted = newMuteState;
-
+    
     // Update all video elements
     const allVideos = document.querySelectorAll('video');
     allVideos.forEach(v => { v.muted = newMuteState; });
@@ -68,9 +66,10 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
   useEffect(() => {
     if (videoRef.current) {
       if (isInView) {
-        setIsMuted((window as any).globalMuted ?? globalMuted);
-        videoRef.current.muted = (window as any).globalMuted ?? globalMuted;
-        videoRef.current.play().catch(() => {
+        setIsMuted(globalMuted);
+        videoRef.current.muted = globalMuted;
+        videoRef.current.play().catch((err) => {
+            console.warn("[Video] Autoplay blocked, playing muted.", err);
             videoRef.current!.muted = true;
             videoRef.current!.play().catch(() => {});
         });
@@ -80,20 +79,29 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     }
   }, [isInView]);
 
-  // Load Adsterra Script
+  // Load Adsterra Script with requested CSS Fixes
   useEffect(() => {
     if (!containerRef.current || !isInView || isLoaded) return;
 
     const adUnitId = ad.adUnitId;
     const adScriptDomain = ad.adScriptDomain;
-    const uniqueContainerId = `container-${adUnitId}-${ad.id}`;
+    
+    console.log(`[Adsterra] Initializing unit: ${adUnitId}`);
     
     const parent = containerRef.current;
     parent.innerHTML = ''; 
 
+    // Create a container that strictly follows the requested CSS
     const adWrapper = document.createElement('div');
-    adWrapper.id = uniqueContainerId;
-    adWrapper.className = "absolute inset-0 opacity-0 z-50 pointer-events-none"; // Invisible but clickable overlay
+    adWrapper.id = `ad-container-${adUnitId}`;
+    adWrapper.style.width = '100%';
+    adWrapper.style.height = '100%';
+    adWrapper.style.display = 'flex';
+    adWrapper.style.justifyContent = 'center';
+    adWrapper.style.alignItems = 'center';
+    adWrapper.style.overflow = 'hidden';
+    adWrapper.style.zIndex = '50';
+    
     parent.appendChild(adWrapper);
 
     const scriptPath = adUnitId.match(/.{1,2}/g)?.slice(0, 3).join('/') || '';
@@ -105,8 +113,12 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     script.setAttribute('data-cfasync', 'false');
     
     script.onload = () => {
-      console.log(`[Adsterra] Loaded: ${adUnitId}`);
+      console.log(`[Adsterra] Script loaded successfully: ${adUnitId}`);
       setIsLoaded(true);
+    };
+
+    script.onerror = (e) => {
+      console.error(`[Adsterra] Script load failed: ${adUnitId}`, e);
     };
 
     parent.appendChild(script);
@@ -117,8 +129,12 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
   }, [ad.id, ad.adUnitId, ad.adScriptDomain, isInView, isLoaded]);
 
   return (
-    <div ref={cardRef} className="relative w-full h-full bg-black overflow-hidden flex flex-col snap-start snap-always" onClick={() => window.open(ad.ctaUrl, '_blank')}>
-      {/* Immersive Video/Media Content */}
+    <div 
+      ref={cardRef} 
+      className="relative w-full h-full bg-black overflow-hidden flex flex-col snap-start snap-always" 
+      onClick={() => window.open(ad.ctaUrl, '_blank')}
+    >
+      {/* 1. Immersive Video/Media Content (Fallback & Background) */}
       <div className="absolute inset-0 z-0">
         <video 
           ref={videoRef}
@@ -127,13 +143,25 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
           loop
           muted={isMuted}
           playsInline
+          autoPlay
+          preload="auto"
           poster={`https://picsum.photos/seed/${ad.id}/1080/1920`}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/90" />
       </div>
 
-      {/* Hidden Adsterra Script Container */}
-      <div ref={containerRef} />
+      {/* 2. Actual Ad Script Container (Injected Creative) */}
+      <div 
+        ref={containerRef} 
+        className="absolute inset-0 z-10 pointer-events-none"
+        style={{ 
+          width: '100%', 
+          height: '100%', 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center' 
+        }} 
+      />
 
       {/* Mute Toggle Overlay */}
       {showVolumeIcon && (
@@ -212,6 +240,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
 
           <Button 
             className="w-full h-14 bg-white text-black hover:bg-white/95 rounded-2xl font-black flex justify-between px-6 items-center shadow-2xl pointer-events-auto active:scale-95 transition-all"
+            onClick={() => window.open(ad.ctaUrl, '_blank')}
           >
               <span className="text-[11px] uppercase tracking-[0.2em]">{ad.ctaText}</span>
               <ChevronRight className="h-5 w-5 text-primary" />
