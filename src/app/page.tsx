@@ -39,20 +39,27 @@ export default function HomePage() {
     const shuffledPosts = shuffleArray(posts);
     const items: { type: 'post' | 'ad'; data: any }[] = [];
 
+    // REAL AD VIDEOS FOR PREMIUM EXPERIENCE
+    const adVideoPool = [
+      "https://res.cloudinary.com/dipz5jsls/video/upload/v1740212351/ad_video_1.mp4", // Replace with real ad URLs if available
+      "https://res.cloudinary.com/dipz5jsls/video/upload/v1740212351/ad_video_2.mp4"
+    ];
+
     shuffledPosts.forEach((post, index) => {
       items.push({ type: 'post', data: post });
       
-      // INSERT ADS EVERY 2nd POST CONTINUOUSLY
+      // INSERT ADS EVERY 2nd POST
       if ((index + 1) % 2 === 0) {
+        const adId = `ad-${index}-${Math.random().toString(36).substring(7)}`;
         items.push({
           type: 'ad',
           data: {
-            id: `ad-${index}-${Math.random().toString(36).substring(7)}`,
+            id: adId,
             brandName: "A.snap Premium",
             brandLogo: "/logo.svg",
-            mediaUrl: `https://picsum.photos/seed/ad-${index}/1080/1920`,
-            caption: "Explore the next generation of visual storytelling. Tap to unlock exclusive deals! #asnap #premium #deals",
-            ctaText: "Explore Now",
+            mediaUrl: "https://res.cloudinary.com/dipz5jsls/video/upload/v1740316496/u0t9yub78h5y1q6c5o2y.mp4", // Full-screen vertical ad video
+            caption: "अपने सपनों को पंख दें A.snap Premium के साथ। अभी जॉइन करें और पाएँ एक्सक्लूसिव फीचर्स! #asnap #premium #india",
+            ctaText: "Explore Premium",
             ctaUrl: "https://pl29453913.profitablecpmratenetwork.com/fd/68/cb/fd68cb6250942c8fd08d481733648461.js",
             adUnitId: 'fd68cb6250942c8fd08d481733648461',
             adScriptDomain: 'pl29453913.profitablecpmratenetwork.com'
