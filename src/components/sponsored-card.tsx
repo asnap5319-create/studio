@@ -25,19 +25,26 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   
-  // Simulated social state for Ads
+  // Simulated social state for Ads - Initially 0
   const [isLiked, setIsLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0); // Initial likes set to 0 as requested
+  const [likeCount, setLikeCount] = useState(0);
+  const [commentCount, setCommentCount] = useState(0);
+  const [shareCount, setShareCount] = useState(0);
 
   const toggleLike = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isLiked) {
-      setIsLiked(false);
-      setLikeCount(prev => prev - 1);
-    } else {
-      setIsLiked(true);
-      setLikeCount(prev => prev + 1);
-    }
+    setIsLiked(!isLiked);
+    setLikeCount(prev => isLiked ? prev - 1 : prev + 1);
+  };
+
+  const incrementComment = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCommentCount(prev => prev + 1);
+  };
+
+  const incrementShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShareCount(prev => prev + 1);
   };
 
   useEffect(() => {
@@ -47,31 +54,21 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     const adUnitId = ad.adUnitId || '286ef4dc1c3c9afc429b42567c2d2b99';
     const containerId = `container-${adUnitId}`;
     
-    // Clear previous content
     parent.innerHTML = ''; 
 
-    // Create the container Adsterra expects
     const adWrapper = document.createElement('div');
     adWrapper.id = containerId;
     adWrapper.className = "w-full min-h-[250px] flex justify-center items-center";
     parent.appendChild(adWrapper);
 
-    // Create the Adsterra script
     const script = document.createElement('script');
     script.src = `//pl29411112.profitablecpmratenetwork.com/${adUnitId}/invoke.js`;
     script.async = true;
     script.setAttribute('data-cfasync', 'false');
     
-    script.onload = () => {
-      console.log("Adsterra script loaded for unit:", adUnitId);
-      setIsLoaded(true);
-    };
-    script.onerror = () => {
-      console.error("Adsterra script failed for unit:", adUnitId);
-      setHasError(true);
-    };
+    script.onload = () => setIsLoaded(true);
+    script.onerror = () => setHasError(true);
 
-    // Small delay to ensure the container is fully in the DOM before script runs
     const timeoutId = setTimeout(() => {
         try {
             parent.appendChild(script);
@@ -99,10 +96,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
         </div>
       </div>
 
-      {/* Main Content Area */}
       <div className="w-full h-full flex flex-col items-center justify-center z-10">
-        
-        {/* Adsterra Container - This is where your earning ads will show */}
         <div 
           ref={containerRef} 
           className={cn(
@@ -111,10 +105,8 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
           )} 
         />
 
-        {/* Fallback Premium UI if Adsterra is blocked/loading */}
         {(!isLoaded || hasError) && (
           <div className="absolute inset-0 flex flex-col bg-[#0077b6]">
-             {/* Poster Image Section */}
              <div className="relative flex-1 flex flex-col items-center justify-center p-6">
                 <div className="absolute top-24 left-6 z-20 max-w-[200px]">
                     <h1 className="text-4xl font-black text-white italic leading-tight drop-shadow-2xl uppercase">PREMIUM DEALS</h1>
@@ -145,7 +137,6 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
                 </div>
              </div>
 
-             {/* Bottom Info Section */}
              <div className="p-4 bg-gradient-to-t from-black/90 via-black/40 to-transparent text-white pb-24">
                 <div className="flex items-center gap-3 mb-4">
                     <Avatar className="h-10 w-10 border-2 border-white/20">
@@ -159,19 +150,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
                         </div>
                     </div>
                 </div>
-
                 <p className="text-xs font-bold drop-shadow-md pr-12 line-clamp-2">{ad.caption}</p>
-                
-                <div className="mt-3 flex items-center gap-2">
-                    <div className="flex -space-x-2">
-                        {[1,2,3].map(i => (
-                            <div key={i} className="h-5 w-5 rounded-full border border-black bg-secondary relative overflow-hidden">
-                                <Image src={`https://picsum.photos/seed/ad-user-${i}/50/50`} alt="" fill className="object-cover" />
-                            </div>
-                        ))}
-                    </div>
-                    <p className="text-[10px] font-medium text-white/80">Claimed by <span className="font-black">trending_shop</span> and <span className="font-black">12.5K others</span></p>
-                </div>
              </div>
           </div>
         )}
@@ -184,21 +163,20 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
         )}
       </div>
 
-      {/* Side Action Buttons - Instagram Style */}
       <div className="absolute right-3 bottom-24 flex flex-col gap-6 z-40 items-center" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center cursor-pointer group" onClick={toggleLike}>
                 <Heart className={cn("h-8 w-8 drop-shadow-lg transition-all active:scale-125", isLiked ? "fill-primary text-primary" : "text-white")} />
                 <span className="text-[10px] font-black mt-1">{likeCount}</span>
             </div>
-            <div className="flex flex-col items-center">
-                <MessageCircle className="h-8 w-8 text-white drop-shadow-lg" />
-                <span className="text-[10px] font-black mt-1">0</span>
+            <div className="flex flex-col items-center cursor-pointer group" onClick={incrementComment}>
+                <MessageCircle className="h-8 w-8 text-white drop-shadow-lg group-active:scale-110 transition-transform" />
+                <span className="text-[10px] font-black mt-1">{commentCount}</span>
             </div>
-            <div className="flex flex-col items-center">
-                <Share2 className="h-8 w-8 text-white drop-shadow-lg" />
-                <span className="text-[10px] font-black mt-1">0</span>
+            <div className="flex flex-col items-center cursor-pointer group" onClick={incrementShare}>
+                <Share2 className="h-8 w-8 text-white drop-shadow-lg group-active:rotate-12 transition-transform" />
+                <span className="text-[10px] font-black mt-1">{shareCount}</span>
             </div>
-            <MoreVertical className="h-6 w-6 text-white drop-shadow-lg" />
+            <MoreVertical className="h-6 w-6 text-white drop-shadow-lg cursor-pointer" />
       </div>
     </div>
   );
