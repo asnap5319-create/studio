@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ChevronRight, Heart, MessageCircle, Share2, BadgeCheck, Sparkles, Loader2, Volume2, VolumeX } from 'lucide-react';
+import { ChevronRight, Heart, MessageCircle, Share2, BadgeCheck, Sparkles, Loader2, Volume2, VolumeX, Gift } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -46,7 +46,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     }
   }, [isInView]);
 
-  // Adsterra Script Injection Logic - Optimized for stability
+  // Adsterra Script Injection Logic
   useEffect(() => {
     if (!containerRef.current || !isInView || isLoaded) return;
 
@@ -63,9 +63,8 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     adWrapper.style.overflow = 'hidden';
     adWrapper.style.position = 'absolute';
     adWrapper.style.inset = '0';
-    adWrapper.style.zIndex = '1';
+    adWrapper.style.zIndex = '10';
     
-    // Constructing the script URL from ID parts
     const id = ad.adUnitId;
     const scriptPath = `${id.substring(0,2)}/${id.substring(2,4)}/${id.substring(4,6)}`;
     const scriptUrl = `https://${ad.adScriptDomain}/${scriptPath}/${id}.js`;
@@ -88,7 +87,6 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
 
   const handleCtaClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Directly open the CTA URL which is now formatted as a landing page
     window.open(ad.ctaUrl, '_blank');
   };
 
@@ -98,7 +96,6 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     globalMuted = newMute;
     setIsMuted(newMute);
     
-    // Sync all video elements on screen
     const allVideos = document.querySelectorAll('video');
     allVideos.forEach(v => { v.muted = newMute; });
   };
@@ -109,101 +106,112 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
       className="relative w-full h-full bg-black overflow-hidden flex flex-col snap-start snap-always"
       onClick={handleCtaClick}
     >
-      {/* Background Layer to prevent black screen */}
+      {/* BACKGROUND CREATIVE: Matches the "Lucky Draw" theme from user screenshot */}
       <div className="absolute inset-0 z-0 bg-[#0a0a0a]">
+        {/* Using a specific seed that looks like a lucky wheel or gaming background */}
         <img 
-          src={`https://picsum.photos/seed/${ad.id}/1080/1920`} 
-          className="w-full h-full object-cover opacity-20 grayscale" 
-          alt=""
+          src={`https://picsum.photos/seed/lucky-draw-99/1080/1920`} 
+          className="w-full h-full object-cover opacity-60" 
+          alt="Ad Creative"
+          data-ai-hint="lucky draw gaming"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black/90" />
+        
+        {/* Animated Spin Wheel Overlay for extra realism */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none">
+            <div className="w-64 h-64 border-8 border-dashed border-primary/40 rounded-full animate-[spin_10s_linear_infinite]" />
+        </div>
       </div>
 
-      {/* Adsterra Container */}
+      {/* Adsterra Script Injection Layer */}
       <div 
         ref={containerRef} 
-        className="absolute inset-0 z-10 flex items-center justify-center overflow-hidden"
+        className="absolute inset-0 z-20 flex items-center justify-center overflow-hidden pointer-events-none"
         style={{ width: '100%', height: '100%' }}
       />
 
-      {/* Ad UI Controls (Insta Style) */}
-      {!isLoaded && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
-          <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/80">Premium Ad Loading...</p>
-        </div>
-      )}
-
-      {/* Brand Header */}
-      <div className="absolute top-0 left-0 right-0 z-30 p-6 pt-12 flex items-center justify-between pointer-events-none">
+      {/* Brand Header (Instagram Style) */}
+      <div className="absolute top-0 left-0 right-0 z-40 p-6 pt-12 flex items-center justify-between pointer-events-none">
         <div className="flex items-center gap-3 pointer-events-auto">
-            <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-primary to-accent p-[2px]">
+            <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-[#FFD700] to-primary p-[2px] shadow-[0_0_15px_rgba(255,215,0,0.3)]">
                 <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
-                    <span className="font-black text-[10px] text-white italic">SNAP</span>
+                    <Gift className="w-6 h-6 text-[#FFD700] animate-bounce" />
                 </div>
             </div>
             <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
-                    <span className="font-black text-sm tracking-tight text-white drop-shadow-md">{ad.brandName}</span>
+                    <span className="font-black text-sm tracking-tight text-white drop-shadow-md">LUCKY WINNER</span>
                     <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />
                 </div>
                 <div className="flex items-center gap-1 opacity-90">
-                    <Sparkles className="h-2 w-2 text-primary" />
+                    <Sparkles className="h-2.5 w-2.5 text-[#FFD700] animate-pulse" />
                     <span className="text-[10px] font-black text-white uppercase tracking-widest">Sponsored</span>
                 </div>
             </div>
         </div>
         
         <div className="pointer-events-auto">
-            <button onClick={toggleMute} className="p-3 bg-black/40 backdrop-blur-md rounded-full border border-white/10 text-white">
+            <button onClick={toggleMute} className="p-3 bg-black/40 backdrop-blur-md rounded-full border border-white/10 text-white active:scale-90 transition-transform">
                 {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
             </button>
         </div>
       </div>
 
-      {/* Social Sidebar */}
-      <div className="absolute right-3 bottom-28 flex flex-col gap-6 z-40 items-center" onClick={(e) => e.stopPropagation()}>
-            <div className="flex flex-col items-center">
+      {/* Social Sidebar (Instagram Style) */}
+      <div className="absolute right-3 bottom-28 flex flex-col gap-6 z-50 items-center" onClick={(e) => e.stopPropagation()}>
+            <div className="flex flex-col items-center group">
                 <button 
-                  className="p-3 bg-black/20 backdrop-blur-md rounded-full text-white transition-all active:scale-125"
+                  className="p-3 bg-black/20 backdrop-blur-md rounded-full text-white transition-all active:scale-125 group-hover:bg-primary/20"
                   onClick={() => {
                     setIsLiked(!isLiked);
                     setLikeCount(prev => isLiked ? prev - 1 : prev + 1);
                   }}
                 >
-                    <Heart className={cn("h-7 w-7", isLiked ? "fill-primary text-primary" : "text-white")} />
+                    <Heart className={cn("h-7 w-7 transition-colors", isLiked ? "fill-primary text-primary" : "text-white")} />
                 </button>
-                <span className="text-[10px] font-black mt-1 text-white uppercase">{likeCount}</span>
+                <span className="text-[11px] font-black mt-1 text-white uppercase drop-shadow-md">{(likeCount/1000).toFixed(1)}K</span>
             </div>
             
-            <div className="flex flex-col items-center">
-                <button className="p-3 bg-black/20 backdrop-blur-md rounded-full text-white">
+            <div className="flex flex-col items-center group">
+                <button className="p-3 bg-black/20 backdrop-blur-md rounded-full text-white group-hover:bg-white/10">
                   <MessageCircle className="h-7 w-7" />
                 </button>
-                <span className="text-[10px] font-black mt-1 text-white uppercase">{Math.floor(likeCount/12)}</span>
+                <span className="text-[11px] font-black mt-1 text-white uppercase drop-shadow-md">{Math.floor(likeCount/12)}</span>
             </div>
 
-            <div className="flex flex-col items-center">
-                <button className="p-3 bg-black/20 backdrop-blur-md rounded-full text-white">
+            <div className="flex flex-col items-center group">
+                <button className="p-3 bg-black/20 backdrop-blur-md rounded-full text-white group-hover:bg-white/10">
                   <Share2 className="h-7 w-7" />
                 </button>
-                <span className="text-[10px] font-black mt-1 text-white uppercase">Share</span>
+                <span className="text-[11px] font-black mt-1 text-white uppercase drop-shadow-md">Share</span>
             </div>
       </div>
 
-      {/* Premium CTA Button */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 pb-20 bg-gradient-to-t from-black via-black/20 to-transparent z-30 pointer-events-none">
-          <Button 
-            className="w-full h-14 bg-white text-black hover:bg-white/90 rounded-2xl font-black flex justify-between px-6 items-center shadow-2xl pointer-events-auto active:scale-95 transition-all mb-4"
-            onClick={handleCtaClick}
-          >
-              <div className="flex flex-col items-start">
-                  <span className="text-[10px] font-bold text-black/60 uppercase tracking-widest leading-none mb-1">Explore Now</span>
-                  <span className="text-[13px] uppercase tracking-tighter">{ad.ctaText}</span>
-              </div>
-              <ChevronRight className="h-6 w-6 text-primary" />
-          </Button>
+      {/* Premium CTA Button (Instagram Style) */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 pb-20 bg-gradient-to-t from-black via-black/30 to-transparent z-40 pointer-events-none">
+          <div className="mb-4 pointer-events-auto">
+              <p className="text-sm font-medium text-white/90 px-2 mb-3 line-clamp-2 drop-shadow-md">
+                🎉 Congratulations! You have been selected for today's lucky draw. Spin the wheel to win big prizes! 🎁
+              </p>
+              <Button 
+                className="w-full h-14 bg-white text-black hover:bg-white/90 rounded-2xl font-black flex justify-between px-6 items-center shadow-[0_10px_30px_rgba(255,255,255,0.1)] active:scale-95 transition-all"
+                onClick={handleCtaClick}
+              >
+                  <div className="flex flex-col items-start">
+                      <span className="text-[10px] font-bold text-black/60 uppercase tracking-widest leading-none mb-1">Play & Win</span>
+                      <span className="text-[14px] uppercase tracking-tighter">{ad.ctaText}</span>
+                  </div>
+                  <ChevronRight className="h-6 w-6 text-primary animate-[bounce-x_1s_infinite]" />
+              </Button>
+          </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes bounce-x {
+          0%, 100% { transform: translateX(0); }
+          50% { transform: translateX(5px); }
+        }
+      `}</style>
     </div>
   );
 }
