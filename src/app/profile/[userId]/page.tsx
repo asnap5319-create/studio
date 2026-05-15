@@ -18,7 +18,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Input } from "@/components/ui/input";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, where } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, Search, Eye } from "lucide-react";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, Search, Eye, ShieldCheck } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -120,6 +120,7 @@ export default function ProfilePage() {
     const [listSearch, setListSearch] = useState('');
 
     const isOwnProfile = user?.uid === userId;
+    const isCurrentUserAdmin = user?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
     
     const userProfileRef = useMemoFirebase(() => {
         if (!firestore || !userId) return null;
@@ -209,8 +210,18 @@ export default function ProfilePage() {
                 {isOwnProfile && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical /></Button></DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[160px] p-2">
-                            <DropdownMenuItem onClick={handleLogout} className="text-destructive font-bold p-3 rounded-xl focus:bg-destructive/10"><LogOut className="mr-2 h-4 w-4" /> Logout</DropdownMenuItem>
+                        <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[180px] p-2 shadow-2xl">
+                            {isCurrentUserAdmin && (
+                                <>
+                                    <DropdownMenuItem onClick={() => router.push('/admin')} className="font-bold p-3 rounded-xl focus:bg-primary/20 text-primary">
+                                        <ShieldCheck className="mr-2 h-4 w-4" /> Admin Panel
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator className="bg-white/5" />
+                                </>
+                            )}
+                            <DropdownMenuItem onClick={handleLogout} className="text-destructive font-bold p-3 rounded-xl focus:bg-destructive/10">
+                                <LogOut className="mr-2 h-4 w-4" /> Logout
+                            </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )}
@@ -284,7 +295,7 @@ export default function ProfilePage() {
                                         <span>{post.viewCount || 0} Views</span>
                                     </DropdownMenuItem>
                                     
-                                    {isOwnProfile && (
+                                    {(isOwnProfile || isCurrentUserAdmin) && (
                                         <>
                                             <DropdownMenuSeparator className="bg-white/5" />
                                             <DropdownMenuItem 
@@ -383,7 +394,7 @@ export default function ProfilePage() {
                                         <span>{selectedPost.viewCount || 0} Views</span>
                                     </DropdownMenuItem>
                                     
-                                    {isOwnProfile && (
+                                    {(isOwnProfile || isCurrentUserAdmin) && (
                                         <>
                                             <div className="h-px bg-white/5 my-1" />
                                             <DropdownMenuItem 
