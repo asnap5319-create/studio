@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -149,7 +148,9 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   };
 
   useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => { setIsInView(entry.isIntersecting); }, { threshold: 0.7 });
+    const observer = new IntersectionObserver(([entry]) => { 
+        setIsInView(entry.isIntersecting); 
+    }, { threshold: 0.6 }); // Improved sensitivity
     if (cardRef.current) observer.observe(cardRef.current);
     return () => observer.disconnect();
   }, []);
@@ -168,7 +169,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       });
     } else {
       video.pause();
-      video.currentTime = 0;
     }
     if (isInView && firestore && !viewCounted.current) {
       viewCounted.current = true; 
@@ -180,7 +180,15 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   return (
     <div ref={cardRef} className="relative w-full h-full bg-black overflow-hidden select-none" onClick={handleTap}>
       {isVideo ? (
-        <video ref={videoRef} src={post.mediaUrl} className="object-contain w-full h-full" loop playsInline muted={isMuted} preload="auto" />
+        <video 
+            ref={videoRef} 
+            src={post.mediaUrl} 
+            className="object-contain w-full h-full" 
+            loop 
+            playsInline 
+            muted={isMuted} 
+            preload="auto" 
+        />
       ) : (
         <Image src={post.mediaUrl} alt={post.caption || 'Post'} fill className="object-contain" priority />
       )}
@@ -206,7 +214,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
             <div className="flex items-center gap-3 mb-3">
               <Link href={`/profile/${author.id}`} className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                 <Avatar className="h-11 w-11 border-2 border-primary">
-                  <AvatarImage src={author.profileImageUrl} />
+                  <AvatarImage src={author.profileImageUrl} className="object-cover" />
                   <AvatarFallback>{author.name?.[0]}</AvatarFallback>
                 </Avatar>
                 <div className="flex items-center gap-1">
