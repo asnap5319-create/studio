@@ -11,6 +11,34 @@ import { BottomNav } from "@/components/bottom-nav";
 import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 
+// Ad units and brands for variety (Insta style)
+const AD_VARIETY = [
+  {
+    brandName: "Epic Games Store",
+    brandLogo: "https://picsum.photos/seed/games/100/100",
+    ctaText: "PLAY NOW",
+    adUnitId: "fd68cb6250942c8fd08d481733648461",
+    adScriptDomain: "pl29453913.profitablecpmratenetwork.com",
+    caption: "The ultimate gaming experience is here! Join millions of players online. 🎮🚀"
+  },
+  {
+    brandName: "Snap Shopping",
+    brandLogo: "https://picsum.photos/seed/shop/100/100",
+    ctaText: "LEARN MORE",
+    adUnitId: "fd68cb6250942c8fd08d481733648461",
+    adScriptDomain: "pl29453913.profitablecpmratenetwork.com",
+    caption: "Premium products at unbeatable prices. Shop the summer collection now! 🛍️✨"
+  },
+  {
+    brandName: "Visual Pro Tools",
+    brandLogo: "https://picsum.photos/seed/pro/100/100",
+    ctaText: "INSTALL NOW",
+    adUnitId: "fd68cb6250942c8fd08d481733648461",
+    adScriptDomain: "pl29453913.profitablecpmratenetwork.com",
+    caption: "Edit your videos like a pro with our new AI-powered tools. Try it today! 🎬🔥"
+  }
+];
+
 export default function HomePage() {
   const { firestore } = useFirebase();
   const [displayItems, setDisplayItems] = useState<{ type: 'post' | 'ad'; data: any }[]>([]);
@@ -42,22 +70,17 @@ export default function HomePage() {
     shuffledPosts.forEach((post, index) => {
       items.push({ type: 'post', data: post });
       
-      // INSERT ADS EVERY 2nd POST for maximum revenue (Instagram Reels style)
+      // INSERT ADS EVERY 2nd POST (Instagram Reels style)
       if ((index + 1) % 2 === 0) {
+        const adTemplate = AD_VARIETY[index % AD_VARIETY.length];
         const adId = `ad-${index}-${Math.random().toString(36).substring(7)}`;
-        const adUnitId = 'fd68cb6250942c8fd08d481733648461';
-        const adDomain = 'pl29453913.profitablecpmratenetwork.com';
         
         items.push({
           type: 'ad',
           data: {
+            ...adTemplate,
             id: adId,
-            brandName: "Lucky Game Online",
-            brandLogo: "/logo.svg",
-            ctaText: "PLAY NOW",
-            ctaUrl: `https://${adDomain}/fd/68/cb/${adUnitId}.js`, // Fixed direct path
-            adUnitId: adUnitId,
-            adScriptDomain: adDomain
+            ctaUrl: `https://${adTemplate.adScriptDomain}/fd/68/cb/${adTemplate.adUnitId}` 
           }
         });
       }

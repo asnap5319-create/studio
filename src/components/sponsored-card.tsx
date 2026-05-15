@@ -16,6 +16,7 @@ interface SponsoredCardProps {
     ctaUrl: string;
     adUnitId: string;
     adScriptDomain: string;
+    caption: string;
   };
 }
 
@@ -64,6 +65,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     adWrapper.style.position = 'absolute';
     adWrapper.style.inset = '0';
     adWrapper.style.zIndex = '10';
+    adWrapper.style.overflow = 'hidden';
     
     const id = ad.adUnitId;
     const scriptPath = `${id.substring(0,2)}/${id.substring(2,4)}/${id.substring(4,6)}`;
@@ -76,10 +78,15 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     
     script.onload = () => {
         setIsLoaded(true);
-        // Small delay to ensure rendering
+        // Ensure child elements like iframes or videos expand correctly
         setTimeout(() => {
-            if (adWrapper.innerHTML === '') setIsLoaded(false);
-        }, 2000);
+            const children = adWrapper.querySelectorAll('iframe, video, img');
+            children.forEach((child: any) => {
+                child.style.width = '100%';
+                child.style.height = '100%';
+                child.style.objectFit = 'cover';
+            });
+        }, 500);
     };
     script.onerror = () => setIsLoaded(true);
 
@@ -93,11 +100,11 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
 
   const handleCtaClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Use the CTA URL provided in props. If it's a script link, open its parent directory as a potential landing page, or just open the link.
-    // Fixed: Never redirect to google.com
-    if (ad.ctaUrl.endsWith('.js')) {
-        const directLink = ad.ctaUrl.replace('.js', '');
-        window.open(directLink, '_blank');
+    // Intercept .js code dump and open the ad unit's root domain or direct link if available
+    if (ad.ctaUrl.endsWith('.js') || ad.ctaUrl.includes('/fd/')) {
+        // Force opening the root domain of the ad network which usually acts as the landing trigger for these scripts
+        const landingPage = `https://${ad.adScriptDomain}`;
+        window.open(landingPage, '_blank');
     } else {
         window.open(ad.ctaUrl, '_blank');
     }
@@ -119,12 +126,10 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
       className="relative w-full h-full bg-black overflow-hidden flex flex-col snap-start snap-always"
       onClick={handleCtaClick}
     >
-      {/* AD BACKGROUND - Premium Look */}
-      <div className="absolute inset-0 z-0 bg-gradient-to-b from-zinc-900 to-black">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent opacity-60" />
-        <div className="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none">
-            <h2 className="text-4xl font-black italic uppercase text-white rotate-[-30deg] tracking-tighter">LUCKY GAME</h2>
-        </div>
+      {/* AD BACKGROUND - Premium Cinematic Look */}
+      <div className="absolute inset-0 z-0 bg-gradient-to-b from-zinc-900 via-black to-zinc-950">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent opacity-40" />
+        
         {!isLoaded && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10 bg-black/40">
              <div className="relative">
@@ -136,7 +141,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
         )}
       </div>
 
-      {/* Adsterra Content Container */}
+      {/* Adsterra Content Container (The Actual Creative) */}
       <div 
         ref={containerRef} 
         className="absolute inset-0 z-20 flex items-center justify-center overflow-hidden pointer-events-none h-full w-full"
@@ -149,7 +154,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
         </button>
       </div>
 
-      {/* Instagram Style Social Sidebar */}
+      {/* Instagram Style Social Sidebar (Right Side) */}
       <div className="absolute right-3 bottom-32 flex flex-col gap-6 z-40 items-center" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center">
                 <button 
@@ -168,7 +173,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
                 <button className="text-white">
                   <MessageCircle className="h-9 w-9 drop-shadow-lg" />
                 </button>
-                <span className="text-[11px] font-bold mt-1 text-white uppercase drop-shadow-md">{Math.floor(likeCount/10)}</span>
+                <span className="text-[11px] font-bold mt-1 text-white uppercase drop-shadow-md">{Math.floor(likeCount/12)}</span>
             </div>
 
             <div className="flex flex-col items-center">
@@ -180,11 +185,11 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
       </div>
 
       {/* Instagram Style Ad Info & CTA (Bottom Section) */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 pb-20 bg-gradient-to-t from-black via-black/40 to-transparent z-40" onClick={(e) => e.stopPropagation()}>
+      <div className="absolute bottom-0 left-0 right-0 p-4 pb-20 bg-gradient-to-t from-black via-black/60 to-transparent z-40" onClick={(e) => e.stopPropagation()}>
         <div className="flex flex-col gap-4">
-            {/* Advertiser Info (Bottom Left) */}
+            {/* Advertiser Info (Bottom Left - True Insta Style) */}
             <div className="flex items-center gap-3 mb-1">
-                <Avatar className="h-11 w-11 border-2 border-primary shadow-lg">
+                <Avatar className="h-11 w-11 border-2 border-primary shadow-lg ring-2 ring-black">
                     <AvatarImage src={ad.brandLogo} className="object-cover" />
                     <AvatarFallback className="bg-primary text-white font-black">{ad.brandName[0]}</AvatarFallback>
                 </Avatar>
@@ -199,15 +204,15 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
 
             {/* Ad Caption */}
             <p className="text-sm text-white/90 px-1 mb-2 line-clamp-2 drop-shadow-md">
-                Click below to play the ultimate game and win big! 🎮🚀
+                {ad.caption}
             </p>
 
-            {/* Premium CTA Button (The Insta Bar) */}
+            {/* Premium CTA Button (The Insta Horizontal Bar) */}
             <Button 
                 className="w-full h-12 bg-white text-black hover:bg-white/90 rounded-xl font-black flex justify-between px-5 items-center shadow-2xl active:scale-[0.98] transition-all"
                 onClick={handleCtaClick}
             >
-                <span className="text-xs uppercase tracking-tight">{ad.ctaText}</span>
+                <span className="text-xs uppercase tracking-tighter">{ad.ctaText}</span>
                 <ChevronRight className="h-5 w-5 text-primary" />
             </Button>
         </div>
