@@ -5,6 +5,7 @@ import { Sparkles, Info, Loader2, Play, Heart, MessageCircle, Share2, MoreVertic
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { Button } from './ui/button';
 
 interface SponsoredCardProps {
   ad: {
@@ -125,7 +126,6 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
                         alt="Puma Shoes" 
                         fill 
                         className="object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
-                        data-ai-hint="puma shoes"
                     />
                 </div>
 
@@ -153,7 +153,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
                     <Button variant="outline" size="sm" className="ml-2 h-7 rounded-lg border-white/40 bg-transparent text-white text-[10px] font-black uppercase">Follow</Button>
                 </div>
 
-                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 flex items-center justify-between border border-white/10 mb-4">
+                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 flex items-center justify-between border border-white/10 mb-4 cursor-pointer" onClick={() => window.open(ad.ctaUrl || '#', '_blank')}>
                     <span className="font-bold text-sm">Shop now</span>
                     <ChevronRight className="h-4 w-4" />
                 </div>
@@ -163,7 +163,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
                 <div className="mt-2 flex items-center gap-2">
                     <div className="flex -space-x-2">
                         {[1,2,3].map(i => (
-                            <div key={i} className="h-5 w-5 rounded-full border border-black bg-secondary overflow-hidden">
+                            <div key={i} className="h-5 w-5 rounded-full border border-black bg-secondary relative overflow-hidden">
                                 <Image src={`https://picsum.photos/seed/user-${i}/50/50`} alt="" fill className="object-cover" />
                             </div>
                         ))}
