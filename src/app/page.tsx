@@ -5,48 +5,64 @@ import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collectionGroup, query, orderBy, limit } from 'firebase/firestore';
 import { PostCard } from '@/components/post-card';
 import { SponsoredCard } from '@/components/sponsored-card';
-import { Loader2, MessageCircle, Bell } from 'lucide-react';
+import { Loader2, MessageCircle, Bell, RefreshCw } from 'lucide-react';
 import type { Post } from '@/models/post';
 import { BottomNav } from "@/components/bottom-nav";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import Link from 'next/link';
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export default function HomePage() {
   const { firestore } = useFirebase();
-  const [isClient, setIsClient] = useState(false);
+  const [displayItems, setDisplayItems] = useState<{ type: 'post' | 'ad'; data: any }[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
+  // Fetch the latest 60 posts to have a good pool for randomization
   const postsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'), limit(50));
+    return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'), limit(60));
   }, [firestore]);
 
   const { data: posts, isLoading } = useCollection<Post>(postsQuery);
 
-  const items = useMemo(() => {
-    if (!posts || !isClient) return [];
+  /**
+   * Fisher-Yates Shuffle Algorithm for true randomization
+   */
+  const shuffleArray = useCallback((array: any[]) => {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+  }, []);
 
-    // Shuffle posts for a fresh feel
-    const shuffledPosts = [...posts].sort(() => Math.random() - 0.5);
+  /**
+   * Build the feed with shuffled posts and ads every 2nd item
+   */
+  const buildFeed = useCallback(() => {
+    if (!posts || posts.length === 0) return;
+
+    setIsRefreshing(true);
     
-    const displayItems: { type: 'post' | 'ad'; data: any }[] = [];
+    // 1. Shuffle the posts pool
+    const shuffledPosts = shuffleArray(posts);
+    
+    const items: { type: 'post' | 'ad'; data: any }[] = [];
 
+    // 2. Interleave posts with Ads every 2nd post
     shuffledPosts.forEach((post, index) => {
-      displayItems.push({ type: 'post', data: post });
+      items.push({ type: 'post', data: post });
       
       // INSERT ADS EVERY 2nd POST FOR MAX EARNINGS
       if ((index + 1) % 2 === 0) {
-        displayItems.push({
+        items.push({
           type: 'ad',
           data: {
-            id: `ad-${index}-${post.id}`,
+            id: `ad-${index}-${post.id}-${Math.random().toString(36).substr(2, 9)}`,
             brandName: "A.snap Premium",
             brandLogo: "/logo.svg",
-            mediaUrl: `https://picsum.photos/seed/ad-${index}/600/1000`,
+            mediaUrl: `https://picsum.photos/seed/ad-${index}-${Math.random()}/600/1000`,
             caption: "Explore world-class visual content and exclusive offers! Upgrade your experience today. #asnap #premium",
             ctaText: "Explore Now",
             ctaUrl: "https://pl29411112.profitablecpmratenetwork.com/286ef4dc1c3c9afc429b42567c2d2b99/invoke.js",
@@ -56,15 +72,36 @@ export default function HomePage() {
       }
     });
 
-    return displayItems;
-  }, [posts, isClient]);
+    setDisplayItems(items);
+    
+    // Small timeout to simulate refresh feel
+    setTimeout(() => setIsRefreshing(false), 500);
+  }, [posts, shuffleArray]);
+
+  // Initial load on client
+  useEffect(() => {
+    if (posts && posts.length > 0 && displayItems.length === 0) {
+      buildFeed();
+    }
+  }, [posts, buildFeed, displayItems.length]);
 
   return (
     <div className="h-screen bg-black overflow-y-scroll snap-y snap-mandatory scrollbar-hide relative">
+      {/* Dynamic Header */}
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/90 to-transparent pointer-events-none">
-        <h1 className="text-3xl font-black text-primary italic tracking-tighter drop-shadow-[0_2px_15px_rgba(var(--primary),0.6)] pointer-events-auto">
-          A.snap
-        </h1>
+        <div className="flex items-center gap-4 pointer-events-auto">
+          <h1 className="text-3xl font-black text-primary italic tracking-tighter drop-shadow-[0_2px_15px_rgba(var(--primary),0.6)]">
+            A.snap
+          </h1>
+          {/* Refresh Button for User Control */}
+          <button 
+            onClick={buildFeed}
+            className="p-2 bg-white/5 backdrop-blur-md rounded-full border border-white/10 active:rotate-180 transition-transform duration-500"
+          >
+            <RefreshCw className={`w-4 h-4 text-white/50 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
+        
         <div className="flex items-center gap-4 pointer-events-auto">
           <Link href="/notifications" className="p-3 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 hover:bg-black/60 transition-all active:scale-90 shadow-lg">
             <Bell className="w-6 h-6 text-white" />
@@ -75,15 +112,19 @@ export default function HomePage() {
         </div>
       </header>
 
-      {isLoading ? (
+      {/* Loading Screen */}
+      {isLoading && displayItems.length === 0 ? (
         <div className="flex h-screen items-center justify-center bg-black">
           <div className="flex flex-col items-center gap-4">
-             <Loader2 className="animate-spin h-12 w-12 text-primary" />
-             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/60 animate-pulse">Loading Feed...</p>
+             <div className="relative">
+                <div className="absolute inset-0 blur-2xl bg-primary/20 animate-pulse rounded-full"></div>
+                <Loader2 className="animate-spin h-12 w-12 text-primary relative z-10" />
+             </div>
+             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/60 animate-pulse">Algorithmic Feed...</p>
           </div>
         </div>
-      ) : items.length > 0 ? (
-        items.map((item, idx) => (
+      ) : displayItems.length > 0 ? (
+        displayItems.map((item, idx) => (
           <div key={`${item.type}-${item.data.id || idx}`} className="h-screen w-full snap-start snap-always">
             {item.type === 'post' ? (
               <PostCard post={item.data} />
@@ -95,13 +136,14 @@ export default function HomePage() {
       )) : !isLoading && (
         <div className="flex h-full items-center justify-center text-white p-10 text-center">
             <div className="space-y-4">
-                <p className="text-muted-foreground font-black uppercase tracking-[0.2em] opacity-30 text-sm">Feed is empty</p>
+                <p className="text-muted-foreground font-black uppercase tracking-[0.2em] opacity-30 text-sm">No videos found</p>
                 <Link href="/create">
                     <button className="bg-primary px-6 py-3 text-white font-black uppercase rounded-2xl shadow-xl active:scale-95 transition-transform">Start Sharing</button>
                 </Link>
             </div>
         </div>
       )}
+      
       <PwaInstallPrompt />
       <BottomNav />
     </div>
