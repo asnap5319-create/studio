@@ -2,12 +2,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ChevronRight, Heart, MessageCircle, Share2, BadgeCheck, Sparkles, Volume2, VolumeX } from 'lucide-react';
+import { ChevronRight, Heart, MessageCircle, Share2, BadgeCheck, Sparkles, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-
-// Global mute state sync
-let globalMuted = true;
 
 interface SponsoredCardProps {
   ad: {
@@ -27,7 +24,6 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
   
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(false);
-  const [isMuted, setIsMuted] = useState(globalMuted);
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(Math.floor(Math.random() * 5000) + 1000);
 
@@ -40,16 +36,16 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     return () => observer.disconnect();
   }, []);
 
-  // Adsterra Script Injection with Requested CSS Fixes
+  // Adsterra Script Injection Logic
   useEffect(() => {
     if (!containerRef.current || !isInView || isLoaded) return;
 
-    console.log(`[Adsterra] Root Debug: Initializing Ad Unit ${ad.adUnitId}`);
+    console.log(`[Adsterra] Initializing Ad Unit: ${ad.adUnitId}`);
     
     const parent = containerRef.current;
     parent.innerHTML = ''; 
 
-    // Create the Ad Container with EXACT requested CSS
+    // Create the Ad Container with Full Screen CSS
     const adWrapper = document.createElement('div');
     adWrapper.id = `at-container-${ad.adUnitId}`;
     adWrapper.style.width = '100%';
@@ -61,7 +57,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     adWrapper.style.position = 'relative';
     adWrapper.style.zIndex = '1';
     
-    // Applying the specific fix for video ads
+    // Construct the script URL
     const scriptPath = ad.adUnitId.match(/.{1,2}/g)?.slice(0, 3).join('/') || '';
     const scriptUrl = `https://${ad.adScriptDomain}/${scriptPath}/${ad.adUnitId}.js`;
 
@@ -70,16 +66,13 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     script.async = true;
     script.setAttribute('data-cfasync', 'false');
     
-    // WebView Optimization simulated via attributes
-    script.setAttribute('data-media-playback-requires-gesture', 'false');
-    
     script.onload = () => {
-      console.log(`[Adsterra] Script Successfully Injected. Creative should render in container.`);
+      console.log(`[Adsterra] Script loaded for ${ad.adUnitId}`);
       setIsLoaded(true);
     };
 
     script.onerror = (e) => {
-      console.error(`[Adsterra] Critical Error: Script failed to load for ${ad.adUnitId}`, e);
+      console.error(`[Adsterra] Script load failed for ${ad.adUnitId}`, e);
     };
 
     adWrapper.appendChild(script);
@@ -96,7 +89,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
       className="relative w-full h-screen bg-black overflow-hidden flex flex-col snap-start snap-always" 
       onClick={() => window.open(ad.ctaUrl, '_blank')}
     >
-      {/* Adsterra Real Creative Container - No Placeholder background */}
+      {/* Real Ad Creative Container */}
       <div 
         ref={containerRef} 
         className="absolute inset-0 z-10"
@@ -106,16 +99,23 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
           display: 'flex', 
           justifyContent: 'center', 
           alignItems: 'center',
-          backgroundColor: '#000' // Solid black to prevent seeing through
+          backgroundColor: '#000'
         }} 
       />
 
-      {/* Ad Overlay UI - Minimalist like Instagram */}
+      {/* Loading State Overlay */}
+      {!isLoaded && (
+        <div className="absolute inset-0 z-0 flex flex-col items-center justify-center bg-black">
+          <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Fetching Premium Content...</p>
+        </div>
+      )}
+
+      {/* Insta-style Overlay UI */}
       <div className="absolute top-0 left-0 right-0 z-30 p-6 pt-12 flex items-center justify-between pointer-events-none">
         <div className="flex items-center gap-3 pointer-events-auto">
             <div className="w-10 h-10 rounded-full bg-secondary border border-white/10 flex items-center justify-center overflow-hidden">
-                {/* Brand Logo or Ad ID Placeholder */}
-                <div className="font-black text-[10px] text-primary">AD</div>
+                <div className="font-black text-[10px] text-primary">ADS</div>
             </div>
             <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
@@ -130,7 +130,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
         </div>
       </div>
 
-      {/* Sidebar Controls */}
+      {/* Sidebar Controls (TikTok Style) */}
       <div className="absolute right-3 bottom-24 flex flex-col gap-6 z-40 items-center" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center">
                 <Button 
@@ -152,7 +152,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
                 <Button variant="ghost" size="icon" className="text-white h-12 w-12 hover:bg-transparent" onClick={(e) => e.stopPropagation()}>
                   <MessageCircle className="h-9 w-9 drop-shadow-md" />
                 </Button>
-                <span className="text-xs font-bold mt-1 text-white drop-shadow-md">{Math.floor(likeCount/12)}</span>
+                <span className="text-xs font-bold mt-1 text-white drop-shadow-md">{Math.floor(likeCount/15)}</span>
             </div>
 
             <div className="flex flex-col items-center">

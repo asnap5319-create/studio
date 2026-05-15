@@ -42,7 +42,7 @@ export default function HomePage() {
     shuffledPosts.forEach((post, index) => {
       items.push({ type: 'post', data: post });
       
-      // INSERT ADS EVERY 2nd POST for continuous earning
+      // INSERT ADS EVERY 2nd POST for maximum earning
       if ((index + 1) % 2 === 0) {
         const adId = `ad-${index}-${Math.random().toString(36).substring(7)}`;
         items.push({
