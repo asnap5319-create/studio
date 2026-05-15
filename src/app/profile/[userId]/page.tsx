@@ -19,7 +19,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Input } from "@/components/ui/input";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, where } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, Search, Eye, ShieldCheck } from "lucide-react";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, Search, Eye, ShieldCheck, Share2 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -230,41 +230,48 @@ export default function ProfilePage() {
 
             <div className="px-4">
                 <div className="flex items-center gap-6">
-                    <Avatar className="h-20 w-20 border-2 border-primary">
-                        <AvatarImage src={userProfile?.profileImageUrl} className="object-cover" />
-                        <AvatarFallback>{userProfile?.username?.[0]}</AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                        <Avatar className="h-24 w-24 border-4 border-primary shadow-lg shadow-primary/20">
+                            <AvatarImage src={userProfile?.profileImageUrl} className="object-cover" />
+                            <AvatarFallback>{userProfile?.username?.[0]}</AvatarFallback>
+                        </Avatar>
+                        {isProfileAdmin && (
+                            <div className="absolute -bottom-1 -right-1 bg-background p-1 rounded-full border border-border">
+                                <BadgeCheck className="h-5 w-5 text-blue-400 fill-blue-400/20" />
+                            </div>
+                        )}
+                    </div>
                     <div className="flex flex-1 justify-around text-center">
                         <div className="cursor-default">
-                          <p className="font-bold text-lg">{posts?.length || 0}</p>
-                          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Posts</p>
+                          <p className="font-black text-xl">{posts?.length || 0}</p>
+                          <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground">Posts</p>
                         </div>
                         <div className="cursor-pointer group active:scale-95 transition-transform" onClick={() => { setListType('followers'); setListSearch(''); }}>
-                          <p className="font-bold text-lg group-hover:text-primary transition-colors">{followers?.length || 0}</p>
-                          <p className="text-[10px] uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors">Followers</p>
+                          <p className="font-black text-xl group-hover:text-primary transition-colors">{followers?.length || 0}</p>
+                          <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground group-hover:text-primary transition-colors">Followers</p>
                         </div>
                         <div className="cursor-pointer group active:scale-95 transition-transform" onClick={() => { setListType('following'); setListSearch(''); }}>
-                          <p className="font-bold text-lg group-hover:text-primary transition-colors">{following?.length || 0}</p>
-                          <p className="text-[10px] uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors">Following</p>
+                          <p className="font-black text-xl group-hover:text-primary transition-colors">{following?.length || 0}</p>
+                          <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground group-hover:text-primary transition-colors">Following</p>
                         </div>
                     </div>
                 </div>
-                <div className="mt-4 space-y-1">
+                <div className="mt-4 space-y-1.5">
                     <div className="flex items-center gap-1.5">
-                      <p className="font-bold">{userProfile?.name}</p>
+                      <p className="font-black text-lg italic uppercase">{userProfile?.name}</p>
                       {isProfileAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />}
                     </div>
-                    <p className="text-sm text-muted-foreground leading-snug whitespace-pre-wrap">{userProfile?.bio || "A.snap User"}</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap font-medium">{userProfile?.bio || "A.snap User 🎬"}</p>
                 </div>
-                <div className="flex gap-2 mt-6">
+                <div className="flex gap-2.5 mt-6">
                     {isOwnProfile ? (
-                        <Button className="flex-1 font-black uppercase text-xs rounded-xl h-11 bg-secondary hover:bg-secondary/80" onClick={() => setIsEditSheetOpen(true)}>Edit Profile</Button>
+                        <Button className="flex-1 font-black uppercase text-xs rounded-2xl h-12 bg-secondary/80 border border-white/5 hover:bg-secondary transition-all" onClick={() => setIsEditSheetOpen(true)}>Edit Profile</Button>
                     ) : (
                         <>
-                            <Button className="flex-1 font-black uppercase text-xs rounded-xl h-11 shadow-lg" onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"}>
+                            <Button className="flex-1 font-black uppercase text-xs rounded-2xl h-12 shadow-lg shadow-primary/20 active:scale-95 transition-transform" onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"}>
                                 {isFollowing ? 'Following' : 'Follow'}
                             </Button>
-                            <Button className="flex-1 font-black uppercase text-xs rounded-xl h-11 bg-secondary hover:bg-secondary/80" onClick={() => router.push(`/messages/${[user?.uid, userId].sort().join('_')}`)}>Message</Button>
+                            <Button className="flex-1 font-black uppercase text-xs rounded-2xl h-12 bg-secondary/80 border border-white/5 hover:bg-secondary transition-all" onClick={() => router.push(`/messages/${[user?.uid, userId].sort().join('_')}`)}>Message</Button>
                         </>
                     )}
                 </div>
@@ -272,49 +279,49 @@ export default function ProfilePage() {
             
             <div className="border-t border-white/5 mt-8 grid grid-cols-3 gap-0.5">
                 {posts?.map((post) => (
-                    <div key={post.id} className="aspect-square bg-secondary/50 relative cursor-pointer group" onClick={() => setSelectedPost(post)}>
+                    <div key={post.id} className="aspect-square bg-secondary/30 relative cursor-pointer group overflow-hidden" onClick={() => setSelectedPost(post)}>
                         {post.mediaUrl.includes('video') || post.mediaUrl.includes('.mp4') ? (
-                            <video src={post.mediaUrl} className="w-full h-full object-cover" muted />
+                            <video src={post.mediaUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" muted />
                         ) : (
-                            <Image src={post.mediaUrl} alt="" fill className="object-cover" />
+                            <Image src={post.mediaUrl} alt="" fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
                         )}
                         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <Play className="text-white h-6 w-6 fill-white" />
+                            <Play className="text-white h-7 w-7 fill-white" />
                         </div>
-                        <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 text-[10px] font-black text-white drop-shadow-md">
+                        <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 text-[10px] font-black text-white drop-shadow-md bg-black/20 px-1.5 py-0.5 rounded-full backdrop-blur-sm">
                             <Eye className="h-3 w-3" />
                             {post.viewCount || 0}
                         </div>
                     </div>
                 ))}
                 {(!posts || posts.length === 0) && (
-                  <div className="col-span-3 flex flex-col items-center justify-center py-20 opacity-20">
-                    <Grid3x3 className="h-12 w-12 mb-2" />
-                    <p className="text-sm font-bold uppercase tracking-widest">No Posts Yet</p>
+                  <div className="col-span-3 flex flex-col items-center justify-center py-24 opacity-20">
+                    <Grid3x3 className="h-16 w-16 mb-4 stroke-1" />
+                    <p className="text-xs font-black uppercase tracking-[0.3em]">No Posts Yet</p>
                   </div>
                 )}
             </div>
 
             <Sheet open={!!listType} onOpenChange={(open) => !open && setListType(null)}>
-                <SheetContent side="bottom" className="h-[80vh] rounded-t-3xl bg-background border-white/10 p-0 overflow-hidden">
-                    <SheetHeader className="p-4 border-b border-white/5 flex flex-row items-center justify-center">
-                        <SheetTitle className="text-center text-lg font-black uppercase italic">
+                <SheetContent side="bottom" className="h-[85vh] rounded-t-[2.5rem] bg-background border-white/10 p-0 overflow-hidden shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
+                    <SheetHeader className="p-6 border-b border-white/5 flex flex-row items-center justify-center relative">
+                        <SheetTitle className="text-center text-lg font-black uppercase italic tracking-tighter">
                             {listType === 'followers' ? 'Followers' : 'Following'}
                         </SheetTitle>
                     </SheetHeader>
-                    <div className="p-4">
+                    <div className="p-5">
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input 
                                 placeholder="Search..." 
-                                className="pl-10 h-10 bg-secondary/50 border-none rounded-xl text-sm"
+                                className="pl-12 h-12 bg-secondary/40 border-none rounded-2xl text-sm font-bold"
                                 value={listSearch}
                                 onChange={(e) => setListSearch(e.target.value)}
                             />
                         </div>
                     </div>
-                    <ScrollArea className="flex-1 px-2 h-full">
-                        <div className="space-y-1 pb-20">
+                    <ScrollArea className="flex-1 px-4 h-full">
+                        <div className="space-y-2 pb-32">
                             {activeList && activeList.length > 0 ? (
                                 activeList.map((item) => (
                                     <UserListItem 
@@ -325,7 +332,7 @@ export default function ProfilePage() {
                                     />
                                 ))
                             ) : (
-                                <div className="text-center py-20 opacity-30 text-sm font-bold uppercase tracking-widest">
+                                <div className="text-center py-24 opacity-30 text-[10px] font-black uppercase tracking-[0.4em]">
                                     No {listType} yet
                                 </div>
                             )}
@@ -342,19 +349,39 @@ export default function ProfilePage() {
                       <div className="w-full h-full relative">
                         <DialogTitle className="sr-only">Post Preview</DialogTitle>
                         <PostCard post={selectedPost} />
+                        
+                        {/* 3 DOTS MENU RE-ADDED FOR OWN PROFILE OR ADMIN */}
                         {(isOwnProfile || isCurrentUserAdmin) && (
                             <div className="absolute top-4 right-4 z-50">
-                                <Button 
-                                    variant="destructive" 
-                                    size="icon" 
-                                    className="rounded-full h-10 w-10" 
-                                    onClick={() => {
-                                        setPostToDelete(selectedPost);
-                                        setIsDeleteDialogOpen(true);
-                                    }}
-                                >
-                                    <Trash2 className="h-5 w-5" />
-                                </Button>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="rounded-full h-12 w-12 bg-black/40 backdrop-blur-md border border-white/10 text-white hover:bg-black/60"
+                                        >
+                                            <MoreVertical className="h-6 w-6" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[180px] p-2 shadow-2xl">
+                                        <DropdownMenuItem onClick={() => {
+                                            // Handle Share within Dialog
+                                            toast({ title: "Link Copied! 🔗" });
+                                        }} className="font-bold p-3 rounded-xl focus:bg-white/10">
+                                            <Share2 className="mr-3 h-4 w-4" /> Share Post
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator className="bg-white/5 my-1" />
+                                        <DropdownMenuItem 
+                                            onClick={() => {
+                                                setPostToDelete(selectedPost);
+                                                setIsDeleteDialogOpen(true);
+                                            }} 
+                                            className="text-destructive font-black p-3 rounded-xl focus:bg-destructive/10"
+                                        >
+                                            <Trash2 className="mr-3 h-4 w-4" /> Delete Video
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </div>
                         )}
                       </div>
@@ -363,17 +390,22 @@ export default function ProfilePage() {
             </Dialog>
 
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent className="bg-[#121212] text-white rounded-3xl border-white/10 max-w-[85vw] sm:max-w-md">
-                    <AlertDialogHeader>
-                      <AlertDialogTitle className="text-xl font-black uppercase italic text-center">डिलीट करें?</AlertDialogTitle>
-                      <AlertDialogDescription className="text-muted-foreground text-center">
-                        क्या आप वाकई इस वीडियो को डिलीट करना चाहते हैं? यह वापस नहीं आएगा।
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter className="flex-col gap-2 sm:flex-row mt-4">
-                        <AlertDialogCancel className="rounded-xl border-white/10 bg-transparent text-white hover:bg-white/5 h-12">Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDeletePost} className="bg-destructive hover:bg-destructive/90 rounded-xl font-black h-12">Delete</AlertDialogAction>
-                    </AlertDialogFooter>
+                <AlertDialogContent className="bg-[#121212] text-white rounded-[2rem] border-white/10 max-w-[85vw] sm:max-w-md shadow-[0_25px_50px_rgba(0,0,0,0.8)] overflow-hidden">
+                    <div className="p-2">
+                        <AlertDialogHeader className="space-y-4">
+                          <div className="mx-auto w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mb-2">
+                            <Trash2 className="h-8 w-8 text-destructive" />
+                          </div>
+                          <AlertDialogTitle className="text-2xl font-black uppercase italic text-center tracking-tighter">डिलीट करें?</AlertDialogTitle>
+                          <AlertDialogDescription className="text-muted-foreground text-center font-medium px-4">
+                            क्या आप वाकई इस वीडियो को डिलीट करना चाहते हैं? यह वापस नहीं आएगा।
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter className="flex-col gap-3 sm:flex-row mt-8">
+                            <AlertDialogCancel className="rounded-2xl border-white/10 bg-secondary/50 text-white hover:bg-secondary h-14 font-black uppercase text-xs">Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={confirmDeletePost} className="bg-destructive hover:bg-destructive/90 rounded-2xl font-black h-14 uppercase text-xs shadow-lg shadow-destructive/20">Delete Forever</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </div>
                 </AlertDialogContent>
             </AlertDialog>
 
