@@ -45,6 +45,9 @@ export default function HomePage() {
       // INSERT ADS EVERY 2nd POST for maximum revenue (Instagram Reels style)
       if ((index + 1) % 2 === 0) {
         const adId = `ad-${index}-${Math.random().toString(36).substring(7)}`;
+        const adUnitId = 'fd68cb6250942c8fd08d481733648461';
+        const adDomain = 'pl29453913.profitablecpmratenetwork.com';
+        
         items.push({
           type: 'ad',
           data: {
@@ -52,10 +55,10 @@ export default function HomePage() {
             brandName: "A.snap Premium",
             brandLogo: "/logo.svg",
             ctaText: "PLAY PREMIUM GAME",
-            // FIXED: Using a more appropriate landing page URL format for Adsterra integration
-            ctaUrl: "https://pl29453913.profitablecpmratenetwork.com/direct-access",
-            adUnitId: 'fd68cb6250942c8fd08d481733648461',
-            adScriptDomain: 'pl29453913.profitablecpmratenetwork.com'
+            // FIXED: Using a more reliable landing page format for Adsterra
+            ctaUrl: `https://${adDomain}/v79vzq8f?key=${adUnitId}`,
+            adUnitId: adUnitId,
+            adScriptDomain: adDomain
           }
         });
       }

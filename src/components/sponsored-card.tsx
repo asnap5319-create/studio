@@ -46,7 +46,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     }
   }, [isInView]);
 
-  // Adsterra Script Injection Logic - Improved for WebView stability
+  // Adsterra Script Injection Logic - Optimized for stability
   useEffect(() => {
     if (!containerRef.current || !isInView || isLoaded) return;
 
@@ -65,22 +65,18 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     adWrapper.style.inset = '0';
     adWrapper.style.zIndex = '1';
     
-    // Adsterra format uses script injection
-    const scriptPath = ad.adUnitId.match(/.{1,2}/g)?.slice(0, 3).join('/') || '';
-    const scriptUrl = `https://${ad.adScriptDomain}/${scriptPath}/${ad.adUnitId}.js`;
+    // Constructing the script URL from ID parts
+    const id = ad.adUnitId;
+    const scriptPath = `${id.substring(0,2)}/${id.substring(2,4)}/${id.substring(4,6)}`;
+    const scriptUrl = `https://${ad.adScriptDomain}/${scriptPath}/${id}.js`;
 
     const script = document.createElement('script');
     script.src = scriptUrl;
     script.async = true;
     script.setAttribute('data-cfasync', 'false');
     
-    script.onload = () => {
-      setIsLoaded(true);
-    };
-
-    script.onerror = () => {
-      setIsLoaded(true);
-    };
+    script.onload = () => setIsLoaded(true);
+    script.onerror = () => setIsLoaded(true);
 
     adWrapper.appendChild(script);
     parent.appendChild(adWrapper);
@@ -92,14 +88,8 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
 
   const handleCtaClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
-    // REDIRECTION FIX: Instead of raw script files or root domain, we trigger the landing page.
-    // Adsterra direct links are usually separate, but we ensure clicking doesn't dump code.
-    const destination = ad.ctaUrl.endsWith('.js') 
-      ? `https://${ad.adScriptDomain}/v79vzq8f?key=${ad.adUnitId}` // Triggering a formatted ad link
-      : ad.ctaUrl;
-
-    window.open(destination, '_blank');
+    // Directly open the CTA URL which is now formatted as a landing page
+    window.open(ad.ctaUrl, '_blank');
   };
 
   const toggleMute = (e: React.MouseEvent) => {
@@ -119,17 +109,17 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
       className="relative w-full h-full bg-black overflow-hidden flex flex-col snap-start snap-always"
       onClick={handleCtaClick}
     >
-      {/* Visual Background Fallback - Ensures no black screen while loading */}
-      <div className="absolute inset-0 z-0">
+      {/* Background Layer to prevent black screen */}
+      <div className="absolute inset-0 z-0 bg-[#0a0a0a]">
         <img 
           src={`https://picsum.photos/seed/${ad.id}/1080/1920`} 
-          className="w-full h-full object-cover opacity-30 grayscale" 
+          className="w-full h-full object-cover opacity-20 grayscale" 
           alt=""
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80" />
       </div>
 
-      {/* Real Adsterra Component Container */}
+      {/* Adsterra Container */}
       <div 
         ref={containerRef} 
         className="absolute inset-0 z-10 flex items-center justify-center overflow-hidden"
@@ -165,13 +155,13 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
         </div>
         
         <div className="pointer-events-auto">
-            <button onClick={toggleMute} className="p-3 bg-black/40 backdrop-blur-md rounded-full border border-white/10">
+            <button onClick={toggleMute} className="p-3 bg-black/40 backdrop-blur-md rounded-full border border-white/10 text-white">
                 {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
             </button>
         </div>
       </div>
 
-      {/* Vertical Social Controls */}
+      {/* Social Sidebar */}
       <div className="absolute right-3 bottom-28 flex flex-col gap-6 z-40 items-center" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center">
                 <button 
@@ -201,14 +191,14 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
             </div>
       </div>
 
-      {/* Premium CTA Overlay */}
+      {/* Premium CTA Button */}
       <div className="absolute bottom-0 left-0 right-0 p-4 pb-20 bg-gradient-to-t from-black via-black/20 to-transparent z-30 pointer-events-none">
           <Button 
             className="w-full h-14 bg-white text-black hover:bg-white/90 rounded-2xl font-black flex justify-between px-6 items-center shadow-2xl pointer-events-auto active:scale-95 transition-all mb-4"
             onClick={handleCtaClick}
           >
               <div className="flex flex-col items-start">
-                  <span className="text-[10px] font-bold text-black/60 uppercase tracking-widest leading-none mb-1">Click to explore</span>
+                  <span className="text-[10px] font-bold text-black/60 uppercase tracking-widest leading-none mb-1">Explore Now</span>
                   <span className="text-[13px] uppercase tracking-tighter">{ad.ctaText}</span>
               </div>
               <ChevronRight className="h-6 w-6 text-primary" />
