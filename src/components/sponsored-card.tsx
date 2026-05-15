@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ChevronRight, Heart, MessageCircle, Share2, MoreVertical, BadgeCheck, Loader2 } from 'lucide-react';
+import { ChevronRight, Heart, MessageCircle, Share2, MoreVertical, BadgeCheck, Loader2, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -74,7 +74,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
 
     const adWrapper = document.createElement('div');
     adWrapper.id = uniqueContainerId;
-    adWrapper.className = "w-full flex justify-center items-center overflow-hidden min-h-[250px]";
+    adWrapper.className = "w-full flex justify-center items-center overflow-hidden min-h-[300px] transition-all duration-700";
     parent.appendChild(adWrapper);
 
     const script = document.createElement('script');
@@ -84,7 +84,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     
     script.onload = () => {
       // Small delay to let the ad script render into the DOM
-      setTimeout(() => setIsLoaded(true), 1500);
+      setTimeout(() => setIsLoaded(true), 2000);
     };
     script.onerror = () => {
       setHasError(true);
@@ -96,10 +96,10 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
       setHasError(true);
     }
 
-    // Protection: If ad doesn't load in 5 seconds, show fallback
+    // Protection: If ad doesn't load in 8 seconds, show fallback
     const timer = setTimeout(() => {
       if (!isLoaded) setHasError(true);
-    }, 5000);
+    }, 8000);
 
     return () => {
       clearTimeout(timer);
@@ -110,127 +110,138 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
   return (
     <div ref={cardRef} className="relative w-full h-screen bg-black flex flex-col items-center justify-center overflow-hidden select-none">
       
+      {/* Dynamic Background Poster (Prevents Black Screen) */}
+      <div className="absolute inset-0 z-0">
+        <Image 
+          src={`https://picsum.photos/seed/${ad.id}-reel/1080/1920`} 
+          alt="Ad Background" 
+          fill 
+          className="object-cover opacity-60 blur-[2px]"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80" />
+      </div>
+
       {/* Top Header */}
-      <div className="absolute top-0 left-0 right-0 z-30 p-4 pt-12 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent">
+      <div className="absolute top-0 left-0 right-0 z-30 p-4 pt-12 flex items-center justify-between bg-gradient-to-b from-black/90 to-transparent">
         <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-black italic tracking-tighter text-primary drop-shadow-[0_2px_10px_rgba(var(--primary),0.5)]">A.snap</h2>
+            <h2 className="text-3xl font-black italic tracking-tighter text-primary drop-shadow-[0_2px_15px_rgba(var(--primary),0.6)]">A.snap</h2>
         </div>
         <div className="flex flex-col items-end">
-          <p className="text-[10px] font-black text-white/90 uppercase tracking-[0.2em] bg-black/40 px-3 py-1 rounded-full border border-white/10 backdrop-blur-md">
-            Sponsored
-          </p>
+          <div className="flex items-center gap-1.5 bg-primary/20 backdrop-blur-md px-4 py-1.5 rounded-full border border-primary/30 shadow-[0_0_15px_rgba(var(--primary),0.3)]">
+            <Sparkles className="h-3 w-3 text-primary animate-pulse" />
+            <p className="text-[11px] font-black text-white uppercase tracking-widest">Sponsored</p>
+          </div>
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="w-full h-full flex flex-col items-center justify-center relative">
+      {/* Main Ad Content Area */}
+      <div className="w-full h-full flex flex-col items-center justify-center relative z-10 px-4">
         
         {/* Real Adsterra Container */}
         <div 
           ref={containerRef} 
           className={cn(
-            "w-full flex justify-center items-center transition-all duration-1000",
-            isLoaded && !hasError ? "opacity-100 scale-100" : "opacity-0 scale-95 absolute"
+            "w-full flex justify-center items-center transition-all duration-1000 transform",
+            isLoaded && !hasError ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 translate-y-10 absolute"
           )} 
         />
 
-        {/* Premium Fallback/Loading UI */}
+        {/* Premium Fallback UI (Always ready to show) */}
         {(!isLoaded || hasError) && (
-          <div className="absolute inset-0 flex flex-col bg-gradient-to-b from-[#1a1a1a] to-black">
-             <div className="relative flex-1 flex flex-col items-center justify-center p-6">
-                <div className="absolute inset-0 opacity-40">
+          <div className="w-full max-w-[360px] animate-in fade-in zoom-in duration-500">
+             <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.8)] bg-secondary/20 backdrop-blur-xl">
+                
+                <div className="relative aspect-[4/5] w-full">
                     <Image 
-                      src={`https://picsum.photos/seed/${ad.id}-bg/800/1200`} 
-                      alt="" fill className="object-cover blur-sm" 
+                      src={`https://picsum.photos/seed/${ad.id}-prod/800/1000`} 
+                      alt="Product" 
+                      fill 
+                      className="object-cover" 
                     />
-                </div>
-
-                <div className="relative z-20 text-center space-y-4 mb-8">
-                    <div className="inline-block px-3 py-1 bg-primary rounded-lg shadow-lg animate-bounce">
-                        <p className="text-[10px] font-black uppercase text-white">Featured Offer</p>
+                    <div className="absolute top-4 left-4">
+                        <span className="bg-primary px-3 py-1 rounded-lg text-[10px] font-black uppercase text-white shadow-xl">Top Deal</span>
                     </div>
-                    <h1 className="text-5xl font-black text-white italic leading-[0.9] drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)] uppercase">
-                        PREMIUM <br/> <span className="text-primary text-7xl">SALE</span> <br/> LIVE NOW
-                    </h1>
                 </div>
 
-                <div className="relative w-full aspect-square max-w-[340px] group transition-transform hover:scale-105 duration-500">
-                    <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full scale-125 animate-pulse"></div>
-                    <Image 
-                        src={`https://picsum.photos/seed/${ad.id}/600/600`} 
-                        alt="Product" 
-                        fill 
-                        className="object-contain drop-shadow-[0_30px_60px_rgba(0,0,0,0.7)]"
-                    />
-                </div>
+                <div className="p-5 space-y-4">
+                    <div className="space-y-1">
+                        <h3 className="text-xl font-black uppercase italic text-white leading-none">PREMIUM COLLECTION</h3>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Available Exclusively on A.snap</p>
+                    </div>
 
-                <div className="mt-12 w-full max-w-[340px] z-20">
                     <Button 
                       onClick={() => window.open(ad.ctaUrl || '#', '_blank')} 
-                      className="w-full h-16 bg-white text-black hover:bg-white/90 rounded-2xl font-black flex justify-between px-8 items-center shadow-[0_10px_30px_rgba(255,255,255,0.2)]"
+                      className="w-full h-14 bg-white text-black hover:bg-white/90 rounded-2xl font-black flex justify-between px-6 items-center shadow-2xl transition-transform active:scale-95"
                     >
-                        <span className="text-sm uppercase tracking-widest">{ad.ctaText || 'Shop Collection'}</span>
-                        <ChevronRight className="h-6 w-6 text-primary" />
+                        <span className="text-xs uppercase tracking-widest">{ad.ctaText || 'Claim Offer Now'}</span>
+                        <ChevronRight className="h-5 w-5 text-primary" />
                     </Button>
                 </div>
-             </div>
-
-             <div className="p-6 pb-24 bg-gradient-to-t from-black via-black/60 to-transparent text-white">
-                <div className="flex items-center gap-3 mb-4">
-                    <Avatar className="h-11 w-11 border-2 border-primary shadow-lg">
-                        <AvatarImage src="/logo.svg" />
-                        <AvatarFallback className="bg-primary text-white font-bold">A</AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col">
-                        <div className="flex items-center gap-1.5">
-                            <span className="font-black text-sm tracking-tight">asnap_premium</span>
-                            <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />
-                        </div>
-                    </div>
-                </div>
-                <p className="text-xs font-bold leading-relaxed drop-shadow-md pr-16 line-clamp-2 opacity-90">
-                    {ad.caption}
-                </p>
              </div>
           </div>
         )}
 
+        {/* Loading Spinner State */}
         {!isLoaded && !hasError && isInView && (
-          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md">
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/40 backdrop-blur-md">
             <div className="relative">
-                <div className="absolute inset-0 blur-xl bg-primary/30 animate-pulse rounded-full"></div>
-                <Loader2 className="animate-spin h-10 w-10 text-primary relative z-10" />
+                <div className="absolute inset-0 blur-2xl bg-primary/40 animate-pulse rounded-full"></div>
+                <Loader2 className="animate-spin h-14 w-14 text-primary relative z-10" />
             </div>
-            <p className="mt-4 text-[10px] font-black uppercase tracking-[0.3em] text-primary/80 animate-pulse">
-                Loading Official Ad...
+            <p className="mt-6 text-[12px] font-black uppercase tracking-[0.4em] text-primary animate-pulse drop-shadow-lg">
+                Fetching Best Offer...
             </p>
           </div>
         )}
       </div>
 
-      {/* Social Sidebar */}
-      <div className="absolute right-4 bottom-28 flex flex-col gap-7 z-40 items-center" onClick={(e) => e.stopPropagation()}>
+      {/* Social Sidebar (Insta Style) */}
+      <div className="absolute right-4 bottom-24 flex flex-col gap-6 z-40 items-center" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center cursor-pointer group" onClick={toggleLike}>
-                <div className="relative">
+                <div className="relative p-3 bg-black/20 backdrop-blur-md rounded-full border border-white/5 hover:bg-black/40 transition-all">
                     {isLiked && <div className="absolute inset-0 blur-lg bg-primary/40 animate-pulse rounded-full"></div>}
-                    <Heart className={cn("h-9 w-9 drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] transition-all active:scale-150", isLiked ? "fill-primary text-primary" : "text-white")} />
+                    <Heart className={cn("h-8 w-8 drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] transition-all active:scale-150", isLiked ? "fill-primary text-primary" : "text-white")} />
                 </div>
-                <span className="text-[11px] font-black mt-1.5 drop-shadow-md">{likeCount}</span>
+                <span className="text-[11px] font-black mt-1.5 drop-shadow-md text-white">{likeCount}</span>
             </div>
             
             <div className="flex flex-col items-center cursor-pointer group" onClick={incrementComment}>
-                <MessageCircle className="h-9 w-9 text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] group-active:scale-125 transition-transform" />
-                <span className="text-[11px] font-black mt-1.5 drop-shadow-md">{commentCount}</span>
+                <div className="p-3 bg-black/20 backdrop-blur-md rounded-full border border-white/5 hover:bg-black/40 transition-all">
+                  <MessageCircle className="h-8 w-8 text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] group-active:scale-125 transition-transform" />
+                </div>
+                <span className="text-[11px] font-black mt-1.5 drop-shadow-md text-white">{commentCount}</span>
             </div>
             
             <div className="flex flex-col items-center cursor-pointer group" onClick={incrementShare}>
-                <Share2 className="h-9 w-9 text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] group-active:rotate-12 transition-transform" />
-                <span className="text-[11px] font-black mt-1.5 drop-shadow-md">{shareCount}</span>
+                <div className="p-3 bg-black/20 backdrop-blur-md rounded-full border border-white/5 hover:bg-black/40 transition-all">
+                  <Share2 className="h-8 w-8 text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] group-active:rotate-12 transition-transform" />
+                </div>
+                <span className="text-[11px] font-black mt-1.5 drop-shadow-md text-white">{shareCount}</span>
             </div>
             
             <Button variant="ghost" size="icon" className="h-10 w-10 hover:bg-transparent">
-                <MoreVertical className="h-6 w-6 text-white drop-shadow-md" />
+                <MoreVertical className="h-6 w-6 text-white drop-shadow-md opacity-50" />
             </Button>
+      </div>
+
+      {/* Bottom Ad Description */}
+      <div className="absolute bottom-0 left-0 right-0 p-6 pb-24 bg-gradient-to-t from-black via-black/80 to-transparent text-white z-30">
+          <div className="flex items-center gap-3 mb-3">
+              <Avatar className="h-10 w-10 border-2 border-primary shadow-lg">
+                  <AvatarImage src="/logo.svg" />
+                  <AvatarFallback className="bg-primary text-white font-bold">A</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                  <div className="flex items-center gap-1.5">
+                      <span className="font-black text-sm tracking-tight drop-shadow-lg">asnap_ads</span>
+                      <BadgeCheck className="h-3.5 w-3.5 text-blue-400 fill-blue-400/20" />
+                  </div>
+              </div>
+          </div>
+          <p className="text-xs font-bold leading-relaxed drop-shadow-md pr-16 line-clamp-2 opacity-90">
+              {ad.caption}
+          </p>
       </div>
     </div>
   );
