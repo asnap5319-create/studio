@@ -10,7 +10,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
-import { Heart, MessageCircle, Volume2, VolumeX, Share2, BadgeCheck } from 'lucide-react';
+import { Heart, MessageCircle, Volume2, VolumeX, Share2, BadgeCheck, Loader2 } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -35,11 +35,12 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const tapTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [isInView, setIsInView] = useState(isFocused);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(false); // Start unmuted but handle browser policy
   const [showVolumeIcon, setShowVolumeIcon] = useState(false);
   const [showBigHeart, setShowBigHeart] = useState(false);
   const [isCommentSheetOpen, setIsCommentSheetOpen] = useState(false);
   const [isShareSheetOpen, setIsShareSheetOpen] = useState(false);
+  const [isVideoLoading, setIsVideoLoading] = useState(true);
 
   const isOwnPost = user?.uid === post.userId;
 
@@ -151,7 +152,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => { 
         setIsInView(entry.isIntersecting); 
-    }, { threshold: 0.8 }); // HIGH SENSITIVITY for better playback
+    }, { threshold: 0.6 });
     if (cardRef.current) observer.observe(cardRef.current);
     return () => observer.disconnect();
   }, []);
@@ -159,45 +160,57 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+    
     if (isInView) {
-      video.muted = isMuted;
       video.play().catch(err => {
-          if (err.name === "NotAllowedError") {
-            video.muted = true;
-            setIsMuted(true);
-            video.play().catch(() => {});
-          }
+          // If browser blocks autoplay with audio, mute and try again
+          video.muted = true;
+          setIsMuted(true);
+          video.play().catch(() => {});
       });
+      
+      if (firestore && !viewCounted.current) {
+        viewCounted.current = true; 
+        const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
+        updateDoc(postRef, { viewCount: increment(1) }).catch(() => { viewCounted.current = false; });
+      }
     } else {
       video.pause();
     }
-    if (isInView && firestore && !viewCounted.current) {
-      viewCounted.current = true; 
-      const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
-      updateDoc(postRef, { viewCount: increment(1) }).catch(() => { viewCounted.current = false; });
-    }
-  }, [isInView, isMuted, firestore, post.id, post.userId]);
+  }, [isInView, firestore, post.id, post.userId]);
 
   return (
     <div ref={cardRef} className="relative w-full h-full bg-black overflow-hidden select-none" onClick={handleTap}>
       {isVideo ? (
-        <video 
-            ref={videoRef} 
-            src={post.mediaUrl} 
-            className="object-contain w-full h-full" 
-            loop 
-            playsInline 
-            muted={isMuted} 
-            preload="auto" 
-        />
+        <>
+          <video 
+              ref={videoRef} 
+              src={post.mediaUrl} 
+              className="object-contain w-full h-full" 
+              loop 
+              playsInline 
+              muted={isMuted} 
+              preload="auto" 
+              onLoadStart={() => setIsVideoLoading(true)}
+              onCanPlay={() => setIsVideoLoading(false)}
+          />
+          {isVideoLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px] z-20">
+              <Loader2 className="w-10 h-10 text-primary animate-spin" />
+            </div>
+          )}
+        </>
       ) : (
         <Image src={post.mediaUrl} alt={post.caption || 'Post'} fill className="object-contain" priority />
       )}
+
+      {/* Social Overlays */}
       {showBigHeart && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
           <Heart className="w-32 h-32 text-primary fill-primary animate-heart-pop" />
         </div>
       )}
+      
       {showVolumeIcon && isVideo && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
           <div className="p-5 rounded-full bg-black/40 backdrop-blur-sm">
@@ -205,6 +218,8 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
           </div>
         </div>
       )}
+
+      {/* Bottom Content Info */}
       <div className="absolute bottom-0 left-0 right-0 p-4 pb-20 bg-gradient-to-t from-black via-black/40 to-transparent text-white z-10" onClick={(e) => e.stopPropagation()}>
         {isAuthorLoading ? (
             <div className="flex items-center gap-2">
@@ -233,6 +248,8 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         )}
         <p className="text-sm line-clamp-2 drop-shadow-md pr-12">{post.caption}</p>
       </div>
+
+      {/* Right Side Actions */}
       <div className="absolute right-3 bottom-24 flex flex-col gap-6 z-10" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center">
                 <Button variant="ghost" size="icon" className="text-white h-12 w-12 hover:bg-transparent" onClick={isLiked ? handleUnlike : handleLike}>
@@ -240,6 +257,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                 </Button>
                 <span className="text-xs font-bold mt-1 drop-shadow-md">{post.likeCount}</span>
             </div>
+            
             <div className="flex flex-col items-center">
                 <Sheet open={isCommentSheetOpen} onOpenChange={setIsCommentSheetOpen}>
                   <SheetTrigger asChild>
@@ -253,6 +271,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                 </Sheet>
                 <span className="text-xs font-bold mt-1 drop-shadow-md">{post.commentCount}</span>
             </div>
+            
             <div className="flex flex-col items-center">
                 <Sheet open={isShareSheetOpen} onOpenChange={setIsShareSheetOpen}>
                   <SheetTrigger asChild>

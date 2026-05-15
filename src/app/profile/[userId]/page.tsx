@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -280,42 +281,6 @@ export default function ProfilePage() {
                         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <Play className="text-white h-6 w-6 fill-white" />
                         </div>
-
-                        {/* 3-Dots Menu on every Grid Video */}
-                        <div className="absolute top-1 right-1 z-10">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                    <Button variant="ghost" size="icon" className="h-7 w-7 bg-black/30 backdrop-blur-md rounded-full text-white border border-white/10 p-0">
-                                        <MoreVertical className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-xl min-w-[140px] p-1 shadow-2xl">
-                                    <DropdownMenuItem className="p-2 text-xs rounded-lg focus:bg-white/10 cursor-default flex items-center gap-2">
-                                        <Eye className="h-3 w-3" /> 
-                                        <span>{post.viewCount || 0} Views</span>
-                                    </DropdownMenuItem>
-                                    
-                                    {(isOwnProfile || isCurrentUserAdmin) && (
-                                        <>
-                                            <DropdownMenuSeparator className="bg-white/5" />
-                                            <DropdownMenuItem 
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setPostToDelete(post);
-                                                    setIsDeleteDialogOpen(true);
-                                                }}
-                                                className="p-2 text-xs rounded-lg focus:bg-destructive/10 text-destructive font-bold cursor-pointer flex items-center gap-2"
-                                            >
-                                                <Trash2 className="h-3 w-3" /> 
-                                                <span>Delete</span>
-                                            </DropdownMenuItem>
-                                        </>
-                                    )}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-
-                        {/* Instagram style View Count overlay */}
                         <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 text-[10px] font-black text-white drop-shadow-md">
                             <Eye className="h-3 w-3" />
                             {post.viewCount || 0}
@@ -337,7 +302,6 @@ export default function ProfilePage() {
                             {listType === 'followers' ? 'Followers' : 'Following'}
                         </SheetTitle>
                     </SheetHeader>
-                    
                     <div className="p-4">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -349,7 +313,6 @@ export default function ProfilePage() {
                             />
                         </div>
                     </div>
-
                     <ScrollArea className="flex-1 px-2 h-full">
                         <div className="space-y-1 pb-20">
                             {activeList && activeList.length > 0 ? (
@@ -379,39 +342,21 @@ export default function ProfilePage() {
                       <div className="w-full h-full relative">
                         <DialogTitle className="sr-only">Post Preview</DialogTitle>
                         <PostCard post={selectedPost} />
-                        
-                        {/* 3-Dots Menu Overlay on Preview */}
-                        <div className="absolute top-4 right-4 z-50">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-10 w-10 bg-black/20 backdrop-blur-md rounded-full text-white border border-white/10">
-                                        <MoreVertical className="h-5 w-5" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[180px] p-2 shadow-2xl">
-                                    <DropdownMenuItem className="p-3 rounded-xl focus:bg-white/10 cursor-pointer flex items-center gap-3">
-                                        <Eye className="h-4 w-4" /> 
-                                        <span>{selectedPost.viewCount || 0} Views</span>
-                                    </DropdownMenuItem>
-                                    
-                                    {(isOwnProfile || isCurrentUserAdmin) && (
-                                        <>
-                                            <div className="h-px bg-white/5 my-1" />
-                                            <DropdownMenuItem 
-                                                onClick={() => {
-                                                    setPostToDelete(selectedPost);
-                                                    setIsDeleteDialogOpen(true);
-                                                }}
-                                                className="p-3 rounded-xl focus:bg-destructive/10 text-destructive font-black cursor-pointer flex items-center gap-3"
-                                            >
-                                                <Trash2 className="h-4 w-4" /> 
-                                                <span>Delete Post</span>
-                                            </DropdownMenuItem>
-                                        </>
-                                    )}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
+                        {(isOwnProfile || isCurrentUserAdmin) && (
+                            <div className="absolute top-4 right-4 z-50">
+                                <Button 
+                                    variant="destructive" 
+                                    size="icon" 
+                                    className="rounded-full h-10 w-10" 
+                                    onClick={() => {
+                                        setPostToDelete(selectedPost);
+                                        setIsDeleteDialogOpen(true);
+                                    }}
+                                >
+                                    <Trash2 className="h-5 w-5" />
+                                </Button>
+                            </div>
+                        )}
                       </div>
                     )}
                 </DialogContent>
@@ -432,7 +377,6 @@ export default function ProfilePage() {
                 </AlertDialogContent>
             </AlertDialog>
 
-            <PwaInstallPrompt />
             <BottomNav />
         </div>
     );
