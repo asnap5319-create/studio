@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, collectionGroup, query, orderBy, doc, limit, deleteDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Trash2, Users, FileVideo, ArrowLeft, Search, ShieldCheck, Loader2, Play, MoreVertical, Eye, AlertTriangle } from 'lucide-react';
+import { ShieldAlert, Trash2, Users, FileVideo, ArrowLeft, Search, ShieldCheck, Loader2, Play, MoreVertical, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -18,7 +19,6 @@ import type { Post } from '@/models/post';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { BottomNav } from "@/components/bottom-nav";
-import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
@@ -271,7 +271,6 @@ export default function AdminPage() {
                     )}
                 </DialogContent>
             </Dialog>
-            <PwaInstallPrompt />
             <BottomNav />
         </div>
     );

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
@@ -7,7 +8,6 @@ import { SponsoredCard } from '@/components/sponsored-card';
 import { Loader2, MessageCircle, Bell, RefreshCw } from 'lucide-react';
 import type { Post } from '@/models/post';
 import { BottomNav } from "@/components/bottom-nav";
-import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 
@@ -140,7 +140,6 @@ export default function HomePage() {
         </div>
       )}
       
-      <PwaInstallPrompt />
       <BottomNav />
     </div>
   );

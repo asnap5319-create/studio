@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -26,7 +27,7 @@ export function PwaInstallPrompt() {
     window.addEventListener('beforeinstallprompt', handler);
 
     // If app is already in standalone mode, don't show the prompt
-    if (window.matchMedia('(display-mode: standalone)').matches) {
+    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
         setIsVisible(false);
     }
 
@@ -54,8 +55,8 @@ export function PwaInstallPrompt() {
   if (!isVisible || !deferredPrompt) return null;
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 z-[100] animate-in slide-in-from-bottom-10 duration-700">
-      <div className="bg-gradient-to-r from-[#1a1a1a] to-black border border-white/10 p-5 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex items-center justify-between gap-4">
+    <div className="fixed bottom-24 left-4 right-4 z-[100] animate-in slide-in-from-bottom-10 duration-700 max-w-lg mx-auto">
+      <div className="bg-gradient-to-r from-[#1a1a1a] to-black border border-white/10 p-5 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex items-center justify-between gap-4 backdrop-blur-xl">
         <div className="flex items-center gap-4">
           <div className="relative w-12 h-12 bg-[#0a0a0a] rounded-xl flex items-center justify-center border border-white/10 shrink-0 shadow-lg overflow-hidden">
              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none"></div>

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { FirebaseClientProvider } from "@/firebase/client-provider";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
+import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 
 export const metadata: Metadata = {
   title: "A.snap - Share Your World in Short Videos",
@@ -45,6 +46,7 @@ export default function RootLayout({
       <body className={cn("min-h-screen bg-background font-sans antialiased")}>
         <FirebaseClientProvider>
           {children}
+          <PwaInstallPrompt />
         </FirebaseClientProvider>
         <SpeedInsights />
         <Toaster />
