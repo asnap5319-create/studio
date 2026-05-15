@@ -186,7 +186,7 @@ export default function ProfilePage() {
     const confirmDeletePost = async () => {
         if (!firestore || !user || !postToDelete) return;
         try {
-            await deleteDoc(doc(firestore, 'users', user.uid, 'posts', postToDelete.id));
+            await deleteDoc(doc(firestore, 'users', postToDelete.userId, 'posts', postToDelete.id));
             setIsDeleteDialogOpen(false);
             setPostToDelete(null);
             setSelectedPost(null);
@@ -350,24 +350,24 @@ export default function ProfilePage() {
                         <DialogTitle className="sr-only">Post Preview</DialogTitle>
                         <PostCard post={selectedPost} />
                         
-                        {/* 3 DOTS MENU FOR OWN PROFILE OR ADMIN */}
+                        {/* INSTAGRAM STYLE 3-DOTS MENU AT THE TOP-RIGHT */}
                         {(isOwnProfile || isCurrentUserAdmin) && (
-                            <div className="absolute top-4 right-4 z-50">
+                            <div className="absolute top-10 right-4 z-[60]">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button 
                                             variant="ghost" 
                                             size="icon" 
-                                            className="rounded-full h-12 w-12 bg-black/40 backdrop-blur-md border border-white/10 text-white hover:bg-black/60"
+                                            className="rounded-full h-10 w-10 bg-black/40 backdrop-blur-md border border-white/10 text-white hover:bg-black/60 active:scale-90 transition-all"
                                         >
                                             <MoreVertical className="h-6 w-6" />
                                         </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[180px] p-2 shadow-2xl">
+                                    <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[200px] p-2 shadow-2xl animate-in fade-in zoom-in duration-200">
                                         <DropdownMenuItem onClick={() => {
                                             toast({ title: "Link Copied! 🔗" });
-                                        }} className="font-bold p-3 rounded-xl focus:bg-white/10 cursor-pointer">
-                                            <Share2 className="mr-3 h-4 w-4" /> Share Post
+                                        }} className="font-bold p-4 rounded-xl focus:bg-white/10 cursor-pointer flex items-center gap-3">
+                                            <Share2 className="h-5 w-5" /> Share Post
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator className="bg-white/5 my-1" />
                                         <DropdownMenuItem 
@@ -375,9 +375,9 @@ export default function ProfilePage() {
                                                 setPostToDelete(selectedPost);
                                                 setIsDeleteDialogOpen(true);
                                             }} 
-                                            className="text-destructive font-black p-3 rounded-xl focus:bg-destructive/10 cursor-pointer"
+                                            className="text-destructive font-black p-4 rounded-xl focus:bg-destructive/10 cursor-pointer flex items-center gap-3"
                                         >
-                                            <Trash2 className="mr-3 h-4 w-4" /> Delete Video
+                                            <Trash2 className="h-5 w-5" /> Delete Video
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
@@ -389,20 +389,20 @@ export default function ProfilePage() {
             </Dialog>
 
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent className="bg-[#121212] text-white rounded-[2rem] border-white/10 max-w-[85vw] sm:max-w-md shadow-[0_25px_50px_rgba(0,0,0,0.8)] overflow-hidden">
-                    <div className="p-2">
+                <AlertDialogContent className="bg-[#121212] text-white rounded-[2.5rem] border-white/10 max-w-[90vw] sm:max-w-md shadow-[0_25px_50px_rgba(0,0,0,1)] overflow-hidden">
+                    <div className="p-4">
                         <AlertDialogHeader className="space-y-4">
-                          <div className="mx-auto w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mb-2">
-                            <Trash2 className="h-8 w-8 text-destructive" />
+                          <div className="mx-auto w-20 h-20 bg-destructive/10 rounded-full flex items-center justify-center mb-2 animate-pulse">
+                            <Trash2 className="h-10 w-10 text-destructive" />
                           </div>
-                          <AlertDialogTitle className="text-2xl font-black uppercase italic text-center tracking-tighter">डिलीट करें?</AlertDialogTitle>
-                          <AlertDialogDescription className="text-muted-foreground text-center font-medium px-4">
+                          <AlertDialogTitle className="text-2xl font-black uppercase italic text-center tracking-tighter">Delete Post?</AlertDialogTitle>
+                          <AlertDialogDescription className="text-muted-foreground text-center font-medium px-4 text-sm">
                             क्या आप वाकई इस वीडियो को डिलीट करना चाहते हैं? यह वापस नहीं आएगा।
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter className="flex-col gap-3 sm:flex-row mt-8">
-                            <AlertDialogCancel className="rounded-2xl border-white/10 bg-secondary/50 text-white hover:bg-secondary h-14 font-black uppercase text-xs">Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={confirmDeletePost} className="bg-destructive hover:bg-destructive/90 rounded-2xl font-black h-14 uppercase text-xs shadow-lg shadow-destructive/20">Delete Forever</AlertDialogAction>
+                            <AlertDialogCancel className="rounded-2xl border-white/10 bg-secondary/50 text-white hover:bg-secondary h-14 font-black uppercase text-xs flex-1">Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={confirmDeletePost} className="bg-destructive hover:bg-destructive/90 rounded-2xl font-black h-14 uppercase text-xs shadow-lg shadow-destructive/20 flex-1">Delete Forever</AlertDialogAction>
                         </AlertDialogFooter>
                     </div>
                 </AlertDialogContent>

@@ -20,7 +20,6 @@ interface SponsoredCardProps {
   };
 }
 
-// Global mute state synchronized with post-card.tsx
 let globalMuted = true;
 
 export function SponsoredCard({ ad }: SponsoredCardProps) {
@@ -48,7 +47,6 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     }
   }, [isInView]);
 
-  // Adsterra Script Injection Logic
   useEffect(() => {
     if (!containerRef.current || !isInView || isLoaded) return;
 
@@ -78,7 +76,6 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     
     script.onload = () => {
         setIsLoaded(true);
-        // Ensure child elements like iframes or videos expand correctly
         setTimeout(() => {
             const children = adWrapper.querySelectorAll('iframe, video, img');
             children.forEach((child: any) => {
@@ -100,9 +97,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
 
   const handleCtaClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Intercept .js code dump and open the ad unit's root domain or direct link if available
     if (ad.ctaUrl.endsWith('.js') || ad.ctaUrl.includes('/fd/')) {
-        // Force opening the root domain of the ad network which usually acts as the landing trigger for these scripts
         const landingPage = `https://${ad.adScriptDomain}`;
         window.open(landingPage, '_blank');
     } else {
@@ -126,7 +121,6 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
       className="relative w-full h-full bg-black overflow-hidden flex flex-col snap-start snap-always"
       onClick={handleCtaClick}
     >
-      {/* AD BACKGROUND - Premium Cinematic Look */}
       <div className="absolute inset-0 z-0 bg-gradient-to-b from-zinc-900 via-black to-zinc-950">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent opacity-40" />
         
@@ -141,20 +135,17 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
         )}
       </div>
 
-      {/* Adsterra Content Container (The Actual Creative) */}
       <div 
         ref={containerRef} 
         className="absolute inset-0 z-20 flex items-center justify-center overflow-hidden pointer-events-none h-full w-full"
       />
 
-      {/* Header Controls */}
       <div className="absolute top-12 right-4 z-50">
         <button onClick={toggleMute} className="p-3 bg-black/40 backdrop-blur-md rounded-full border border-white/10 text-white active:scale-90 transition-transform">
           {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
         </button>
       </div>
 
-      {/* Instagram Style Social Sidebar (Right Side) */}
       <div className="absolute right-3 bottom-32 flex flex-col gap-6 z-40 items-center" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center">
                 <button 
@@ -184,10 +175,8 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
             </div>
       </div>
 
-      {/* Instagram Style Ad Info & CTA (Bottom Section) */}
       <div className="absolute bottom-0 left-0 right-0 p-4 pb-20 bg-gradient-to-t from-black via-black/60 to-transparent z-40" onClick={(e) => e.stopPropagation()}>
         <div className="flex flex-col gap-4">
-            {/* Advertiser Info (Bottom Left - True Insta Style) */}
             <div className="flex items-center gap-3 mb-1">
                 <Avatar className="h-11 w-11 border-2 border-primary shadow-lg ring-2 ring-black">
                     <AvatarImage src={ad.brandLogo} className="object-cover" />
@@ -202,12 +191,10 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
                 </div>
             </div>
 
-            {/* Ad Caption */}
             <p className="text-sm text-white/90 px-1 mb-2 line-clamp-2 drop-shadow-md">
                 {ad.caption}
             </p>
 
-            {/* Premium CTA Button (The Insta Horizontal Bar) */}
             <Button 
                 className="w-full h-12 bg-white text-black hover:bg-white/90 rounded-xl font-black flex justify-between px-5 items-center shadow-2xl active:scale-[0.98] transition-all"
                 onClick={handleCtaClick}
