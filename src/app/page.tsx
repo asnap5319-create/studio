@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
@@ -17,7 +16,7 @@ export default function HomePage() {
   const [displayItems, setDisplayItems] = useState<{ type: 'post' | 'ad'; data: any }[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Fetch pool of posts
+  // Fetch pool of posts - limit 50 for good randomization coverage
   const postsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'), limit(50));
@@ -26,7 +25,7 @@ export default function HomePage() {
   const { data: posts, isLoading } = useCollection<Post>(postsQuery);
 
   /**
-   * Fisher-Yates Shuffle Algorithm for dynamic randomization
+   * Fisher-Yates Shuffle Algorithm for high-performance randomization
    */
   const shuffleArray = useCallback((array: any[]) => {
     const newArray = [...array];
@@ -38,14 +37,14 @@ export default function HomePage() {
   }, []);
 
   /**
-   * Build the feed with shuffled posts and ads interleaved
+   * Build the feed with shuffled posts and ads interleaved every 2nd post
    */
   const buildFeed = useCallback(() => {
     if (!posts || posts.length === 0) return;
 
     setIsRefreshing(true);
     
-    // Shuffle the pool for variety
+    // Shuffle the current posts for a unique feeling every refresh
     const shuffledPosts = shuffleArray(posts);
     
     const items: { type: 'post' | 'ad'; data: any }[] = [];
@@ -61,9 +60,9 @@ export default function HomePage() {
             id: `ad-${index}-${Math.random().toString(36).substring(7)}`,
             brandName: "A.snap Premium",
             brandLogo: "/logo.svg",
-            mediaUrl: `https://picsum.photos/seed/ad-${index}-${Math.random()}/600/1000`,
-            caption: "Explore world-class visual content and exclusive offers! Upgrade your experience today. #asnap #premium",
-            ctaText: "Explore Now",
+            mediaUrl: `https://picsum.photos/seed/ad-${index}/1080/1920`,
+            caption: "Get the best visual experience and exclusive rewards! Upgrade to A.snap Premium today. #asnap #premium",
+            ctaText: "Shop Now",
             ctaUrl: "https://pl29411112.profitablecpmratenetwork.com/286ef4dc1c3c9afc429b42567c2d2b99/invoke.js",
             adUnitId: '286ef4dc1c3c9afc429b42567c2d2b99'
           }
@@ -72,10 +71,11 @@ export default function HomePage() {
     });
 
     setDisplayItems(items);
+    // Smooth transition for refreshing feel
     setTimeout(() => setIsRefreshing(false), 800);
   }, [posts, shuffleArray]);
 
-  // Handle hydration-safe initial feed build
+  // Initial feed build on mount
   useEffect(() => {
     if (posts && posts.length > 0 && displayItems.length === 0) {
       buildFeed();
@@ -84,8 +84,8 @@ export default function HomePage() {
 
   return (
     <div className="h-screen bg-black overflow-y-scroll snap-y snap-mandatory scrollbar-hide relative">
-      {/* Dynamic Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/90 to-transparent pointer-events-none">
+      {/* Dynamic Header Overlay */}
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
         <div className="flex items-center gap-4 pointer-events-auto">
           <h1 className="text-3xl font-black text-primary italic tracking-tighter drop-shadow-[0_2px_15px_rgba(var(--primary),0.6)]">
             A.snap
@@ -108,7 +108,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Main Feed Container */}
+      {/* Main Reels Feed */}
       {isLoading && displayItems.length === 0 ? (
         <div className="flex h-screen items-center justify-center bg-black">
           <div className="flex flex-col items-center gap-4">
@@ -116,7 +116,7 @@ export default function HomePage() {
                 <div className="absolute inset-0 blur-2xl bg-primary/20 animate-pulse rounded-full"></div>
                 <Loader2 className="animate-spin h-12 w-12 text-primary relative z-10" />
              </div>
-             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/60 animate-pulse">Building Fresh Feed...</p>
+             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/60 animate-pulse">Building Feed...</p>
           </div>
         </div>
       ) : displayItems.length > 0 ? (
