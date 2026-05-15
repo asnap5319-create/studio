@@ -52,10 +52,10 @@ export default function HomePage() {
           type: 'ad',
           data: {
             id: adId,
-            brandName: "A.snap Premium",
+            brandName: "Lucky Game Online",
             brandLogo: "/logo.svg",
-            ctaText: "LEARN MORE",
-            ctaUrl: `https://${adDomain}`, // Fallback to domain if script is just code
+            ctaText: "PLAY NOW",
+            ctaUrl: `https://${adDomain}/fd/68/cb/${adUnitId}.js`, // Fixed direct path
             adUnitId: adUnitId,
             adScriptDomain: adDomain
           }
@@ -77,7 +77,7 @@ export default function HomePage() {
     <div className="h-screen bg-black overflow-y-scroll snap-y snap-mandatory scrollbar-hide relative touch-pan-y">
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
         <div className="flex items-center gap-4 pointer-events-auto">
-          <h1 className="text-3xl font-black text-primary italic tracking-tighter drop-shadow-[0_2px_15_rgba(var(--primary),0.6)]">
+          <h1 className="text-3xl font-black text-primary italic tracking-tighter drop-shadow-[0_2px_15px_rgba(var(--primary),0.6)]">
             A.snap
           </h1>
           <button 

@@ -74,7 +74,13 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     script.async = true;
     script.setAttribute('data-cfasync', 'false');
     
-    script.onload = () => setIsLoaded(true);
+    script.onload = () => {
+        setIsLoaded(true);
+        // Small delay to ensure rendering
+        setTimeout(() => {
+            if (adWrapper.innerHTML === '') setIsLoaded(false);
+        }, 2000);
+    };
     script.onerror = () => setIsLoaded(true);
 
     adWrapper.appendChild(script);
@@ -87,10 +93,11 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
 
   const handleCtaClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Safety check: Don't open if it's just a raw script link
+    // Use the CTA URL provided in props. If it's a script link, open its parent directory as a potential landing page, or just open the link.
+    // Fixed: Never redirect to google.com
     if (ad.ctaUrl.endsWith('.js')) {
-        const domain = ad.ctaUrl.split('/')[2];
-        window.open(`https://${domain}`, '_blank');
+        const directLink = ad.ctaUrl.replace('.js', '');
+        window.open(directLink, '_blank');
     } else {
         window.open(ad.ctaUrl, '_blank');
     }
@@ -112,12 +119,19 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
       className="relative w-full h-full bg-black overflow-hidden flex flex-col snap-start snap-always"
       onClick={handleCtaClick}
     >
-      {/* AD BACKGROUND - Neutral Premium Look */}
+      {/* AD BACKGROUND - Premium Look */}
       <div className="absolute inset-0 z-0 bg-gradient-to-b from-zinc-900 to-black">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent opacity-50" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent opacity-60" />
+        <div className="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none">
+            <h2 className="text-4xl font-black italic uppercase text-white rotate-[-30deg] tracking-tighter">LUCKY GAME</h2>
+        </div>
         {!isLoaded && (
-          <div className="absolute inset-0 flex items-center justify-center">
-             <Loader2 className="w-10 h-10 text-primary animate-spin" />
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10 bg-black/40">
+             <div className="relative">
+                <div className="absolute inset-0 blur-xl bg-primary/30 animate-pulse rounded-full"></div>
+                <Loader2 className="w-12 h-12 text-primary animate-spin relative" />
+             </div>
+             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/80 animate-pulse">Sponsored Ad Loading...</p>
           </div>
         )}
       </div>
@@ -125,10 +139,10 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
       {/* Adsterra Content Container */}
       <div 
         ref={containerRef} 
-        className="absolute inset-0 z-20 flex items-center justify-center overflow-hidden pointer-events-none"
+        className="absolute inset-0 z-20 flex items-center justify-center overflow-hidden pointer-events-none h-full w-full"
       />
 
-      {/* Header Controls (Mute button only) */}
+      {/* Header Controls */}
       <div className="absolute top-12 right-4 z-50">
         <button onClick={toggleMute} className="p-3 bg-black/40 backdrop-blur-md rounded-full border border-white/10 text-white active:scale-90 transition-transform">
           {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
@@ -166,13 +180,13 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
       </div>
 
       {/* Instagram Style Ad Info & CTA (Bottom Section) */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 pb-20 bg-gradient-to-t from-black via-black/40 to-transparent z-40">
+      <div className="absolute bottom-0 left-0 right-0 p-4 pb-20 bg-gradient-to-t from-black via-black/40 to-transparent z-40" onClick={(e) => e.stopPropagation()}>
         <div className="flex flex-col gap-4">
             {/* Advertiser Info (Bottom Left) */}
-            <div className="flex items-center gap-3 mb-2" onClick={(e) => e.stopPropagation()}>
-                <Avatar className="h-10 w-10 border-2 border-primary shadow-lg">
+            <div className="flex items-center gap-3 mb-1">
+                <Avatar className="h-11 w-11 border-2 border-primary shadow-lg">
                     <AvatarImage src={ad.brandLogo} className="object-cover" />
-                    <AvatarFallback className="bg-primary text-white font-bold">{ad.brandName[0]}</AvatarFallback>
+                    <AvatarFallback className="bg-primary text-white font-black">{ad.brandName[0]}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col">
                     <div className="flex items-center gap-1.5">
@@ -184,8 +198,8 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
             </div>
 
             {/* Ad Caption */}
-            <p className="text-sm text-white/90 px-1 mb-2 line-clamp-2 drop-shadow-md pointer-events-none">
-                Get ready for the ultimate experience! Click below to explore more. 🚀
+            <p className="text-sm text-white/90 px-1 mb-2 line-clamp-2 drop-shadow-md">
+                Click below to play the ultimate game and win big! 🎮🚀
             </p>
 
             {/* Premium CTA Button (The Insta Bar) */}
@@ -193,7 +207,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
                 className="w-full h-12 bg-white text-black hover:bg-white/90 rounded-xl font-black flex justify-between px-5 items-center shadow-2xl active:scale-[0.98] transition-all"
                 onClick={handleCtaClick}
             >
-                <span className="text-sm uppercase tracking-tighter">{ad.ctaText}</span>
+                <span className="text-xs uppercase tracking-tight">{ad.ctaText}</span>
                 <ChevronRight className="h-5 w-5 text-primary" />
             </Button>
         </div>
