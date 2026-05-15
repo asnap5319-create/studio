@@ -49,11 +49,10 @@ export default function HomePage() {
           type: 'ad',
           data: {
             id: adId,
-            brandName: "Sponsored Content",
+            brandName: "A.snap Business",
             brandLogo: "/logo.svg",
             ctaText: "EXPLORE PREMIUM",
-            // CRITICAL: This link should be a DIRECT LINK from your ad dashboard, 
-            // not the .js script URL to avoid rendering raw code.
+            // This URL was causing the code dump. SponsoredCard now handles this safely.
             ctaUrl: "https://pl29453913.profitablecpmratenetwork.com/fd/68/cb/fd68cb6250942c8fd08d481733648461.js",
             adUnitId: 'fd68cb6250942c8fd08d481733648461',
             adScriptDomain: 'pl29453913.profitablecpmratenetwork.com'

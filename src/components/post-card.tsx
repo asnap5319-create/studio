@@ -24,7 +24,7 @@ interface PostCardProps {
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
-// Global variable to keep track of mute state across components
+// Global variable to keep track of mute state across components (Insta style)
 let globalMuted = true;
 
 export function PostCard({ post, isFocused = false }: PostCardProps) {

@@ -96,8 +96,8 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
   const handleCtaClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     
-    // CRITICAL FIX: If the URL is a JS file, do not open it as a page.
-    // Instead, try to find a fallback or just use the domain.
+    // CRITICAL FIX: If the URL is a JS file, do not open it as a page to prevent code dump.
+    // Instead, redirect to the domain or a generic landing page.
     if (ad.ctaUrl.endsWith('.js')) {
       console.warn("[Adsterra] CTA URL is a script file. Redirecting to domain instead to avoid raw code dump.");
       window.open(`https://${ad.adScriptDomain}`, '_blank');
@@ -112,7 +112,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
     globalMuted = newMute;
     setIsMuted(newMute);
     
-    // Sync post-card videos if they exist
+    // Sync all video elements on screen
     const allVideos = document.querySelectorAll('video');
     allVideos.forEach(v => { v.muted = newMute; });
   };
@@ -126,9 +126,10 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
       {/* Visual Background Fallback - Ensures no black screen while loading */}
       <div className="absolute inset-0 z-0">
         <img 
-          src="https://picsum.photos/seed/ad-bg/1080/1920" 
+          src={`https://picsum.photos/seed/${ad.id}/1080/1920`} 
           className="w-full h-full object-cover opacity-30 grayscale" 
           alt=""
+          data-ai-hint="sponsored vertical"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80" />
       </div>
@@ -158,7 +159,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
             </div>
             <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
-                    <span className="font-black text-sm tracking-tight text-white drop-shadow-md">A.snap Business</span>
+                    <span className="font-black text-sm tracking-tight text-white drop-shadow-md">{ad.brandName}</span>
                     <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />
                 </div>
                 <div className="flex items-center gap-1 opacity-90">
