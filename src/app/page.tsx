@@ -42,16 +42,18 @@ export default function HomePage() {
     shuffledPosts.forEach((post, index) => {
       items.push({ type: 'post', data: post });
       
-      // INSERT ADS EVERY 2nd POST for maximum earning
+      // INSERT ADS EVERY 2nd POST for maximum revenue (Instagram Reels style)
       if ((index + 1) % 2 === 0) {
         const adId = `ad-${index}-${Math.random().toString(36).substring(7)}`;
         items.push({
           type: 'ad',
           data: {
             id: adId,
-            brandName: "Sponsored Ad",
+            brandName: "Sponsored Content",
             brandLogo: "/logo.svg",
-            ctaText: "EXPLORE NOW",
+            ctaText: "EXPLORE PREMIUM",
+            // CRITICAL: This link should be a DIRECT LINK from your ad dashboard, 
+            // not the .js script URL to avoid rendering raw code.
             ctaUrl: "https://pl29453913.profitablecpmratenetwork.com/fd/68/cb/fd68cb6250942c8fd08d481733648461.js",
             adUnitId: 'fd68cb6250942c8fd08d481733648461',
             adScriptDomain: 'pl29453913.profitablecpmratenetwork.com'
