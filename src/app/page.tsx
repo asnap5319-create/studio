@@ -11,31 +11,31 @@ import { BottomNav } from "@/components/bottom-nav";
 import Link from 'next/link';
 import { useState, useEffect, useCallback, memo } from 'react';
 
-// Adsterra Variety with Real Vertical Video Layout
+// Real Vertical Video Ads for Sponsored Reels
 const AD_VARIETY = [
   {
     brandName: "Lucky Spin Master",
     brandLogo: "https://picsum.photos/seed/lucky/100/100",
-    ctaText: "PLAY NOW",
+    ctaText: "LEARN MORE",
     ctaUrl: "https://pl29453913.profitablecpmratenetwork.com/fd/68/cb/fd68cb6250942c8fd08d481733648461",
     videoUrl: "https://res.cloudinary.com/dipz5jsls/video/upload/v1715851234/ad_video_1.mp4", 
-    caption: "JACKPOT! 🎰 You have 3 free spins waiting. Claim your reward and start winning now! 💰🔥✨"
+    caption: "JACKPOT! 🎰 Claim your 3 free spins now. Real rewards waiting for you! 💰🔥✨"
   },
   {
     brandName: "Epic Games Pro",
     brandLogo: "https://picsum.photos/seed/epic/100/100",
-    ctaText: "INSTALL NOW",
+    ctaText: "PLAY NOW",
     ctaUrl: "https://pl29453913.profitablecpmratenetwork.com/fd/68/cb/fd68cb6250942c8fd08d481733648461",
     videoUrl: "https://res.cloudinary.com/dipz5jsls/video/upload/v1715851235/ad_video_2.mp4",
-    caption: "Experience the most addictive game of 2024! Play for free and unlock exclusive rewards. 🎮🚀🏆"
+    caption: "Experience the most addictive game of 2024! Play for free today. 🎮🚀🏆"
   },
   {
     brandName: "Smart Visuals AI",
     brandLogo: "https://picsum.photos/seed/camera/100/100",
-    ctaText: "LEARN MORE",
+    ctaText: "INSTALL",
     ctaUrl: "https://pl29453913.profitablecpmratenetwork.com/fd/68/cb/fd68cb6250942c8fd08d481733648461",
     videoUrl: "https://res.cloudinary.com/dipz5jsls/video/upload/v1715851236/ad_video_3.mp4",
-    caption: "Transform your reels with AI-powered effects. Get the pro version for free today! 🎬✨📸"
+    caption: "Transform your reels with AI-powered effects. Get the pro version for free! 🎬✨📸"
   }
 ];
 

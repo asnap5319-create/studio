@@ -27,7 +27,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
   
   const [isInView, setIsInView] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
+  const [likeCount, setLikeCount] = useState(1200);
   const [isMuted, setIsMuted] = useState(globalMuted);
   const [isBuffering, setIsBuffering] = useState(true);
 
@@ -68,12 +68,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
 
   const handleCtaClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Safety check: if ctaUrl is a script, don't open as page
-    const finalUrl = ad.ctaUrl.endsWith('.js') 
-      ? ad.ctaUrl.replace('.js', '') // Fallback or handle appropriately
-      : ad.ctaUrl;
-    
-    window.open(finalUrl, '_blank');
+    window.open(ad.ctaUrl, '_blank');
   };
 
   return (
@@ -117,7 +112,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
           >
             <Heart className={cn("h-9 w-9 drop-shadow-lg", isLiked ? "fill-primary text-primary" : "text-white")} />
           </button>
-          <span className="text-[11px] font-bold mt-1 text-white uppercase drop-shadow-md">5.4K</span>
+          <span className="text-[11px] font-bold mt-1 text-white uppercase drop-shadow-md">{(likeCount/1000).toFixed(1)}K</span>
         </div>
         
         <div className="flex flex-col items-center">

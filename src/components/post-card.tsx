@@ -268,7 +268,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         <p className="text-sm line-clamp-2 drop-shadow-md pr-12">{post.caption}</p>
       </div>
 
-      {/* THREE DOTS MENU ON REEL */}
+      {/* THREE DOTS MENU ON REEL (INSTA STYLE) */}
       {(isOwnPost || isCurrentUserAdmin) && (
         <div className="absolute top-10 right-4 z-50" onClick={(e) => e.stopPropagation()}>
             <DropdownMenu>
