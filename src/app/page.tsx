@@ -9,16 +9,16 @@ import { Loader2, MessageCircle, Bell, RefreshCw } from 'lucide-react';
 import type { Post } from '@/models/post';
 import { BottomNav } from "@/components/bottom-nav";
 import Link from 'next/link';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 
-// Adsterra Smartlink Ad Variety (Instagram Styled)
+// Adsterra Variety with Real Vertical Video Layout
 const AD_VARIETY = [
   {
     brandName: "Lucky Spin Master",
     brandLogo: "https://picsum.photos/seed/lucky/100/100",
     ctaText: "PLAY NOW",
     ctaUrl: "https://pl29453913.profitablecpmratenetwork.com/fd/68/cb/fd68cb6250942c8fd08d481733648461",
-    videoUrl: "https://res.cloudinary.com/dipz5jsls/video/upload/v1715851234/ad_video_1.mp4", // Using a fallback vertical video
+    videoUrl: "https://res.cloudinary.com/dipz5jsls/video/upload/v1715851234/ad_video_1.mp4", 
     caption: "JACKPOT! 🎰 You have 3 free spins waiting. Claim your reward and start winning now! 💰🔥✨"
   },
   {
@@ -39,13 +39,20 @@ const AD_VARIETY = [
   }
 ];
 
-// Fallback high-quality vertical video if cloudinary is not ready
 const FALLBACK_VIDEO = "https://firebasestorage.googleapis.com/v0/b/studio-8111746683-c1e57.appspot.com/o/ad-fallback.mp4?alt=media";
+
+const MemoizedPostCard = memo(PostCard);
+const MemoizedSponsoredCard = memo(SponsoredCard);
 
 export default function HomePage() {
   const { firestore } = useFirebase();
   const [displayItems, setDisplayItems] = useState<{ type: 'post' | 'ad'; data: any }[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const postsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -54,35 +61,23 @@ export default function HomePage() {
 
   const { data: posts, isLoading } = useCollection<Post>(postsQuery);
 
-  const shuffleArray = useCallback((array: any[]) => {
-    const newArray = [...array];
-    for (let i = newArray.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-    }
-    return newArray;
-  }, []);
-
   const buildFeed = useCallback(() => {
     if (!posts || posts.length === 0) return;
 
     setIsRefreshing(true);
-    const shuffledPosts = shuffleArray(posts);
+    
     const items: { type: 'post' | 'ad'; data: any }[] = [];
-
-    shuffledPosts.forEach((post, index) => {
+    posts.forEach((post, index) => {
       items.push({ type: 'post', data: post });
       
-      // Instagram Style: Insert Ad after every 3rd post
+      // Insert Ad after every 3rd post
       if ((index + 1) % 3 === 0) {
         const adTemplate = AD_VARIETY[index % AD_VARIETY.length];
-        const adId = `ad-${index}-${Math.random().toString(36).substring(7)}`;
-        
         items.push({
           type: 'ad',
           data: {
             ...adTemplate,
-            id: adId,
+            id: `ad-${index}-${Date.now()}`,
             videoUrl: adTemplate.videoUrl || FALLBACK_VIDEO
           }
         });
@@ -90,14 +85,16 @@ export default function HomePage() {
     });
 
     setDisplayItems(items);
-    setTimeout(() => setIsRefreshing(false), 800);
-  }, [posts, shuffleArray]);
+    setTimeout(() => setIsRefreshing(false), 500);
+  }, [posts]);
 
   useEffect(() => {
     if (posts && posts.length > 0 && displayItems.length === 0) {
       buildFeed();
     }
   }, [posts, buildFeed, displayItems.length]);
+
+  if (!hasMounted) return <div className="h-screen bg-black" />;
 
   return (
     <div className="h-screen bg-black overflow-y-scroll snap-y snap-mandatory scrollbar-hide relative touch-pan-y">
@@ -115,10 +112,10 @@ export default function HomePage() {
         </div>
         
         <div className="flex items-center gap-4 pointer-events-auto">
-          <Link href="/notifications" className="p-3 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 hover:bg-black/60 transition-all active:scale-90 shadow-lg">
+          <Link href="/notifications" className="p-3 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 shadow-lg">
             <Bell className="w-6 h-6 text-white" />
           </Link>
-          <Link href="/messages" className="p-3 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 hover:bg-black/60 transition-all active:scale-90 shadow-lg">
+          <Link href="/messages" className="p-3 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 shadow-lg">
             <MessageCircle className="w-6 h-6 text-white" />
           </Link>
         </div>
@@ -136,11 +133,11 @@ export default function HomePage() {
         </div>
       ) : displayItems.length > 0 ? (
         displayItems.map((item) => (
-          <div key={`${item.type}-${item.data.id}`} className="h-screen w-full snap-start snap-always overflow-hidden flex flex-col">
+          <div key={item.data.id} className="h-screen w-full snap-start snap-always overflow-hidden flex flex-col">
             {item.type === 'post' ? (
-              <PostCard post={item.data} />
+              <MemoizedPostCard post={item.data} />
             ) : (
-              <SponsoredCard ad={item.data} />
+              <MemoizedSponsoredCard ad={item.data} />
             )}
           </div>
         )

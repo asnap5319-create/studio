@@ -15,11 +15,10 @@ interface SponsoredCardProps {
     ctaText: string;
     ctaUrl: string;
     caption: string;
-    videoUrl: string; // Vertical video for the sponsored reel
+    videoUrl: string;
   };
 }
 
-// Global audio state sync
 let globalMuted = true;
 
 export function SponsoredCard({ ad }: SponsoredCardProps) {
@@ -28,7 +27,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
   
   const [isInView, setIsInView] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(Math.floor(Math.random() * 8000) + 2000);
+  const [likeCount, setLikeCount] = useState(0);
   const [isMuted, setIsMuted] = useState(globalMuted);
   const [isBuffering, setIsBuffering] = useState(true);
 
@@ -69,8 +68,12 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
 
   const handleCtaClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Ensuring it opens the direct link safely
-    window.open(ad.ctaUrl, '_blank');
+    // Safety check: if ctaUrl is a script, don't open as page
+    const finalUrl = ad.ctaUrl.endsWith('.js') 
+      ? ad.ctaUrl.replace('.js', '') // Fallback or handle appropriately
+      : ad.ctaUrl;
+    
+    window.open(finalUrl, '_blank');
   };
 
   return (
@@ -79,7 +82,6 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
       className="relative w-full h-full bg-black overflow-hidden flex flex-col snap-start snap-always"
       onClick={handleCtaClick}
     >
-      {/* Sponsored Video Layer */}
       <video 
         ref={videoRef}
         src={ad.videoUrl}
@@ -92,22 +94,18 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
         onLoadedData={() => setIsBuffering(false)}
       />
 
-      {/* Buffering State */}
       {isBuffering && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10 bg-black/20">
           <Loader2 className="w-12 h-12 text-primary animate-spin" />
-          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/50 animate-pulse">Sponsored</p>
         </div>
       )}
 
-      {/* Mute Toggle */}
       <div className="absolute top-12 right-4 z-30">
         <button onClick={toggleMute} className="p-3 bg-black/40 backdrop-blur-md rounded-full border border-white/10 text-white active:scale-90 transition-transform">
           {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
         </button>
       </div>
 
-      {/* Right Side Actions */}
       <div className="absolute right-3 bottom-32 flex flex-col gap-6 z-20 items-center" onClick={(e) => e.stopPropagation()}>
         <div className="flex flex-col items-center">
           <button 
@@ -117,16 +115,16 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
               setLikeCount(prev => isLiked ? prev - 1 : prev + 1);
             }}
           >
-            <Heart className={cn("h-9 w-9 drop-shadow-lg transition-colors", isLiked ? "fill-primary text-primary" : "text-white")} />
+            <Heart className={cn("h-9 w-9 drop-shadow-lg", isLiked ? "fill-primary text-primary" : "text-white")} />
           </button>
-          <span className="text-[11px] font-bold mt-1 text-white uppercase drop-shadow-md">{(likeCount/1000).toFixed(1)}K</span>
+          <span className="text-[11px] font-bold mt-1 text-white uppercase drop-shadow-md">5.4K</span>
         </div>
         
         <div className="flex flex-col items-center">
           <button className="text-white">
             <MessageCircle className="h-9 w-9 drop-shadow-lg" />
           </button>
-          <span className="text-[11px] font-bold mt-1 text-white uppercase drop-shadow-md">{Math.floor(likeCount/15)}</span>
+          <span className="text-[11px] font-bold mt-1 text-white uppercase drop-shadow-md">241</span>
         </div>
 
         <div className="flex flex-col items-center">
@@ -137,11 +135,10 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
         </div>
       </div>
 
-      {/* Profile & CTA Bar (Instagram Style) */}
       <div className="absolute bottom-0 left-0 right-0 p-4 pb-20 bg-gradient-to-t from-black via-black/60 to-transparent z-20" onClick={(e) => e.stopPropagation()}>
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
-            <Avatar className="h-11 w-11 border-2 border-primary shadow-lg ring-2 ring-black">
+            <Avatar className="h-11 w-11 border-2 border-primary shadow-lg">
               <AvatarImage src={ad.brandLogo} className="object-cover" />
               <AvatarFallback className="bg-primary text-white font-black">{ad.brandName[0]}</AvatarFallback>
             </Avatar>
