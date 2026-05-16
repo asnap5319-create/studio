@@ -232,7 +232,7 @@ export default function ProfilePage() {
                             </div>
                         )}
 
-                        {/* VIEW COUNT OVERLAY IN GRID */}
+                        {/* VIEW COUNT OVERLAY IN GRID - Instagram Style */}
                         <div className="absolute bottom-1 left-1.5 flex items-center gap-1 text-white text-[10px] font-bold drop-shadow-md">
                             <Play className="h-3 w-3 fill-white" />
                             <span>{post.viewCount || 0}</span>
