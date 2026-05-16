@@ -97,7 +97,8 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
 
   const handleCtaClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (ad.ctaUrl.endsWith('.js') || ad.ctaUrl.includes('/fd/')) {
+    // Logic to prevent code dumping by ensuring we open a valid landing page
+    if (ad.ctaUrl.includes('.js') || ad.ctaUrl.includes('/fd/')) {
         const landingPage = `https://${ad.adScriptDomain}`;
         window.open(landingPage, '_blank');
     } else {
@@ -175,6 +176,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
             </div>
       </div>
 
+      {/* Instagram Style: Bottom-Left Profile Info & Sponsored Tag */}
       <div className="absolute bottom-0 left-0 right-0 p-4 pb-20 bg-gradient-to-t from-black via-black/60 to-transparent z-40" onClick={(e) => e.stopPropagation()}>
         <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3 mb-1">
@@ -195,6 +197,7 @@ export function SponsoredCard({ ad }: SponsoredCardProps) {
                 {ad.caption}
             </p>
 
+            {/* Instagram Style: Horizontal White CTA Bar */}
             <Button 
                 className="w-full h-12 bg-white text-black hover:bg-white/90 rounded-xl font-black flex justify-between px-5 items-center shadow-2xl active:scale-[0.98] transition-all"
                 onClick={handleCtaClick}

@@ -11,31 +11,31 @@ import { BottomNav } from "@/components/bottom-nav";
 import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 
-// Ad units and brands for variety (Insta style)
+// Instagram Style Ad Variety
 const AD_VARIETY = [
   {
-    brandName: "Epic Games Store",
-    brandLogo: "https://picsum.photos/seed/games/100/100",
+    brandName: "Lucky Games Pro",
+    brandLogo: "https://picsum.photos/seed/lucky/100/100",
     ctaText: "PLAY NOW",
     adUnitId: "fd68cb6250942c8fd08d481733648461",
     adScriptDomain: "pl29453913.profitablecpmratenetwork.com",
-    caption: "The ultimate gaming experience is here! Join millions of players online. 🎮🚀"
+    caption: "WIN EXCITING REWARDS TODAY! Join the ultimate lucky draw challenge and start winning now. 🎮💰✨"
   },
   {
-    brandName: "Snap Shopping",
-    brandLogo: "https://picsum.photos/seed/shop/100/100",
-    ctaText: "LEARN MORE",
-    adUnitId: "fd68cb6250942c8fd08d481733648461",
-    adScriptDomain: "pl29453913.profitablecpmratenetwork.com",
-    caption: "Premium products at unbeatable prices. Shop the summer collection now! 🛍️✨"
-  },
-  {
-    brandName: "Visual Pro Tools",
-    brandLogo: "https://picsum.photos/seed/pro/100/100",
+    brandName: "Epic Store",
+    brandLogo: "https://picsum.photos/seed/epic/100/100",
     ctaText: "INSTALL NOW",
     adUnitId: "fd68cb6250942c8fd08d481733648461",
     adScriptDomain: "pl29453913.profitablecpmratenetwork.com",
-    caption: "Edit your videos like a pro with our new AI-powered tools. Try it today! 🎬🔥"
+    caption: "Exclusive deals on premium gaming tools. Get limited edition skins and power-ups for free! 🛍️🔥🚀"
+  },
+  {
+    brandName: "Snap Visuals",
+    brandLogo: "https://picsum.photos/seed/camera/100/100",
+    ctaText: "LEARN MORE",
+    adUnitId: "fd68cb6250942c8fd08d481733648461",
+    adScriptDomain: "pl29453913.profitablecpmratenetwork.com",
+    caption: "Edit your stories like a pro with our AI-powered visual effects. Try it for free today! 🎬✨📸"
   }
 ];
 
@@ -70,7 +70,7 @@ export default function HomePage() {
     shuffledPosts.forEach((post, index) => {
       items.push({ type: 'post', data: post });
       
-      // INSERT ADS EVERY 2nd POST (Instagram Reels style)
+      // Instagram Style: Insert Ad after every 2nd post
       if ((index + 1) % 2 === 0) {
         const adTemplate = AD_VARIETY[index % AD_VARIETY.length];
         const adId = `ad-${index}-${Math.random().toString(36).substring(7)}`;
@@ -80,6 +80,7 @@ export default function HomePage() {
           data: {
             ...adTemplate,
             id: adId,
+            // Direct Link logic to prevent code dumping
             ctaUrl: `https://${adTemplate.adScriptDomain}/fd/68/cb/${adTemplate.adUnitId}` 
           }
         });
@@ -128,7 +129,7 @@ export default function HomePage() {
                 <div className="absolute inset-0 blur-2xl bg-primary/20 animate-pulse rounded-full"></div>
                 <Loader2 className="animate-spin h-12 w-12 text-primary relative z-10" />
              </div>
-             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/60 animate-pulse">Building Feed...</p>
+             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/80 animate-pulse">Building Feed...</p>
           </div>
         </div>
       ) : displayItems.length > 0 ? (

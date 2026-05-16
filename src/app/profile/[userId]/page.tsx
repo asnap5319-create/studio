@@ -285,6 +285,31 @@ export default function ProfilePage() {
                         ) : (
                             <Image src={post.mediaUrl} alt="" fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
                         )}
+
+                        {/* 3-DOTS OVERLAY ON THUMBNAIL */}
+                        {(isOwnProfile || isCurrentUserAdmin) && (
+                            <div className="absolute top-1 right-1 z-10" onClick={(e) => e.stopPropagation()}>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/40 hover:bg-black/60 text-white border border-white/10 transition-all active:scale-90">
+                                            <MoreVertical className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-xl min-w-[140px] p-1 shadow-2xl">
+                                        <DropdownMenuItem 
+                                            onClick={() => {
+                                                setPostToDelete(post);
+                                                setIsDeleteDialogOpen(true);
+                                            }}
+                                            className="text-destructive font-bold text-xs p-3 rounded-lg focus:bg-destructive/10 cursor-pointer flex items-center gap-2"
+                                        >
+                                            <Trash2 className="h-4 w-4" /> Delete Video
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        )}
+
                         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <Play className="text-white h-7 w-7 fill-white" />
                         </div>
@@ -350,7 +375,6 @@ export default function ProfilePage() {
                         <DialogTitle className="sr-only">Post Preview</DialogTitle>
                         <PostCard post={selectedPost} />
                         
-                        {/* INSTAGRAM STYLE 3-DOTS MENU AT THE TOP-RIGHT */}
                         {(isOwnProfile || isCurrentUserAdmin) && (
                             <div className="absolute top-10 right-4 z-[60]">
                                 <DropdownMenu>
