@@ -11,33 +11,36 @@ import { BottomNav } from "@/components/bottom-nav";
 import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 
-// Instagram Style Ad Variety
+// Adsterra Smartlink Ad Variety (Instagram Styled)
 const AD_VARIETY = [
   {
-    brandName: "Lucky Games Pro",
+    brandName: "Lucky Spin Master",
     brandLogo: "https://picsum.photos/seed/lucky/100/100",
     ctaText: "PLAY NOW",
-    adUnitId: "fd68cb6250942c8fd08d481733648461",
-    adScriptDomain: "pl29453913.profitablecpmratenetwork.com",
-    caption: "WIN EXCITING REWARDS TODAY! Join the ultimate lucky draw challenge and start winning now. 🎮💰✨"
+    ctaUrl: "https://pl29453913.profitablecpmratenetwork.com/fd/68/cb/fd68cb6250942c8fd08d481733648461",
+    videoUrl: "https://res.cloudinary.com/dipz5jsls/video/upload/v1715851234/ad_video_1.mp4", // Using a fallback vertical video
+    caption: "JACKPOT! 🎰 You have 3 free spins waiting. Claim your reward and start winning now! 💰🔥✨"
   },
   {
-    brandName: "Epic Store",
+    brandName: "Epic Games Pro",
     brandLogo: "https://picsum.photos/seed/epic/100/100",
     ctaText: "INSTALL NOW",
-    adUnitId: "fd68cb6250942c8fd08d481733648461",
-    adScriptDomain: "pl29453913.profitablecpmratenetwork.com",
-    caption: "Exclusive deals on premium gaming tools. Get limited edition skins and power-ups for free! 🛍️🔥🚀"
+    ctaUrl: "https://pl29453913.profitablecpmratenetwork.com/fd/68/cb/fd68cb6250942c8fd08d481733648461",
+    videoUrl: "https://res.cloudinary.com/dipz5jsls/video/upload/v1715851235/ad_video_2.mp4",
+    caption: "Experience the most addictive game of 2024! Play for free and unlock exclusive rewards. 🎮🚀🏆"
   },
   {
-    brandName: "Snap Visuals",
+    brandName: "Smart Visuals AI",
     brandLogo: "https://picsum.photos/seed/camera/100/100",
     ctaText: "LEARN MORE",
-    adUnitId: "fd68cb6250942c8fd08d481733648461",
-    adScriptDomain: "pl29453913.profitablecpmratenetwork.com",
-    caption: "Edit your stories like a pro with our AI-powered visual effects. Try it for free today! 🎬✨📸"
+    ctaUrl: "https://pl29453913.profitablecpmratenetwork.com/fd/68/cb/fd68cb6250942c8fd08d481733648461",
+    videoUrl: "https://res.cloudinary.com/dipz5jsls/video/upload/v1715851236/ad_video_3.mp4",
+    caption: "Transform your reels with AI-powered effects. Get the pro version for free today! 🎬✨📸"
   }
 ];
+
+// Fallback high-quality vertical video if cloudinary is not ready
+const FALLBACK_VIDEO = "https://firebasestorage.googleapis.com/v0/b/studio-8111746683-c1e57.appspot.com/o/ad-fallback.mp4?alt=media";
 
 export default function HomePage() {
   const { firestore } = useFirebase();
@@ -70,8 +73,8 @@ export default function HomePage() {
     shuffledPosts.forEach((post, index) => {
       items.push({ type: 'post', data: post });
       
-      // Instagram Style: Insert Ad after every 2nd post
-      if ((index + 1) % 2 === 0) {
+      // Instagram Style: Insert Ad after every 3rd post
+      if ((index + 1) % 3 === 0) {
         const adTemplate = AD_VARIETY[index % AD_VARIETY.length];
         const adId = `ad-${index}-${Math.random().toString(36).substring(7)}`;
         
@@ -80,8 +83,7 @@ export default function HomePage() {
           data: {
             ...adTemplate,
             id: adId,
-            // Direct Link logic to prevent code dumping
-            ctaUrl: `https://${adTemplate.adScriptDomain}/fd/68/cb/${adTemplate.adUnitId}` 
+            videoUrl: adTemplate.videoUrl || FALLBACK_VIDEO
           }
         });
       }
