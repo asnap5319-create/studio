@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -149,7 +150,6 @@ export default function ProfilePage() {
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[180px] p-2">
-                            <SheetTitle className="sr-only">Menu</SheetTitle>
                             {isCurrentUserAdmin && (
                                 <DropdownMenuItem onClick={() => router.push('/admin')} className="font-bold p-3 rounded-xl text-primary focus:bg-primary/10 cursor-pointer">
                                     <ShieldCheck className="mr-2 h-4 w-4" /> Master Panel
@@ -207,7 +207,6 @@ export default function ProfilePage() {
                             <Image src={post.mediaUrl} alt="" fill className="object-cover" />
                         )}
 
-                        {/* GRID DELETE BUTTON (3-DOTS) */}
                         {(isOwnProfile || isCurrentUserAdmin) && (
                             <div className="absolute top-1 right-1 z-10" onClick={(e) => e.stopPropagation()}>
                                 <DropdownMenu>
@@ -217,7 +216,6 @@ export default function ProfilePage() {
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-xl min-w-[140px] p-1">
-                                        <DialogTitle className="sr-only">Options</DialogTitle>
                                         <DropdownMenuItem 
                                             onClick={() => {
                                                 setPostToDelete(post);
@@ -232,7 +230,6 @@ export default function ProfilePage() {
                             </div>
                         )}
 
-                        {/* VIEW COUNT OVERLAY IN GRID - Instagram Style */}
                         <div className="absolute bottom-1 left-1.5 flex items-center gap-1 text-white text-[10px] font-bold drop-shadow-md">
                             <Play className="h-3 w-3 fill-white" />
                             <span>{post.viewCount || 0}</span>
