@@ -269,9 +269,9 @@ export default function ProfilePage() {
             
             <Dialog open={!!selectedPost} onOpenChange={(isOpen) => !isOpen && setSelectedPost(null)}>
                 <DialogContent className="p-0 border-0 bg-black/95 w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center overflow-hidden">
+                    <DialogTitle className="sr-only">Preview</DialogTitle>
                     {selectedPost && (
                         <div className="w-full h-full relative">
-                            <DialogTitle className="sr-only">Preview</DialogTitle>
                             <PostCard post={selectedPost} isFocused />
                         </div>
                     )}

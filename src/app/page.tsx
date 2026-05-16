@@ -9,6 +9,7 @@ import type { Post } from '@/models/post';
 import { BottomNav } from "@/components/bottom-nav";
 import Link from 'next/link';
 import { useState, useEffect, useCallback, memo } from 'react';
+import { Logo } from '@/components/pwa-install-prompt';
 
 const MemoizedPostCard = memo(PostCard);
 
@@ -29,7 +30,6 @@ export default function HomePage() {
 
   const { data: posts, isLoading } = useCollection<Post>(postsQuery);
 
-  // Shuffle algorithm for dynamic feed - Fisher-Yates
   const shuffleFeed = useCallback((items: Post[]) => {
     const shuffled = [...items];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -43,19 +43,16 @@ export default function HomePage() {
     if (!posts || posts.length === 0) return;
     setIsRefreshing(true);
     
-    // Smooth transition effect
     setTimeout(() => {
       const shuffled = shuffleFeed(posts);
       setDisplayItems(shuffled);
       setIsRefreshing(false);
-      // Scroll to top on refresh
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 400);
   }, [posts, shuffleFeed]);
 
   useEffect(() => {
     if (hasMounted && posts && posts.length > 0 && displayItems.length === 0) {
-      // Randomize initial load only after mounting
       setDisplayItems(shuffleFeed(posts));
     }
   }, [hasMounted, posts, displayItems.length, shuffleFeed]);
@@ -65,24 +62,27 @@ export default function HomePage() {
   return (
     <div className="h-screen bg-black overflow-y-scroll snap-y snap-mandatory scrollbar-hide relative touch-pan-y">
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
-        <div className="flex items-center gap-4 pointer-events-auto">
-          <h1 className="text-3xl font-black text-primary italic tracking-tighter drop-shadow-[0_2px_15px_rgba(var(--primary),0.6)]">
-            A.snap
-          </h1>
+        <div className="flex items-center gap-3 pointer-events-auto">
+          <div className="flex items-center gap-2">
+            <Logo className="w-8 h-8 drop-shadow-[0_0_10px_rgba(var(--primary),0.5)]" />
+            <h1 className="text-2xl font-black text-primary italic tracking-tighter drop-shadow-[0_2px_15px_rgba(var(--primary),0.6)]">
+              A.snap
+            </h1>
+          </div>
           <button 
             onClick={buildFeed}
             className="p-2 bg-white/5 backdrop-blur-md rounded-full border border-white/10 active:rotate-180 transition-transform duration-500 hover:bg-white/10"
           >
-            <RefreshCw className={`w-5 h-5 text-white ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 text-white ${isRefreshing ? 'animate-spin' : ''}`} />
           </button>
         </div>
         
-        <div className="flex items-center gap-4 pointer-events-auto">
-          <Link href="/notifications" className="p-3 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 shadow-lg hover:bg-black/60 transition-colors">
-            <Bell className="w-6 h-6 text-white" />
+        <div className="flex items-center gap-3 pointer-events-auto">
+          <Link href="/notifications" className="p-2.5 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 shadow-lg hover:bg-black/60 transition-colors">
+            <Bell className="w-5 h-5 text-white" />
           </Link>
-          <Link href="/messages" className="p-3 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 shadow-lg hover:bg-black/60 transition-colors">
-            <MessageCircle className="w-6 h-6 text-white" />
+          <Link href="/messages" className="p-2.5 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 shadow-lg hover:bg-black/60 transition-colors">
+            <MessageCircle className="w-5 h-5 text-white" />
           </Link>
         </div>
       </header>
@@ -92,7 +92,7 @@ export default function HomePage() {
           <div className="flex flex-col items-center gap-4">
              <div className="relative">
                 <div className="absolute inset-0 blur-2xl bg-primary/20 animate-pulse rounded-full"></div>
-                <Loader2 className="animate-spin h-12 w-12 text-primary relative z-10" />
+                <Loader2 className="animate-spin h-10 w-10 text-primary relative z-10" />
              </div>
              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/80 animate-pulse">Building Feed...</p>
           </div>
