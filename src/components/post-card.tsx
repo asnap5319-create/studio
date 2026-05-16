@@ -274,7 +274,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                         <MoreVertical className="h-6 w-6" />
                     </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[180px] p-2">
+                <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[180px] p-2 shadow-2xl">
                     <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive font-black p-4 rounded-xl focus:bg-destructive/10 cursor-pointer flex items-center gap-3">
                         <Trash2 className="h-5 w-5" /> Delete Post
                     </DropdownMenuItem>

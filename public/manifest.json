@@ -1,24 +1,24 @@
 
 {
-  "name": "A.snap - Premium Visual Sharing",
+  "name": "A.snap",
   "short_name": "A.snap",
-  "description": "Share your world in short videos with A.snap.",
+  "description": "Premium Visual Sharing Application",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
-  "theme_color": "#ff0080",
+  "theme_color": "#000000",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "https://res.cloudinary.com/dipz5jsls/image/upload/v1708500000/a_logo_placeholder.png",
+      "src": "/logo.svg",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "https://res.cloudinary.com/dipz5jsls/image/upload/v1708500000/a_logo_placeholder.png",
+      "src": "/logo.svg",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ]
