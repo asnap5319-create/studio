@@ -9,7 +9,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
-import { Heart, MessageCircle, Share2, BadgeCheck, Loader2, MoreVertical, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, BadgeCheck, Loader2, MoreVertical, Trash2, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -283,6 +283,14 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       )}
 
       <div className="absolute right-3 bottom-24 flex flex-col gap-6 z-10" onClick={(e) => e.stopPropagation()}>
+            {/* Views Count */}
+            <div className="flex flex-col items-center">
+                <div className="text-white h-12 w-12 flex items-center justify-center">
+                    <Eye className="h-9 w-9 drop-shadow-md" />
+                </div>
+                <span className="text-xs font-bold mt-1 drop-shadow-md">{post.viewCount || 0}</span>
+            </div>
+
             <div className="flex flex-col items-center">
                 <Button variant="ghost" size="icon" className="text-white h-12 w-12 hover:bg-transparent" onClick={isLiked ? handleUnlike : handleLike}>
                     <Heart className={cn("h-9 w-9 transition-all active:scale-125", isLiked ? "fill-primary text-primary" : "text-white drop-shadow-md")} />

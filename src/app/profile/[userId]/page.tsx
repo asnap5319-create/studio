@@ -149,13 +149,14 @@ export default function ProfilePage() {
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[180px] p-2">
+                            <SheetTitle className="sr-only">Menu</SheetTitle>
                             {isCurrentUserAdmin && (
-                                <DropdownMenuItem onClick={() => router.push('/admin')} className="font-bold p-3 rounded-xl text-primary focus:bg-primary/10">
+                                <DropdownMenuItem onClick={() => router.push('/admin')} className="font-bold p-3 rounded-xl text-primary focus:bg-primary/10 cursor-pointer">
                                     <ShieldCheck className="mr-2 h-4 w-4" /> Master Panel
                                 </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator className="bg-white/5" />
-                            <DropdownMenuItem onClick={handleLogout} className="text-destructive font-bold p-3 rounded-xl focus:bg-destructive/10">
+                            <DropdownMenuItem onClick={handleLogout} className="text-destructive font-bold p-3 rounded-xl focus:bg-destructive/10 cursor-pointer">
                                 <LogOut className="mr-2 h-4 w-4" /> Logout
                             </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -216,12 +217,13 @@ export default function ProfilePage() {
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-xl min-w-[140px] p-1">
+                                        <DialogTitle className="sr-only">Options</DialogTitle>
                                         <DropdownMenuItem 
                                             onClick={() => {
                                                 setPostToDelete(post);
                                                 setIsDeleteDialogOpen(true);
                                             }}
-                                            className="text-destructive font-bold text-xs p-3 rounded-lg focus:bg-destructive/10"
+                                            className="text-destructive font-bold text-xs p-3 rounded-lg focus:bg-destructive/10 cursor-pointer"
                                         >
                                             <Trash2 className="mr-2 h-4 w-4" /> Delete Video
                                         </DropdownMenuItem>
@@ -229,6 +231,12 @@ export default function ProfilePage() {
                                 </DropdownMenu>
                             </div>
                         )}
+
+                        {/* VIEW COUNT OVERLAY IN GRID */}
+                        <div className="absolute bottom-1 left-1.5 flex items-center gap-1 text-white text-[10px] font-bold drop-shadow-md">
+                            <Play className="h-3 w-3 fill-white" />
+                            <span>{post.viewCount || 0}</span>
+                        </div>
 
                         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center">
                             <Play className="text-white h-7 w-7 fill-white" />
