@@ -24,23 +24,36 @@ export default function HomePage() {
 
   const postsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'), limit(50));
+    return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'), limit(100));
   }, [firestore]);
 
   const { data: posts, isLoading } = useCollection<Post>(postsQuery);
 
+  // Shuffle algorithm for dynamic feed
+  const shuffleFeed = useCallback((items: Post[]) => {
+    return [...items].sort(() => Math.random() - 0.5);
+  }, []);
+
   const buildFeed = useCallback(() => {
     if (!posts || posts.length === 0) return;
     setIsRefreshing(true);
-    setDisplayItems(posts);
-    setTimeout(() => setIsRefreshing(false), 500);
-  }, [posts]);
+    
+    // Smooth transition effect
+    setTimeout(() => {
+      const shuffled = shuffleFeed(posts);
+      setDisplayItems(shuffled);
+      setIsRefreshing(false);
+      // Scroll to top on refresh
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 400);
+  }, [posts, shuffleFeed]);
 
   useEffect(() => {
     if (posts && posts.length > 0 && displayItems.length === 0) {
-      buildFeed();
+      // Randomize initial load
+      setDisplayItems(shuffleFeed(posts));
     }
-  }, [posts, buildFeed, displayItems.length]);
+  }, [posts, displayItems.length, shuffleFeed]);
 
   if (!hasMounted) return <div className="h-screen bg-black" />;
 
@@ -53,17 +66,17 @@ export default function HomePage() {
           </h1>
           <button 
             onClick={buildFeed}
-            className="p-2 bg-white/5 backdrop-blur-md rounded-full border border-white/10 active:rotate-180 transition-transform duration-500"
+            className="p-2 bg-white/5 backdrop-blur-md rounded-full border border-white/10 active:rotate-180 transition-transform duration-500 hover:bg-white/10"
           >
-            <RefreshCw className={`w-4 h-4 text-white/50 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-5 h-5 text-white ${isRefreshing ? 'animate-spin' : ''}`} />
           </button>
         </div>
         
         <div className="flex items-center gap-4 pointer-events-auto">
-          <Link href="/notifications" className="p-3 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 shadow-lg">
+          <Link href="/notifications" className="p-3 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 shadow-lg hover:bg-black/60 transition-colors">
             <Bell className="w-6 h-6 text-white" />
           </Link>
-          <Link href="/messages" className="p-3 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 shadow-lg">
+          <Link href="/messages" className="p-3 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 shadow-lg hover:bg-black/60 transition-colors">
             <MessageCircle className="w-6 h-6 text-white" />
           </Link>
         </div>

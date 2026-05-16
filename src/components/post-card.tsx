@@ -10,7 +10,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
-import { Heart, MessageCircle, Volume2, VolumeX, Share2, BadgeCheck, Loader2, MoreVertical, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, BadgeCheck, Loader2, MoreVertical, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -39,7 +39,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
 
   const [isInView, setIsInView] = useState(isFocused);
   const [isMuted, setIsMuted] = useState(globalMuted); 
-  const [showVolumeIcon, setShowVolumeIcon] = useState(false);
   const [showBigHeart, setShowBigHeart] = useState(false);
   const [isCommentSheetOpen, setIsCommentSheetOpen] = useState(false);
   const [isShareSheetOpen, setIsShareSheetOpen] = useState(false);
@@ -57,14 +56,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { data: author } = useDoc<UserProfile>(authorRef);
   const isProfileAdmin = author?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-  const followCheckRef = useMemoFirebase(() => {
-      if (!firestore || !user?.uid || isOwnPost) return null;
-      return doc(firestore, 'user_followers', post.userId, 'followers', user.uid);
-  }, [firestore, user?.uid, isOwnPost, post.userId]);
-
-  const { data: followCheck } = useDoc(followCheckRef);
-  const isFollowing = !!followCheck;
-
   const likeRef = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
     return doc(firestore, 'users', post.userId, 'posts', post.id, 'likes', user.uid);
@@ -78,12 +69,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                   post.mediaUrl.toLowerCase().includes('video') || 
                   post.mediaUrl.includes('res.cloudinary.com');
 
-  useEffect(() => {
-    if (isInView) {
-      setIsMuted(globalMuted);
-    }
-  }, [isInView]);
-
   const toggleMute = () => {
     if (!isVideo || !videoRef.current) return;
     const newMuteState = !isMuted;
@@ -91,8 +76,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     const allVideos = document.querySelectorAll('video');
     allVideos.forEach(v => { v.muted = newMuteState; });
     setIsMuted(newMuteState);
-    setShowVolumeIcon(true);
-    setTimeout(() => setShowVolumeIcon(false), 800);
   };
 
   const handleLike = async () => {
@@ -151,7 +134,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => { 
         setIsInView(entry.isIntersecting); 
-    }, { threshold: 0.5 });
+    }, { threshold: 0.6 });
     if (cardRef.current) observer.observe(cardRef.current);
     return () => observer.disconnect();
   }, []);
@@ -162,7 +145,10 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     if (isInView) {
       video.muted = globalMuted;
       setIsMuted(globalMuted);
-      video.play().catch(() => { video.muted = true; video.play().catch(() => {}); });
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+          playPromise.catch(() => { video.muted = true; video.play().catch(() => {}); });
+      }
       if (firestore && !viewCounted.current) {
         viewCounted.current = true; 
         updateDoc(doc(firestore, 'users', post.userId, 'posts', post.id), { viewCount: increment(1) });
@@ -185,6 +171,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
             preload="auto" 
             onWaiting={() => setIsBuffering(true)}
             onPlaying={() => setIsBuffering(false)}
+            onCanPlay={() => setIsBuffering(false)}
         />
       ) : (
         <Image src={post.mediaUrl} alt="Post" fill className="object-contain" priority />
