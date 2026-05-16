@@ -13,7 +13,7 @@ import { Button } from './ui/button';
 import { Heart, MessageCircle, Share2, BadgeCheck, Loader2, MoreVertical, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { CommentSection } from './comment-section';
 import { ShareSheet } from './share-sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -240,6 +240,9 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-2xl overflow-hidden border-border bg-background">
+                    <SheetHeader className="sr-only">
+                      <SheetTitle>Comments</SheetTitle>
+                    </SheetHeader>
                     <CommentSection postId={post.id} postOwnerId={post.userId} />
                   </SheetContent>
                 </Sheet>
@@ -254,6 +257,9 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-2xl overflow-hidden border-border bg-background">
+                    <SheetHeader className="sr-only">
+                      <SheetTitle>Share Post</SheetTitle>
+                    </SheetHeader>
                     <ShareSheet postId={post.id} postOwnerId={post.userId} mediaUrl={post.mediaUrl} onClose={() => setIsShareSheetOpen(false)} />
                   </SheetContent>
                 </Sheet>

@@ -29,9 +29,14 @@ export default function HomePage() {
 
   const { data: posts, isLoading } = useCollection<Post>(postsQuery);
 
-  // Shuffle algorithm for dynamic feed
+  // Shuffle algorithm for dynamic feed - Fisher-Yates
   const shuffleFeed = useCallback((items: Post[]) => {
-    return [...items].sort(() => Math.random() - 0.5);
+    const shuffled = [...items];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
   }, []);
 
   const buildFeed = useCallback(() => {
@@ -49,11 +54,11 @@ export default function HomePage() {
   }, [posts, shuffleFeed]);
 
   useEffect(() => {
-    if (posts && posts.length > 0 && displayItems.length === 0) {
-      // Randomize initial load
+    if (hasMounted && posts && posts.length > 0 && displayItems.length === 0) {
+      // Randomize initial load only after mounting
       setDisplayItems(shuffleFeed(posts));
     }
-  }, [posts, displayItems.length, shuffleFeed]);
+  }, [hasMounted, posts, displayItems.length, shuffleFeed]);
 
   if (!hasMounted) return <div className="h-screen bg-black" />;
 
