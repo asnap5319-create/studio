@@ -2,21 +2,24 @@
 {
   "name": "A.snap - Premium Visual Sharing",
   "short_name": "A.snap",
-  "description": "A.snap is the ultimate premium short video sharing application.",
+  "description": "Share your world in short videos with A.snap.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
-  "theme_color": "#000000",
+  "theme_color": "#ff0080",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "https://res.cloudinary.com/demo/image/upload/v1624103132/sample.jpg",
+      "src": "https://res.cloudinary.com/dipz5jsls/image/upload/v1708500000/a_logo_placeholder.png",
       "sizes": "192x192",
-      "type": "image/jpeg"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "https://res.cloudinary.com/demo/image/upload/v1624103132/sample.jpg",
+      "src": "https://res.cloudinary.com/dipz5jsls/image/upload/v1708500000/a_logo_placeholder.png",
       "sizes": "512x512",
-      "type": "image/jpeg"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

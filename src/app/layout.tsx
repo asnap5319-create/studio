@@ -25,6 +25,8 @@ export const metadata: Metadata = {
   other: {
     "mobile-web-app-capable": "yes",
     "theme-color": "#000000",
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "black",
   },
 };
 
@@ -44,14 +46,23 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <head>
-        {/* Adsterra Social Bar Script - Global Integration */}
+        <meta name="application-name" content="A.snap" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="A.snap" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="msapplication-TileColor" content="#000000" />
+        <meta name="msapplication-tap-highlight" content="no" />
+        
+        {/* Adsterra Social Bar Script */}
         <Script
           id="adsterra-social-bar"
           strategy="afterInteractive"
           src="https://pl29453309.effectivecpmnetwork.com/e9/15/f8/e915f8c7cce368f440d031fe8ec12184.js"
         />
       </head>
-      <body className={cn("min-h-screen bg-background font-sans antialiased")}>
+      <body className={cn("min-h-screen bg-background font-sans antialiased overflow-x-hidden")}>
         <FirebaseClientProvider>
           {children}
           <PwaInstallPrompt />
@@ -63,7 +74,7 @@ export default function RootLayout({
             if ('serviceWorker' in navigator) {
               window.addEventListener('load', function() {
                 navigator.serviceWorker.register('/sw.js').then(function(registration) {
-                  console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                  console.log('ServiceWorker registration successful');
                 }, function(err) {
                   console.log('ServiceWorker registration failed: ', err);
                 });
