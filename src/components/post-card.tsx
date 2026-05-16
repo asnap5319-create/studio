@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -64,6 +63,14 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { data: likeData } = useDoc(likeRef);
   const isLiked = !!likeData;
 
+  const followCheckRef = useMemoFirebase(() => {
+    if (!firestore || !user?.uid || !post.userId) return null;
+    return doc(firestore, 'user_followers', post.userId, 'followers', user.uid);
+  }, [firestore, user?.uid, post.userId]);
+
+  const { data: followCheck } = useDoc(followCheckRef);
+  const isFollowing = !!followCheck;
+
   const isVideo = post.mediaUrl.toLowerCase().includes('.mp4') || 
                   post.mediaUrl.toLowerCase().includes('.mov') || 
                   post.mediaUrl.toLowerCase().includes('video') || 
@@ -76,6 +83,42 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     const allVideos = document.querySelectorAll('video');
     allVideos.forEach(v => { v.muted = newMuteState; });
     setIsMuted(newMuteState);
+  };
+
+  const handleFollow = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!firestore || !user || !post.userId || isOwnPost) return;
+
+    const batch = writeBatch(firestore);
+    const followedUserId = post.userId;
+    const followerUserId = user.uid;
+
+    const followerDocRef = doc(firestore, 'user_followers', followedUserId, 'followers', followerUserId);
+    const followingDocRef = doc(firestore, 'user_following', followerUserId, 'following', followedUserId);
+
+    if (isFollowing) {
+        batch.delete(followerDocRef);
+        batch.delete(followingDocRef);
+    } else {
+        batch.set(followerDocRef, { createdAt: serverTimestamp() });
+        batch.set(followingDocRef, { createdAt: serverTimestamp() });
+        
+        const notificationRef = doc(collection(firestore, 'users', followedUserId, 'notifications'));
+        batch.set(notificationRef, {
+            type: 'follow',
+            senderId: followerUserId,
+            recipientId: followedUserId,
+            read: false,
+            createdAt: serverTimestamp(),
+        });
+    }
+
+    try {
+        await batch.commit();
+        toast({ title: isFollowing ? `Unfollowed ${author?.username}` : `Following ${author?.username}` });
+    } catch (error) {
+        console.error("Error toggling follow:", error);
+    }
   };
 
   const handleLike = async () => {
@@ -197,9 +240,24 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                 <AvatarImage src={author.profileImageUrl} className="object-cover" />
                 <AvatarFallback>{author.name?.[0]}</AvatarFallback>
               </Avatar>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                   <p className="font-bold text-[15px]">{author.username}</p>
                   {isProfileAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />}
+                  
+                  {!isOwnPost && (
+                    <>
+                      <span className="mx-1 text-white/40 font-bold text-lg">•</span>
+                      <button 
+                        onClick={handleFollow}
+                        className={cn(
+                          "text-[13px] font-black uppercase tracking-tight hover:opacity-80 transition-opacity",
+                          isFollowing ? "text-white/60" : "text-primary"
+                        )}
+                      >
+                        {isFollowing ? 'Following' : 'Follow'}
+                      </button>
+                    </>
+                  )}
               </div>
             </Link>
           </div>
@@ -240,8 +298,8 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-2xl overflow-hidden border-border bg-background">
-                    <SheetHeader className="sr-only">
-                      <SheetTitle>Comments</SheetTitle>
+                    <SheetHeader className="p-4 border-b border-white/5">
+                      <SheetTitle className="text-center font-bold">Comments</SheetTitle>
                     </SheetHeader>
                     <CommentSection postId={post.id} postOwnerId={post.userId} />
                   </SheetContent>
@@ -257,8 +315,8 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-2xl overflow-hidden border-border bg-background">
-                    <SheetHeader className="sr-only">
-                      <SheetTitle>Share Post</SheetTitle>
+                    <SheetHeader className="p-4 border-b border-white/5">
+                      <SheetTitle className="text-center font-bold">Share Post</SheetTitle>
                     </SheetHeader>
                     <ShareSheet postId={post.id} postOwnerId={post.userId} mediaUrl={post.mediaUrl} onClose={() => setIsShareSheetOpen(false)} />
                   </SheetContent>
