@@ -5,17 +5,19 @@ import { useState, useRef, useEffect } from 'react';
 import type { Post } from '@/models/post';
 import type { UserProfile } from '@/models/user';
 import { useDoc, useFirebase, useMemoFirebase, useUser } from '@/firebase';
-import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection } from 'firebase/firestore';
+import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection, deleteDoc } from 'firebase/firestore';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
-import { Heart, MessageCircle, Volume2, VolumeX, Share2, BadgeCheck, Loader2 } from 'lucide-react';
+import { Heart, MessageCircle, Volume2, VolumeX, Share2, BadgeCheck, Loader2, MoreVertical, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { CommentSection } from './comment-section';
 import { ShareSheet } from './share-sheet';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 interface PostCardProps {
   post: Post;
@@ -42,9 +44,11 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const [showBigHeart, setShowBigHeart] = useState(false);
   const [isCommentSheetOpen, setIsCommentSheetOpen] = useState(false);
   const [isShareSheetOpen, setIsShareSheetOpen] = useState(false);
-  const [isVideoLoading, setIsVideoLoading] = useState(true);
+  const [isBuffering, setIsBuffering] = useState(true);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const isOwnPost = user?.uid === post.userId;
+  const isCurrentUserAdmin = user?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const authorRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -76,7 +80,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                   post.mediaUrl.toLowerCase().includes('video') || 
                   post.mediaUrl.includes('res.cloudinary.com');
 
-  // Synchronize local mute state with global state when component is in view
   useEffect(() => {
     if (isInView) {
       setIsMuted(globalMuted);
@@ -86,9 +89,8 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const toggleMute = () => {
     if (!isVideo || !videoRef.current) return;
     const newMuteState = !isMuted;
-    globalMuted = newMuteState; // Update global state
+    globalMuted = newMuteState;
     
-    // Update all video elements on screen (TikTok/Insta style)
     const allVideos = document.querySelectorAll('video');
     allVideos.forEach(v => { v.muted = newMuteState; });
     
@@ -141,6 +143,18 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         }, 250);
     }
   };
+
+  const confirmDeletePost = async () => {
+    if (!firestore || !user) return;
+    try {
+        await deleteDoc(doc(firestore, 'users', post.userId, 'posts', post.id));
+        toast({ title: "सफलता ✅", description: "वीडियो डिलीट हो गया।" });
+        window.location.reload();
+    } catch (error) {
+        console.error("Delete error:", error);
+        toast({ variant: "destructive", title: "गलती ❌", description: "वीडियो डिलीट नहीं हो पाया।" });
+    }
+  };
   
   const handleFollowToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -165,7 +179,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => { 
         setIsInView(entry.isIntersecting); 
-    }, { threshold: 0.6 });
+    }, { threshold: 0.5 });
     if (cardRef.current) observer.observe(cardRef.current);
     return () => observer.disconnect();
   }, []);
@@ -175,10 +189,9 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     if (!video) return;
     
     if (isInView) {
-      video.muted = globalMuted; // Always sync with global before playing
+      video.muted = globalMuted;
       setIsMuted(globalMuted);
       video.play().catch(() => {
-          // If play fails due to audio policy, force mute and play
           video.muted = true;
           video.play().catch(() => {});
       });
@@ -204,13 +217,15 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
             playsInline 
             muted={isMuted} 
             preload="auto" 
-            onCanPlay={() => setIsVideoLoading(false)}
+            onWaiting={() => setIsBuffering(true)}
+            onPlaying={() => setIsBuffering(false)}
+            onLoadedData={() => setIsBuffering(false)}
         />
       ) : (
         <Image src={post.mediaUrl} alt={post.caption || 'Post'} fill className="object-contain" priority />
       )}
 
-      {isVideo && isVideoLoading && (
+      {isBuffering && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-20">
           <Loader2 className="w-10 h-10 text-primary animate-spin" />
         </div>
@@ -253,6 +268,24 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         <p className="text-sm line-clamp-2 drop-shadow-md pr-12">{post.caption}</p>
       </div>
 
+      {/* THREE DOTS MENU ON REEL */}
+      {(isOwnPost || isCurrentUserAdmin) && (
+        <div className="absolute top-10 right-4 z-50" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-black/30 backdrop-blur-md border border-white/10 text-white">
+                        <MoreVertical className="h-6 w-6" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[180px] p-2">
+                    <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive font-black p-4 rounded-xl focus:bg-destructive/10 cursor-pointer flex items-center gap-3">
+                        <Trash2 className="h-5 w-5" /> Delete Post
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
+      )}
+
       <div className="absolute right-3 bottom-24 flex flex-col gap-6 z-10" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center">
                 <Button variant="ghost" size="icon" className="text-white h-12 w-12 hover:bg-transparent" onClick={isLiked ? handleUnlike : handleLike}>
@@ -289,6 +322,21 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                 <span className="text-xs font-bold mt-1 drop-shadow-md">Share</span>
             </div>
       </div>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="bg-[#121212] text-white rounded-[2.5rem] border-white/10 max-w-[90vw] sm:max-w-md">
+            <AlertDialogHeader className="space-y-4">
+              <AlertDialogTitle className="text-2xl font-black uppercase italic text-center">Delete Post?</AlertDialogTitle>
+              <AlertDialogDescription className="text-muted-foreground text-center">
+                क्या आप वाकई इस वीडियो को डिलीट करना चाहते हैं?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col gap-3 sm:flex-row mt-6">
+                <AlertDialogCancel className="rounded-2xl border-white/10 bg-secondary/50 h-12">Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmDeletePost} className="bg-destructive hover:bg-destructive/90 rounded-2xl h-12">Delete</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

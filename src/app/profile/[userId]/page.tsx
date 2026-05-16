@@ -286,7 +286,7 @@ export default function ProfilePage() {
                             <Image src={post.mediaUrl} alt="" fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
                         )}
 
-                        {/* 3-DOTS OVERLAY ON THUMBNAIL */}
+                        {/* 3-DOTS OVERLAY ON GRID (OWNER/ADMIN ONLY) */}
                         {(isOwnProfile || isCurrentUserAdmin) && (
                             <div className="absolute top-1 right-1 z-10" onClick={(e) => e.stopPropagation()}>
                                 <DropdownMenu>
@@ -374,39 +374,6 @@ export default function ProfilePage() {
                       <div className="w-full h-full relative">
                         <DialogTitle className="sr-only">Post Preview</DialogTitle>
                         <PostCard post={selectedPost} />
-                        
-                        {(isOwnProfile || isCurrentUserAdmin) && (
-                            <div className="absolute top-10 right-4 z-[60]">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button 
-                                            variant="ghost" 
-                                            size="icon" 
-                                            className="rounded-full h-10 w-10 bg-black/40 backdrop-blur-md border border-white/10 text-white hover:bg-black/60 active:scale-90 transition-all"
-                                        >
-                                            <MoreVertical className="h-6 w-6" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[200px] p-2 shadow-2xl animate-in fade-in zoom-in duration-200">
-                                        <DropdownMenuItem onClick={() => {
-                                            toast({ title: "Link Copied! 🔗" });
-                                        }} className="font-bold p-4 rounded-xl focus:bg-white/10 cursor-pointer flex items-center gap-3">
-                                            <Share2 className="h-5 w-5" /> Share Post
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator className="bg-white/5 my-1" />
-                                        <DropdownMenuItem 
-                                            onClick={() => {
-                                                setPostToDelete(selectedPost);
-                                                setIsDeleteDialogOpen(true);
-                                            }} 
-                                            className="text-destructive font-black p-4 rounded-xl focus:bg-destructive/10 cursor-pointer flex items-center gap-3"
-                                        >
-                                            <Trash2 className="h-5 w-5" /> Delete Video
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-                        )}
                       </div>
                     )}
                 </DialogContent>
@@ -421,7 +388,7 @@ export default function ProfilePage() {
                           </div>
                           <AlertDialogTitle className="text-2xl font-black uppercase italic text-center tracking-tighter">Delete Post?</AlertDialogTitle>
                           <AlertDialogDescription className="text-muted-foreground text-center font-medium px-4 text-sm">
-                            क्या आप वाकई इस वीडियो को डिलीट करना चाहते हैं? यह वापस नहीं आएगा।
+                            क्या आप वाकई इस वीडियो को डिलीट करना चाहते हैं?
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter className="flex-col gap-3 sm:flex-row mt-8">
