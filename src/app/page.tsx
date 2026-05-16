@@ -4,49 +4,17 @@
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collectionGroup, query, orderBy, limit } from 'firebase/firestore';
 import { PostCard } from '@/components/post-card';
-import { SponsoredCard } from '@/components/sponsored-card';
 import { Loader2, MessageCircle, Bell, RefreshCw } from 'lucide-react';
 import type { Post } from '@/models/post';
 import { BottomNav } from "@/components/bottom-nav";
 import Link from 'next/link';
 import { useState, useEffect, useCallback, memo } from 'react';
 
-// Real Vertical Video Ads for Sponsored Reels
-const AD_VARIETY = [
-  {
-    brandName: "Lucky Spin Master",
-    brandLogo: "https://picsum.photos/seed/lucky/100/100",
-    ctaText: "LEARN MORE",
-    ctaUrl: "https://pl29453913.profitablecpmratenetwork.com/fd/68/cb/fd68cb6250942c8fd08d481733648461",
-    videoUrl: "https://res.cloudinary.com/dipz5jsls/video/upload/v1715851234/ad_video_1.mp4", 
-    caption: "JACKPOT! 🎰 Claim your 3 free spins now. Real rewards waiting for you! 💰🔥✨"
-  },
-  {
-    brandName: "Epic Games Pro",
-    brandLogo: "https://picsum.photos/seed/epic/100/100",
-    ctaText: "PLAY NOW",
-    ctaUrl: "https://pl29453913.profitablecpmratenetwork.com/fd/68/cb/fd68cb6250942c8fd08d481733648461",
-    videoUrl: "https://res.cloudinary.com/dipz5jsls/video/upload/v1715851235/ad_video_2.mp4",
-    caption: "Experience the most addictive game of 2024! Play for free today. 🎮🚀🏆"
-  },
-  {
-    brandName: "Smart Visuals AI",
-    brandLogo: "https://picsum.photos/seed/camera/100/100",
-    ctaText: "INSTALL",
-    ctaUrl: "https://pl29453913.profitablecpmratenetwork.com/fd/68/cb/fd68cb6250942c8fd08d481733648461",
-    videoUrl: "https://res.cloudinary.com/dipz5jsls/video/upload/v1715851236/ad_video_3.mp4",
-    caption: "Transform your reels with AI-powered effects. Get the pro version for free! 🎬✨📸"
-  }
-];
-
-const FALLBACK_VIDEO = "https://firebasestorage.googleapis.com/v0/b/studio-8111746683-c1e57.appspot.com/o/ad-fallback.mp4?alt=media";
-
 const MemoizedPostCard = memo(PostCard);
-const MemoizedSponsoredCard = memo(SponsoredCard);
 
 export default function HomePage() {
   const { firestore } = useFirebase();
-  const [displayItems, setDisplayItems] = useState<{ type: 'post' | 'ad'; data: any }[]>([]);
+  const [displayItems, setDisplayItems] = useState<Post[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
 
@@ -63,28 +31,8 @@ export default function HomePage() {
 
   const buildFeed = useCallback(() => {
     if (!posts || posts.length === 0) return;
-
     setIsRefreshing(true);
-    
-    const items: { type: 'post' | 'ad'; data: any }[] = [];
-    posts.forEach((post, index) => {
-      items.push({ type: 'post', data: post });
-      
-      // Insert Ad after every 3rd post
-      if ((index + 1) % 3 === 0) {
-        const adTemplate = AD_VARIETY[index % AD_VARIETY.length];
-        items.push({
-          type: 'ad',
-          data: {
-            ...adTemplate,
-            id: `ad-${index}-${Date.now()}`,
-            videoUrl: adTemplate.videoUrl || FALLBACK_VIDEO
-          }
-        });
-      }
-    });
-
-    setDisplayItems(items);
+    setDisplayItems(posts);
     setTimeout(() => setIsRefreshing(false), 500);
   }, [posts]);
 
@@ -132,16 +80,12 @@ export default function HomePage() {
           </div>
         </div>
       ) : displayItems.length > 0 ? (
-        displayItems.map((item) => (
-          <div key={item.data.id} className="h-screen w-full snap-start snap-always overflow-hidden flex flex-col">
-            {item.type === 'post' ? (
-              <MemoizedPostCard post={item.data} />
-            ) : (
-              <MemoizedSponsoredCard ad={item.data} />
-            )}
+        displayItems.map((post) => (
+          <div key={post.id} className="h-screen w-full snap-start snap-always overflow-hidden flex flex-col">
+            <MemoizedPostCard post={post} />
           </div>
-        )
-      )) : !isLoading && (
+        ))
+      ) : !isLoading && (
         <div className="flex h-full items-center justify-center text-white p-10 text-center">
             <div className="space-y-4">
                 <p className="text-muted-foreground font-black uppercase tracking-[0.2em] opacity-30 text-sm">No videos found</p>

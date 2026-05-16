@@ -43,6 +43,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
+      <head>
+        {/* Adsterra Social Bar Script - Global Integration */}
+        <script type='text/javascript' src='//pl29453913.profitablecpmratenetwork.com/fd/68/cb/fd68cb6250942c8fd08d481733648461/invoke.js' async></script>
+      </head>
       <body className={cn("min-h-screen bg-background font-sans antialiased")}>
         <FirebaseClientProvider>
           {children}
