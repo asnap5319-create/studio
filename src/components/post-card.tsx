@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { CommentSection } from './comment-section';
 import { ShareSheet } from './share-sheet';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 interface PostCardProps {
@@ -26,7 +26,6 @@ interface PostCardProps {
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
-// Global variable to keep track of mute state across components (Insta style)
 let globalMuted = true;
 
 export function PostCard({ post, isFocused = false }: PostCardProps) {
@@ -56,7 +55,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   }, [firestore, post.userId]);
 
   const { data: author } = useDoc<UserProfile>(authorRef);
-  
   const isProfileAdmin = author?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const followCheckRef = useMemoFirebase(() => {
@@ -90,20 +88,15 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     if (!isVideo || !videoRef.current) return;
     const newMuteState = !isMuted;
     globalMuted = newMuteState;
-    
     const allVideos = document.querySelectorAll('video');
     allVideos.forEach(v => { v.muted = newMuteState; });
-    
     setIsMuted(newMuteState);
     setShowVolumeIcon(true);
     setTimeout(() => setShowVolumeIcon(false), 800);
   };
 
   const handleLike = async () => {
-    if (!firestore || !user) {
-        toast({ variant: "destructive", title: "Error", description: "Login to like posts." });
-        return;
-    }
+    if (!firestore || !user) return;
     setShowBigHeart(true);
     setTimeout(() => setShowBigHeart(false), 1000);
     if (isLiked) return;
@@ -152,28 +145,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         window.location.reload();
     } catch (error) {
         console.error("Delete error:", error);
-        toast({ variant: "destructive", title: "गलती ❌", description: "वीडियो डिलीट नहीं हो पाया।" });
     }
-  };
-  
-  const handleFollowToggle = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!firestore || !user || isOwnPost) return;
-    const batch = writeBatch(firestore);
-    const followerDocRef = doc(firestore, 'user_followers', post.userId, 'followers', user.uid);
-    const followingDocRef = doc(firestore, 'user_following', user.uid, 'following', post.userId);
-    if (isFollowing) {
-        batch.delete(followerDocRef);
-        batch.delete(followingDocRef);
-    } else {
-        batch.set(followerDocRef, { createdAt: serverTimestamp() });
-        batch.set(followingDocRef, { createdAt: serverTimestamp() });
-        const notificationRef = doc(collection(firestore, 'users', post.userId, 'notifications'));
-        batch.set(notificationRef, {
-            type: 'follow', senderId: user.uid, recipientId: post.userId, read: false, createdAt: serverTimestamp(),
-        });
-    }
-    try { await batch.commit(); } catch (error) { console.error("Error toggling follow:", error); }
   };
 
   useEffect(() => {
@@ -187,19 +159,13 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    
     if (isInView) {
       video.muted = globalMuted;
       setIsMuted(globalMuted);
-      video.play().catch(() => {
-          video.muted = true;
-          video.play().catch(() => {});
-      });
-      
+      video.play().catch(() => { video.muted = true; video.play().catch(() => {}); });
       if (firestore && !viewCounted.current) {
         viewCounted.current = true; 
-        const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
-        updateDoc(postRef, { viewCount: increment(1) }).catch(() => { viewCounted.current = false; });
+        updateDoc(doc(firestore, 'users', post.userId, 'posts', post.id), { viewCount: increment(1) });
       }
     } else {
       video.pause();
@@ -219,13 +185,12 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
             preload="auto" 
             onWaiting={() => setIsBuffering(true)}
             onPlaying={() => setIsBuffering(false)}
-            onLoadedData={() => setIsBuffering(false)}
         />
       ) : (
-        <Image src={post.mediaUrl} alt={post.caption || 'Post'} fill className="object-contain" priority />
+        <Image src={post.mediaUrl} alt="Post" fill className="object-contain" priority />
       )}
 
-      {isBuffering && (
+      {isBuffering && isVideo && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-20">
           <Loader2 className="w-10 h-10 text-primary animate-spin" />
         </div>
@@ -234,14 +199,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       {showBigHeart && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
           <Heart className="w-32 h-32 text-primary fill-primary animate-heart-pop" />
-        </div>
-      )}
-      
-      {showVolumeIcon && isVideo && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-          <div className="p-5 rounded-full bg-black/40 backdrop-blur-md">
-            {isMuted ? <VolumeX size={40} className="text-white" /> : <Volume2 size={40} className="text-white" />}
-          </div>
         </div>
       )}
 
@@ -258,17 +215,11 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                   {isProfileAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />}
               </div>
             </Link>
-            {!isOwnPost && (
-              <button className="px-3 py-1 bg-white/10 rounded-full text-xs font-bold" onClick={handleFollowToggle}>
-                {isFollowing ? 'Following' : 'Follow'}
-              </button>
-            )}
           </div>
         )}
         <p className="text-sm line-clamp-2 drop-shadow-md pr-12">{post.caption}</p>
       </div>
 
-      {/* THREE DOTS MENU ON REEL (INSTA STYLE) */}
       {(isOwnPost || isCurrentUserAdmin) && (
         <div className="absolute top-10 right-4 z-50" onClick={(e) => e.stopPropagation()}>
             <DropdownMenu>
