@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -18,12 +17,12 @@ export function Logo({ className }: { className?: string }) {
       <path 
         d="M150 400 L256 100 L362 400 M210 320 L302 320" 
         stroke="url(#logoGrad)" 
-        strokeWidth="50" 
+        strokeWidth="60" 
         fill="none" 
         strokeLinecap="round" 
         strokeLinejoin="round" 
       />
-      <circle cx="390" cy="120" r="35" fill="#ff0080" />
+      <circle cx="390" cy="120" r="40" fill="#ff0080" />
     </svg>
   );
 }
@@ -45,12 +44,6 @@ export function PwaInstallPrompt() {
 
     window.addEventListener('beforeinstallprompt', handler);
 
-    if (typeof window !== 'undefined') {
-        if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
-            setIsVisible(false);
-        }
-    }
-
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
@@ -71,21 +64,20 @@ export function PwaInstallPrompt() {
       <div className="bg-gradient-to-r from-[#1a1a1a] to-black border border-white/10 p-5 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex items-center justify-between gap-4 backdrop-blur-xl">
         <div className="flex items-center gap-4">
           <div className="relative w-12 h-12 bg-[#0a0a0a] rounded-xl flex items-center justify-center border border-white/10 shrink-0 shadow-lg overflow-hidden">
-             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none"></div>
-             <Logo className="w-8 h-8 drop-shadow-[0_0_5px_rgba(255,51,102,0.5)]" />
+             <Logo className="w-8 h-8 drop-shadow-[0_0_8px_rgba(255,51,102,0.6)]" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
                <h4 className="text-sm font-black text-white uppercase italic truncate">Install A.snap</h4>
                <Sparkles className="h-3 w-3 text-primary animate-pulse shrink-0" />
             </div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold truncate">Get the Full App Experience</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold truncate">Premium Short Video App</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
             <Button 
                 onClick={handleInstall} 
-                className="h-10 px-4 bg-primary text-white font-black uppercase text-xs rounded-xl shadow-[0_0_15px_rgba(var(--primary),0.3)] hover:scale-105 active:scale-95 transition-all"
+                className="h-10 px-4 bg-primary text-white font-black uppercase text-xs rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all"
             >
                 <Download className="mr-2 h-4 w-4" /> Install
             </Button>

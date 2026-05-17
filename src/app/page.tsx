@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
@@ -36,16 +35,6 @@ export default function HomePage() {
     }
     return shuffled;
   }, []);
-
-  useEffect(() => {
-    if (posts && displayItems.length > 0) {
-      const updatedItems = displayItems.map(item => {
-        const freshPost = posts.find(p => p.id === item.id);
-        return freshPost || item;
-      });
-      setDisplayItems(updatedItems);
-    }
-  }, [posts]);
 
   const buildFeed = useCallback(() => {
     if (!posts || posts.length === 0) return;

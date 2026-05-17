@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -91,57 +90,44 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     setIsMuted(newMuteState);
   };
 
-  const handleLike = async () => {
+  const handleLikeToggle = async () => {
     if (!firestore || !user || isLiking) return;
     
-    setShowBigHeart(true);
-    setTimeout(() => setShowBigHeart(false), 800);
-    
-    if (isLiked) return;
-    
     setIsLiking(true);
-    setLocalLikeCount(prev => prev + 1);
+    const wasLiked = isLiked;
+    
+    // Optimistic UI update
+    setLocalLikeCount(prev => wasLiked ? prev - 1 : prev + 1);
+    if (!wasLiked) {
+      setShowBigHeart(true);
+      setTimeout(() => setShowBigHeart(false), 800);
+    }
     
     try {
       const batch = writeBatch(firestore);
       const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
       const likeDocRef = doc(firestore, 'users', post.userId, 'posts', post.id, 'likes', user.uid);
       
-      batch.update(postRef, { likeCount: increment(1) });
-      batch.set(likeDocRef, { userId: user.uid, createdAt: serverTimestamp() });
-      
-      if (post.userId !== user.uid) {
-          const notificationRef = doc(collection(firestore, 'users', post.userId, 'notifications'));
-          batch.set(notificationRef, {
-              type: 'like', senderId: user.uid, recipientId: post.userId, postId: post.id, read: false, createdAt: serverTimestamp(),
-          });
+      if (wasLiked) {
+        batch.update(postRef, { likeCount: increment(-1) });
+        batch.delete(likeDocRef);
+      } else {
+        batch.update(postRef, { likeCount: increment(1) });
+        batch.set(likeDocRef, { userId: user.uid, createdAt: serverTimestamp() });
+        
+        if (post.userId !== user.uid) {
+            const notificationRef = doc(collection(firestore, 'users', post.userId, 'notifications'));
+            batch.set(notificationRef, {
+                type: 'like', senderId: user.uid, recipientId: post.userId, postId: post.id, read: false, createdAt: serverTimestamp(),
+            });
+        }
       }
       await batch.commit(); 
     } catch (e) { 
-      setLocalLikeCount(prev => prev - 1);
-      console.error("Error liking post:", e);
-    } finally {
-      setIsLiking(false);
-    }
-  };
-
-  const handleUnlike = async () => {
-    if (!firestore || !user || !isLiked || isLiking) return;
-    
-    setIsLiking(true);
-    setLocalLikeCount(prev => prev - 1);
-    
-    try {
-      const batch = writeBatch(firestore);
-      const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
-      const likeDocRef = doc(firestore, 'users', post.userId, 'posts', post.id, 'likes', user.uid);
-      
-      batch.update(postRef, { likeCount: increment(-1) });
-      batch.delete(likeDocRef);
-      await batch.commit(); 
-    } catch (e) { 
-      setLocalLikeCount(prev => prev + 1);
-      console.error("Error unliking post:", e); 
+      // Rollback optimistic update
+      setLocalLikeCount(prev => wasLiked ? prev + 1 : prev - 1);
+      console.error("Error toggling like:", e);
+      toast({ variant: 'destructive', title: 'Action Failed' });
     } finally {
       setIsLiking(false);
     }
@@ -160,7 +146,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       }
     } catch (e) {
       console.error(e);
-      toast({ variant: 'destructive', title: 'Save Failed', description: 'Check permissions.' });
+      toast({ variant: 'destructive', title: 'Save Failed' });
     }
   };
 
@@ -196,11 +182,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       batch.set(followingDocRef, { createdAt: serverTimestamp() });
       const notificationRef = doc(collection(firestore, 'users', followedUserId, 'notifications'));
       batch.set(notificationRef, {
-        type: 'follow',
-        senderId: followerUserId,
-        recipientId: followedUserId,
-        read: false,
-        createdAt: serverTimestamp(),
+        type: 'follow', senderId: followerUserId, recipientId: followedUserId, read: false, createdAt: serverTimestamp(),
       });
     }
 
@@ -226,10 +208,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     if (isInView) {
       video.muted = globalMuted;
       setIsMuted(globalMuted);
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-          playPromise.catch(() => { video.muted = true; video.play().catch(() => {}); });
-      }
+      video.play().catch(() => { video.muted = true; video.play().catch(() => {}); });
       if (firestore && !viewCounted.current) {
         viewCounted.current = true; 
         updateDoc(doc(firestore, 'users', post.userId, 'posts', post.id), { viewCount: increment(1) });
@@ -244,7 +223,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       if (tapTimerRef.current) {
         clearTimeout(tapTimerRef.current);
         tapTimerRef.current = null;
-        handleLike();
+        if (!isLiked) handleLikeToggle();
       } else {
         tapTimerRef.current = setTimeout(() => {
           toggleMute();
@@ -294,7 +273,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                 onClick={handleFollowToggle} 
                 variant={isFollowing ? "secondary" : "default"} 
                 className={cn(
-                  "h-7 px-3 text-[10px] font-bold uppercase rounded-full border border-white/20 transition-all active:scale-95",
+                  "h-7 px-4 text-[11px] font-black uppercase rounded-full border border-white/20 transition-all active:scale-95 shadow-lg",
                   !isFollowing && "bg-primary text-white"
                 )}
               >
@@ -312,7 +291,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
 
       <div className="absolute right-3 bottom-28 flex flex-col gap-6 z-10" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center">
-                <button className="text-white transition-transform active:scale-125" onClick={isLiked ? handleUnlike : handleLike}>
+                <button className="text-white transition-transform active:scale-125" onClick={handleLikeToggle}>
                     <Heart className={cn("h-8 w-8 transition-all", isLiked ? "fill-primary text-primary" : "text-white")} />
                 </button>
                 <span className="text-xs font-bold mt-1">{localLikeCount}</span>
@@ -372,7 +351,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
             </AlertDialogHeader>
             <AlertDialogFooter className="flex-col gap-3 sm:flex-row mt-4">
                 <AlertDialogCancel className="rounded-xl bg-secondary/50 h-12 font-bold">Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={() => { deleteDoc(doc(firestore!, 'users', post.userId, 'posts', post.id)); window.location.reload(); }} className="bg-destructive hover:bg-destructive/90 rounded-xl h-12 font-bold">Delete</AlertDialogAction>
+                <AlertDialogAction onClick={async () => { await deleteDoc(doc(firestore!, 'users', post.userId, 'posts', post.id)); window.location.reload(); }} className="bg-destructive hover:bg-destructive/90 rounded-xl h-12 font-bold">Delete</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
