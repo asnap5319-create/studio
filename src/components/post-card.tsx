@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import type { Post } from '@/models/post';
 import type { UserProfile } from '@/models/user';
 import { useDoc, useFirebase, useMemoFirebase, useUser } from '@/firebase';
-import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection, deleteDoc, setDoc } from 'firebase/firestore';
+import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection, deleteDoc, setDoc, getDoc } from 'firebase/firestore';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
@@ -71,6 +71,13 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   }, [firestore, user?.uid, post.id]);
   const { data: saveData } = useDoc(saveRef);
   const isSaved = !!saveData;
+
+  const followCheckRef = useMemoFirebase(() => {
+    if (!firestore || !user?.uid || !post.userId) return null;
+    return doc(firestore, 'user_followers', post.userId, 'followers', user.uid);
+  }, [firestore, user?.uid, post.userId]);
+  const { data: followData } = useDoc(followCheckRef);
+  const isFollowing = !!followData;
 
   const isVideo = post.mediaUrl.toLowerCase().includes('.mp4') || 
                   post.mediaUrl.toLowerCase().includes('.mov') || 
@@ -155,6 +162,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       }
     } catch (e) {
       console.error(e);
+      toast({ variant: 'destructive', title: 'Save Failed', description: 'Permission error.' });
     }
   };
 
@@ -167,6 +175,42 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       toast({ title: "Audio Saved! 🎵", description: "Use it in your next post." });
     } catch (e) {
       console.error(e);
+      toast({ variant: 'destructive', title: 'Save Failed', description: 'Permission error.' });
+    }
+  };
+
+  const handleFollowToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!firestore || !user || !post.userId || isOwnPost) return;
+
+    const batch = writeBatch(firestore);
+    const followedUserId = post.userId;
+    const followerUserId = user.uid;
+
+    const followerDocRef = doc(firestore, 'user_followers', followedUserId, 'followers', followerUserId);
+    const followingDocRef = doc(firestore, 'user_following', followerUserId, 'following', followedUserId);
+
+    if (isFollowing) {
+      batch.delete(followerDocRef);
+      batch.delete(followingDocRef);
+    } else {
+      batch.set(followerDocRef, { createdAt: serverTimestamp() });
+      batch.set(followingDocRef, { createdAt: serverTimestamp() });
+      const notificationRef = doc(collection(firestore, 'users', followedUserId, 'notifications'));
+      batch.set(notificationRef, {
+        type: 'follow',
+        senderId: followerUserId,
+        recipientId: followedUserId,
+        read: false,
+        createdAt: serverTimestamp(),
+      });
+    }
+
+    try {
+      await batch.commit();
+      toast({ title: isFollowing ? `Unfollowed` : `Following` });
+    } catch (error) {
+      console.error("Error toggling follow:", error);
     }
   };
 
@@ -251,11 +295,23 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                   {isProfileAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />}
               </div>
             </Link>
+            {!isOwnPost && (
+              <Button 
+                onClick={handleFollowToggle} 
+                variant={isFollowing ? "secondary" : "default"} 
+                className={cn(
+                  "h-7 px-3 text-[10px] font-bold uppercase rounded-full border border-white/20",
+                  !isFollowing && "bg-primary text-white"
+                )}
+              >
+                {isFollowing ? 'Following' : 'Follow'}
+              </Button>
+            )}
           </div>
         )}
         <p className="text-sm line-clamp-2 mb-2 font-medium">{post.caption}</p>
-        <div className="flex items-center gap-2 text-xs opacity-80" onClick={handleSaveAudio}>
-          <Music className="h-3 w-3 animate-spin-slow" />
+        <div className="flex items-center gap-2 text-xs opacity-80 cursor-pointer" onClick={handleSaveAudio}>
+          <Music className="h-3 w-3 animate-pulse" />
           <span className="truncate">{post.caption?.split('#')[0] || "Original Audio"}</span>
         </div>
       </div>

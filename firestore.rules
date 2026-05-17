@@ -16,24 +16,19 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthenticated() && (
         request.auth.token.email == 'asnap5319@gmail.com' ||
-        request.auth.uid == 'gHZ9n7s2b9X8fJ2kP3s5t8YxVOE2' // Emergency fallback UID if needed
+        request.auth.uid == 'gHZ9n7s2b9X8fJ2kP3s5t8YxVOE2'
       );
     }
 
     match /users/{userId} {
       allow read: if true;
-      // Allow creation during signup, update/delete by owner or admin
       allow create: if isAuthenticated() && request.auth.uid == userId;
       allow update, delete: if isOwner(userId) || isAdmin();
       
       match /posts/{postId} {
         allow read: if true;
-        // Only owner can create posts for themselves
         allow create: if isOwner(userId);
         
-        // ALLOW UPDATE: 
-        // 1. If user is owner or admin
-        // 2. If an authenticated user is ONLY updating viewCount, likeCount, or commentCount
         allow update: if isOwner(userId) || isAdmin() || 
           (isAuthenticated() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount', 'likeCount', 'commentCount']));
         
@@ -47,12 +42,8 @@ service cloud.firestore {
         match /comments/{commentId} {
           allow read: if true;
           allow create: if isAuthenticated();
-          
-          // ALLOW UPDATE: if owner/admin OR only likeCount changed by authenticated user
           allow update: if isOwner(userId) || isAdmin() || 
             (isAuthenticated() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount']));
-          
-          // ALLOW DELETE: if post owner, comment author, or admin
           allow delete: if isOwner(userId) || isAdmin() || (isAuthenticated() && request.auth.uid == resource.data.userId);
           
           match /likes/{likeId} {
@@ -60,6 +51,15 @@ service cloud.firestore {
             allow write: if isAuthenticated();
           }
         }
+      }
+
+      // New Rules for Saved Content
+      match /saved_posts/{postId} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      match /saved_audios/{audioId} {
+        allow read, write: if isOwner(userId);
       }
       
       match /notifications/{notificationId} {
@@ -69,17 +69,14 @@ service cloud.firestore {
       }
     }
 
-    // Global collection group access for the feed
     match /{path=**}/posts/{postId} {
       allow read: if true;
     }
 
-    // Global collection group access for messages (used for unread counts)
     match /{path=**}/messages/{messageId} {
       allow read: if isAuthenticated() && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.recipientId);
     }
 
-    // Chat system rules - strictly for participants
     match /chats/{chatId} {
       allow read: if isAuthenticated() && request.auth.uid in resource.data.participants;
       allow write: if isAuthenticated() && request.auth.uid in resource.data.participants;
@@ -88,13 +85,11 @@ service cloud.firestore {
       match /messages/{messageId} {
         allow read: if isAuthenticated() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
         allow create: if isAuthenticated() && request.auth.uid == request.resource.data.senderId;
-        // Allow update if sender (to unsend) or recipient (to mark as read)
         allow update: if isAuthenticated() && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.recipientId);
         allow delete: if isAuthenticated() && (request.auth.uid == resource.data.senderId || isAdmin());
       }
     }
 
-    // Follow system rules
     match /user_followers/{followedUserId}/followers/{followerUserId} {
       allow read: if true;
       allow write: if isOwner(followerUserId);
@@ -104,7 +99,6 @@ service cloud.firestore {
       allow write: if isOwner(followerUserId);
     }
 
-    // Catch-all for any other collections - restricted to Admin
     match /{allPaths=**} {
       allow read, write: if isAdmin();
     }
