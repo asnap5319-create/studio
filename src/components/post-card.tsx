@@ -251,7 +251,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       />
 
       {/* Branding Watermark - Top Left */}
-      <div className="absolute top-8 left-6 z-40 flex items-center gap-2 pointer-events-none drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">
+      <div className="absolute top-10 left-6 z-40 flex items-center gap-2 pointer-events-none drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">
         <Logo className="w-10 h-10 drop-shadow-[0_0_15px_rgba(255,51,102,0.6)]" />
         <span className="text-xl font-black italic tracking-tighter text-white uppercase drop-shadow-md">A.snap</span>
       </div>
