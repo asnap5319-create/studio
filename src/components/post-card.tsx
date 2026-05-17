@@ -8,7 +8,7 @@ import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection, del
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
-import { Heart, MessageCircle, Share2, BadgeCheck, Loader2, MoreVertical, Trash2, Music } from 'lucide-react';
+import { Heart, MessageCircle, Share2, BadgeCheck, Loader2, MoreVertical, Trash2, Volume2, VolumeX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -33,6 +33,7 @@ interface PostCardProps {
 }
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
+// Global state to keep track of mute status across the feed
 let globalMuted = true;
 
 export function PostCard({ post, isFocused = false }: PostCardProps) {
@@ -47,6 +48,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const [isInView, setIsInView] = useState(isFocused);
   const [isMuted, setIsMuted] = useState(globalMuted); 
   const [showBigHeart, setShowBigHeart] = useState(false);
+  const [showMuteIndicator, setShowMuteIndicator] = useState(false);
   const [isCommentSheetOpen, setIsCommentSheetOpen] = useState(false);
   const [isShareSheetOpen, setIsShareSheetOpen] = useState(false);
   const [isBuffering, setIsBuffering] = useState(true);
@@ -85,12 +87,19 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   }, [post.likeCount]);
 
   const toggleMute = () => {
-    if (!videoRef.current) return;
+    const video = videoRef.current;
+    if (!video) return;
+    
     const newMuteState = !isMuted;
     globalMuted = newMuteState;
+    
+    // Sync all videos in the DOM
     const allVideos = document.querySelectorAll('video');
     allVideos.forEach(v => { v.muted = newMuteState; });
+    
     setIsMuted(newMuteState);
+    setShowMuteIndicator(true);
+    setTimeout(() => setShowMuteIndicator(false), 1000);
   };
 
   const handleLikeToggle = async () => {
@@ -175,10 +184,16 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+    
     if (isInView) {
       video.muted = globalMuted;
       setIsMuted(globalMuted);
-      video.play().catch(() => { video.muted = true; video.play().catch(() => {}); });
+      video.play().catch(() => { 
+        // Auto-play might fail if not muted initially
+        video.muted = true; 
+        setIsMuted(true);
+        video.play().catch(() => {}); 
+      });
       if (firestore && !viewCounted.current) {
         viewCounted.current = true; 
         updateDoc(doc(firestore, 'users', post.userId, 'posts', post.id), { viewCount: increment(1) });
@@ -213,10 +228,10 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
           onPlaying={() => setIsBuffering(false)}
       />
 
-      {/* Branding Watermark - Top Left */}
-      <div className="absolute top-10 left-6 z-40 flex items-center gap-2 pointer-events-none drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">
-        <Logo className="w-10 h-10 drop-shadow-[0_0_15px_rgba(255,51,102,0.6)]" />
-        <span className="text-xl font-black italic tracking-tighter text-white uppercase drop-shadow-md">A.snap</span>
+      {/* A.snap Watermark - Top Left */}
+      <div className="absolute top-10 left-6 z-40 flex items-center gap-2 pointer-events-none drop-shadow-[0_2px_12px_rgba(0,0,0,1)]">
+        <Logo className="w-10 h-10 drop-shadow-[0_0_15px_rgba(255,51,102,0.8)]" />
+        <span className="text-xl font-black italic tracking-tighter text-white uppercase drop-shadow-2xl">A.snap</span>
       </div>
 
       {isBuffering && (
@@ -231,8 +246,16 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         </div>
       )}
 
-      {/* Creator Info & Caption - Bottom */}
-      <div className="absolute bottom-0 left-0 right-0 p-6 pb-28 bg-gradient-to-t from-black/95 via-black/50 to-transparent text-white z-30" onClick={(e) => e.stopPropagation()}>
+      {showMuteIndicator && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+          <div className="bg-black/60 p-5 rounded-full animate-in fade-in zoom-in duration-300">
+            {isMuted ? <VolumeX className="w-12 h-12 text-white" /> : <Volume2 className="w-12 h-12 text-white" />}
+          </div>
+        </div>
+      )}
+
+      {/* Creator Info & Caption - Bottom Left */}
+      <div className="absolute bottom-0 left-0 right-16 p-6 pb-28 bg-gradient-to-t from-black/90 via-black/40 to-transparent text-white z-30" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-4">
           {author ? (
             <Link href={`/profile/${author.id}`} className="flex items-center gap-3 group">
@@ -242,19 +265,16 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
               </Avatar>
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
-                    <p className="font-black text-base drop-shadow-2xl">{author.username}</p>
+                    <p className="font-black text-base drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{author.username}</p>
                     {isProfileAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20 shadow-lg" />}
                 </div>
-                <span className="text-[10px] text-primary font-black uppercase tracking-[0.2em] drop-shadow-lg">A.snap Creator</span>
+                <span className="text-[10px] text-primary font-black uppercase tracking-[0.2em] drop-shadow-md">Creator</span>
               </div>
             </Link>
           ) : (
             <div className="flex items-center gap-3 animate-pulse">
               <div className="h-14 w-14 rounded-full bg-white/10" />
-              <div className="space-y-2">
-                <div className="h-4 w-24 bg-white/10 rounded" />
-                <div className="h-3 w-16 bg-white/10 rounded" />
-              </div>
+              <div className="h-4 w-24 bg-white/10 rounded" />
             </div>
           )}
           
@@ -263,7 +283,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
               onClick={handleFollowToggle} 
               variant={isFollowing ? "secondary" : "default"} 
               className={cn(
-                "h-8 px-6 text-[11px] font-black uppercase rounded-full border border-white/20 transition-all active:scale-95 shadow-2xl ml-2",
+                "h-8 px-6 text-[11px] font-black uppercase rounded-full border border-white/20 transition-all active:scale-95 shadow-xl",
                 !isFollowing && "bg-primary text-white border-none"
               )}
             >
@@ -272,42 +292,37 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
           )}
         </div>
         
-        <p className="text-sm line-clamp-2 mb-4 font-medium drop-shadow-2xl max-w-[85%] leading-relaxed">{post.caption}</p>
-        
-        <div className="flex items-center gap-2 text-xs opacity-100 bg-white/10 w-fit px-5 py-2 rounded-full backdrop-blur-3xl border border-white/10 shadow-lg">
-          <Music className="h-3.5 w-3.5 animate-pulse text-primary" />
-          <span className="truncate max-w-[180px] font-black italic">{post.caption?.split('#')[0] || "Original Audio"}</span>
-        </div>
+        <p className="text-sm line-clamp-2 font-bold drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] leading-relaxed">{post.caption}</p>
       </div>
 
-      {/* Side Actions - ONLY Like, Comment, Share */}
+      {/* Side Actions - Like, Comment, Share */}
       <div className="absolute right-4 bottom-28 flex flex-col gap-10 z-30" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center">
-                <button className="text-white transition-all active:scale-150 hover:scale-110" onClick={handleLikeToggle}>
+                <button className="text-white transition-all active:scale-150" onClick={handleLikeToggle}>
                     <Heart className={cn("h-10 w-10 drop-shadow-2xl transition-all", isLiked ? "fill-primary text-primary scale-110" : "text-white")} />
                 </button>
-                <span className="text-xs font-black mt-2 drop-shadow-2xl">{localLikeCount}</span>
+                <span className="text-xs font-black mt-2 drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">{localLikeCount}</span>
             </div>
             
             <div className="flex flex-col items-center">
                 <Sheet open={isCommentSheetOpen} onOpenChange={setIsCommentSheetOpen}>
                   <SheetTrigger asChild>
-                    <button className="text-white active:scale-125 transition-all hover:scale-110"><MessageCircle className="h-10 w-10 drop-shadow-2xl" /></button>
+                    <button className="text-white active:scale-125 transition-all"><MessageCircle className="h-10 w-10 drop-shadow-2xl" /></button>
                   </SheetTrigger>
-                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[3rem] overflow-hidden bg-background border-t-0 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
+                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[3rem] overflow-hidden bg-background border-t-0 shadow-2xl">
                     <SheetHeader className="sr-only"><SheetTitle>Comments</SheetTitle></SheetHeader>
                     <CommentSection postId={post.id} postOwnerId={post.userId} />
                   </SheetContent>
                 </Sheet>
-                <span className="text-xs font-black mt-2 drop-shadow-2xl">{post.commentCount}</span>
+                <span className="text-xs font-black mt-2 drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">{post.commentCount}</span>
             </div>
 
             <div className="flex flex-col items-center">
                 <Sheet open={isShareSheetOpen} onOpenChange={setIsShareSheetOpen}>
                   <SheetTrigger asChild>
-                    <button className="text-white active:scale-125 transition-all hover:scale-110"><Share2 className="h-10 w-10 drop-shadow-2xl" /></button>
+                    <button className="text-white active:scale-125 transition-all"><Share2 className="h-10 w-10 drop-shadow-2xl" /></button>
                   </SheetTrigger>
-                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[3rem] overflow-hidden bg-background border-t-0 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
+                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[3rem] overflow-hidden bg-background border-t-0 shadow-2xl">
                     <SheetHeader className="sr-only"><SheetTitle>Share</SheetTitle></SheetHeader>
                     <ShareSheet postId={post.id} postOwnerId={post.userId} mediaUrl={post.mediaUrl} onClose={() => setIsShareSheetOpen(false)} />
                   </SheetContent>

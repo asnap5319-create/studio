@@ -25,7 +25,7 @@ service cloud.firestore {
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
       
-      // Explicitly allow owners to access their sub-collections
+      // Allow owners to access their sub-collections (Notifications, etc.)
       match /{allData=**} {
         allow read, write: if isOwner(userId) || isAdmin();
       }

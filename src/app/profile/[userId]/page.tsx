@@ -104,7 +104,7 @@ export default function ProfilePage() {
                 </div>
                 <div className="mt-4">
                     <p className="font-bold text-lg">{userProfile?.name}</p>
-                    <p className="text-sm text-muted-foreground">{userProfile?.bio || "A.snap Pro🎬"}</p>
+                    <p className="text-sm text-muted-foreground">{userProfile?.bio || "A.snap Creator🎬"}</p>
                 </div>
                 {isOwnProfile && (
                     <Button className="w-full mt-6 h-12 rounded-2xl bg-secondary/80 font-bold uppercase text-xs" onClick={() => setIsEditSheetOpen(true)}>Edit Profile</Button>
