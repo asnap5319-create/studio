@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import type { Post } from '@/models/post';
 import type { UserProfile } from '@/models/user';
 import { useDoc, useFirebase, useMemoFirebase, useUser } from '@/firebase';
-import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection, deleteDoc } from 'firebase/firestore';
+import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection, deleteDoc, getDoc, setDoc } from 'firebase/firestore';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
@@ -44,6 +44,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const [isShareSheetOpen, setIsShareSheetOpen] = useState(false);
   const [isBuffering, setIsBuffering] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isLiking, setIsLiking] = useState(false);
 
   const isOwnPost = user?.uid === post.userId;
   const isCurrentUserAdmin = user?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -123,32 +124,56 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   };
 
   const handleLike = async () => {
-    if (!firestore || !user) return;
+    if (!firestore || !user || isLiking) return;
+    
     setShowBigHeart(true);
     setTimeout(() => setShowBigHeart(false), 1000);
+    
     if (isLiked) return;
+    
+    setIsLiking(true);
     const batch = writeBatch(firestore);
     const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
     const likeDocRef = doc(firestore, 'users', post.userId, 'posts', post.id, 'likes', user.uid);
+    
     batch.update(postRef, { likeCount: increment(1) });
     batch.set(likeDocRef, { userId: user.uid, createdAt: serverTimestamp() });
+    
     if (post.userId !== user.uid) {
         const notificationRef = doc(collection(firestore, 'users', post.userId, 'notifications'));
         batch.set(notificationRef, {
             type: 'like', senderId: user.uid, recipientId: post.userId, postId: post.id, read: false, createdAt: serverTimestamp(),
         });
     }
-    try { await batch.commit(); } catch (e) { console.error("Error liking post:", e); }
+    
+    try { 
+      await batch.commit(); 
+    } catch (e) { 
+      console.error("Error liking post:", e);
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not like post.' });
+    } finally {
+      setIsLiking(false);
+    }
   };
 
   const handleUnlike = async () => {
-    if (!firestore || !user || !isLiked) return;
+    if (!firestore || !user || !isLiked || isLiking) return;
+    
+    setIsLiking(true);
     const batch = writeBatch(firestore);
     const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
     const likeDocRef = doc(firestore, 'users', post.userId, 'posts', post.id, 'likes', user.uid);
+    
     batch.update(postRef, { likeCount: increment(-1) });
     batch.delete(likeDocRef);
-    try { await batch.commit(); } catch (e) { console.error("Error unliking post:", e); }
+    
+    try { 
+      await batch.commit(); 
+    } catch (e) { 
+      console.error("Error unliking post:", e); 
+    } finally {
+      setIsLiking(false);
+    }
   };
 
   const handleTap = (e: React.MouseEvent) => {
@@ -285,7 +310,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
 
       <div className="absolute right-3 bottom-24 flex flex-col gap-6 z-10" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center">
-                <Button variant="ghost" size="icon" className="text-white h-12 w-12 hover:bg-transparent" onClick={isLiked ? handleUnlike : handleLike}>
+                <Button variant="ghost" size="icon" className="text-white h-12 w-12 hover:bg-transparent" onClick={isLiked ? handleUnlike : handleLike} disabled={isLiking}>
                     <Heart className={cn("h-9 w-9 transition-all active:scale-125", isLiked ? "fill-primary text-primary" : "text-white drop-shadow-md")} />
                 </Button>
                 <span className="text-xs font-bold mt-1 drop-shadow-md">{post.likeCount}</span>
