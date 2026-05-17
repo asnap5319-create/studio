@@ -16,6 +16,7 @@ import { CommentSection } from './comment-section';
 import { ShareSheet } from './share-sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Logo } from '@/components/pwa-install-prompt';
 
 interface PostCardProps {
   post: Post;
@@ -56,7 +57,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { data: author } = useDoc<UserProfile>(authorRef);
   const isProfileAdmin = author?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-  // Like status check
+  // Like status check - Important: fetch for the current user
   const likeRef = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
     return doc(firestore, 'users', post.userId, 'posts', post.id, 'likes', user.uid);
@@ -65,7 +66,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { data: likeData } = useDoc(likeRef);
   const isLiked = !!likeData;
 
-  // Saved post check
+  // Saved post check - Important: fetch for the current user
   const saveRef = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
     return doc(firestore, 'users', user.uid, 'saved_posts', post.id);
@@ -130,7 +131,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     } catch (e) { 
       setLocalLikeCount(prev => wasLiked ? prev + 1 : prev - 1);
       console.error("Error toggling like:", e);
-      toast({ variant: 'destructive', title: 'Action Failed' });
     } finally {
       setIsLiking(false);
     }
@@ -246,6 +246,12 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
           onPlaying={() => setIsBuffering(false)}
       />
 
+      {/* Branding Watermark - Top Left */}
+      <div className="absolute top-8 left-6 z-30 flex items-center gap-2 opacity-70 pointer-events-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+        <Logo className="w-8 h-8" />
+        <span className="text-lg font-black italic tracking-tighter text-white uppercase">A.snap</span>
+      </div>
+
       {isBuffering && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-20">
           <Loader2 className="w-10 h-10 text-primary animate-spin" />
@@ -258,17 +264,20 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         </div>
       )}
 
-      <div className="absolute bottom-0 left-0 right-0 p-4 pb-24 bg-gradient-to-t from-black via-black/40 to-transparent text-white z-10" onClick={(e) => e.stopPropagation()}>
+      <div className="absolute bottom-0 left-0 right-0 p-6 pb-28 bg-gradient-to-t from-black/90 via-black/40 to-transparent text-white z-10" onClick={(e) => e.stopPropagation()}>
         {author && (
-          <div className="flex items-center gap-3 mb-3">
-            <Link href={`/profile/${author.id}`} className="flex items-center gap-2 group">
-              <Avatar className="h-10 w-10 border-2 border-primary group-active:scale-95 transition-transform">
+          <div className="flex items-center gap-3 mb-4">
+            <Link href={`/profile/${author.id}`} className="flex items-center gap-3 group">
+              <Avatar className="h-12 w-12 border-2 border-primary group-active:scale-95 transition-transform shadow-lg">
                 <AvatarImage src={author.profileImageUrl} className="object-cover" />
-                <AvatarFallback>{author.name?.[0]}</AvatarFallback>
+                <AvatarFallback className="font-bold">{author.name?.[0]}</AvatarFallback>
               </Avatar>
-              <div className="flex items-center gap-1.5">
-                  <p className="font-bold text-sm drop-shadow-lg">{author.username}</p>
-                  {isProfileAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20 shadow-lg" />}
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1.5">
+                    <p className="font-black text-sm drop-shadow-lg">{author.username}</p>
+                    {isProfileAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20 shadow-lg" />}
+                </div>
+                <span className="text-[10px] text-primary font-bold uppercase tracking-widest drop-shadow-lg">A.snap Creator</span>
               </div>
             </Link>
             {!isOwnPost && (
@@ -276,7 +285,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                 onClick={handleFollowToggle} 
                 variant={isFollowing ? "secondary" : "default"} 
                 className={cn(
-                  "h-7 px-4 text-[11px] font-black uppercase rounded-full border border-white/20 transition-all active:scale-95 shadow-lg",
+                  "h-8 px-5 text-[11px] font-black uppercase rounded-full border border-white/20 transition-all active:scale-95 shadow-xl ml-2",
                   !isFollowing && "bg-primary text-white"
                 )}
               >
@@ -285,44 +294,44 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
             )}
           </div>
         )}
-        <p className="text-sm line-clamp-2 mb-2 font-medium drop-shadow-md">{post.caption}</p>
-        <div className="flex items-center gap-2 text-xs opacity-90 cursor-pointer bg-white/10 w-fit px-3 py-1 rounded-full backdrop-blur-md" onClick={handleSaveAudio}>
+        <p className="text-sm line-clamp-2 mb-3 font-medium drop-shadow-lg max-w-[85%]">{post.caption}</p>
+        <div className="flex items-center gap-2 text-xs opacity-90 cursor-pointer bg-white/10 w-fit px-4 py-1.5 rounded-full backdrop-blur-xl border border-white/5" onClick={handleSaveAudio}>
           <Music className="h-3 w-3 animate-pulse text-primary" />
-          <span className="truncate max-w-[150px]">{post.caption?.split('#')[0] || "Original Audio"}</span>
+          <span className="truncate max-w-[150px] font-bold">{post.caption?.split('#')[0] || "Original Audio"}</span>
         </div>
       </div>
 
-      <div className="absolute right-3 bottom-28 flex flex-col gap-6 z-10" onClick={(e) => e.stopPropagation()}>
+      <div className="absolute right-4 bottom-28 flex flex-col gap-7 z-10" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center">
-                <button className="text-white transition-transform active:scale-125" onClick={handleLikeToggle}>
-                    <Heart className={cn("h-8 w-8 drop-shadow-lg transition-all", isLiked ? "fill-primary text-primary scale-110" : "text-white")} />
+                <button className="text-white transition-transform active:scale-150" onClick={handleLikeToggle}>
+                    <Heart className={cn("h-9 w-9 drop-shadow-2xl transition-all", isLiked ? "fill-primary text-primary scale-110" : "text-white")} />
                 </button>
-                <span className="text-xs font-bold mt-1 drop-shadow-lg">{localLikeCount}</span>
+                <span className="text-xs font-black mt-1.5 drop-shadow-lg">{localLikeCount}</span>
             </div>
             
             <div className="flex flex-col items-center">
                 <Sheet open={isCommentSheetOpen} onOpenChange={setIsCommentSheetOpen}>
                   <SheetTrigger asChild>
-                    <button className="text-white"><MessageCircle className="h-8 w-8 drop-shadow-lg" /></button>
+                    <button className="text-white active:scale-110 transition-transform"><MessageCircle className="h-9 w-9 drop-shadow-2xl" /></button>
                   </SheetTrigger>
-                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-3xl overflow-hidden bg-background">
+                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[2.5rem] overflow-hidden bg-background border-t-0 shadow-2xl">
                     <SheetHeader className="sr-only"><SheetTitle>Comments</SheetTitle></SheetHeader>
                     <CommentSection postId={post.id} postOwnerId={post.userId} />
                   </SheetContent>
                 </Sheet>
-                <span className="text-xs font-bold mt-1 drop-shadow-lg">{post.commentCount}</span>
+                <span className="text-xs font-black mt-1.5 drop-shadow-lg">{post.commentCount}</span>
             </div>
             
-            <button className="text-white transition-transform active:scale-110" onClick={handleSavePost}>
-                <Bookmark className={cn("h-8 w-8 drop-shadow-lg transition-all", isSaved ? "fill-white text-white" : "text-white")} />
+            <button className="text-white transition-transform active:scale-125" onClick={handleSavePost}>
+                <Bookmark className={cn("h-9 w-9 drop-shadow-2xl transition-all", isSaved ? "fill-white text-white" : "text-white")} />
             </button>
 
             <div className="flex flex-col items-center">
                 <Sheet open={isShareSheetOpen} onOpenChange={setIsShareSheetOpen}>
                   <SheetTrigger asChild>
-                    <button className="text-white"><Share2 className="h-8 w-8 drop-shadow-lg" /></button>
+                    <button className="text-white active:scale-110 transition-transform"><Share2 className="h-9 w-9 drop-shadow-2xl" /></button>
                   </SheetTrigger>
-                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-3xl overflow-hidden bg-background">
+                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[2.5rem] overflow-hidden bg-background border-t-0 shadow-2xl">
                     <SheetHeader className="sr-only"><SheetTitle>Share</SheetTitle></SheetHeader>
                     <ShareSheet postId={post.id} postOwnerId={post.userId} mediaUrl={post.mediaUrl} onClose={() => setIsShareSheetOpen(false)} />
                   </SheetContent>
@@ -331,10 +340,10 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       </div>
 
       {(isOwnPost || isCurrentUserAdmin) && (
-        <div className="absolute top-10 right-4 z-50" onClick={(e) => e.stopPropagation()}>
+        <div className="absolute top-8 right-6 z-50" onClick={(e) => e.stopPropagation()}>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-black/30 border border-white/10 text-white backdrop-blur-sm">
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-black/40 border border-white/10 text-white backdrop-blur-md">
                         <MoreVertical className="h-6 w-6" />
                     </Button>
                 </DropdownMenuTrigger>
@@ -348,13 +357,14 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       )}
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent className="bg-[#121212] text-white rounded-[2rem] border-white/10">
+        <AlertDialogContent className="bg-[#121212] text-white rounded-[2.5rem] border-white/10">
             <AlertDialogHeader>
-                <AlertDialogTitle className="text-center font-black uppercase italic">Delete Post?</AlertDialogTitle>
+                <AlertDialogTitle className="text-center font-black uppercase italic tracking-wider">Delete Post?</AlertDialogTitle>
+                <AlertDialogDescription className="text-center text-muted-foreground text-xs font-bold uppercase">This action cannot be undone.</AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter className="flex-col gap-3 sm:flex-row mt-4">
-                <AlertDialogCancel className="rounded-xl bg-secondary/50 h-12 font-bold border-none">Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={async () => { await deleteDoc(doc(firestore!, 'users', post.userId, 'posts', post.id)); window.location.reload(); }} className="bg-destructive hover:bg-destructive/90 rounded-xl h-12 font-bold">Delete</AlertDialogAction>
+            <AlertDialogFooter className="flex-col gap-3 sm:flex-row mt-6">
+                <AlertDialogCancel className="rounded-2xl bg-secondary/50 h-14 font-black border-none uppercase text-xs">Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={async () => { await deleteDoc(doc(firestore!, 'users', post.userId, 'posts', post.id)); window.location.reload(); }} className="bg-destructive hover:bg-destructive/90 rounded-2xl h-14 font-black uppercase text-xs shadow-lg shadow-destructive/20">Delete</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
