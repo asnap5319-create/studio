@@ -25,7 +25,6 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle 
 } from '@/components/ui/alert-dialog';
-import { Logo } from '@/components/pwa-install-prompt';
 
 interface PostCardProps {
   post: Post;
@@ -225,11 +224,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
               </p>
           </div>
       )}
-
-      <div className="absolute top-10 left-6 z-40 flex items-center gap-2 pointer-events-none drop-shadow-[0_2px_12px_rgba(0,0,0,1)]">
-        <Logo className="w-10 h-10 drop-shadow-[0_0_15px_rgba(255,51,102,0.8)]" />
-        <span className="text-xl font-black italic tracking-tighter text-white uppercase">A.snap</span>
-      </div>
 
       {isBuffering && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-20">
