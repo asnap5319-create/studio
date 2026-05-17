@@ -1,16 +1,14 @@
-
 'use client';
 
-import { useState, ChangeEvent, useEffect } from 'react';
+import { useState, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { useFirebase, useUser, useCollection, useMemoFirebase } from '@/firebase';
-import { addDoc, collection, serverTimestamp, query, doc, getDoc } from 'firebase/firestore';
+import { useFirebase, useUser } from '@/firebase';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UploadCloud, Loader2, Music, X } from 'lucide-react';
+import { UploadCloud, Loader2, X } from 'lucide-react';
 import Image from 'next/image';
 import { BottomNav } from "@/components/bottom-nav";
 
@@ -24,16 +22,8 @@ export default function CreatePostPage() {
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [caption, setCaption] = useState('');
-  const [selectedAudio, setSelectedAudio] = useState<string>("Original Audio");
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const savedAudiosQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, 'users', user.uid, 'saved_audios'));
-  }, [firestore, user]);
-
-  const { data: savedAudios } = useCollection(savedAudiosQuery);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -71,19 +61,16 @@ export default function CreatePostPage() {
         const mediaUrl = data.secure_url;
         const postCollectionRef = collection(firestore, 'users', user.uid, 'posts');
         
-        const finalCaption = selectedAudio !== "Original Audio" ? `${selectedAudio} - ${caption}` : caption;
-
         await addDoc(postCollectionRef, {
             userId: user.uid,
             mediaUrl,
-            caption: finalCaption,
+            caption: caption,
             hashtags: caption.match(/#\w+/g) || [],
             createdAt: serverTimestamp(),
             expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), 
             likeCount: 0,
             commentCount: 0,
-            viewCount: 0,
-            audioTitle: selectedAudio
+            viewCount: 0
         });
 
         toast({ title: "Live! 🎬", description: "Your post is now visible." });
@@ -133,22 +120,6 @@ export default function CreatePostPage() {
               className="min-h-[100px] bg-secondary/30 border-white/5 rounded-2xl resize-none"
               disabled={isUploading}
             />
-        </div>
-
-        <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2 block ml-1">Select Audio</label>
-            <Select value={selectedAudio} onValueChange={setSelectedAudio}>
-                <SelectTrigger className="h-12 bg-secondary/30 border-white/5 rounded-2xl">
-                    <Music className="h-4 w-4 mr-2 text-primary" />
-                    <SelectValue placeholder="Original Audio" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#1a1a1a] border-white/10 text-white rounded-xl">
-                    <SelectItem value="Original Audio">Original Audio</SelectItem>
-                    {savedAudios?.map((audio: any) => (
-                        <SelectItem key={audio.id} value={audio.title}>{audio.title}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
         </div>
 
         {error && (
