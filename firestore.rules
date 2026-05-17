@@ -22,11 +22,11 @@ service cloud.firestore {
     // User Rules
     match /users/{userId} {
       allow read: if true;
-      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
       
-      // Saved Content - CRITICAL FIX FOR LIST/GET ERRORS
+      // Saved Content - Explicitly allowing the owner to read/write their own saved data
       match /saved_posts/{postId} {
         allow read, write: if isOwner(userId) || isAdmin();
       }

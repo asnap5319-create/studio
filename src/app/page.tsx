@@ -97,7 +97,14 @@ export default function HomePage() {
         ))
       ) : !isLoading && (
         <div className="flex h-full items-center justify-center text-white p-10 text-center">
-            <Link href="/create"><button className="bg-primary px-6 py-3 text-white font-black uppercase rounded-2xl shadow-xl">Start Sharing</button></Link>
+            <div className="flex flex-col gap-6 items-center">
+              <Logo className="w-24 h-24 text-primary opacity-20" />
+              <Link href="/create">
+                <button className="bg-primary px-8 py-4 text-white font-black uppercase rounded-2xl shadow-2xl hover:scale-105 active:scale-95 transition-transform">
+                  Start Sharing
+                </button>
+              </Link>
+            </div>
         </div>
       )}
       <BottomNav />
