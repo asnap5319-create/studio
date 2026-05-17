@@ -11,6 +11,8 @@ export interface Post {
   likeCount: number;
   commentCount: number;
   viewCount: number;
+  // New fields for text overlay
+  overlayText?: string;
+  overlayColor?: string;
+  overlayPosition?: number; // 0 to 100 (percentage from top)
 }
-
-    

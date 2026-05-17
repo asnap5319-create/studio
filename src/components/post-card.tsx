@@ -209,6 +209,23 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
           onPlaying={() => setIsBuffering(false)}
       />
 
+      {/* Text Overlay Display */}
+      {post.overlayText && (
+          <div 
+              className="absolute left-0 right-0 px-8 text-center pointer-events-none z-20 transition-all"
+              style={{ 
+                  top: `${post.overlayPosition ?? 50}%`, 
+                  transform: 'translateY(-50%)',
+                  color: post.overlayColor || '#ffffff',
+                  textShadow: '0 2px 15px rgba(0,0,0,0.9)'
+              }}
+          >
+              <p className="text-3xl font-black italic uppercase tracking-tighter leading-tight drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in duration-500">
+                  {post.overlayText}
+              </p>
+          </div>
+      )}
+
       <div className="absolute top-10 left-6 z-40 flex items-center gap-2 pointer-events-none drop-shadow-[0_2px_12px_rgba(0,0,0,1)]">
         <Logo className="w-10 h-10 drop-shadow-[0_0_15px_rgba(255,51,102,0.8)]" />
         <span className="text-xl font-black italic tracking-tighter text-white uppercase">A.snap</span>
