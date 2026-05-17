@@ -27,6 +27,7 @@ export const metadata: Metadata = {
     "theme-color": "#000000",
     "apple-mobile-web-app-capable": "yes",
     "apple-mobile-web-app-status-bar-style": "black",
+    "application-name": "A.snap",
   },
 };
 

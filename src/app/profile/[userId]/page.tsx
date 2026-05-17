@@ -49,9 +49,10 @@ export default function ProfilePage() {
     const { data: posts } = useCollection<Post>(userPostsQuery);
 
     const savedPostsQuery = useMemoFirebase(() => {
-        if (!firestore || !userId || !isOwnProfile) return null;
+        // Ensure user is logged in and it's their own profile before querying saved content
+        if (!firestore || !userId || !isOwnProfile || !user) return null;
         return query(collection(firestore, 'users', userId, 'saved_posts'), orderBy('savedAt', 'desc'));
-    }, [firestore, userId, isOwnProfile]);
+    }, [firestore, userId, isOwnProfile, user]);
     const { data: savedPosts } = useCollection<Post>(savedPostsQuery);
 
     const handleLogout = async () => {
@@ -61,10 +62,14 @@ export default function ProfilePage() {
 
     const confirmDeletePost = async () => {
         if (!firestore || !postToDelete) return;
-        await deleteDoc(doc(firestore, 'users', postToDelete.userId, 'posts', postToDelete.id));
-        setIsDeleteDialogOpen(false);
-        setSelectedPost(null);
-        toast({ title: "Deleted Successfully" });
+        try {
+            await deleteDoc(doc(firestore, 'users', postToDelete.userId, 'posts', postToDelete.id));
+            setIsDeleteDialogOpen(false);
+            setSelectedPost(null);
+            toast({ title: "Deleted Successfully" });
+        } catch (e) {
+            toast({ variant: 'destructive', title: "Delete Failed", description: "Permission error" });
+        }
     };
 
     if (isUserLoading || isProfileLoading) return <div className="h-screen flex items-center justify-center bg-black"><Loader2 className="animate-spin text-primary" /></div>;
@@ -123,11 +128,27 @@ export default function ProfilePage() {
                 <TabsContent value="posts" className="mt-0">
                     <div className="grid grid-cols-3 gap-0.5">
                         {posts?.map((post) => (
-                            <div key={post.id} className="aspect-square bg-secondary/30 relative cursor-pointer" onClick={() => setSelectedPost(post)}>
+                            <div key={post.id} className="aspect-square bg-secondary/30 relative cursor-pointer group" onClick={() => setSelectedPost(post)}>
                                 <video src={post.mediaUrl} className="w-full h-full object-cover" muted />
                                 <div className="absolute bottom-1 left-1.5 flex items-center gap-1 text-white text-[10px] font-bold">
                                     <Play className="h-3 w-3 fill-white" /> {post.viewCount || 0}
                                 </div>
+                                {(isOwnProfile || isCurrentUserAdmin) && (
+                                    <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-6 w-6 bg-black/40 rounded-full"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setPostToDelete(post);
+                                                setIsDeleteDialogOpen(true);
+                                            }}
+                                        >
+                                            <Trash2 className="h-3 w-3 text-white" />
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -148,14 +169,17 @@ export default function ProfilePage() {
             
             <Dialog open={!!selectedPost} onOpenChange={(isOpen) => !isOpen && setSelectedPost(null)}>
                 <DialogContent className="p-0 border-0 bg-black w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center overflow-hidden">
-                    <DialogTitle className="sr-only">Preview</DialogTitle>
+                    <DialogTitle className="sr-only">Post Preview</DialogTitle>
                     {selectedPost && <PostCard post={selectedPost} isFocused />}
                 </DialogContent>
             </Dialog>
 
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogContent className="bg-[#121212] text-white rounded-[2rem] border-white/10">
-                    <AlertDialogHeader><AlertDialogTitle className="text-center font-black italic">Delete Post?</AlertDialogTitle></AlertDialogHeader>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-center font-black italic">Delete Post?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-center text-muted-foreground text-xs">This action cannot be undone.</AlertDialogDescription>
+                    </AlertDialogHeader>
                     <AlertDialogFooter className="flex-col gap-3 mt-4">
                         <AlertDialogAction onClick={confirmDeletePost} className="bg-destructive hover:bg-destructive/90 rounded-xl h-12 font-bold">Delete</AlertDialogAction>
                         <AlertDialogCancel className="bg-secondary/50 rounded-xl h-12 border-none font-bold">Cancel</AlertDialogCancel>

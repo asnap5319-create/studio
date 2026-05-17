@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import type { Post } from '@/models/post';
 import type { UserProfile } from '@/models/user';
 import { useDoc, useFirebase, useMemoFirebase, useUser } from '@/firebase';
-import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection, deleteDoc, setDoc } from 'firebase/firestore';
+import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection, deleteDoc, setDoc, getDoc } from 'firebase/firestore';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
@@ -96,7 +96,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     if (!firestore || !user || isLiking) return;
     
     setShowBigHeart(true);
-    setTimeout(() => setShowBigHeart(false), 1000);
+    setTimeout(() => setShowBigHeart(false), 800);
     
     if (isLiked) return;
     
@@ -295,7 +295,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                 onClick={handleFollowToggle} 
                 variant={isFollowing ? "secondary" : "default"} 
                 className={cn(
-                  "h-7 px-3 text-[10px] font-bold uppercase rounded-full border border-white/20",
+                  "h-7 px-3 text-[10px] font-bold uppercase rounded-full border border-white/20 transition-all active:scale-95",
                   !isFollowing && "bg-primary text-white"
                 )}
               >
@@ -313,7 +313,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
 
       <div className="absolute right-3 bottom-28 flex flex-col gap-6 z-10" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center">
-                <button className="text-white" onClick={isLiked ? handleUnlike : handleLike}>
+                <button className="text-white transition-transform active:scale-125" onClick={isLiked ? handleUnlike : handleLike}>
                     <Heart className={cn("h-8 w-8 transition-all", isLiked ? "fill-primary text-primary" : "text-white")} />
                 </button>
                 <span className="text-xs font-bold mt-1">{localLikeCount}</span>
@@ -332,7 +332,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                 <span className="text-xs font-bold mt-1">{post.commentCount}</span>
             </div>
             
-            <button className="text-white" onClick={handleSavePost}>
+            <button className="text-white transition-transform active:scale-110" onClick={handleSavePost}>
                 <Bookmark className={cn("h-8 w-8 transition-all", isSaved ? "fill-white text-white" : "text-white")} />
             </button>
 
@@ -368,7 +368,9 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent className="bg-[#121212] text-white rounded-[2rem] border-white/10">
-            <AlertDialogHeader><AlertDialogTitle className="text-center font-black uppercase italic">Delete Post?</AlertDialogTitle></AlertDialogHeader>
+            <AlertDialogHeader>
+                <AlertDialogTitle className="text-center font-black uppercase italic">Delete Post?</AlertDialogTitle>
+            </AlertDialogHeader>
             <AlertDialogFooter className="flex-col gap-3 sm:flex-row mt-4">
                 <AlertDialogCancel className="rounded-xl bg-secondary/50 h-12 font-bold">Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={() => { deleteDoc(doc(firestore!, 'users', post.userId, 'posts', post.id)); window.location.reload(); }} className="bg-destructive hover:bg-destructive/90 rounded-xl h-12 font-bold">Delete</AlertDialogAction>
