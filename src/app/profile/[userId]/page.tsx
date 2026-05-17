@@ -1,6 +1,6 @@
 
 'use client';
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -8,8 +8,8 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
-import { collection, doc, query, orderBy, deleteDoc } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck } from "lucide-react";
+import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp } from "firebase/firestore";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck, MessageCircle } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -18,6 +18,7 @@ import type { UserProfile } from "@/models/user";
 import { PostCard } from "@/components/post-card";
 import { useToast } from "@/hooks/use-toast";
 import { BottomNav } from "@/components/bottom-nav";
+import { cn } from "@/lib/utils";
 import Link from "next/link";
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
@@ -60,9 +61,51 @@ export default function ProfilePage() {
     }, [firestore, userId]);
     const { data: following } = useCollection(followingQuery);
 
+    const followCheckRef = useMemoFirebase(() => {
+        if (!firestore || !user || !userId || isOwnProfile) return null;
+        return doc(firestore, 'user_followers', userId, 'followers', user.uid);
+    }, [firestore, user, userId, isOwnProfile]);
+    const { data: followData } = useDoc(followCheckRef);
+    const isFollowing = !!followData;
+
     const handleLogout = async () => {
         await signOut(auth!);
         router.push('/login?auth=true');
+    };
+
+    const handleFollowToggle = async () => {
+        if (!firestore || !user || !userId || isOwnProfile) return;
+        const batch = writeBatch(firestore);
+        const followerDocRef = doc(firestore, 'user_followers', userId, 'followers', user.uid);
+        const followingDocRef = doc(firestore, 'user_following', user.uid, 'following', userId);
+
+        if (isFollowing) {
+            batch.delete(followerDocRef);
+            batch.delete(followingDocRef);
+        } else {
+            batch.set(followerDocRef, { createdAt: serverTimestamp() });
+            batch.set(followingDocRef, { createdAt: serverTimestamp() });
+            const notificationRef = doc(collection(firestore, 'users', userId, 'notifications'));
+            batch.set(notificationRef, {
+                type: 'follow',
+                senderId: user.uid,
+                recipientId: userId,
+                read: false,
+                createdAt: serverTimestamp(),
+            });
+        }
+        try {
+            await batch.commit();
+            toast({ title: isFollowing ? `Unfollowed ${userProfile?.username}` : `Following ${userProfile?.username}` });
+        } catch (e) {
+            toast({ variant: 'destructive', title: "Error", description: "Something went wrong." });
+        }
+    };
+
+    const handleMessage = () => {
+        if (!user || !userId) return;
+        const chatId = [user.uid, userId].sort().join('_');
+        router.push(`/messages/${chatId}`);
     };
 
     const confirmDeletePost = async () => {
@@ -129,8 +172,25 @@ export default function ProfilePage() {
                     <p className="font-bold text-lg">{userProfile?.name}</p>
                     <p className="text-sm text-muted-foreground">{userProfile?.bio || "A.snap Creator🎬"}</p>
                 </div>
-                {isOwnProfile && (
+                
+                {isOwnProfile ? (
                     <Button className="w-full mt-6 h-12 rounded-2xl bg-secondary/80 font-bold uppercase text-xs" onClick={() => setIsEditSheetOpen(true)}>Edit Profile</Button>
+                ) : user && (
+                    <div className="flex gap-2 mt-6">
+                        <Button 
+                            className={cn("flex-1 h-12 rounded-2xl font-bold uppercase text-xs", isFollowing ? "bg-secondary/50" : "bg-primary")}
+                            onClick={handleFollowToggle}
+                        >
+                            {isFollowing ? 'Following' : 'Follow'}
+                        </Button>
+                        <Button 
+                            variant="outline"
+                            className="flex-1 h-12 rounded-2xl font-bold uppercase text-xs border-white/10"
+                            onClick={handleMessage}
+                        >
+                            Message
+                        </Button>
+                    </div>
                 )}
             </div>
 
