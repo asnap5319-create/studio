@@ -24,7 +24,7 @@ service cloud.firestore {
       allow update: if (isAuthenticated() && request.auth.uid == userId) || isAdmin();
       allow delete: if isAdmin();
       
-      // Saved Content - Crucial fix for Permission Denied
+      // Explicit rules for Saved Content - Crucial fix for Permission Denied
       match /saved_posts/{postId} {
         allow read, write: if isAuthenticated() && request.auth.uid == userId;
       }

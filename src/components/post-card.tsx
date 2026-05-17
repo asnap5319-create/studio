@@ -15,7 +15,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/co
 import { CommentSection } from './comment-section';
 import { ShareSheet } from './share-sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Logo } from '@/components/pwa-install-prompt';
 
 interface PostCardProps {
@@ -48,7 +48,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const isOwnPost = user?.uid === post.userId;
   const isCurrentUserAdmin = user?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-  // Author info fetch
   const authorRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'users', post.userId);
@@ -57,7 +56,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { data: author } = useDoc<UserProfile>(authorRef);
   const isProfileAdmin = author?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-  // Like status check - Important: fetch for the current user
   const likeRef = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
     return doc(firestore, 'users', post.userId, 'posts', post.id, 'likes', user.uid);
@@ -66,7 +64,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { data: likeData } = useDoc(likeRef);
   const isLiked = !!likeData;
 
-  // Saved post check - Important: fetch for the current user
   const saveRef = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
     return doc(firestore, 'users', user.uid, 'saved_posts', post.id);
@@ -74,7 +71,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { data: saveData } = useDoc(saveRef);
   const isSaved = !!saveData;
 
-  // Follow status check
   const followCheckRef = useMemoFirebase(() => {
     if (!firestore || !user?.uid || !post.userId) return null;
     return doc(firestore, 'user_followers', post.userId, 'followers', user.uid);
@@ -101,8 +97,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     setIsLiking(true);
     const wasLiked = isLiked;
     
-    // Optimistic UI update
-    setLocalLikeCount(prev => wasLiked ? prev - 1 : prev + 1);
+    setLocalLikeCount(prev => wasLiked ? Math.max(0, prev - 1) : prev + 1);
     if (!wasLiked) {
       setShowBigHeart(true);
       setTimeout(() => setShowBigHeart(false), 800);
@@ -129,7 +124,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       }
       await batch.commit(); 
     } catch (e) { 
-      setLocalLikeCount(prev => wasLiked ? prev + 1 : prev - 1);
+      setLocalLikeCount(prev => wasLiked ? prev + 1 : Math.max(0, prev - 1));
       console.error("Error toggling like:", e);
     } finally {
       setIsLiking(false);
@@ -247,7 +242,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       />
 
       {/* Branding Watermark - Top Left */}
-      <div className="absolute top-8 left-6 z-30 flex items-center gap-2 opacity-70 pointer-events-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+      <div className="absolute top-8 left-6 z-30 flex items-center gap-2 pointer-events-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
         <Logo className="w-8 h-8" />
         <span className="text-lg font-black italic tracking-tighter text-white uppercase">A.snap</span>
       </div>
@@ -364,7 +359,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
             </AlertDialogHeader>
             <AlertDialogFooter className="flex-col gap-3 sm:flex-row mt-6">
                 <AlertDialogCancel className="rounded-2xl bg-secondary/50 h-14 font-black border-none uppercase text-xs">Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={async () => { await deleteDoc(doc(firestore!, 'users', post.userId, 'posts', post.id)); window.location.reload(); }} className="bg-destructive hover:bg-destructive/90 rounded-2xl h-14 font-black uppercase text-xs shadow-lg shadow-destructive/20">Delete</AlertDialogAction>
+                <AlertDialogAction onClick={async () => { if(firestore) { await deleteDoc(doc(firestore, 'users', post.userId, 'posts', post.id)); window.location.reload(); } }} className="bg-destructive hover:bg-destructive/90 rounded-2xl h-14 font-black uppercase text-xs shadow-lg shadow-destructive/20">Delete</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
