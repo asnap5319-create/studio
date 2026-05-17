@@ -15,7 +15,16 @@ import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/co
 import { CommentSection } from './comment-section';
 import { ShareSheet } from './share-sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from '@/components/ui/alert-dialog';
 import { Logo } from '@/components/pwa-install-prompt';
 
 interface PostCardProps {
@@ -242,9 +251,9 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       />
 
       {/* Branding Watermark - Top Left */}
-      <div className="absolute top-8 left-6 z-30 flex items-center gap-2 pointer-events-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
-        <Logo className="w-8 h-8" />
-        <span className="text-lg font-black italic tracking-tighter text-white uppercase">A.snap</span>
+      <div className="absolute top-8 left-6 z-30 flex items-center gap-2 pointer-events-none drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">
+        <Logo className="w-10 h-10 drop-shadow-[0_0_15px_rgba(255,51,102,0.6)]" />
+        <span className="text-xl font-black italic tracking-tighter text-white uppercase drop-shadow-md">A.snap</span>
       </div>
 
       {isBuffering && (
@@ -259,74 +268,87 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         </div>
       )}
 
-      <div className="absolute bottom-0 left-0 right-0 p-6 pb-28 bg-gradient-to-t from-black/90 via-black/40 to-transparent text-white z-10" onClick={(e) => e.stopPropagation()}>
-        {author && (
-          <div className="flex items-center gap-3 mb-4">
+      {/* Creator Info & Caption - Bottom */}
+      <div className="absolute bottom-0 left-0 right-0 p-6 pb-28 bg-gradient-to-t from-black/95 via-black/50 to-transparent text-white z-10" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-3 mb-4">
+          {author ? (
             <Link href={`/profile/${author.id}`} className="flex items-center gap-3 group">
-              <Avatar className="h-12 w-12 border-2 border-primary group-active:scale-95 transition-transform shadow-lg">
+              <Avatar className="h-14 w-14 border-2 border-primary group-active:scale-90 transition-transform shadow-2xl">
                 <AvatarImage src={author.profileImageUrl} className="object-cover" />
-                <AvatarFallback className="font-bold">{author.name?.[0]}</AvatarFallback>
+                <AvatarFallback className="font-black bg-secondary">{author.username?.[0]?.toUpperCase()}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
-                    <p className="font-black text-sm drop-shadow-lg">{author.username}</p>
+                    <p className="font-black text-base drop-shadow-2xl">{author.username}</p>
                     {isProfileAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20 shadow-lg" />}
                 </div>
-                <span className="text-[10px] text-primary font-bold uppercase tracking-widest drop-shadow-lg">A.snap Creator</span>
+                <span className="text-[10px] text-primary font-black uppercase tracking-[0.2em] drop-shadow-lg">A.snap Creator</span>
               </div>
             </Link>
-            {!isOwnPost && (
-              <Button 
-                onClick={handleFollowToggle} 
-                variant={isFollowing ? "secondary" : "default"} 
-                className={cn(
-                  "h-8 px-5 text-[11px] font-black uppercase rounded-full border border-white/20 transition-all active:scale-95 shadow-xl ml-2",
-                  !isFollowing && "bg-primary text-white"
-                )}
-              >
-                {isFollowing ? 'Following' : 'Follow'}
-              </Button>
-            )}
-          </div>
-        )}
-        <p className="text-sm line-clamp-2 mb-3 font-medium drop-shadow-lg max-w-[85%]">{post.caption}</p>
-        <div className="flex items-center gap-2 text-xs opacity-90 cursor-pointer bg-white/10 w-fit px-4 py-1.5 rounded-full backdrop-blur-xl border border-white/5" onClick={handleSaveAudio}>
-          <Music className="h-3 w-3 animate-pulse text-primary" />
-          <span className="truncate max-w-[150px] font-bold">{post.caption?.split('#')[0] || "Original Audio"}</span>
+          ) : (
+            <div className="flex items-center gap-3 animate-pulse">
+              <div className="h-14 w-14 rounded-full bg-white/10" />
+              <div className="space-y-2">
+                <div className="h-4 w-24 bg-white/10 rounded" />
+                <div className="h-3 w-16 bg-white/10 rounded" />
+              </div>
+            </div>
+          )}
+          
+          {!isOwnPost && author && (
+            <Button 
+              onClick={handleFollowToggle} 
+              variant={isFollowing ? "secondary" : "default"} 
+              className={cn(
+                "h-8 px-6 text-[11px] font-black uppercase rounded-full border border-white/20 transition-all active:scale-95 shadow-2xl ml-2",
+                !isFollowing && "bg-primary text-white border-none"
+              )}
+            >
+              {isFollowing ? 'Following' : 'Follow'}
+            </Button>
+          )}
+        </div>
+        
+        <p className="text-sm line-clamp-2 mb-4 font-medium drop-shadow-2xl max-w-[85%] leading-relaxed">{post.caption}</p>
+        
+        <div className="flex items-center gap-2 text-xs opacity-100 cursor-pointer bg-white/10 w-fit px-5 py-2 rounded-full backdrop-blur-3xl border border-white/10 shadow-lg hover:bg-white/20 transition-colors" onClick={handleSaveAudio}>
+          <Music className="h-3.5 w-3.5 animate-pulse text-primary" />
+          <span className="truncate max-w-[180px] font-black italic">{post.caption?.split('#')[0] || "Original Audio"}</span>
         </div>
       </div>
 
-      <div className="absolute right-4 bottom-28 flex flex-col gap-7 z-10" onClick={(e) => e.stopPropagation()}>
+      {/* Side Actions */}
+      <div className="absolute right-4 bottom-28 flex flex-col gap-8 z-20" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center">
-                <button className="text-white transition-transform active:scale-150" onClick={handleLikeToggle}>
-                    <Heart className={cn("h-9 w-9 drop-shadow-2xl transition-all", isLiked ? "fill-primary text-primary scale-110" : "text-white")} />
+                <button className="text-white transition-all active:scale-150 hover:scale-110" onClick={handleLikeToggle}>
+                    <Heart className={cn("h-10 w-10 drop-shadow-2xl transition-all", isLiked ? "fill-primary text-primary scale-110" : "text-white")} />
                 </button>
-                <span className="text-xs font-black mt-1.5 drop-shadow-lg">{localLikeCount}</span>
+                <span className="text-xs font-black mt-2 drop-shadow-2xl">{localLikeCount}</span>
             </div>
             
             <div className="flex flex-col items-center">
                 <Sheet open={isCommentSheetOpen} onOpenChange={setIsCommentSheetOpen}>
                   <SheetTrigger asChild>
-                    <button className="text-white active:scale-110 transition-transform"><MessageCircle className="h-9 w-9 drop-shadow-2xl" /></button>
+                    <button className="text-white active:scale-125 transition-all hover:scale-110"><MessageCircle className="h-10 w-10 drop-shadow-2xl" /></button>
                   </SheetTrigger>
-                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[2.5rem] overflow-hidden bg-background border-t-0 shadow-2xl">
+                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[3rem] overflow-hidden bg-background border-t-0 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
                     <SheetHeader className="sr-only"><SheetTitle>Comments</SheetTitle></SheetHeader>
                     <CommentSection postId={post.id} postOwnerId={post.userId} />
                   </SheetContent>
                 </Sheet>
-                <span className="text-xs font-black mt-1.5 drop-shadow-lg">{post.commentCount}</span>
+                <span className="text-xs font-black mt-2 drop-shadow-2xl">{post.commentCount}</span>
             </div>
             
-            <button className="text-white transition-transform active:scale-125" onClick={handleSavePost}>
-                <Bookmark className={cn("h-9 w-9 drop-shadow-2xl transition-all", isSaved ? "fill-white text-white" : "text-white")} />
+            <button className="text-white transition-all active:scale-125 hover:scale-110" onClick={handleSavePost}>
+                <Bookmark className={cn("h-10 w-10 drop-shadow-2xl transition-all", isSaved ? "fill-white text-white" : "text-white")} />
             </button>
 
             <div className="flex flex-col items-center">
                 <Sheet open={isShareSheetOpen} onOpenChange={setIsShareSheetOpen}>
                   <SheetTrigger asChild>
-                    <button className="text-white active:scale-110 transition-transform"><Share2 className="h-9 w-9 drop-shadow-2xl" /></button>
+                    <button className="text-white active:scale-125 transition-all hover:scale-110"><Share2 className="h-10 w-10 drop-shadow-2xl" /></button>
                   </SheetTrigger>
-                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[2.5rem] overflow-hidden bg-background border-t-0 shadow-2xl">
+                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[3rem] overflow-hidden bg-background border-t-0 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
                     <SheetHeader className="sr-only"><SheetTitle>Share</SheetTitle></SheetHeader>
                     <ShareSheet postId={post.id} postOwnerId={post.userId} mediaUrl={post.mediaUrl} onClose={() => setIsShareSheetOpen(false)} />
                   </SheetContent>
@@ -334,32 +356,36 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
             </div>
       </div>
 
+      {/* Admin/Owner Menu */}
       {(isOwnPost || isCurrentUserAdmin) && (
         <div className="absolute top-8 right-6 z-50" onClick={(e) => e.stopPropagation()}>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-black/40 border border-white/10 text-white backdrop-blur-md">
-                        <MoreVertical className="h-6 w-6" />
+                    <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full bg-black/40 border border-white/10 text-white backdrop-blur-md hover:bg-black/60">
+                        <MoreVertical className="h-7 w-7" />
                     </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl p-2 shadow-2xl">
+                <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl p-2 shadow-2xl min-w-[200px]">
                     <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive font-black p-4 rounded-xl cursor-pointer focus:bg-destructive/10">
-                        <Trash2 className="h-5 w-5 mr-2" /> Delete Post
+                        <Trash2 className="h-5 w-5 mr-3" /> Delete Post
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>
       )}
 
+      {/* Delete Confirmation */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent className="bg-[#121212] text-white rounded-[2.5rem] border-white/10">
+        <AlertDialogContent className="bg-[#121212] text-white rounded-[2.5rem] border-white/10 max-w-[90%] sm:max-w-lg">
             <AlertDialogHeader>
-                <AlertDialogTitle className="text-center font-black uppercase italic tracking-wider">Delete Post?</AlertDialogTitle>
-                <AlertDialogDescription className="text-center text-muted-foreground text-xs font-bold uppercase">This action cannot be undone.</AlertDialogDescription>
+                <AlertDialogTitle className="text-center font-black uppercase italic tracking-wider text-xl">Delete Post?</AlertDialogTitle>
+                <AlertDialogDescription className="text-center text-muted-foreground text-xs font-bold uppercase tracking-widest mt-2">
+                    This action cannot be undone.
+                </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter className="flex-col gap-3 sm:flex-row mt-6">
-                <AlertDialogCancel className="rounded-2xl bg-secondary/50 h-14 font-black border-none uppercase text-xs">Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={async () => { if(firestore) { await deleteDoc(doc(firestore, 'users', post.userId, 'posts', post.id)); window.location.reload(); } }} className="bg-destructive hover:bg-destructive/90 rounded-2xl h-14 font-black uppercase text-xs shadow-lg shadow-destructive/20">Delete</AlertDialogAction>
+            <AlertDialogFooter className="flex-col gap-3 sm:flex-row mt-8">
+                <AlertDialogCancel className="rounded-2xl bg-secondary/50 h-14 font-black border-none uppercase text-xs flex-1">Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={async () => { if(firestore) { await deleteDoc(doc(firestore, 'users', post.userId, 'posts', post.id)); window.location.reload(); } }} className="bg-destructive hover:bg-destructive/90 rounded-2xl h-14 font-black uppercase text-xs shadow-lg shadow-destructive/20 flex-1">Delete</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

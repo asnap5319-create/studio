@@ -19,18 +19,19 @@ service cloud.firestore {
 
     // User Rules
     match /users/{userId} {
+      // Basic profile is public
       allow read: if true;
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
       
-      // Ownership wildcard: A user has full access to ALL their sub-collections
-      // This covers saved_posts, saved_audios, notifications, etc.
+      // Ownership wildcard for ALL sub-collections (saved_posts, saved_audios, notifications, etc.)
+      // This ensures the owner has full access to their private data
       match /{allData=**} {
         allow read, write: if isOwner(userId) || isAdmin();
       }
 
-      // Public sub-collections (Post access remains public)
+      // Explicitly handle posts as they are public
       match /posts/{postId} {
         allow read: if true;
         allow create: if isOwner(userId);
