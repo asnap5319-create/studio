@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -33,7 +34,6 @@ interface PostCardProps {
 }
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
-// Global state to keep track of mute status across the feed
 let globalMuted = true;
 
 export function PostCard({ post, isFocused = false }: PostCardProps) {
@@ -89,13 +89,10 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const toggleMute = () => {
     const video = videoRef.current;
     if (!video) return;
-    
     const newMuteState = !isMuted;
     globalMuted = newMuteState;
-    
     const allVideos = document.querySelectorAll('video');
     allVideos.forEach(v => { v.muted = newMuteState; });
-    
     setIsMuted(newMuteState);
     setShowMuteIndicator(true);
     setTimeout(() => setShowMuteIndicator(false), 1000);
@@ -103,28 +100,23 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
 
   const handleLikeToggle = async () => {
     if (!firestore || !user || isLiking) return;
-    
     setIsLiking(true);
     const wasLiked = isLiked;
-    
     setLocalLikeCount(prev => wasLiked ? Math.max(0, prev - 1) : prev + 1);
     if (!wasLiked) {
       setShowBigHeart(true);
       setTimeout(() => setShowBigHeart(false), 800);
     }
-    
     try {
       const batch = writeBatch(firestore);
       const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
       const likeDocRef = doc(firestore, 'users', post.userId, 'posts', post.id, 'likes', user.uid);
-      
       if (wasLiked) {
         batch.update(postRef, { likeCount: increment(-1) });
         batch.delete(likeDocRef);
       } else {
         batch.update(postRef, { likeCount: increment(1) });
         batch.set(likeDocRef, { userId: user.uid, createdAt: serverTimestamp() });
-        
         if (post.userId !== user.uid) {
             const notificationRef = doc(collection(firestore, 'users', post.userId, 'notifications'));
             batch.set(notificationRef, {
@@ -135,7 +127,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       await batch.commit(); 
     } catch (e) { 
       setLocalLikeCount(prev => wasLiked ? prev + 1 : Math.max(0, prev - 1));
-      console.error("Error toggling like:", e);
     } finally {
       setIsLiking(false);
     }
@@ -144,14 +135,11 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const handleFollowToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!firestore || !user || !post.userId || isOwnPost) return;
-
     const batch = writeBatch(firestore);
     const followedUserId = post.userId;
     const followerUserId = user.uid;
-
     const followerDocRef = doc(firestore, 'user_followers', followedUserId, 'followers', followerUserId);
     const followingDocRef = doc(firestore, 'user_following', followerUserId, 'following', followedUserId);
-
     if (isFollowing) {
       batch.delete(followerDocRef);
       batch.delete(followingDocRef);
@@ -163,13 +151,10 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         type: 'follow', senderId: followerUserId, recipientId: followedUserId, read: false, createdAt: serverTimestamp(),
       });
     }
-
     try {
       await batch.commit();
       toast({ title: isFollowing ? `Unfollowed` : `Following` });
-    } catch (error) {
-      console.error("Error toggling follow:", error);
-    }
+    } catch (error) {}
   };
 
   useEffect(() => {
@@ -183,7 +168,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    
     if (isInView) {
       video.muted = globalMuted;
       setIsMuted(globalMuted);
@@ -226,10 +210,9 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
           onPlaying={() => setIsBuffering(false)}
       />
 
-      {/* A.snap Watermark - Top Left */}
       <div className="absolute top-10 left-6 z-40 flex items-center gap-2 pointer-events-none drop-shadow-[0_2px_12px_rgba(0,0,0,1)]">
         <Logo className="w-10 h-10 drop-shadow-[0_0_15px_rgba(255,51,102,0.8)]" />
-        <span className="text-xl font-black italic tracking-tighter text-white uppercase drop-shadow-2xl">A.snap</span>
+        <span className="text-xl font-black italic tracking-tighter text-white uppercase">A.snap</span>
       </div>
 
       {isBuffering && (
@@ -252,21 +235,20 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         </div>
       )}
 
-      {/* Creator Info & Caption - Bottom Left */}
-      <div className="absolute bottom-0 left-0 right-16 p-6 pb-28 bg-gradient-to-t from-black/90 via-black/40 to-transparent text-white z-30" onClick={(e) => e.stopPropagation()}>
+      <div className="absolute bottom-0 left-0 right-16 p-6 pb-28 bg-gradient-to-t from-black/90 via-transparent text-white z-30" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-4">
           {author ? (
             <Link href={`/profile/${author.id}`} className="flex items-center gap-3 group">
-              <Avatar className="h-14 w-14 border-2 border-primary group-active:scale-90 transition-transform shadow-2xl">
+              <Avatar className="h-14 w-14 border-2 border-primary shadow-2xl">
                 <AvatarImage src={author.profileImageUrl} className="object-cover" />
                 <AvatarFallback className="font-black bg-secondary">{author.username?.[0]?.toUpperCase()}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
-                    <p className="font-black text-base drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{author.username}</p>
-                    {isProfileAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20 shadow-lg" />}
+                    <p className="font-black text-base drop-shadow-md">{author.username}</p>
+                    {isProfileAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />}
                 </div>
-                <span className="text-[10px] text-primary font-black uppercase tracking-[0.2em] drop-shadow-md">Creator</span>
+                <span className="text-[10px] text-primary font-black uppercase tracking-widest">Creator</span>
               </div>
             </Link>
           ) : (
@@ -281,7 +263,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
               onClick={handleFollowToggle} 
               variant={isFollowing ? "secondary" : "default"} 
               className={cn(
-                "h-8 px-6 text-[11px] font-black uppercase rounded-full border border-white/20 transition-all active:scale-95 shadow-xl",
+                "h-8 px-6 text-[11px] font-black uppercase rounded-full border border-white/20 transition-all active:scale-95",
                 !isFollowing && "bg-primary text-white border-none"
               )}
             >
@@ -290,16 +272,15 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
           )}
         </div>
         
-        <p className="text-sm line-clamp-2 font-bold drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] leading-relaxed">{post.caption}</p>
+        <p className="text-sm line-clamp-2 font-bold drop-shadow-md leading-relaxed">{post.caption}</p>
       </div>
 
-      {/* Side Actions - Like, Comment, Share */}
       <div className="absolute right-4 bottom-28 flex flex-col gap-10 z-30" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center">
                 <button className="text-white transition-all active:scale-150" onClick={handleLikeToggle}>
                     <Heart className={cn("h-10 w-10 drop-shadow-2xl transition-all", isLiked ? "fill-primary text-primary scale-110" : "text-white")} />
                 </button>
-                <span className="text-xs font-black mt-2 drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">{localLikeCount}</span>
+                <span className="text-xs font-black mt-2 drop-shadow-md">{localLikeCount}</span>
             </div>
             
             <div className="flex flex-col items-center">
@@ -312,7 +293,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                     <CommentSection postId={post.id} postOwnerId={post.userId} />
                   </SheetContent>
                 </Sheet>
-                <span className="text-xs font-black mt-2 drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">{post.commentCount}</span>
+                <span className="text-xs font-black mt-2 drop-shadow-md">{post.commentCount}</span>
             </div>
 
             <div className="flex flex-col items-center">
@@ -328,17 +309,16 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
             </div>
       </div>
 
-      {/* Admin/Owner Menu */}
       {(isOwnPost || isCurrentUserAdmin) && (
         <div className="absolute top-8 right-6 z-50" onClick={(e) => e.stopPropagation()}>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full bg-black/40 border border-white/10 text-white backdrop-blur-md hover:bg-black/60">
+                    <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full bg-black/40 border border-white/10 text-white backdrop-blur-md">
                         <MoreVertical className="h-7 w-7" />
                     </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl p-2 shadow-2xl min-w-[200px]">
-                    <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive font-black p-4 rounded-xl cursor-pointer focus:bg-destructive/10">
+                <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl p-2 min-w-[200px]">
+                    <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive font-black p-4 rounded-xl cursor-pointer">
                         <Trash2 className="h-5 w-5 mr-3" /> Delete Post
                     </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -346,9 +326,8 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         </div>
       )}
 
-      {/* Delete Confirmation */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent className="bg-[#121212] text-white rounded-[2.5rem] border-white/10 max-w-[90%] sm:max-w-lg">
+        <AlertDialogContent className="bg-[#121212] text-white rounded-[2.5rem] border-white/10">
             <AlertDialogHeader>
                 <AlertDialogTitle className="text-center font-black uppercase italic tracking-wider text-xl">Delete Post?</AlertDialogTitle>
                 <AlertDialogDescription className="text-center text-muted-foreground text-xs font-bold uppercase tracking-widest mt-2">
@@ -357,7 +336,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
             </AlertDialogHeader>
             <AlertDialogFooter className="flex-col gap-3 sm:flex-row mt-8">
                 <AlertDialogCancel className="rounded-2xl bg-secondary/50 h-14 font-black border-none uppercase text-xs flex-1">Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={async () => { if(firestore) { await deleteDoc(doc(firestore, 'users', post.userId, 'posts', post.id)); window.location.reload(); } }} className="bg-destructive hover:bg-destructive/90 rounded-2xl h-14 font-black uppercase text-xs shadow-lg shadow-destructive/20 flex-1">Delete</AlertDialogAction>
+                <AlertDialogAction onClick={async () => { if(firestore) { await deleteDoc(doc(firestore, 'users', post.userId, 'posts', post.id)); window.location.reload(); } }} className="bg-destructive hover:bg-destructive/90 rounded-2xl h-14 font-black uppercase text-xs flex-1">Delete</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

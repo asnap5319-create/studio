@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,6 +18,7 @@ import type { UserProfile } from "@/models/user";
 import { PostCard } from "@/components/post-card";
 import { useToast } from "@/hooks/use-toast";
 import { BottomNav } from "@/components/bottom-nav";
+import Link from "next/link";
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
@@ -40,21 +42,18 @@ export default function ProfilePage() {
     const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
     const isProfileAdmin = userProfile?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-    // Fetch User Posts
     const userPostsQuery = useMemoFirebase(() => {
         if (!firestore || !userId) return null;
         return query(collection(firestore, 'users', userId, 'posts'), orderBy('createdAt', 'desc'));
     }, [firestore, userId]);
     const { data: posts } = useCollection<Post>(userPostsQuery);
 
-    // Fetch Followers Count
     const followersQuery = useMemoFirebase(() => {
         if (!firestore || !userId) return null;
         return query(collection(firestore, 'user_followers', userId, 'followers'));
     }, [firestore, userId]);
     const { data: followers } = useCollection(followersQuery);
 
-    // Fetch Following Count
     const followingQuery = useMemoFirebase(() => {
         if (!firestore || !userId) return null;
         return query(collection(firestore, 'user_following', userId, 'following'));
@@ -112,9 +111,18 @@ export default function ProfilePage() {
                         <AvatarFallback>{userProfile?.username?.[0]}</AvatarFallback>
                     </Avatar>
                     <div className="flex flex-1 justify-around text-center">
-                        <div><p className="font-black text-xl">{posts?.length || 0}</p><p className="text-[10px] uppercase font-bold text-muted-foreground">Posts</p></div>
-                        <div><p className="font-black text-xl">{followers?.length || 0}</p><p className="text-[10px] uppercase font-bold text-muted-foreground">Followers</p></div>
-                        <div><p className="font-black text-xl">{following?.length || 0}</p><p className="text-[10px] uppercase font-bold text-muted-foreground">Following</p></div>
+                        <div>
+                            <p className="font-black text-xl">{posts?.length || 0}</p>
+                            <p className="text-[10px] uppercase font-bold text-muted-foreground">Posts</p>
+                        </div>
+                        <Link href={`/profile/${userId}/followers`} className="hover:opacity-70 transition-opacity">
+                            <p className="font-black text-xl">{followers?.length || 0}</p>
+                            <p className="text-[10px] uppercase font-bold text-muted-foreground">Followers</p>
+                        </Link>
+                        <Link href={`/profile/${userId}/following`} className="hover:opacity-70 transition-opacity">
+                            <p className="font-black text-xl">{following?.length || 0}</p>
+                            <p className="text-[10px] uppercase font-bold text-muted-foreground">Following</p>
+                        </Link>
                     </div>
                 </div>
                 <div className="mt-4">
@@ -136,7 +144,6 @@ export default function ProfilePage() {
                             <div key={post.id} className="aspect-square bg-secondary/30 relative cursor-pointer group" onClick={() => setSelectedPost(post)}>
                                 <video src={post.mediaUrl} className="w-full h-full object-cover" muted />
                                 
-                                {/* Direct Delete Button for Owner/Admin */}
                                 {(isOwnProfile || isCurrentUserAdmin) && (
                                     <div className="absolute top-1 right-1 z-10">
                                         <Button 
