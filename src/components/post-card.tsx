@@ -251,7 +251,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       />
 
       {/* Branding Watermark - Top Left */}
-      <div className="absolute top-8 left-6 z-30 flex items-center gap-2 pointer-events-none drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">
+      <div className="absolute top-8 left-6 z-40 flex items-center gap-2 pointer-events-none drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">
         <Logo className="w-10 h-10 drop-shadow-[0_0_15px_rgba(255,51,102,0.6)]" />
         <span className="text-xl font-black italic tracking-tighter text-white uppercase drop-shadow-md">A.snap</span>
       </div>
@@ -269,7 +269,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       )}
 
       {/* Creator Info & Caption - Bottom */}
-      <div className="absolute bottom-0 left-0 right-0 p-6 pb-28 bg-gradient-to-t from-black/95 via-black/50 to-transparent text-white z-10" onClick={(e) => e.stopPropagation()}>
+      <div className="absolute bottom-0 left-0 right-0 p-6 pb-28 bg-gradient-to-t from-black/95 via-black/50 to-transparent text-white z-30" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-4">
           {author ? (
             <Link href={`/profile/${author.id}`} className="flex items-center gap-3 group">
@@ -318,7 +318,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       </div>
 
       {/* Side Actions */}
-      <div className="absolute right-4 bottom-28 flex flex-col gap-8 z-20" onClick={(e) => e.stopPropagation()}>
+      <div className="absolute right-4 bottom-28 flex flex-col gap-8 z-30" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center">
                 <button className="text-white transition-all active:scale-150 hover:scale-110" onClick={handleLikeToggle}>
                     <Heart className={cn("h-10 w-10 drop-shadow-2xl transition-all", isLiked ? "fill-primary text-primary scale-110" : "text-white")} />

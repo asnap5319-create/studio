@@ -19,13 +19,14 @@ service cloud.firestore {
 
     // User Rules
     match /users/{userId} {
-      // Basic profile is public
+      // Profile document is public
       allow read: if true;
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
       
-      // Explicit rules for private sub-collections to avoid ambiguity
+      // Sub-collections ownership rules
+      // Using explicit matches for sub-collections to ensure permissions are applied correctly
       match /saved_posts/{postId} {
         allow read, write: if isOwner(userId) || isAdmin();
       }
@@ -38,12 +39,6 @@ service cloud.firestore {
         allow read, write: if isOwner(userId) || isAdmin();
       }
 
-      // Ownership wildcard for other sub-collections
-      match /{allData=**} {
-        allow read, write: if isOwner(userId) || isAdmin();
-      }
-
-      // Explicitly handle posts as they are public
       match /posts/{postId} {
         allow read: if true;
         allow create: if isOwner(userId);
@@ -61,6 +56,11 @@ service cloud.firestore {
           allow update: if isAuthenticated();
           allow delete: if isOwner(userId) || isAdmin() || (isAuthenticated() && request.auth.uid == resource.data.userId);
         }
+      }
+
+      // Catch-all for other sub-collections
+      match /{allData=**} {
+        allow read, write: if isOwner(userId) || isAdmin();
       }
     }
 
