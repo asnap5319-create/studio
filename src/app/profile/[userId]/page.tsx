@@ -1,6 +1,5 @@
-
 'use client';
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -9,11 +8,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, query, orderBy, deleteDoc } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, Bookmark, ShieldCheck } from "lucide-react";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
-import Image from "next/image";
 import type { Post } from "@/models/post";
 import type { UserProfile } from "@/models/user";
 import { PostCard } from "@/components/post-card";
@@ -47,13 +45,6 @@ export default function ProfilePage() {
         return query(collection(firestore, 'users', userId, 'posts'), orderBy('createdAt', 'desc'));
     }, [firestore, userId]);
     const { data: posts } = useCollection<Post>(userPostsQuery);
-
-    const savedPostsQuery = useMemoFirebase(() => {
-        // Ensure user is logged in and it's their own profile before querying saved content
-        if (!firestore || !userId || !isOwnProfile || !user) return null;
-        return query(collection(firestore, 'users', userId, 'saved_posts'), orderBy('savedAt', 'desc'));
-    }, [firestore, userId, isOwnProfile, user]);
-    const { data: savedPosts } = useCollection<Post>(savedPostsQuery);
 
     const handleLogout = async () => {
         await signOut(auth!);
@@ -121,9 +112,8 @@ export default function ProfilePage() {
             </div>
 
             <Tabs defaultValue="posts" className="mt-8">
-                <TabsList className="grid w-full grid-cols-2 bg-transparent border-t border-white/5 rounded-none h-14">
+                <TabsList className="grid w-full grid-cols-1 bg-transparent border-t border-white/5 rounded-none h-14">
                     <TabsTrigger value="posts" className="data-[state=active]:bg-transparent data-[state=active]:border-t-2 border-white"><Grid3x3 className="h-6 w-6" /></TabsTrigger>
-                    {isOwnProfile && <TabsTrigger value="saved" className="data-[state=active]:bg-transparent data-[state=active]:border-t-2 border-white"><Bookmark className="h-6 w-6" /></TabsTrigger>}
                 </TabsList>
                 <TabsContent value="posts" className="mt-0">
                     <div className="grid grid-cols-3 gap-0.5">
@@ -149,16 +139,6 @@ export default function ProfilePage() {
                                         </Button>
                                     </div>
                                 )}
-                            </div>
-                        ))}
-                    </div>
-                </TabsContent>
-                <TabsContent value="saved" className="mt-0">
-                    <div className="grid grid-cols-3 gap-0.5">
-                        {savedPosts?.map((post) => (
-                            <div key={post.id} className="aspect-square bg-secondary/30 relative cursor-pointer" onClick={() => setSelectedPost(post)}>
-                                <video src={post.mediaUrl} className="w-full h-full object-cover" muted />
-                                <div className="absolute top-1 right-1"><Bookmark className="h-3 w-3 fill-white text-white" /></div>
                             </div>
                         ))}
                     </div>

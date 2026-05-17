@@ -25,19 +25,7 @@ service cloud.firestore {
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
       
-      // CRITICAL FIX: Explicitly allow owners to read/write all their sub-collections
-      // This includes saved_posts, saved_audios, notifications, etc.
-      match /saved_posts/{postId} {
-        allow read, write: if isOwner(userId) || isAdmin();
-      }
-      match /saved_audios/{audioId} {
-        allow read, write: if isOwner(userId) || isAdmin();
-      }
-      match /notifications/{notificationId} {
-        allow read, write: if isOwner(userId) || isAdmin();
-      }
-      
-      // Fallback for any other user-specific data
+      // Explicitly allow owners to access their sub-collections
       match /{allData=**} {
         allow read, write: if isOwner(userId) || isAdmin();
       }

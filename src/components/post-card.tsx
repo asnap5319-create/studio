@@ -4,11 +4,11 @@ import { useState, useRef, useEffect } from 'react';
 import type { Post } from '@/models/post';
 import type { UserProfile } from '@/models/user';
 import { useDoc, useFirebase, useMemoFirebase, useUser } from '@/firebase';
-import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection, deleteDoc, setDoc } from 'firebase/firestore';
+import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection, deleteDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
-import { Heart, MessageCircle, Share2, BadgeCheck, Loader2, MoreVertical, Trash2, Bookmark, Music } from 'lucide-react';
+import { Heart, MessageCircle, Share2, BadgeCheck, Loader2, MoreVertical, Trash2, Music } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -73,13 +73,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { data: likeData } = useDoc(likeRef);
   const isLiked = !!likeData;
 
-  const saveRef = useMemoFirebase(() => {
-    if (!firestore || !user?.uid) return null;
-    return doc(firestore, 'users', user.uid, 'saved_posts', post.id);
-  }, [firestore, user?.uid, post.id]);
-  const { data: saveData } = useDoc(saveRef);
-  const isSaved = !!saveData;
-
   const followCheckRef = useMemoFirebase(() => {
     if (!firestore || !user?.uid || !post.userId) return null;
     return doc(firestore, 'user_followers', post.userId, 'followers', user.uid);
@@ -137,36 +130,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       console.error("Error toggling like:", e);
     } finally {
       setIsLiking(false);
-    }
-  };
-
-  const handleSavePost = async () => {
-    if (!firestore || !user) return;
-    const sRef = doc(firestore, 'users', user.uid, 'saved_posts', post.id);
-    try {
-      if (isSaved) {
-        await deleteDoc(sRef);
-        toast({ title: "Removed from Saved" });
-      } else {
-        await setDoc(sRef, { ...post, savedAt: serverTimestamp() }, { merge: true });
-        toast({ title: "Saved to Collection! ✅" });
-      }
-    } catch (e) {
-      console.error("Save error:", e);
-      toast({ variant: 'destructive', title: 'Save Failed' });
-    }
-  };
-
-  const handleSaveAudio = async () => {
-    if (!firestore || !user) return;
-    const audioName = post.caption?.split('#')[0] || "Original Audio";
-    const aRef = doc(firestore, 'users', user.uid, 'saved_audios', post.id);
-    try {
-      await setDoc(aRef, { title: audioName, postId: post.id, savedAt: serverTimestamp() }, { merge: true });
-      toast({ title: "Audio Saved! 🎵" });
-    } catch (e) {
-      console.error("Audio save error:", e);
-      toast({ variant: 'destructive', title: 'Save Failed' });
     }
   };
 
@@ -311,14 +274,14 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         
         <p className="text-sm line-clamp-2 mb-4 font-medium drop-shadow-2xl max-w-[85%] leading-relaxed">{post.caption}</p>
         
-        <div className="flex items-center gap-2 text-xs opacity-100 cursor-pointer bg-white/10 w-fit px-5 py-2 rounded-full backdrop-blur-3xl border border-white/10 shadow-lg hover:bg-white/20 transition-colors" onClick={handleSaveAudio}>
+        <div className="flex items-center gap-2 text-xs opacity-100 bg-white/10 w-fit px-5 py-2 rounded-full backdrop-blur-3xl border border-white/10 shadow-lg">
           <Music className="h-3.5 w-3.5 animate-pulse text-primary" />
           <span className="truncate max-w-[180px] font-black italic">{post.caption?.split('#')[0] || "Original Audio"}</span>
         </div>
       </div>
 
-      {/* Side Actions */}
-      <div className="absolute right-4 bottom-28 flex flex-col gap-8 z-30" onClick={(e) => e.stopPropagation()}>
+      {/* Side Actions - ONLY Like, Comment, Share */}
+      <div className="absolute right-4 bottom-28 flex flex-col gap-10 z-30" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center">
                 <button className="text-white transition-all active:scale-150 hover:scale-110" onClick={handleLikeToggle}>
                     <Heart className={cn("h-10 w-10 drop-shadow-2xl transition-all", isLiked ? "fill-primary text-primary scale-110" : "text-white")} />
@@ -338,10 +301,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                 </Sheet>
                 <span className="text-xs font-black mt-2 drop-shadow-2xl">{post.commentCount}</span>
             </div>
-            
-            <button className="text-white transition-all active:scale-125 hover:scale-110" onClick={handleSavePost}>
-                <Bookmark className={cn("h-10 w-10 drop-shadow-2xl transition-all", isSaved ? "fill-white text-white" : "text-white")} />
-            </button>
 
             <div className="flex flex-col items-center">
                 <Sheet open={isShareSheetOpen} onOpenChange={setIsShareSheetOpen}>
