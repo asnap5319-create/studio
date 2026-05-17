@@ -1,17 +1,18 @@
+
 'use client';
 
-import { useState, ChangeEvent } from 'react';
+import { useState, ChangeEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useFirebase, useUser } from '@/firebase';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { useFirebase, useUser, useCollection, useMemoFirebase } from '@/firebase';
+import { addDoc, collection, serverTimestamp, query, doc, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { UploadCloud, Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { UploadCloud, Loader2, Music, X } from 'lucide-react';
 import Image from 'next/image';
 import { BottomNav } from "@/components/bottom-nav";
-import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 
 export default function CreatePostPage() {
   const { firestore } = useFirebase();
@@ -23,9 +24,16 @@ export default function CreatePostPage() {
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [caption, setCaption] = useState('');
+  const [selectedAudio, setSelectedAudio] = useState<string>("Original Audio");
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const savedAudiosQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'users', user.uid, 'saved_audios'));
+  }, [firestore, user]);
+
+  const { data: savedAudios } = useCollection(savedAudiosQuery);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -35,26 +43,13 @@ export default function CreatePostPage() {
         return;
       }
       setMediaFile(file);
-      const previewUrl = URL.createObjectURL(file);
-      setMediaPreview(previewUrl);
+      setMediaPreview(URL.createObjectURL(file));
       setMediaType(file.type.startsWith('image/') ? 'image' : 'video');
     }
   };
 
   const handlePost = async () => {
-    if (!user) {
-      toast({ variant: 'destructive', title: 'Login Required', description: 'Please login to post.' });
-      router.push('/login?auth=true');
-      return;
-    }
-    if (!mediaFile) {
-        toast({ variant: 'destructive', title: 'No Media', description: 'Please select a photo or video.' });
-        return;
-    }
-    if (!firestore) return;
-
-    const cloudName = "dipz5jsls";
-    const uploadPreset = "video_upload";
+    if (!user || !mediaFile || !firestore) return;
 
     setIsUploading(true);
     setError(null);
@@ -62,48 +57,39 @@ export default function CreatePostPage() {
     try {
         const formData = new FormData();
         formData.append('file', mediaFile);
-        formData.append('upload_preset', uploadPreset);
+        formData.append('upload_preset', "video_upload");
         
         const resourceType = mediaFile.type.startsWith('video') ? 'video' : 'image';
-        const endpoint = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
-        
-        toast({ title: "Media Uploading... 🚀", description: "Wait a moment." });
-        const response = await fetch(endpoint, {
+        const response = await fetch(`https://api.cloudinary.com/v1_1/dipz5jsls/${resourceType}/upload`, {
             method: 'POST',
             body: formData
         });
 
         const data = await response.json();
-
-        if (!response.ok) {
-            console.error("Cloudinary Detailed Error:", data);
-            throw new Error(data.error?.message || 'Media upload failed. Check Cloudinary settings.');
-        }
+        if (!response.ok) throw new Error(data.error?.message || 'Upload failed.');
 
         const mediaUrl = data.secure_url;
-        toast({ title: "Upload Success! ✅", description: "Saving to feed..." });
-
         const postCollectionRef = collection(firestore, 'users', user.uid, 'posts');
         
-        const newPost = {
+        const finalCaption = selectedAudio !== "Original Audio" ? `${selectedAudio} - ${caption}` : caption;
+
+        await addDoc(postCollectionRef, {
             userId: user.uid,
             mediaUrl,
-            caption,
+            caption: finalCaption,
             hashtags: caption.match(/#\w+/g) || [],
             createdAt: serverTimestamp(),
             expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), 
             likeCount: 0,
             commentCount: 0,
             viewCount: 0,
-        };
-
-        await addDoc(postCollectionRef, newPost);
+            audioTitle: selectedAudio
+        });
 
         toast({ title: "Live! 🎬", description: "Your post is now visible." });
         router.push('/');
 
     } catch (e: any) {
-        console.error("Post Creation Error:", e);
         setError(e.message || "Something went wrong.");
         toast({ variant: 'destructive', title: 'Failed ❌', description: e.message });
     } finally {
@@ -111,70 +97,71 @@ export default function CreatePostPage() {
     }
   };
 
-  if (isUserLoading) return <div className="flex h-full items-center justify-center text-white"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>
-
-  if (!user) {
-    router.push('/login?auth=true');
-    return null;
-  }
+  if (isUserLoading) return <div className="flex h-screen items-center justify-center bg-black"><Loader2 className="animate-spin text-primary" /></div>
 
   return (
     <div className="flex min-h-screen flex-col p-4 text-white bg-background max-w-lg mx-auto pb-24">
-      <h1 className="text-2xl font-black mb-6 text-center uppercase italic text-primary">Create New Post</h1>
+      <header className="flex items-center justify-between mb-8">
+          <button onClick={() => router.back()}><X className="h-6 w-6" /></button>
+          <h1 className="text-xl font-black uppercase italic text-primary">New Post</h1>
+          <div className="w-6" />
+      </header>
       
       <div className="space-y-6">
-        <div className="flex items-center justify-center w-full">
-            <label htmlFor="dropzone-file" className="relative flex flex-col items-center justify-center w-full h-80 border-2 border-dashed rounded-3xl cursor-pointer bg-secondary/50 border-white/10 hover:border-primary/50 transition-colors">
-                {mediaPreview ? (
-                    <div className="relative w-full h-full overflow-hidden rounded-3xl">
-                        {mediaType === 'video' ? (
-                            <video src={mediaPreview} className="object-cover w-full h-full" controls autoPlay loop muted playsInline />
-                        ) : (
-                            <Image src={mediaPreview} alt="Preview" fill className="object-cover" />
-                        )}
-                        <div className="absolute top-2 right-2 bg-black/50 p-2 rounded-full backdrop-blur-md">
-                            <UploadCloud className="h-4 w-4" />
-                        </div>
-                    </div>
+        <label className="relative flex flex-col items-center justify-center w-full h-80 border-2 border-dashed rounded-[2rem] cursor-pointer bg-secondary/20 border-white/10 overflow-hidden">
+            {mediaPreview ? (
+                mediaType === 'video' ? (
+                    <video src={mediaPreview} className="object-cover w-full h-full" autoPlay loop muted />
                 ) : (
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        <UploadCloud className="w-12 h-12 mb-4 text-primary animate-bounce" />
-                        <p className="mb-2 text-sm font-bold uppercase tracking-widest">Click to upload</p>
-                        <p className="text-xs text-muted-foreground">Video or Image (Max 100MB)</p>
-                    </div>
-                )}
-                <input id="dropzone-file" type="file" className="hidden" accept="video/*,image/*" onChange={handleFileChange} disabled={isUploading} />
-            </label>
-        </div>
+                    <Image src={mediaPreview} alt="Preview" fill className="object-cover" />
+                )
+            ) : (
+                <div className="text-center">
+                    <UploadCloud className="w-12 h-12 mb-4 mx-auto text-primary animate-bounce" />
+                    <p className="text-sm font-bold uppercase tracking-widest">Select Media</p>
+                </div>
+            )}
+            <input type="file" className="hidden" accept="video/*,image/*" onChange={handleFileChange} disabled={isUploading} />
+        </label>
 
         <div>
-            <label htmlFor="caption" className="block text-xs font-black uppercase text-muted-foreground mb-2 ml-1">Caption</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2 block ml-1">Caption & Tags</label>
             <Textarea
-              id="caption"
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
-              placeholder="What's happening? #asnap #viral"
-              className="min-h-[120px] bg-secondary/50 border-white/10 rounded-2xl resize-none focus:ring-primary"
+              placeholder="What's on your mind? #trending"
+              className="min-h-[100px] bg-secondary/30 border-white/5 rounded-2xl resize-none"
               disabled={isUploading}
             />
         </div>
 
+        <div>
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2 block ml-1">Select Audio</label>
+            <Select value={selectedAudio} onValueChange={setSelectedAudio}>
+                <SelectTrigger className="h-12 bg-secondary/30 border-white/5 rounded-2xl">
+                    <Music className="h-4 w-4 mr-2 text-primary" />
+                    <SelectValue placeholder="Original Audio" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#1a1a1a] border-white/10 text-white rounded-xl">
+                    <SelectItem value="Original Audio">Original Audio</SelectItem>
+                    {savedAudios?.map((audio: any) => (
+                        <SelectItem key={audio.id} value={audio.title}>{audio.title}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
+
         {error && (
-          <Alert variant="destructive" className="rounded-2xl border-destructive/50">
-            <AlertTitle className="font-bold">Upload Error</AlertTitle>
+          <Alert variant="destructive" className="rounded-2xl bg-destructive/10 border-destructive/20">
+            <AlertTitle className="font-bold">Error</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
-        <Button onClick={handlePost} disabled={isUploading || !mediaFile} className="w-full h-14 text-lg font-black uppercase rounded-2xl bg-primary shadow-[0_0_20px_rgba(var(--primary),0.4)]">
-          {isUploading ? (
-            <span className="flex items-center gap-2">
-                <Loader2 className="animate-spin h-5 w-5" /> Posting...
-            </span>
-          ) : 'Create Post'}
+        <Button onClick={handlePost} disabled={isUploading || !mediaFile} className="w-full h-14 text-lg font-black uppercase rounded-2xl bg-primary">
+          {isUploading ? <Loader2 className="animate-spin h-5 w-5" /> : 'Share Post'}
         </Button>
       </div>
-      <PwaInstallPrompt />
       <BottomNav />
     </div>
   );

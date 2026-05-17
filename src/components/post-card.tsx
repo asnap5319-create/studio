@@ -5,12 +5,12 @@ import { useState, useRef, useEffect } from 'react';
 import type { Post } from '@/models/post';
 import type { UserProfile } from '@/models/user';
 import { useDoc, useFirebase, useMemoFirebase, useUser } from '@/firebase';
-import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection, deleteDoc } from 'firebase/firestore';
+import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection, deleteDoc, setDoc } from 'firebase/firestore';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
-import { Heart, MessageCircle, Share2, BadgeCheck, Loader2, MoreVertical, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, BadgeCheck, Loader2, MoreVertical, Trash2, Bookmark, Music } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -25,7 +25,6 @@ interface PostCardProps {
 }
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
-
 let globalMuted = true;
 
 export function PostCard({ post, isFocused = false }: PostCardProps) {
@@ -45,6 +44,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const [isBuffering, setIsBuffering] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
+  const [localLikeCount, setLocalLikeCount] = useState(post.likeCount);
 
   const isOwnPost = user?.uid === post.userId;
   const isCurrentUserAdmin = user?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -65,13 +65,12 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { data: likeData } = useDoc(likeRef);
   const isLiked = !!likeData;
 
-  const followCheckRef = useMemoFirebase(() => {
-    if (!firestore || !user?.uid || !post.userId) return null;
-    return doc(firestore, 'user_followers', post.userId, 'followers', user.uid);
-  }, [firestore, user?.uid, post.userId]);
-
-  const { data: followCheck } = useDoc(followCheckRef);
-  const isFollowing = !!followCheck;
+  const saveRef = useMemoFirebase(() => {
+    if (!firestore || !user?.uid) return null;
+    return doc(firestore, 'users', user.uid, 'saved_posts', post.id);
+  }, [firestore, user?.uid, post.id]);
+  const { data: saveData } = useDoc(saveRef);
+  const isSaved = !!saveData;
 
   const isVideo = post.mediaUrl.toLowerCase().includes('.mp4') || 
                   post.mediaUrl.toLowerCase().includes('.mov') || 
@@ -87,42 +86,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     setIsMuted(newMuteState);
   };
 
-  const handleFollow = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!firestore || !user || !post.userId || isOwnPost) return;
-
-    const batch = writeBatch(firestore);
-    const followedUserId = post.userId;
-    const followerUserId = user.uid;
-
-    const followerDocRef = doc(firestore, 'user_followers', followedUserId, 'followers', followerUserId);
-    const followingDocRef = doc(firestore, 'user_following', followerUserId, 'following', followedUserId);
-
-    if (isFollowing) {
-        batch.delete(followerDocRef);
-        batch.delete(followingDocRef);
-    } else {
-        batch.set(followerDocRef, { createdAt: serverTimestamp() });
-        batch.set(followingDocRef, { createdAt: serverTimestamp() });
-        
-        const notificationRef = doc(collection(firestore, 'users', followedUserId, 'notifications'));
-        batch.set(notificationRef, {
-            type: 'follow',
-            senderId: followerUserId,
-            recipientId: followedUserId,
-            read: false,
-            createdAt: serverTimestamp(),
-        });
-    }
-
-    try {
-        await batch.commit();
-        toast({ title: isFollowing ? `Unfollowed ${author?.username}` : `Following ${author?.username}` });
-    } catch (error) {
-        console.error("Error toggling follow:", error);
-    }
-  };
-
   const handleLike = async () => {
     if (!firestore || !user || isLiking) return;
     
@@ -132,26 +95,26 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     if (isLiked) return;
     
     setIsLiking(true);
-    const batch = writeBatch(firestore);
-    const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
-    const likeDocRef = doc(firestore, 'users', post.userId, 'posts', post.id, 'likes', user.uid);
+    setLocalLikeCount(prev => prev + 1);
     
-    // Immediate local update for better UX (UI will sync with Firestore later)
-    batch.update(postRef, { likeCount: increment(1) });
-    batch.set(likeDocRef, { userId: user.uid, createdAt: serverTimestamp() });
-    
-    if (post.userId !== user.uid) {
-        const notificationRef = doc(collection(firestore, 'users', post.userId, 'notifications'));
-        batch.set(notificationRef, {
-            type: 'like', senderId: user.uid, recipientId: post.userId, postId: post.id, read: false, createdAt: serverTimestamp(),
-        });
-    }
-    
-    try { 
+    try {
+      const batch = writeBatch(firestore);
+      const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
+      const likeDocRef = doc(firestore, 'users', post.userId, 'posts', post.id, 'likes', user.uid);
+      
+      batch.update(postRef, { likeCount: increment(1) });
+      batch.set(likeDocRef, { userId: user.uid, createdAt: serverTimestamp() });
+      
+      if (post.userId !== user.uid) {
+          const notificationRef = doc(collection(firestore, 'users', post.userId, 'notifications'));
+          batch.set(notificationRef, {
+              type: 'like', senderId: user.uid, recipientId: post.userId, postId: post.id, read: false, createdAt: serverTimestamp(),
+          });
+      }
       await batch.commit(); 
     } catch (e) { 
+      setLocalLikeCount(prev => prev - 1);
       console.error("Error liking post:", e);
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not like post.' });
     } finally {
       setIsLiking(false);
     }
@@ -161,43 +124,49 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     if (!firestore || !user || !isLiked || isLiking) return;
     
     setIsLiking(true);
-    const batch = writeBatch(firestore);
-    const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
-    const likeDocRef = doc(firestore, 'users', post.userId, 'posts', post.id, 'likes', user.uid);
+    setLocalLikeCount(prev => prev - 1);
     
-    batch.update(postRef, { likeCount: increment(-1) });
-    batch.delete(likeDocRef);
-    
-    try { 
+    try {
+      const batch = writeBatch(firestore);
+      const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
+      const likeDocRef = doc(firestore, 'users', post.userId, 'posts', post.id, 'likes', user.uid);
+      
+      batch.update(postRef, { likeCount: increment(-1) });
+      batch.delete(likeDocRef);
       await batch.commit(); 
     } catch (e) { 
+      setLocalLikeCount(prev => prev + 1);
       console.error("Error unliking post:", e); 
     } finally {
       setIsLiking(false);
     }
   };
 
-  const handleTap = (e: React.MouseEvent) => {
-    if (tapTimerRef.current) {
-        clearTimeout(tapTimerRef.current);
-        tapTimerRef.current = null;
-        handleLike();
-    } else {
-        tapTimerRef.current = setTimeout(() => {
-            toggleMute();
-            tapTimerRef.current = null;
-        }, 250);
+  const handleSavePost = async () => {
+    if (!firestore || !user) return;
+    const sRef = doc(firestore, 'users', user.uid, 'saved_posts', post.id);
+    try {
+      if (isSaved) {
+        await deleteDoc(sRef);
+        toast({ title: "Removed from Saved" });
+      } else {
+        await setDoc(sRef, { ...post, savedAt: serverTimestamp() });
+        toast({ title: "Saved to Collection! ✅" });
+      }
+    } catch (e) {
+      console.error(e);
     }
   };
 
-  const confirmDeletePost = async () => {
+  const handleSaveAudio = async () => {
     if (!firestore || !user) return;
+    const audioName = post.caption?.split('#')[0] || "Original Audio";
+    const aRef = doc(firestore, 'users', user.uid, 'saved_audios', post.id);
     try {
-        await deleteDoc(doc(firestore, 'users', post.userId, 'posts', post.id));
-        toast({ title: "सफलता ✅", description: "वीडियो डिलीट हो गया।" });
-        window.location.reload();
-    } catch (error) {
-        console.error("Delete error:", error);
+      await setDoc(aRef, { title: audioName, postId: post.id, savedAt: serverTimestamp() });
+      toast({ title: "Audio Saved! 🎵", description: "Use it in your next post." });
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -229,7 +198,18 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   }, [isInView, firestore, post.id, post.userId]);
 
   return (
-    <div ref={cardRef} className="relative w-full h-full bg-black overflow-hidden select-none" onClick={handleTap}>
+    <div ref={cardRef} className="relative w-full h-full bg-black overflow-hidden select-none" onClick={(e) => {
+      if (tapTimerRef.current) {
+        clearTimeout(tapTimerRef.current);
+        tapTimerRef.current = null;
+        handleLike();
+      } else {
+        tapTimerRef.current = setTimeout(() => {
+          toggleMute();
+          tapTimerRef.current = null;
+        }, 250);
+      }
+    }}>
       {isVideo ? (
         <video 
             ref={videoRef} 
@@ -241,7 +221,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
             preload="auto" 
             onWaiting={() => setIsBuffering(true)}
             onPlaying={() => setIsBuffering(false)}
-            onCanPlay={() => setIsBuffering(false)}
         />
       ) : (
         <Image src={post.mediaUrl} alt="Post" fill className="object-contain" priority />
@@ -263,105 +242,85 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         {author && (
           <div className="flex items-center gap-3 mb-3">
             <Link href={`/profile/${author.id}`} className="flex items-center gap-2">
-              <Avatar className="h-12 w-12 border-2 border-primary shadow-[0_0_15px_rgba(var(--primary),0.3)]">
+              <Avatar className="h-10 w-10 border-2 border-primary">
                 <AvatarImage src={author.profileImageUrl} className="object-cover" />
                 <AvatarFallback>{author.name?.[0]}</AvatarFallback>
               </Avatar>
-              <div className="flex items-center gap-2">
-                  <p className="font-bold text-[15px] drop-shadow-lg">{author.username}</p>
+              <div className="flex items-center gap-1.5">
+                  <p className="font-bold text-sm drop-shadow-lg">{author.username}</p>
                   {isProfileAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />}
-                  
-                  {!isOwnPost && (
-                    <button 
-                      onClick={handleFollow}
-                      className={cn(
-                        "ml-2 px-4 py-1.5 rounded-full text-[12px] font-black uppercase tracking-tight transition-all duration-300",
-                        isFollowing 
-                          ? "bg-white/10 text-white/60 border border-white/10" 
-                          : "bg-primary text-white shadow-[0_0_10px_rgba(var(--primary),0.5)] border border-primary/20"
-                      )}
-                    >
-                      {isFollowing ? 'Following' : 'Follow'}
-                    </button>
-                  )}
               </div>
             </Link>
           </div>
         )}
-        <p className="text-sm line-clamp-2 drop-shadow-md pr-16 font-medium text-white/90">{post.caption}</p>
+        <p className="text-sm line-clamp-2 mb-2 font-medium">{post.caption}</p>
+        <div className="flex items-center gap-2 text-xs opacity-80" onClick={handleSaveAudio}>
+          <Music className="h-3 w-3 animate-spin-slow" />
+          <span className="truncate">{post.caption?.split('#')[0] || "Original Audio"}</span>
+        </div>
+      </div>
+
+      <div className="absolute right-3 bottom-28 flex flex-col gap-6 z-10" onClick={(e) => e.stopPropagation()}>
+            <div className="flex flex-col items-center">
+                <button className="text-white" onClick={isLiked ? handleUnlike : handleLike}>
+                    <Heart className={cn("h-8 w-8 transition-all", isLiked ? "fill-primary text-primary" : "text-white")} />
+                </button>
+                <span className="text-xs font-bold mt-1">{localLikeCount}</span>
+            </div>
+            
+            <div className="flex flex-col items-center">
+                <Sheet open={isCommentSheetOpen} onOpenChange={setIsCommentSheetOpen}>
+                  <SheetTrigger asChild>
+                    <button className="text-white"><MessageCircle className="h-8 w-8" /></button>
+                  </SheetTrigger>
+                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-3xl overflow-hidden bg-background">
+                    <SheetHeader className="sr-only"><SheetTitle>Comments</SheetTitle></SheetHeader>
+                    <CommentSection postId={post.id} postOwnerId={post.userId} />
+                  </SheetContent>
+                </Sheet>
+                <span className="text-xs font-bold mt-1">{post.commentCount}</span>
+            </div>
+            
+            <button className="text-white" onClick={handleSavePost}>
+                <Bookmark className={cn("h-8 w-8 transition-all", isSaved ? "fill-white text-white" : "text-white")} />
+            </button>
+
+            <div className="flex flex-col items-center">
+                <Sheet open={isShareSheetOpen} onOpenChange={setIsShareSheetOpen}>
+                  <SheetTrigger asChild>
+                    <button className="text-white"><Share2 className="h-8 w-8" /></button>
+                  </SheetTrigger>
+                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-3xl overflow-hidden bg-background">
+                    <SheetHeader className="sr-only"><SheetTitle>Share</SheetTitle></SheetHeader>
+                    <ShareSheet postId={post.id} postOwnerId={post.userId} mediaUrl={post.mediaUrl} onClose={() => setIsShareSheetOpen(false)} />
+                  </SheetContent>
+                </Sheet>
+            </div>
       </div>
 
       {(isOwnPost || isCurrentUserAdmin) && (
         <div className="absolute top-10 right-4 z-50" onClick={(e) => e.stopPropagation()}>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-black/30 backdrop-blur-md border border-white/10 text-white">
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-black/30 border border-white/10 text-white">
                         <MoreVertical className="h-6 w-6" />
                     </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[180px] p-2 shadow-2xl">
-                    <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive font-black p-4 rounded-xl focus:bg-destructive/10 cursor-pointer flex items-center gap-3">
-                        <Trash2 className="h-5 w-5" /> Delete Post
+                <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl p-2">
+                    <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive font-black p-4 rounded-xl cursor-pointer">
+                        <Trash2 className="h-5 w-5 mr-2" /> Delete Post
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>
       )}
 
-      <div className="absolute right-3 bottom-28 flex flex-col gap-6 z-10" onClick={(e) => e.stopPropagation()}>
-            <div className="flex flex-col items-center">
-                <Button variant="ghost" size="icon" className="text-white h-12 w-12 hover:bg-transparent" onClick={isLiked ? handleUnlike : handleLike} disabled={isLiking}>
-                    <Heart className={cn("h-10 w-10 transition-all duration-300 active:scale-150", isLiked ? "fill-primary text-primary drop-shadow-[0_0_10px_rgba(var(--primary),0.5)]" : "text-white drop-shadow-2xl")} />
-                </Button>
-                <span className="text-xs font-black mt-1 drop-shadow-lg">{post.likeCount}</span>
-            </div>
-            
-            <div className="flex flex-col items-center">
-                <Sheet open={isCommentSheetOpen} onOpenChange={setIsCommentSheetOpen}>
-                  <SheetTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-white h-12 w-12 hover:bg-transparent">
-                        <MessageCircle className="h-10 w-10 drop-shadow-2xl" />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[2.5rem] overflow-hidden border-white/10 bg-background">
-                    <SheetHeader className="p-4 border-b border-white/5">
-                      <SheetTitle className="sr-only text-center font-bold">Comments</SheetTitle>
-                    </SheetHeader>
-                    <CommentSection postId={post.id} postOwnerId={post.userId} />
-                  </SheetContent>
-                </Sheet>
-                <span className="text-xs font-black mt-1 drop-shadow-lg">{post.commentCount}</span>
-            </div>
-            
-            <div className="flex flex-col items-center">
-                <Sheet open={isShareSheetOpen} onOpenChange={setIsShareSheetOpen}>
-                  <SheetTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-white h-12 w-12 hover:bg-transparent">
-                        <Share2 className="h-10 w-10 drop-shadow-2xl" />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[2.5rem] overflow-hidden border-white/10 bg-background">
-                    <SheetHeader className="p-4 border-b border-white/5">
-                      <SheetTitle className="sr-only text-center font-bold">Share Post</SheetTitle>
-                    </SheetHeader>
-                    <ShareSheet postId={post.id} postOwnerId={post.userId} mediaUrl={post.mediaUrl} onClose={() => setIsShareSheetOpen(false)} />
-                  </SheetContent>
-                </Sheet>
-                <span className="text-xs font-black mt-1 drop-shadow-lg uppercase tracking-tighter">Share</span>
-            </div>
-      </div>
-
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent className="bg-[#121212] text-white rounded-[2.5rem] border-white/10 max-w-[90vw] sm:max-w-md">
-            <AlertDialogHeader className="space-y-4">
-              <AlertDialogTitle className="text-2xl font-black uppercase italic text-center tracking-tighter">Delete Post?</AlertDialogTitle>
-              <AlertDialogDescription className="text-muted-foreground text-center font-medium">
-                क्या आप वाकई इस वीडियो को डिलीट करना चाहते हैं?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="flex-col gap-3 sm:flex-row mt-8">
-                <AlertDialogCancel className="rounded-2xl border-white/10 bg-secondary/50 h-14 font-black uppercase tracking-widest text-xs">Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={confirmDeletePost} className="bg-destructive hover:bg-destructive/90 rounded-2xl h-14 font-black uppercase tracking-widest text-xs">Delete</AlertDialogAction>
+        <AlertDialogContent className="bg-[#121212] text-white rounded-[2rem] border-white/10">
+            <AlertDialogHeader><AlertDialogTitle className="text-center font-black uppercase italic">Delete Post?</AlertDialogTitle></AlertDialogHeader>
+            <AlertDialogFooter className="flex-col gap-3 sm:flex-row mt-4">
+                <AlertDialogCancel className="rounded-xl bg-secondary/50 h-12 font-bold">Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => { deleteDoc(doc(firestore!, 'users', post.userId, 'posts', post.id)); window.location.reload(); }} className="bg-destructive hover:bg-destructive/90 rounded-xl h-12 font-bold">Delete</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
