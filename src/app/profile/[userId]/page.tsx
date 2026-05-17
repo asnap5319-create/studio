@@ -56,10 +56,10 @@ export default function ProfilePage() {
         try {
             await deleteDoc(doc(firestore, 'users', postToDelete.userId, 'posts', postToDelete.id));
             setIsDeleteDialogOpen(false);
-            setSelectedPost(null);
+            setPostToDelete(null);
             toast({ title: "Deleted Successfully" });
         } catch (e) {
-            toast({ variant: 'destructive', title: "Delete Failed", description: "Permission error" });
+            toast({ variant: 'destructive', title: "Delete Failed" });
         }
     };
 
@@ -120,25 +120,28 @@ export default function ProfilePage() {
                         {posts?.map((post) => (
                             <div key={post.id} className="aspect-square bg-secondary/30 relative cursor-pointer group" onClick={() => setSelectedPost(post)}>
                                 <video src={post.mediaUrl} className="w-full h-full object-cover" muted />
-                                <div className="absolute bottom-1 left-1.5 flex items-center gap-1 text-white text-[10px] font-bold">
-                                    <Play className="h-3 w-3 fill-white" /> {post.viewCount || 0}
-                                </div>
+                                
+                                {/* Direct Delete Button for Owner/Admin */}
                                 {(isOwnProfile || isCurrentUserAdmin) && (
-                                    <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="absolute top-1 right-1 z-10">
                                         <Button 
                                             variant="ghost" 
                                             size="icon" 
-                                            className="h-6 w-6 bg-black/40 rounded-full"
+                                            className="h-8 w-8 bg-black/60 hover:bg-destructive rounded-full"
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 setPostToDelete(post);
                                                 setIsDeleteDialogOpen(true);
                                             }}
                                         >
-                                            <Trash2 className="h-3 w-3 text-white" />
+                                            <Trash2 className="h-4 w-4 text-white" />
                                         </Button>
                                     </div>
                                 )}
+
+                                <div className="absolute bottom-1 left-1.5 flex items-center gap-1 text-white text-[10px] font-bold">
+                                    <Play className="h-3 w-3 fill-white" /> {post.viewCount || 0}
+                                </div>
                             </div>
                         ))}
                     </div>

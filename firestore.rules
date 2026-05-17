@@ -19,18 +19,15 @@ service cloud.firestore {
 
     // User Rules
     match /users/{userId} {
-      // Profile document is public
       allow read: if true;
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
       
-      // Allow owners to access their sub-collections (Notifications, etc.)
       match /{allData=**} {
         allow read, write: if isOwner(userId) || isAdmin();
       }
 
-      // Posts are public
       match /posts/{postId} {
         allow read: if true;
         allow create: if isOwner(userId);
@@ -51,7 +48,6 @@ service cloud.firestore {
       }
     }
 
-    // Global Collections
     match /chats/{chatId} {
       allow read: if isAuthenticated() && request.auth.uid in resource.data.participants;
       allow write: if isAuthenticated() && (

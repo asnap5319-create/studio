@@ -93,7 +93,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     const newMuteState = !isMuted;
     globalMuted = newMuteState;
     
-    // Sync all videos in the DOM
     const allVideos = document.querySelectorAll('video');
     allVideos.forEach(v => { v.muted = newMuteState; });
     
@@ -189,7 +188,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       video.muted = globalMuted;
       setIsMuted(globalMuted);
       video.play().catch(() => { 
-        // Auto-play might fail if not muted initially
         video.muted = true; 
         setIsMuted(true);
         video.play().catch(() => {}); 
