@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import type { Post } from '@/models/post';
 import type { UserProfile } from '@/models/user';
 import { useDoc, useFirebase, useMemoFirebase, useUser } from '@/firebase';
-import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection, deleteDoc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection, deleteDoc, setDoc } from 'firebase/firestore';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
@@ -17,7 +17,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/co
 import { CommentSection } from './comment-section';
 import { ShareSheet } from './share-sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 interface PostCardProps {
   post: Post;
@@ -44,7 +44,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const [isBuffering, setIsBuffering] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
-  const [localLikeCount, setLocalLikeCount] = useState(post.likeCount);
+  const [localLikeCount, setLocalLikeCount] = useState(post.likeCount || 0);
 
   const isOwnPost = user?.uid === post.userId;
   const isCurrentUserAdmin = user?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -79,13 +79,12 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { data: followData } = useDoc(followCheckRef);
   const isFollowing = !!followData;
 
-  const isVideo = post.mediaUrl.toLowerCase().includes('.mp4') || 
-                  post.mediaUrl.toLowerCase().includes('.mov') || 
-                  post.mediaUrl.toLowerCase().includes('video') || 
-                  post.mediaUrl.includes('res.cloudinary.com');
+  useEffect(() => {
+    setLocalLikeCount(post.likeCount || 0);
+  }, [post.likeCount]);
 
   const toggleMute = () => {
-    if (!isVideo || !videoRef.current) return;
+    if (!videoRef.current) return;
     const newMuteState = !isMuted;
     globalMuted = newMuteState;
     const allVideos = document.querySelectorAll('video');
@@ -254,23 +253,19 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         }, 250);
       }
     }}>
-      {isVideo ? (
-        <video 
-            ref={videoRef} 
-            src={post.mediaUrl} 
-            className="object-contain w-full h-full" 
-            loop 
-            playsInline 
-            muted={isMuted} 
-            preload="auto" 
-            onWaiting={() => setIsBuffering(true)}
-            onPlaying={() => setIsBuffering(false)}
-        />
-      ) : (
-        <Image src={post.mediaUrl} alt="Post" fill className="object-contain" priority />
-      )}
+      <video 
+          ref={videoRef} 
+          src={post.mediaUrl} 
+          className="object-contain w-full h-full" 
+          loop 
+          playsInline 
+          muted={isMuted} 
+          preload="auto" 
+          onWaiting={() => setIsBuffering(true)}
+          onPlaying={() => setIsBuffering(false)}
+      />
 
-      {isBuffering && isVideo && (
+      {isBuffering && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-20">
           <Loader2 className="w-10 h-10 text-primary animate-spin" />
         </div>

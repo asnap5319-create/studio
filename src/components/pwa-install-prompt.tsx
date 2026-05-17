@@ -45,6 +45,7 @@ export function PwaInstallPrompt() {
 
     window.addEventListener('beforeinstallprompt', handler);
 
+    // Initial check
     if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
         setIsVisible(false);
     }
