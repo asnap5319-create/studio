@@ -39,6 +39,20 @@ export default function HomePage() {
     return shuffled;
   }, []);
 
+  // Sync real-time updates (likes/comments) to the displayed items
+  useEffect(() => {
+    if (posts && displayItems.length > 0) {
+      const updatedItems = displayItems.map(item => {
+        const freshPost = posts.find(p => p.id === item.id);
+        return freshPost || item;
+      });
+      // Simple check to avoid unnecessary re-renders if nothing changed
+      if (JSON.stringify(updatedItems) !== JSON.stringify(displayItems)) {
+        setDisplayItems(updatedItems);
+      }
+    }
+  }, [posts]);
+
   const buildFeed = useCallback(() => {
     if (!posts || posts.length === 0) return;
     setIsRefreshing(true);
@@ -64,14 +78,14 @@ export default function HomePage() {
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
         <div className="flex items-center gap-3 pointer-events-auto">
           <div className="flex items-center gap-2">
-            <Logo className="w-8 h-8 drop-shadow-[0_0_10px_rgba(var(--primary),0.5)]" />
+            <Logo className="w-10 h-10 drop-shadow-[0_0_15px_rgba(255,51,102,0.6)]" />
             <h1 className="text-2xl font-black text-primary italic tracking-tighter drop-shadow-[0_2px_15px_rgba(var(--primary),0.6)]">
               A.snap
             </h1>
           </div>
           <button 
             onClick={buildFeed}
-            className="p-2 bg-white/5 backdrop-blur-md rounded-full border border-white/10 active:rotate-180 transition-transform duration-500 hover:bg-white/10"
+            className="p-2.5 bg-white/5 backdrop-blur-md rounded-full border border-white/10 active:rotate-180 transition-transform duration-500 hover:bg-white/10"
           >
             <RefreshCw className={`w-4 h-4 text-white ${isRefreshing ? 'animate-spin' : ''}`} />
           </button>
@@ -91,10 +105,10 @@ export default function HomePage() {
         <div className="flex h-screen items-center justify-center bg-black">
           <div className="flex flex-col items-center gap-4">
              <div className="relative">
-                <div className="absolute inset-0 blur-2xl bg-primary/20 animate-pulse rounded-full"></div>
-                <Loader2 className="animate-spin h-10 w-10 text-primary relative z-10" />
+                <div className="absolute inset-0 blur-3xl bg-primary/30 animate-pulse rounded-full"></div>
+                <Logo className="w-20 h-20 animate-pulse relative z-10 drop-shadow-[0_0_20px_rgba(255,51,102,0.8)]" />
              </div>
-             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/80 animate-pulse">Building Feed...</p>
+             <p className="text-[10px] font-black uppercase tracking-[0.5em] text-primary/80 animate-pulse mt-4">Building Feed...</p>
           </div>
         </div>
       ) : displayItems.length > 0 ? (

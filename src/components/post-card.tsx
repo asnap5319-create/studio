@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import type { Post } from '@/models/post';
 import type { UserProfile } from '@/models/user';
 import { useDoc, useFirebase, useMemoFirebase, useUser } from '@/firebase';
-import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection, deleteDoc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection, deleteDoc } from 'firebase/firestore';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
@@ -136,6 +136,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
     const likeDocRef = doc(firestore, 'users', post.userId, 'posts', post.id, 'likes', user.uid);
     
+    // Immediate local update for better UX (UI will sync with Firestore later)
     batch.update(postRef, { likeCount: increment(1) });
     batch.set(likeDocRef, { userId: user.uid, createdAt: serverTimestamp() });
     
@@ -258,37 +259,36 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         </div>
       )}
 
-      <div className="absolute bottom-0 left-0 right-0 p-4 pb-20 bg-gradient-to-t from-black via-black/40 to-transparent text-white z-10" onClick={(e) => e.stopPropagation()}>
+      <div className="absolute bottom-0 left-0 right-0 p-4 pb-24 bg-gradient-to-t from-black via-black/40 to-transparent text-white z-10" onClick={(e) => e.stopPropagation()}>
         {author && (
           <div className="flex items-center gap-3 mb-3">
             <Link href={`/profile/${author.id}`} className="flex items-center gap-2">
-              <Avatar className="h-11 w-11 border-2 border-primary">
+              <Avatar className="h-12 w-12 border-2 border-primary shadow-[0_0_15px_rgba(var(--primary),0.3)]">
                 <AvatarImage src={author.profileImageUrl} className="object-cover" />
                 <AvatarFallback>{author.name?.[0]}</AvatarFallback>
               </Avatar>
-              <div className="flex items-center gap-1.5">
-                  <p className="font-bold text-[15px]">{author.username}</p>
+              <div className="flex items-center gap-2">
+                  <p className="font-bold text-[15px] drop-shadow-lg">{author.username}</p>
                   {isProfileAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />}
                   
                   {!isOwnPost && (
-                    <>
-                      <span className="mx-1 text-white/40 font-bold text-lg">•</span>
-                      <button 
-                        onClick={handleFollow}
-                        className={cn(
-                          "text-[13px] font-black uppercase tracking-tight hover:opacity-80 transition-opacity",
-                          isFollowing ? "text-white/60" : "text-primary"
-                        )}
-                      >
-                        {isFollowing ? 'Following' : 'Follow'}
-                      </button>
-                    </>
+                    <button 
+                      onClick={handleFollow}
+                      className={cn(
+                        "ml-2 px-4 py-1.5 rounded-full text-[12px] font-black uppercase tracking-tight transition-all duration-300",
+                        isFollowing 
+                          ? "bg-white/10 text-white/60 border border-white/10" 
+                          : "bg-primary text-white shadow-[0_0_10px_rgba(var(--primary),0.5)] border border-primary/20"
+                      )}
+                    >
+                      {isFollowing ? 'Following' : 'Follow'}
+                    </button>
                   )}
               </div>
             </Link>
           </div>
         )}
-        <p className="text-sm line-clamp-2 drop-shadow-md pr-12">{post.caption}</p>
+        <p className="text-sm line-clamp-2 drop-shadow-md pr-16 font-medium text-white/90">{post.caption}</p>
       </div>
 
       {(isOwnPost || isCurrentUserAdmin) && (
@@ -308,60 +308,60 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         </div>
       )}
 
-      <div className="absolute right-3 bottom-24 flex flex-col gap-6 z-10" onClick={(e) => e.stopPropagation()}>
+      <div className="absolute right-3 bottom-28 flex flex-col gap-6 z-10" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center">
                 <Button variant="ghost" size="icon" className="text-white h-12 w-12 hover:bg-transparent" onClick={isLiked ? handleUnlike : handleLike} disabled={isLiking}>
-                    <Heart className={cn("h-9 w-9 transition-all active:scale-125", isLiked ? "fill-primary text-primary" : "text-white drop-shadow-md")} />
+                    <Heart className={cn("h-10 w-10 transition-all duration-300 active:scale-150", isLiked ? "fill-primary text-primary drop-shadow-[0_0_10px_rgba(var(--primary),0.5)]" : "text-white drop-shadow-2xl")} />
                 </Button>
-                <span className="text-xs font-bold mt-1 drop-shadow-md">{post.likeCount}</span>
+                <span className="text-xs font-black mt-1 drop-shadow-lg">{post.likeCount}</span>
             </div>
             
             <div className="flex flex-col items-center">
                 <Sheet open={isCommentSheetOpen} onOpenChange={setIsCommentSheetOpen}>
                   <SheetTrigger asChild>
                     <Button variant="ghost" size="icon" className="text-white h-12 w-12 hover:bg-transparent">
-                        <MessageCircle className="h-9 w-9 drop-shadow-md" />
+                        <MessageCircle className="h-10 w-10 drop-shadow-2xl" />
                     </Button>
                   </SheetTrigger>
-                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-2xl overflow-hidden border-border bg-background">
+                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[2.5rem] overflow-hidden border-white/10 bg-background">
                     <SheetHeader className="p-4 border-b border-white/5">
-                      <SheetTitle className="text-center font-bold">Comments</SheetTitle>
+                      <SheetTitle className="sr-only text-center font-bold">Comments</SheetTitle>
                     </SheetHeader>
                     <CommentSection postId={post.id} postOwnerId={post.userId} />
                   </SheetContent>
                 </Sheet>
-                <span className="text-xs font-bold mt-1 drop-shadow-md">{post.commentCount}</span>
+                <span className="text-xs font-black mt-1 drop-shadow-lg">{post.commentCount}</span>
             </div>
             
             <div className="flex flex-col items-center">
                 <Sheet open={isShareSheetOpen} onOpenChange={setIsShareSheetOpen}>
                   <SheetTrigger asChild>
                     <Button variant="ghost" size="icon" className="text-white h-12 w-12 hover:bg-transparent">
-                        <Share2 className="h-9 w-9 drop-shadow-md" />
+                        <Share2 className="h-10 w-10 drop-shadow-2xl" />
                     </Button>
                   </SheetTrigger>
-                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-2xl overflow-hidden border-border bg-background">
+                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[2.5rem] overflow-hidden border-white/10 bg-background">
                     <SheetHeader className="p-4 border-b border-white/5">
-                      <SheetTitle className="text-center font-bold">Share Post</SheetTitle>
+                      <SheetTitle className="sr-only text-center font-bold">Share Post</SheetTitle>
                     </SheetHeader>
                     <ShareSheet postId={post.id} postOwnerId={post.userId} mediaUrl={post.mediaUrl} onClose={() => setIsShareSheetOpen(false)} />
                   </SheetContent>
                 </Sheet>
-                <span className="text-xs font-bold mt-1 drop-shadow-md">Share</span>
+                <span className="text-xs font-black mt-1 drop-shadow-lg uppercase tracking-tighter">Share</span>
             </div>
       </div>
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent className="bg-[#121212] text-white rounded-[2.5rem] border-white/10 max-w-[90vw] sm:max-w-md">
             <AlertDialogHeader className="space-y-4">
-              <AlertDialogTitle className="text-2xl font-black uppercase italic text-center">Delete Post?</AlertDialogTitle>
-              <AlertDialogDescription className="text-muted-foreground text-center">
+              <AlertDialogTitle className="text-2xl font-black uppercase italic text-center tracking-tighter">Delete Post?</AlertDialogTitle>
+              <AlertDialogDescription className="text-muted-foreground text-center font-medium">
                 क्या आप वाकई इस वीडियो को डिलीट करना चाहते हैं?
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter className="flex-col gap-3 sm:flex-row mt-6">
-                <AlertDialogCancel className="rounded-2xl border-white/10 bg-secondary/50 h-12">Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={confirmDeletePost} className="bg-destructive hover:bg-destructive/90 rounded-2xl h-12">Delete</AlertDialogAction>
+            <AlertDialogFooter className="flex-col gap-3 sm:flex-row mt-8">
+                <AlertDialogCancel className="rounded-2xl border-white/10 bg-secondary/50 h-14 font-black uppercase tracking-widest text-xs">Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmDeletePost} className="bg-destructive hover:bg-destructive/90 rounded-2xl h-14 font-black uppercase tracking-widest text-xs">Delete</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
