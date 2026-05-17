@@ -25,8 +25,20 @@ service cloud.firestore {
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
       
-      // Ownership wildcard for ALL sub-collections (saved_posts, saved_audios, notifications, etc.)
-      // This ensures the owner has full access to their private data
+      // Explicit rules for private sub-collections to avoid ambiguity
+      match /saved_posts/{postId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+      
+      match /saved_audios/{audioId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+      
+      match /notifications/{notificationId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      // Ownership wildcard for other sub-collections
       match /{allData=**} {
         allow read, write: if isOwner(userId) || isAdmin();
       }
