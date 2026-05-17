@@ -5,8 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import type { Post } from '@/models/post';
 import type { UserProfile } from '@/models/user';
 import { useDoc, useFirebase, useMemoFirebase, useUser } from '@/firebase';
-import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection, deleteDoc, setDoc, getDoc } from 'firebase/firestore';
-import Image from 'next/image';
+import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection, deleteDoc, setDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
@@ -161,7 +160,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       }
     } catch (e) {
       console.error(e);
-      toast({ variant: 'destructive', title: 'Save Failed', description: 'Permission error.' });
+      toast({ variant: 'destructive', title: 'Save Failed', description: 'Check permissions.' });
     }
   };
 
@@ -171,10 +170,10 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     const aRef = doc(firestore, 'users', user.uid, 'saved_audios', post.id);
     try {
       await setDoc(aRef, { title: audioName, postId: post.id, savedAt: serverTimestamp() });
-      toast({ title: "Audio Saved! 🎵", description: "Use it in your next post." });
+      toast({ title: "Audio Saved! 🎵" });
     } catch (e) {
       console.error(e);
-      toast({ variant: 'destructive', title: 'Save Failed', description: 'Permission error.' });
+      toast({ variant: 'destructive', title: 'Save Failed' });
     }
   };
 

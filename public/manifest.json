@@ -2,11 +2,11 @@
 {
   "name": "A.snap",
   "short_name": "A.snap",
-  "description": "Premium Visual Sharing Application",
+  "description": "Premium Short Video Sharing",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
-  "theme_color": "#ff3366",
+  "theme_color": "#000000",
   "icons": [
     {
       "src": "/logo.svg",

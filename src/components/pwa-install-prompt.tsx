@@ -7,7 +7,7 @@ import { Download, X, Sparkles } from 'lucide-react';
 
 export function Logo({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 512 512" className={className}>
+    <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
       <defs>
         <linearGradient id="logoGrad" x1="0%" y1="100%" x2="100%" y2="0%">
           <stop offset="0%" stopColor="#ff0080" stopOpacity="1" />
@@ -46,8 +46,10 @@ export function PwaInstallPrompt() {
     window.addEventListener('beforeinstallprompt', handler);
 
     // Initial check
-    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
-        setIsVisible(false);
+    if (typeof window !== 'undefined') {
+        if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
+            setIsVisible(false);
+        }
     }
 
     return () => window.removeEventListener('beforeinstallprompt', handler);

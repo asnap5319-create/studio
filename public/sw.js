@@ -1,12 +1,21 @@
 
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
+const CACHE_NAME = 'asnap-cache-v1';
+const urlsToCache = [
+  '/',
+  '/manifest.json',
+  '/logo.svg'
+];
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(urlsToCache))
+  );
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(clients.claim());
-});
-
-self.addEventListener('fetch', (event) => {
-  // Standard fetch handler for PWA
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => response || fetch(event.request))
+  );
 });
