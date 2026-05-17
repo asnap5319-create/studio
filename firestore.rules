@@ -46,6 +46,12 @@ service cloud.firestore {
           allow delete: if isOwner(userId) || isAdmin() || (isAuthenticated() && request.auth.uid == resource.data.userId);
         }
       }
+
+      // Explicit rules for notifications to avoid permission errors
+      match /notifications/{notificationId} {
+        allow read, update, delete: if isOwner(userId);
+        allow create: if isAuthenticated();
+      }
     }
 
     match /chats/{chatId} {
@@ -62,6 +68,7 @@ service cloud.firestore {
       }
     }
 
+    // Follower/Following rules
     match /user_followers/{followedUserId}/followers/{followerUserId} {
       allow read: if true;
       allow write: if isOwner(followerUserId);

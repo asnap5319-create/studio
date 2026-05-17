@@ -40,11 +40,26 @@ export default function ProfilePage() {
     const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
     const isProfileAdmin = userProfile?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
+    // Fetch User Posts
     const userPostsQuery = useMemoFirebase(() => {
         if (!firestore || !userId) return null;
         return query(collection(firestore, 'users', userId, 'posts'), orderBy('createdAt', 'desc'));
     }, [firestore, userId]);
     const { data: posts } = useCollection<Post>(userPostsQuery);
+
+    // Fetch Followers Count
+    const followersQuery = useMemoFirebase(() => {
+        if (!firestore || !userId) return null;
+        return query(collection(firestore, 'user_followers', userId, 'followers'));
+    }, [firestore, userId]);
+    const { data: followers } = useCollection(followersQuery);
+
+    // Fetch Following Count
+    const followingQuery = useMemoFirebase(() => {
+        if (!firestore || !userId) return null;
+        return query(collection(firestore, 'user_following', userId, 'following'));
+    }, [firestore, userId]);
+    const { data: following } = useCollection(followingQuery);
 
     const handleLogout = async () => {
         await signOut(auth!);
@@ -98,8 +113,8 @@ export default function ProfilePage() {
                     </Avatar>
                     <div className="flex flex-1 justify-around text-center">
                         <div><p className="font-black text-xl">{posts?.length || 0}</p><p className="text-[10px] uppercase font-bold text-muted-foreground">Posts</p></div>
-                        <div><p className="font-black text-xl">0</p><p className="text-[10px] uppercase font-bold text-muted-foreground">Followers</p></div>
-                        <div><p className="font-black text-xl">0</p><p className="text-[10px] uppercase font-bold text-muted-foreground">Following</p></div>
+                        <div><p className="font-black text-xl">{followers?.length || 0}</p><p className="text-[10px] uppercase font-bold text-muted-foreground">Followers</p></div>
+                        <div><p className="font-black text-xl">{following?.length || 0}</p><p className="text-[10px] uppercase font-bold text-muted-foreground">Following</p></div>
                     </div>
                 </div>
                 <div className="mt-4">
