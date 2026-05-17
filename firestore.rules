@@ -20,17 +20,17 @@ service cloud.firestore {
     // User Rules
     match /users/{userId} {
       allow read: if true;
-      allow create: if isAuthenticated() && request.auth.uid == userId;
-      allow update: if (isAuthenticated() && request.auth.uid == userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
       
-      // Explicit rules for Saved Content - Crucial fix for Permission Denied
+      // Explicit rules for Saved Content
       match /saved_posts/{postId} {
-        allow read, write: if isAuthenticated() && request.auth.uid == userId;
+        allow read, write: if isOwner(userId);
       }
       
       match /saved_audios/{audioId} {
-        allow read, write: if isAuthenticated() && request.auth.uid == userId;
+        allow read, write: if isOwner(userId);
       }
       
       match /notifications/{notificationId} {
