@@ -1,10 +1,13 @@
+
 'use client';
 
-import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collectionGroup, query, orderBy, limit } from 'firebase/firestore';
+import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
+import { collectionGroup, query, orderBy, limit, where, collection } from 'firebase/firestore';
 import { PostCard } from '@/components/post-card';
 import { Loader2, MessageCircle, Bell, RefreshCw } from 'lucide-react';
 import type { Post } from '@/models/post';
+import type { Notification } from '@/models/notification';
+import type { Message } from '@/models/message';
 import { BottomNav } from "@/components/bottom-nav";
 import Link from 'next/link';
 import { useState, useEffect, useCallback, memo } from 'react';
@@ -14,6 +17,7 @@ const MemoizedPostCard = memo(PostCard);
 
 export default function HomePage() {
   const { firestore } = useFirebase();
+  const { user } = useUser();
   const [displayItems, setDisplayItems] = useState<Post[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
@@ -26,6 +30,32 @@ export default function HomePage() {
   }, [firestore]);
 
   const { data: posts, isLoading } = useCollection<Post>(postsQuery);
+
+  // Red Dot Queries
+  const unreadNotificationsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(
+      collection(firestore, 'users', user.uid, 'notifications'),
+      where('read', '==', false),
+      limit(1)
+    );
+  }, [firestore, user]);
+
+  const unreadMessagesQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(
+      collectionGroup(firestore, 'messages'),
+      where('recipientId', '==', user.uid),
+      where('read', '==', false),
+      limit(1)
+    );
+  }, [firestore, user]);
+
+  const { data: unreadNotifications } = useCollection<Notification>(unreadNotificationsQuery);
+  const { data: unreadMessages } = useCollection<Message>(unreadMessagesQuery);
+
+  const hasUnreadNotifications = unreadNotifications && unreadNotifications.length > 0;
+  const hasUnreadMessages = unreadMessages && unreadMessages.length > 0;
 
   const shuffleFeed = useCallback((items: Post[]) => {
     const shuffled = [...items];
@@ -70,11 +100,17 @@ export default function HomePage() {
         </div>
         
         <div className="flex items-center gap-3 pointer-events-auto">
-          <Link href="/notifications" className="p-2.5 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 shadow-lg">
+          <Link href="/notifications" className="relative p-2.5 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 shadow-lg">
             <Bell className="w-5 h-5 text-white" />
+            {hasUnreadNotifications && (
+              <span className="absolute top-2 right-2 h-2.5 w-2.5 bg-red-600 rounded-full border border-black animate-pulse shadow-[0_0_8px_rgba(220,38,38,0.8)]" />
+            )}
           </Link>
-          <Link href="/messages" className="p-2.5 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 shadow-lg">
+          <Link href="/messages" className="relative p-2.5 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 shadow-lg">
             <MessageCircle className="w-5 h-5 text-white" />
+            {hasUnreadMessages && (
+              <span className="absolute top-2 right-2 h-2.5 w-2.5 bg-red-600 rounded-full border border-black animate-pulse shadow-[0_0_8px_rgba(220,38,38,0.8)]" />
+            )}
           </Link>
         </div>
       </header>

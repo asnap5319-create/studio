@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, orderBy, serverTimestamp, doc, addDoc, updateDoc } from 'firebase/firestore';
+import { collection, query, orderBy, serverTimestamp, doc, addDoc, updateDoc, writeBatch, where, getDocs } from 'firebase/firestore';
 import type { Message } from '@/models/message';
 import type { Chat } from '@/models/chat';
 import type { UserProfile } from '@/models/user';
@@ -46,6 +47,21 @@ export default function ChatPage() {
   }, [firestore, chatId]);
 
   const { data: messages } = useCollection<Message>(messagesQuery);
+
+  // Mark messages as read when they appear
+  useEffect(() => {
+    if (!firestore || !user || !chatId || !messages) return;
+
+    const unreadMessages = messages.filter(m => m.recipientId === user.uid && !m.read);
+    if (unreadMessages.length > 0) {
+      const batch = writeBatch(firestore);
+      unreadMessages.forEach(m => {
+        const msgRef = doc(firestore, 'chats', chatId as string, 'messages', m.id);
+        batch.update(msgRef, { read: true });
+      });
+      batch.commit().catch(err => console.error("Error marking messages as read:", err));
+    }
+  }, [firestore, user, chatId, messages]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -93,6 +109,12 @@ export default function ChatPage() {
             <div className={cn("px-4 py-2 rounded-2xl text-sm", msg.senderId === user.uid ? "bg-primary text-white rounded-tr-none" : "bg-secondary text-white rounded-tl-none")}>
               {msg.text}
             </div>
+            <span className="text-[8px] text-muted-foreground mt-1 px-1">
+              {msg.createdAt ? format(msg.createdAt.toDate(), 'HH:mm') : ''}
+              {msg.senderId === user.uid && (
+                <span className="ml-1">{msg.read ? '• Seen' : ''}</span>
+              )}
+            </span>
           </div>
         ))}
       </div>
