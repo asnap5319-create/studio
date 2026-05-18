@@ -51,15 +51,17 @@ service cloud.firestore {
       }
     }
 
-    // Chat Rules - Fixed permissions for chat messages
+    // Chat Rules - Robust permissions using split for uid1_uid2 format
     match /chats/{chatId} {
-      // Allow access if the user's UID is part of the chatId string
-      allow read, write: if isAuthenticated() && (chatId.matches('.*' + request.auth.uid + '.*') || isAdmin());
+      function isParticipant() {
+        return isAuthenticated() && (request.auth.uid in chatId.split('_') || isAdmin());
+      }
+
+      allow read, write: if isParticipant();
       
       match /messages/{messageId} {
-        // Standard collection query permission
-        allow read: if isAuthenticated() && (chatId.matches('.*' + request.auth.uid + '.*') || isAdmin());
-        allow write: if isAuthenticated();
+        allow read: if isParticipant();
+        allow write: if isAuthenticated() && (request.auth.uid in chatId.split('_'));
       }
     }
 
