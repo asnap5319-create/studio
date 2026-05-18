@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, orderBy, serverTimestamp, doc, addDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, query, orderBy, serverTimestamp, doc, addDoc, setDoc, writeBatch } from 'firebase/firestore';
 import type { Message } from '@/models/message';
 import type { Chat } from '@/models/chat';
 import type { UserProfile } from '@/models/user';
@@ -38,7 +37,6 @@ export default function ChatPage() {
 
   const { data: chat } = useDoc<Chat>(chatRef);
   
-  // Safely extract otherUserId from chat or chatId param
   const otherUserId = useMemo(() => {
     if (chat && user) return chat.participants.find(id => id !== user.uid);
     if (chatId && user) {
@@ -62,7 +60,6 @@ export default function ChatPage() {
 
   const { data: messages } = useCollection<Message>(messagesQuery);
 
-  // Mark messages as read when they appear
   useEffect(() => {
     if (!firestore || !user || !chatId || !messages) return;
 
@@ -87,26 +84,23 @@ export default function ChatPage() {
     const text = inputText.trim();
     setInputText('');
     
-    // Create chat if it doesn't exist
-    if (!chat) {
-        const participants = [user.uid, otherUserId].sort();
-        await updateDoc(doc(firestore, 'chats', chatId as string), {
-            id: chatId,
-            participants,
-            lastMessage: text,
-            lastMessageAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-        });
-    }
+    const participants = [user.uid, otherUserId].sort();
+    
+    // Always use setDoc with merge to ensure the chat document exists
+    await setDoc(doc(firestore, 'chats', chatId as string), {
+        id: chatId,
+        participants,
+        lastMessage: text,
+        lastMessageAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+    }, { merge: true });
 
     await addDoc(collection(firestore, 'chats', chatId as string, 'messages'), {
-      senderId: user.uid, recipientId: otherUserId, text, createdAt: serverTimestamp(), read: false,
-    });
-    
-    await updateDoc(doc(firestore, 'chats', chatId as string), {
-      lastMessage: text,
-      lastMessageAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      senderId: user.uid, 
+      recipientId: otherUserId, 
+      text, 
+      createdAt: serverTimestamp(), 
+      read: false,
     });
   };
 
