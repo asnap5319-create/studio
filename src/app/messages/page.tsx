@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
@@ -8,16 +9,17 @@ import type { Message } from '@/models/message';
 import { useDoc } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
-import { ArrowLeft, MessageSquare, Database, RefreshCw, Send, BadgeCheck } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Database, RefreshCw, Send, BadgeCheck, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { BottomNav } from "@/components/bottom-nav";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
+import { useState, useEffect } from 'react';
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
-function ChatItem({ chat, currentUserId }: { chat: Chat; currentUserId: string }) {
+function ChatItem({ chat, currentUserId, hasMounted }: { chat: Chat; currentUserId: string; hasMounted: boolean }) {
   const { firestore } = useFirebase();
   const otherUserId = chat.participants.find(id => id !== currentUserId);
 
@@ -67,7 +69,7 @@ function ChatItem({ chat, currentUserId }: { chat: Chat; currentUserId: string }
             </span>
             {otherUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && <BadgeCheck className="h-3 w-3 text-blue-400 fill-blue-400/20" />}
           </div>
-          {chat.lastMessageAt && (
+          {chat.lastMessageAt && hasMounted && (
             <span className={cn("text-[10px]", isUnread ? "text-primary font-bold" : "text-muted-foreground")}>
               {formatDistanceToNow(chat.lastMessageAt.toDate(), { addSuffix: false })}
             </span>
@@ -82,8 +84,13 @@ function ChatItem({ chat, currentUserId }: { chat: Chat; currentUserId: string }
 }
 
 export default function InboxPage() {
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const { firestore } = useFirebase();
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const chatsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -95,6 +102,14 @@ export default function InboxPage() {
   }, [firestore, user]);
 
   const { data: chats, isLoading, error } = useCollection<Chat>(chatsQuery);
+
+  if (!hasMounted || isUserLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-black">
+        <Loader2 className="animate-spin text-primary h-8 w-8" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col text-white bg-background max-w-lg mx-auto border-x border-border pb-16">
@@ -131,7 +146,7 @@ export default function InboxPage() {
         ) : chats && chats.length > 0 ? (
           <div className="divide-y divide-white/5">
             {chats.map(chat => (
-              <ChatItem key={chat.id} chat={chat} currentUserId={user?.uid || ''} />
+              <ChatItem key={chat.id} chat={chat} currentUserId={user?.uid || ''} hasMounted={hasMounted} />
             ))}
           </div>
         ) : !error && (

@@ -1,17 +1,17 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, orderBy, serverTimestamp, doc, addDoc, updateDoc, writeBatch, where, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, serverTimestamp, doc, addDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import type { Message } from '@/models/message';
 import type { Chat } from '@/models/chat';
 import type { UserProfile } from '@/models/user';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Send, BadgeCheck } from 'lucide-react';
+import { ArrowLeft, Send, BadgeCheck, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -20,11 +20,16 @@ const ADMIN_EMAIL = "asnap5319@gmail.com";
 
 export default function ChatPage() {
   const { chatId } = useParams();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const { firestore } = useFirebase();
   const router = useRouter();
   const [inputText, setInputText] = useState('');
+  const [hasMounted, setHasMounted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const chatRef = useMemoFirebase(() => {
     if (!firestore || !chatId) return null;
@@ -32,7 +37,11 @@ export default function ChatPage() {
   }, [firestore, chatId]);
 
   const { data: chat } = useDoc<Chat>(chatRef);
-  const otherUserId = chat?.participants.find(id => id !== user?.uid);
+  
+  const otherUserId = useMemo(() => {
+    if (!chat || !user) return null;
+    return chat.participants.find(id => id !== user.uid);
+  }, [chat, user]);
   
   const otherUserRef = useMemoFirebase(() => {
     if (!firestore || !otherUserId) return null;
@@ -80,6 +89,14 @@ export default function ChatPage() {
     });
   };
 
+  if (!hasMounted || isUserLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-black">
+        <Loader2 className="animate-spin text-primary h-8 w-8" />
+      </div>
+    );
+  }
+
   if (!user) return null;
   const isOtherAdmin = otherUser?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
@@ -90,7 +107,7 @@ export default function ChatPage() {
         {otherUser && (
           <Link href={`/profile/${otherUser.id}`} className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
-              <AvatarImage src={otherUser.profileImageUrl} />
+              <AvatarImage src={otherUser.profileImageUrl} className="object-cover" />
               <AvatarFallback>{otherUser.username?.[0]}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
@@ -110,7 +127,7 @@ export default function ChatPage() {
               {msg.text}
             </div>
             <span className="text-[8px] text-muted-foreground mt-1 px-1">
-              {msg.createdAt ? format(msg.createdAt.toDate(), 'HH:mm') : ''}
+              {msg.createdAt && hasMounted ? format(msg.createdAt.toDate(), 'HH:mm') : ''}
               {msg.senderId === user.uid && (
                 <span className="ml-1">{msg.read ? '• Seen' : ''}</span>
               )}
