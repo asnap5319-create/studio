@@ -1,0 +1,5 @@
+
+include ':app'
+
+// Capacitor will automatically add native plugins here during build
+// If this file was missing, it's often because 'npx cap add' wasn't fully finished

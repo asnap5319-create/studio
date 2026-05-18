@@ -11,7 +11,9 @@ const config: CapacitorConfig = {
     allowNavigation: ['studio-xi-henna-41.vercel.app']
   },
   android: {
-    allowMixedContent: true
+    allowMixedContent: true,
+    captureInput: true,
+    webContentsDebuggingEnabled: true
   }
 };
 
