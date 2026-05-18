@@ -32,7 +32,10 @@ export default function ChatPage() {
 
   const isUserParticipant = useMemo(() => {
     if (!user || !chatId) return false;
-    return (chatId as string).includes(user.uid);
+    const uid = user.uid;
+    const idStr = chatId as string;
+    // Safe check if current user is part of the chatId string
+    return idStr.split('_').includes(uid);
   }, [user, chatId]);
 
   const chatRef = useMemoFirebase(() => {
@@ -56,6 +59,7 @@ export default function ChatPage() {
   const { data: otherUser } = useDoc<UserProfile>(otherUserRef);
 
   const messagesQuery = useMemoFirebase(() => {
+    // CRITICAL: Only query if we are confirmed as a participant to avoid Permission Denied
     if (!firestore || !chatId || !isUserParticipant) return null;
     return query(collection(firestore, 'chats', chatId as string, 'messages'), orderBy('createdAt', 'asc'));
   }, [firestore, chatId, isUserParticipant]);
@@ -88,7 +92,7 @@ export default function ChatPage() {
     
     const participants = [user.uid, otherUserId].sort();
     
-    // Use setDoc with merge to ensure the chat document exists
+    // Ensure the chat document exists with correct participants
     await setDoc(doc(firestore, 'chats', chatId as string), {
         id: chatId,
         participants,
@@ -106,7 +110,7 @@ export default function ChatPage() {
     });
   };
 
-  if (!hasMounted || isUserLoading) {
+  if (isUserLoading || !hasMounted) {
     return (
       <div className="flex h-screen items-center justify-center bg-black">
         <Loader2 className="animate-spin text-primary h-8 w-8" />
@@ -115,7 +119,7 @@ export default function ChatPage() {
   }
 
   if (!user || !isUserParticipant) {
-    if (hasMounted && !isUserLoading) router.replace('/');
+    if (hasMounted) router.replace('/');
     return null;
   }
 
@@ -141,10 +145,10 @@ export default function ChatPage() {
           </Link>
         )}
       </header>
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
         {messagesError && (
           <div className="p-4 bg-destructive/10 text-destructive text-center rounded-xl text-xs font-bold">
-            Chat load karne mein samasya aa rahi hai. Kripya rules check karein.
+            Unable to load messages. Please check permissions.
           </div>
         )}
         {messages?.map((msg) => (
@@ -161,9 +165,9 @@ export default function ChatPage() {
           </div>
         ))}
       </div>
-      <form onSubmit={handleSendMessage} className="p-4 border-t border-border flex gap-2">
-        <Input value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder="Message..." className="flex-1 bg-secondary border-none rounded-full" />
-        <Button type="submit" size="icon" variant="ghost" className="text-primary"><Send /></Button>
+      <form onSubmit={handleSendMessage} className="p-4 border-t border-border flex gap-2 mb-safe">
+        <Input value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder="Message..." className="flex-1 bg-secondary border-none rounded-full h-12" />
+        <Button type="submit" size="icon" variant="ghost" className="text-primary h-12 w-12"><Send /></Button>
       </form>
     </div>
   );

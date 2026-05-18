@@ -51,7 +51,7 @@ service cloud.firestore {
       }
     }
 
-    // Chat Rules - Improved logic to split ID and check presence
+    // Chat Rules
     match /chats/{chatId} {
       function isParticipant() {
         return isAuthenticated() && (
@@ -63,12 +63,11 @@ service cloud.firestore {
       allow read, write: if isParticipant();
       
       match /messages/{messageId} {
-        allow read: if isParticipant();
-        allow write: if isParticipant();
+        allow read, write: if isParticipant();
       }
     }
 
-    // Saved Posts Rules - Corrected for security
+    // Saved Posts Rules - Fixed the variable issue
     match /saved_posts/{savedPostId} {
       allow read, write: if isAuthenticated() && (
         resource == null || resource.data.userId == request.auth.uid
