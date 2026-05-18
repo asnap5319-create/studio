@@ -208,18 +208,19 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
           onPlaying={() => setIsBuffering(false)}
       />
 
-      {/* Text Overlay Display */}
+      {/* Text Overlay Display - Supports X and Y Positioning */}
       {post.overlayText && (
           <div 
-              className="absolute left-0 right-0 px-8 text-center pointer-events-none z-20 transition-all"
+              className="absolute px-8 text-center pointer-events-none z-20"
               style={{ 
                   top: `${post.overlayPosition ?? 50}%`, 
-                  transform: 'translateY(-50%)',
+                  left: `${post.overlayX ?? 50}%`,
+                  transform: 'translate(-50%, -50%)',
                   color: post.overlayColor || '#ffffff',
                   textShadow: '0 2px 15px rgba(0,0,0,0.9)'
               }}
           >
-              <p className="text-3xl font-black italic uppercase tracking-tighter leading-tight drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in duration-500">
+              <p className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter leading-tight drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in duration-500">
                   {post.overlayText}
               </p>
           </div>
