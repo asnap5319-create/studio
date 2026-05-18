@@ -38,10 +38,15 @@ export default function ChatPage() {
 
   const { data: chat } = useDoc<Chat>(chatRef);
   
+  // Safely extract otherUserId from chat or chatId param
   const otherUserId = useMemo(() => {
-    if (!chat || !user) return null;
-    return chat.participants.find(id => id !== user.uid);
-  }, [chat, user]);
+    if (chat && user) return chat.participants.find(id => id !== user.uid);
+    if (chatId && user) {
+        const parts = (chatId as string).split('_');
+        return parts.find(id => id !== user.uid) || null;
+    }
+    return null;
+  }, [chat, user, chatId]);
   
   const otherUserRef = useMemoFirebase(() => {
     if (!firestore || !otherUserId) return null;
@@ -81,11 +86,27 @@ export default function ChatPage() {
     if (!user || !firestore || !inputText.trim() || !otherUserId) return;
     const text = inputText.trim();
     setInputText('');
+    
+    // Create chat if it doesn't exist
+    if (!chat) {
+        const participants = [user.uid, otherUserId].sort();
+        await updateDoc(doc(firestore, 'chats', chatId as string), {
+            id: chatId,
+            participants,
+            lastMessage: text,
+            lastMessageAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        });
+    }
+
     await addDoc(collection(firestore, 'chats', chatId as string, 'messages'), {
       senderId: user.uid, recipientId: otherUserId, text, createdAt: serverTimestamp(), read: false,
     });
+    
     await updateDoc(doc(firestore, 'chats', chatId as string), {
-      lastMessage: text, lastMessageAt: serverTimestamp(), updatedAt: serverTimestamp(),
+      lastMessage: text,
+      lastMessageAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     });
   };
 
