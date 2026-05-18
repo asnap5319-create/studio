@@ -46,13 +46,18 @@ service cloud.firestore {
       }
     }
 
-    // Chat Rules - More permissive for creation and participant access
+    // Chat Rules - Optimized with path-based participant check
     match /chats/{chatId} {
-      allow read: if isAuthenticated() && (request.auth.uid in resource.data.participants);
+      // Allow read if user ID is part of the chatId string or they are in the participants array
+      allow read: if isAuthenticated() && (
+        chatId.matches('.*' + request.auth.uid + '.*') ||
+        (resource != null && request.auth.uid in resource.data.participants)
+      );
       allow write: if isAuthenticated(); 
       
       match /messages/{messageId} {
-        allow read: if isAuthenticated();
+        // Path-based rule allows list operations without complex data filters
+        allow read: if isAuthenticated() && chatId.matches('.*' + request.auth.uid + '.*');
         allow create: if isAuthenticated();
         allow update, delete: if isAuthenticated() && (request.auth.uid == resource.data.senderId || isAdmin());
       }
@@ -61,9 +66,8 @@ service cloud.firestore {
     // Support for collectionGroup queries (Red Dot feature)
     match /{path=**}/messages/{messageId} {
       allow read: if isAuthenticated() && (
-        resource == null || 
-        request.auth.uid == resource.data.recipientId || 
-        request.auth.uid == resource.data.senderId
+        (resource != null && (request.auth.uid == resource.data.recipientId || request.auth.uid == resource.data.senderId)) ||
+        (resource == null)
       );
     }
 
