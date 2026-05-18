@@ -44,19 +44,21 @@ service cloud.firestore {
           allow delete: if isOwner(userId) || isAdmin() || (isAuthenticated() && request.auth.uid == resource.data.userId);
         }
       }
+      
+      match /notifications/{notificationId} {
+        allow read: if isOwner(userId);
+        allow write: if isAuthenticated();
+      }
     }
 
-    // Chat Rules - Optimized with path-based participant check
+    // Chat Rules - Fixed for 'list' operations on subcollections
     match /chats/{chatId} {
-      // Allow read if user ID is part of the chatId string or they are in the participants array
-      allow read: if isAuthenticated() && (
-        chatId.matches('.*' + request.auth.uid + '.*') ||
-        (resource != null && request.auth.uid in resource.data.participants)
-      );
+      // Allow read if user is part of the chatId string
+      allow read: if isAuthenticated() && chatId.matches('.*' + request.auth.uid + '.*');
       allow write: if isAuthenticated(); 
       
       match /messages/{messageId} {
-        // Path-based rule allows list operations without complex data filters
+        // Specifically allow reading messages if user is in the parent chatId
         allow read: if isAuthenticated() && chatId.matches('.*' + request.auth.uid + '.*');
         allow create: if isAuthenticated();
         allow update, delete: if isAuthenticated() && (request.auth.uid == resource.data.senderId || isAdmin());
@@ -64,10 +66,11 @@ service cloud.firestore {
     }
 
     // Support for collectionGroup queries (Red Dot feature)
+    // IMPORTANT: Queries must filter by recipientId or senderId
     match /{path=**}/messages/{messageId} {
       allow read: if isAuthenticated() && (
-        (resource != null && (request.auth.uid == resource.data.recipientId || request.auth.uid == resource.data.senderId)) ||
-        (resource == null)
+        request.auth.uid == resource.data.recipientId || 
+        request.auth.uid == resource.data.senderId
       );
     }
 
