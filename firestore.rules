@@ -51,26 +51,24 @@ service cloud.firestore {
       }
     }
 
-    // Chat Rules - Fixed for 'list' operations on subcollections
+    // Chat Rules - Fixed permissions for chat messages
     match /chats/{chatId} {
-      // Allow read if user is part of the chatId string
-      allow read: if isAuthenticated() && chatId.matches('.*' + request.auth.uid + '.*');
-      allow write: if isAuthenticated(); 
+      // Allow access if the user's UID is part of the chatId string
+      allow read, write: if isAuthenticated() && (chatId.matches('.*' + request.auth.uid + '.*') || isAdmin());
       
       match /messages/{messageId} {
-        // Specifically allow reading messages if user is in the parent chatId
-        allow read: if isAuthenticated() && chatId.matches('.*' + request.auth.uid + '.*');
-        allow create: if isAuthenticated();
-        allow update, delete: if isAuthenticated() && (request.auth.uid == resource.data.senderId || isAdmin());
+        // Standard collection query permission
+        allow read: if isAuthenticated() && (chatId.matches('.*' + request.auth.uid + '.*') || isAdmin());
+        allow write: if isAuthenticated();
       }
     }
 
     // Support for collectionGroup queries (Red Dot feature)
-    // IMPORTANT: Queries must filter by recipientId or senderId
     match /{path=**}/messages/{messageId} {
       allow read: if isAuthenticated() && (
         request.auth.uid == resource.data.recipientId || 
-        request.auth.uid == resource.data.senderId
+        request.auth.uid == resource.data.senderId ||
+        isAdmin()
       );
     }
 

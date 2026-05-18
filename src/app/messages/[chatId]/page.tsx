@@ -54,11 +54,15 @@ export default function ChatPage() {
   const { data: otherUser } = useDoc<UserProfile>(otherUserRef);
 
   const messagesQuery = useMemoFirebase(() => {
-    if (!firestore || !chatId) return null;
-    return query(collection(firestore, 'chats', chatId as string, 'messages'), orderBy('createdAt', 'asc'));
-  }, [firestore, chatId]);
+    if (!firestore || !chatId || !user) return null;
+    // Ensure we only query if the user is part of the chatId to avoid permission errors
+    const isParticipant = (chatId as string).includes(user.uid);
+    if (!isParticipant) return null;
 
-  const { data: messages } = useCollection<Message>(messagesQuery);
+    return query(collection(firestore, 'chats', chatId as string, 'messages'), orderBy('createdAt', 'asc'));
+  }, [firestore, chatId, user]);
+
+  const { data: messages, error: messagesError } = useCollection<Message>(messagesQuery);
 
   useEffect(() => {
     if (!firestore || !user || !chatId || !messages) return;
@@ -86,7 +90,6 @@ export default function ChatPage() {
     
     const participants = [user.uid, otherUserId].sort();
     
-    // Always use setDoc with merge to ensure the chat document exists
     await setDoc(doc(firestore, 'chats', chatId as string), {
         id: chatId,
         participants,
@@ -136,6 +139,11 @@ export default function ChatPage() {
         )}
       </header>
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messagesError && (
+          <div className="p-4 bg-destructive/10 text-destructive text-center rounded-xl text-xs font-bold">
+            Chat load karne mein samasya aa rahi hai. Kripya rules check karein.
+          </div>
+        )}
         {messages?.map((msg) => (
           <div key={msg.id} className={cn("flex flex-col max-w-[80%]", msg.senderId === user.uid ? "ml-auto items-end" : "mr-auto items-start")}>
             <div className={cn("px-4 py-2 rounded-2xl text-sm", msg.senderId === user.uid ? "bg-primary text-white rounded-tr-none" : "bg-secondary text-white rounded-tl-none")}>
