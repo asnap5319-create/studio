@@ -30,21 +30,23 @@ export default function ChatPage() {
     setHasMounted(true);
   }, []);
 
+  const isUserParticipant = useMemo(() => {
+    if (!user || !chatId) return false;
+    return (chatId as string).includes(user.uid);
+  }, [user, chatId]);
+
   const chatRef = useMemoFirebase(() => {
-    if (!firestore || !chatId) return null;
+    if (!firestore || !chatId || !isUserParticipant) return null;
     return doc(firestore, 'chats', chatId as string);
-  }, [firestore, chatId]);
+  }, [firestore, chatId, isUserParticipant]);
 
   const { data: chat } = useDoc<Chat>(chatRef);
   
   const otherUserId = useMemo(() => {
-    if (chat && user) return chat.participants.find(id => id !== user.uid);
-    if (chatId && user) {
-        const parts = (chatId as string).split('_');
-        return parts.find(id => id !== user.uid) || null;
-    }
-    return null;
-  }, [chat, user, chatId]);
+    if (!chatId || !user) return null;
+    const parts = (chatId as string).split('_');
+    return parts.find(id => id !== user.uid) || null;
+  }, [chatId, user]);
   
   const otherUserRef = useMemoFirebase(() => {
     if (!firestore || !otherUserId) return null;
@@ -54,18 +56,14 @@ export default function ChatPage() {
   const { data: otherUser } = useDoc<UserProfile>(otherUserRef);
 
   const messagesQuery = useMemoFirebase(() => {
-    if (!firestore || !chatId || !user) return null;
-    // Ensure we only query if the user is part of the chatId to avoid permission errors
-    const isParticipant = (chatId as string).includes(user.uid);
-    if (!isParticipant) return null;
-
+    if (!firestore || !chatId || !isUserParticipant) return null;
     return query(collection(firestore, 'chats', chatId as string, 'messages'), orderBy('createdAt', 'asc'));
-  }, [firestore, chatId, user]);
+  }, [firestore, chatId, isUserParticipant]);
 
   const { data: messages, error: messagesError } = useCollection<Message>(messagesQuery);
 
   useEffect(() => {
-    if (!firestore || !user || !chatId || !messages) return;
+    if (!firestore || !user || !chatId || !messages || !isUserParticipant) return;
 
     const unreadMessages = messages.filter(m => m.recipientId === user.uid && !m.read);
     if (unreadMessages.length > 0) {
@@ -76,7 +74,7 @@ export default function ChatPage() {
       });
       batch.commit().catch(err => console.error("Error marking messages as read:", err));
     }
-  }, [firestore, user, chatId, messages]);
+  }, [firestore, user, chatId, messages, isUserParticipant]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -84,12 +82,13 @@ export default function ChatPage() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !firestore || !inputText.trim() || !otherUserId) return;
+    if (!user || !firestore || !inputText.trim() || !otherUserId || !isUserParticipant) return;
     const text = inputText.trim();
     setInputText('');
     
     const participants = [user.uid, otherUserId].sort();
     
+    // Use setDoc with merge to ensure the chat document exists
     await setDoc(doc(firestore, 'chats', chatId as string), {
         id: chatId,
         participants,
@@ -115,7 +114,11 @@ export default function ChatPage() {
     );
   }
 
-  if (!user) return null;
+  if (!user || !isUserParticipant) {
+    if (hasMounted && !isUserLoading) router.replace('/');
+    return null;
+  }
+
   const isOtherAdmin = otherUser?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   return (

@@ -51,18 +51,27 @@ service cloud.firestore {
       }
     }
 
-    // Chat Rules - Robust permissions using split for uid1_uid2 format
+    // Chat Rules - Bulletproof permissions for uid1_uid2 format
     match /chats/{chatId} {
       function isParticipant() {
-        return isAuthenticated() && (request.auth.uid in chatId.split('_') || isAdmin());
+        return isAuthenticated() && (
+          request.auth.uid == chatId.split('_')[0] || 
+          request.auth.uid == chatId.split('_')[1] || 
+          isAdmin()
+        );
       }
 
       allow read, write: if isParticipant();
       
       match /messages/{messageId} {
         allow read: if isParticipant();
-        allow write: if isAuthenticated() && (request.auth.uid in chatId.split('_'));
+        allow write: if isParticipant();
       }
+    }
+
+    // Saved Posts Rules
+    match /saved_posts/{savedPostId} {
+      allow read, write: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);
     }
 
     // Support for collectionGroup queries (Red Dot feature)
