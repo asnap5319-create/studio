@@ -1,5 +1,5 @@
-
 include ':app'
-
-// Capacitor will automatically add native plugins here during build
-// If this file was missing, it's often because 'npx cap add' wasn't fully finished
+include ':capacitor-android'
+project(':capacitor-android').projectDir = new File('../node_modules/@capacitor/android/capacitor')
+include ':capacitor-cordova-android-plugins'
+project(':capacitor-cordova-android-plugins').projectDir = new File('capacitor-cordova-android-plugins')
