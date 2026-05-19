@@ -1,7 +1,7 @@
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
-import { collectionGroup, query, orderBy, limit, where, collection } from 'firebase/firestore';
+import { collectionGroup, query, orderBy, limit, where } from 'firebase/firestore';
 import { PostCard } from '@/components/post-card';
 import { NativeAdCard } from '@/components/native-ad-card';
 import { Loader2, MessageCircle, Bell, RefreshCw } from 'lucide-react';

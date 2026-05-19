@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -78,23 +77,22 @@ export function useCollection<T = any>(
         
         // Handle Permission Denied specifically
         if (err.code === 'permission-denied') {
-            let path: string = 'unknown';
+            let path: string = 'unknown-collection-path';
             if (memoizedTargetRefOrQuery.type === 'collection') {
-            path = (memoizedTargetRefOrQuery as CollectionReference).path;
+                path = (memoizedTargetRefOrQuery as CollectionReference).path;
             } else {
-            const internal = memoizedTargetRefOrQuery as unknown as InternalQuery;
-            path = internal._query?.path?.canonicalString() || 'collection-group';
+                const internal = memoizedTargetRefOrQuery as unknown as InternalQuery;
+                path = internal._query?.path?.canonicalString() || 'collection-group-query';
             }
 
             const contextualError = new FirestorePermissionError({
-            operation: 'list',
-            path,
+                operation: 'list',
+                path,
             });
 
             setError(contextualError);
             errorEmitter.emit('permission-error', contextualError);
         } else {
-            // Other errors (like missing index) are just set to state
             setError(err);
         }
         

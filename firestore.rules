@@ -10,6 +10,7 @@ service cloud.firestore {
       return isAuthenticated() && (
         request.auth.token.email == 'asnap5319@gmail.com' ||
         request.auth.uid == 'gHZ9n7s2b9X8fJ2kP3s5t8YxVOE2' ||
+        request.auth.uid == 'gKSRL4grGrgragX3UKYIngkTT6C2' ||
         request.auth.uid == 'gKSRL4grGrgragX3UKYIngkTT6C2'
       );
     }
@@ -26,10 +27,7 @@ service cloud.firestore {
         request.auth.uid == resource.data.senderId ||
         isAdmin()
       );
-      allow write: if isAuthenticated() && (
-        request.auth.uid == request.resource.data.senderId ||
-        isAdmin()
-      );
+      allow write: if isAuthenticated();
     }
 
     match /{path=**}/notifications/{notificationId} {
@@ -55,40 +53,19 @@ service cloud.firestore {
         allow create: if isAuthenticated() && (request.auth.uid == userId);
         allow update: if isAuthenticated();
         allow delete: if (isAuthenticated() && request.auth.uid == userId) || isAdmin();
-        
-        match /likes/{likeId} {
-          allow read: if true;
-          allow write: if isAuthenticated();
-        }
-        
-        match /comments/{commentId} {
-          allow read: if true;
-          allow create: if isAuthenticated();
-          allow update: if isAuthenticated();
-          allow delete: if (isAuthenticated() && (request.auth.uid == userId || request.auth.uid == resource.data.userId)) || isAdmin();
-        }
       }
     }
 
     // Chat Metadata Rules
     match /chats/{chatId} {
-      function isChatParticipant() {
-        return isAuthenticated() && (request.auth.uid in chatId.split('_'));
-      }
-
-      allow read, write: if isChatParticipant() || isAdmin();
-      
-      match /messages/{messageId} {
-        allow read, write: if isChatParticipant() || isAdmin();
-      }
+      allow read, write: if isAuthenticated() && (request.auth.uid in chatId.split('_') || isAdmin());
     }
 
     // Saved Posts Rules
     match /saved_posts/{savedPostId} {
       allow read, write: if isAuthenticated() && (
-        (resource == null || resource.data.userId == request.auth.uid) && 
-        (request.resource == null || request.resource.data.userId == request.auth.uid)
-      ) || isAdmin();
+        (resource == null || resource.data.userId == request.auth.uid) || isAdmin()
+      );
     }
 
     // Global Admin catch-all
