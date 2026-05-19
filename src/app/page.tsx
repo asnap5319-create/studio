@@ -35,7 +35,8 @@ export default function HomePage() {
   const unreadNotificationsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
-      collection(firestore, 'users', user.uid, 'notifications'),
+      collectionGroup(firestore, 'notifications'),
+      where('recipientId', '==', user.uid),
       where('read', '==', false),
       limit(1)
     );
@@ -64,7 +65,7 @@ export default function HomePage() {
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
 
-    // Inject ads every 2 posts as requested for more frequency
+    // Inject ads every 2 posts for maximum frequency as requested
     const result: (Post | { type: 'ad'; id: string })[] = [];
     shuffled.forEach((post, index) => {
       result.push(post);

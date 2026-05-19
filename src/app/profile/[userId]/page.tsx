@@ -263,7 +263,7 @@ export default function ProfilePage() {
             <EditProfileSheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen} userProfile={userProfile} />
 
             <Dialog open={isEarningsOpen} onOpenChange={setIsEarningsOpen}>
-                <DialogContent className="bg-[#121212] border-white/10 rounded-[2.5rem] p-6 max-w-sm">
+                <DialogContent className="bg-[#121212] border-white/10 rounded-[2.5rem] p-6 max-w-sm" onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
                     <DialogHeader className="flex flex-row items-center justify-between border-b border-white/5 pb-4">
                         <DialogTitle className="text-xl font-black italic uppercase text-primary">Creator Earnings</DialogTitle>
                     </DialogHeader>

@@ -47,7 +47,7 @@ service cloud.firestore {
       }
     }
 
-    // Chat Rules - Fixed using direct ID split check for robust permissions
+    // Chat Rules - Robust Participant Check
     match /chats/{chatId} {
       function isChatParticipant() {
         return isAuthenticated() && (request.auth.uid in chatId.split('_'));
@@ -60,23 +60,9 @@ service cloud.firestore {
       }
     }
 
-    // Saved Posts Rules - Fixed with proper auth mapping
-    match /saved_posts/{id} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow write: if isAuthenticated() && (
-        (request.resource != null && request.resource.data.userId == request.auth.uid) ||
-        (resource != null && resource.data.userId == request.auth.uid)
-      );
-    }
-
-    // Follower/Following rules
-    match /user_followers/{followedUserId}/followers/{followerUserId} {
-      allow read: if true;
-      allow write: if isAuthenticated() && request.auth.uid == followerUserId;
-    }
-    match /user_following/{followerUserId}/following/{followedUserId} {
-      allow read: if true;
-      allow write: if isAuthenticated() && request.auth.uid == followerUserId;
+    // Saved Posts Rules - As requested
+    match /saved_posts/{savedPostId} {
+      allow read, write: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid) && (request.resource == null || request.resource.data.userId == request.auth.uid);
     }
 
     // Collection Group Rules - CRITICAL for Red Dot and Explore
@@ -90,6 +76,10 @@ service cloud.firestore {
         request.auth.uid == resource.data.senderId ||
         isAdmin()
       );
+    }
+
+    match /{path=**}/notifications/{notificationId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.recipientId || isAdmin());
     }
 
     // Global Admin catch-all
