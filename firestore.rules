@@ -6,12 +6,13 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // MASTER ADMIN RULE - Grant full access to your specific UID and Admin Email
+    // MASTER ADMIN RULE - Grant full access to your specific UID and Admin Emails
     function isAdmin() {
       return isAuthenticated() && (
         request.auth.uid == 'gKSRL4grGrgragX3UKYIngkTT6C2' || 
         request.auth.uid == 'gHZ9n7s2b9X8fJ2kP3s5t8YxVOE2' ||
-        request.auth.token.email == 'asnap5319@gmail.com'
+        request.auth.token.email == 'asnap5319@gmail.com' ||
+        request.auth.token.email == 'ak63315561338@gmail.com'
       );
     }
 
@@ -20,7 +21,9 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // COLLECTION GROUP RULES (Critical for Global Search/Feed/Red Dots)
+    // EXPLICIT COLLECTION GROUP RULES (Required for queries like collectionGroup)
+    // These allow the Home Page (Red Dots) and Global Search to work correctly.
+    
     match /{path=**}/posts/{postId} {
       allow read: if true;
     }
@@ -42,7 +45,7 @@ service cloud.firestore {
       allow write: if isAuthenticated();
     }
 
-    // Standard User Rules
+    // Standard Document Rules for regular users
     match /users/{userId} {
       allow read: if true;
       allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());

@@ -77,18 +77,22 @@ export function useCollection<T = any>(
         
         // Handle Permission Denied specifically
         if (err.code === 'permission-denied') {
-            let path: string = 'Firestore Query';
+            let path: string = 'Unknown Collection';
+            
+            // Attempt to get the collection name for better error reporting
             if (memoizedTargetRefOrQuery.type === 'collection') {
                 path = (memoizedTargetRefOrQuery as CollectionReference).path;
             } else {
-                // Better path reporting for collection groups
                 const target = memoizedTargetRefOrQuery as any;
-                path = target._query?.path?.toString() || target.collectionId || 'Collection Group';
+                // Try to find the actual collection ID/Name being queried
+                path = target.collectionId || 
+                       (target._query?.path?.toString()) || 
+                       'Collection Group Query';
             }
 
             const contextualError = new FirestorePermissionError({
                 operation: 'list',
-                path,
+                path: path.replace(/^\/databases\/\(default\)\/documents\//, ''),
             });
 
             setError(contextualError);
