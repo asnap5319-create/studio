@@ -77,16 +77,14 @@ export function useCollection<T = any>(
         
         // Handle Permission Denied specifically
         if (err.code === 'permission-denied') {
-            let path: string = 'Unknown Collection';
+            let path: string = 'Firestore Query';
             
             // Attempt to get the collection name for better error reporting
             if (memoizedTargetRefOrQuery.type === 'collection') {
                 path = (memoizedTargetRefOrQuery as CollectionReference).path;
             } else {
                 const target = memoizedTargetRefOrQuery as any;
-                // Use internal properties to find what collection we are actually trying to read
-                // This helps the user know exactly which rule is failing.
-                path = target.path || (target as any)._query?.path?.toString() || 'Collection Group';
+                path = target.path || (target as any)._query?.path?.toString() || 'Global Collection';
             }
 
             const contextualError = new FirestorePermissionError({
