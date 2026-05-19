@@ -15,13 +15,13 @@ service cloud.firestore {
       );
     }
 
-    // COLLECTION GROUP RULES - These MUST be defined broadly to support cross-user queries
+    // COLLECTION GROUP RULES - Critical for Feed and Red Dots
     match /{path=**}/posts/{postId} {
       allow read: if true;
     }
 
     match /{path=**}/messages/{messageId} {
-      // Allow if user is recipient or sender, critical for Red Dot collectionGroup query
+      // Allow read if user is sender, recipient, or admin
       allow read: if isAuthenticated() && (
         request.auth.uid == resource.data.recipientId || 
         request.auth.uid == resource.data.senderId ||
@@ -31,7 +31,7 @@ service cloud.firestore {
     }
 
     match /{path=**}/notifications/{notificationId} {
-      // Allow if user is recipient, critical for Red Dot collectionGroup query
+      // Allow read if user is the recipient or admin
       allow read: if isAuthenticated() && (
         request.auth.uid == resource.data.recipientId || 
         isAdmin()
@@ -68,7 +68,7 @@ service cloud.firestore {
       );
     }
 
-    // Global Admin catch-all
+    // Global Admin and Master User catch-all
     match /{allPaths=**} {
       allow read, write: if isAdmin();
     }

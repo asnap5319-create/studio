@@ -77,12 +77,12 @@ export function useCollection<T = any>(
         
         // Handle Permission Denied specifically
         if (err.code === 'permission-denied') {
-            let path: string = 'unknown-collection-path';
+            let path: string = 'Firestore Query';
             if (memoizedTargetRefOrQuery.type === 'collection') {
                 path = (memoizedTargetRefOrQuery as CollectionReference).path;
             } else {
-                const internal = memoizedTargetRefOrQuery as unknown as InternalQuery;
-                path = internal._query?.path?.canonicalString() || 'collection-group-query';
+                // For queries, we try to get a string representation
+                path = 'CollectionGroup Query';
             }
 
             const contextualError = new FirestorePermissionError({
