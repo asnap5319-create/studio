@@ -6,26 +6,26 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // MASTER ADMIN RULE - Grant full access to your specific UID and Admin Email
     function isAdmin() {
       return isAuthenticated() && (
-        request.auth.token.email == 'asnap5319@gmail.com' ||
+        request.auth.uid == 'gKSRL4grGrgragX3UKYIngkTT6C2' || 
         request.auth.uid == 'gHZ9n7s2b9X8fJ2kP3s5t8YxVOE2' ||
-        request.auth.uid == 'gKSRL4grGrgragX3UKYIngkTT6C2'
+        request.auth.token.email == 'asnap5319@gmail.com'
       );
     }
 
-    // MASTER RULE - Admin gets access to EVERYTHING
+    // APPLY MASTER ACCESS - This overrides all other rules for you
     match /{allPaths=**} {
       allow read, write: if isAdmin();
     }
 
-    // COLLECTION GROUP RULES - Critical for Home Feed and Red Dots
+    // COLLECTION GROUP RULES (Critical for Global Search/Feed/Red Dots)
     match /{path=**}/posts/{postId} {
       allow read: if true;
     }
 
     match /{path=**}/messages/{messageId} {
-      // Allow read if user is sender, recipient, or admin
       allow read: if isAuthenticated() && (
         request.auth.uid == resource.data.recipientId || 
         request.auth.uid == resource.data.senderId ||
@@ -35,7 +35,6 @@ service cloud.firestore {
     }
 
     match /{path=**}/notifications/{notificationId} {
-      // Allow read if user is the recipient or admin
       allow read: if isAuthenticated() && (
         request.auth.uid == resource.data.recipientId || 
         isAdmin()
@@ -48,15 +47,21 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       
-      match /{allData=**} {
-        allow read, write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-      }
-
       match /posts/{postId} {
         allow read: if true;
         allow create: if isAuthenticated() && (request.auth.uid == userId);
         allow update: if isAuthenticated();
         allow delete: if (isAuthenticated() && request.auth.uid == userId) || isAdmin();
+
+        match /comments/{commentId} {
+          allow read: if true;
+          allow write: if isAuthenticated();
+        }
+      }
+
+      match /notifications/{notificationId} {
+        allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+        allow write: if isAuthenticated();
       }
     }
 
