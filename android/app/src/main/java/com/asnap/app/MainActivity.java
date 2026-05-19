@@ -1,3 +1,4 @@
+
 package com.asnap.app;
 
 import com.getcapacitor.BridgeActivity;
