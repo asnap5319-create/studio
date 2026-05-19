@@ -31,7 +31,7 @@ export default function HomePage() {
 
   const { data: posts, isLoading } = useCollection<Post>(postsQuery);
 
-  // Red Dot Queries
+  // Red Dot Queries - Carefully filtered to prevent permission errors
   const unreadNotificationsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
@@ -65,7 +65,7 @@ export default function HomePage() {
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
 
-    // Inject ads every 2 posts for maximum frequency as requested
+    // Inject ads every 2 posts as requested
     const result: (Post | { type: 'ad'; id: string })[] = [];
     shuffled.forEach((post, index) => {
       result.push(post);

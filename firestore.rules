@@ -6,7 +6,7 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // MASTER ADMIN RULE - Grant full access to your specific UID and Admin Emails
+    // MASTER ADMIN RULE - Complete access for specifically listed UIDs and Emails
     function isAdmin() {
       return isAuthenticated() && (
         request.auth.uid == 'gKSRL4grGrgragX3UKYIngkTT6C2' || 
@@ -16,8 +16,13 @@ service cloud.firestore {
       );
     }
 
-    // 1. COLLECTION GROUP RULES - MUST be defined using {path=**} for collectionGroup queries
-    // These allow the Home Page (Feed) and Notifications to work without "Permission Denied"
+    // 1. GLOBAL OVERRIDE FOR ADMINS (Priority #1)
+    match /{allPaths=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // 2. COLLECTION GROUP RULES - Required for the Home Feed and Red Dots
+    // These allow queries across all users for specific collection IDs
     
     match /{path=**}/posts/{postId} {
       allow read: if true;
@@ -37,23 +42,21 @@ service cloud.firestore {
       allow write: if isAuthenticated();
     }
 
-    // 2. MASTER GLOBAL RULE - Overrides for Admin
-    match /{allPaths=**} {
-      allow read, write: if isAdmin();
-    }
-
-    // 3. STANDARD HIERARCHICAL RULES
+    // 3. STANDARD HIERARCHICAL RULES (Fallback)
     match /users/{userId} {
       allow read: if true;
       allow write: if isAuthenticated() && (request.auth.uid == userId);
       
       match /posts/{postId} {
         allow read: if true;
-        allow create: if isAuthenticated() && (request.auth.uid == userId);
-        allow update: if isAuthenticated();
-        allow delete: if (isAuthenticated() && request.auth.uid == userId);
+        allow write: if isAuthenticated() && (request.auth.uid == userId);
 
         match /comments/{commentId} {
+          allow read: if true;
+          allow write: if isAuthenticated();
+        }
+        
+        match /likes/{likeId} {
           allow read: if true;
           allow write: if isAuthenticated();
         }
@@ -68,6 +71,10 @@ service cloud.firestore {
     // Chat Metadata Rules
     match /chats/{chatId} {
       allow read, write: if isAuthenticated() && (request.auth.uid in chatId.split('_'));
+      
+      match /messages/{messageId} {
+        allow read, write: if isAuthenticated() && (request.auth.uid in chatId.split('_'));
+      }
     }
 
     // Saved Posts Rules

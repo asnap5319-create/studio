@@ -84,11 +84,9 @@ export function useCollection<T = any>(
                 path = (memoizedTargetRefOrQuery as CollectionReference).path;
             } else {
                 const target = memoizedTargetRefOrQuery as any;
-                // Try to find the actual collection ID/Name being queried
-                // Use the collectionId if available, or extract from internal _query path
-                path = target.collectionId || 
-                       (target._query?.path?.toString()) || 
-                       'Collection Group Query';
+                // Use internal properties to find what collection we are actually trying to read
+                // This helps the user know exactly which rule is failing.
+                path = target.path || (target as any)._query?.path?.toString() || 'Collection Group';
             }
 
             const contextualError = new FirestorePermissionError({
