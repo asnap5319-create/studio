@@ -9,7 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Card, CardContent } from "@/components/ui/card";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck, Wallet, Eye, TrendingUp, X } from "lucide-react";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck, Wallet, Eye } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -69,7 +69,6 @@ export default function ProfilePage() {
     const { data: followData } = useDoc(followCheckRef);
     const isFollowing = !!followData;
 
-    // Calculate total earnings and impressions
     const earningsStats = useMemo(() => {
         if (!posts) return { total: 0, impressions: 0 };
         return posts.reduce((acc, post) => ({
@@ -143,11 +142,23 @@ export default function ProfilePage() {
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[180px] p-2">
-                            <DropdownMenuItem onClick={() => setIsEarningsOpen(true)} className="font-bold p-3 rounded-xl text-green-400 cursor-pointer">
+                            <DropdownMenuItem 
+                                onSelect={(e) => {
+                                    e.preventDefault();
+                                    setIsEarningsOpen(true);
+                                }}
+                                className="font-bold p-3 rounded-xl text-green-400 cursor-pointer"
+                            >
                                 <Wallet className="mr-2 h-4 w-4" /> Creator Earnings
                             </DropdownMenuItem>
                             {isCurrentUserAdmin && (
-                                <DropdownMenuItem onClick={() => router.push('/admin')} className="font-bold p-3 rounded-xl text-primary cursor-pointer">
+                                <DropdownMenuItem 
+                                    onSelect={(e) => {
+                                        e.preventDefault();
+                                        router.push('/admin');
+                                    }} 
+                                    className="font-bold p-3 rounded-xl text-primary cursor-pointer"
+                                >
                                     <ShieldCheck className="mr-2 h-4 w-4" /> Master Panel
                                 </DropdownMenuItem>
                             )}
@@ -251,7 +262,6 @@ export default function ProfilePage() {
 
             <EditProfileSheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen} userProfile={userProfile} />
 
-            {/* Earnings Modal inside the menu logic */}
             <Dialog open={isEarningsOpen} onOpenChange={setIsEarningsOpen}>
                 <DialogContent className="bg-[#121212] border-white/10 rounded-[2.5rem] p-6 max-w-sm">
                     <DialogHeader className="flex flex-row items-center justify-between border-b border-white/5 pb-4">
