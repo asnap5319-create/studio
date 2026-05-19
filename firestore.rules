@@ -16,45 +16,42 @@ service cloud.firestore {
       );
     }
 
-    // APPLY MASTER ACCESS - This overrides all other rules for you
-    match /{allPaths=**} {
-      allow read, write: if isAdmin();
-    }
-
-    // EXPLICIT COLLECTION GROUP RULES (Required for queries like collectionGroup)
-    // These allow the Home Page (Red Dots) and Global Search to work correctly.
+    // 1. COLLECTION GROUP RULES - MUST be defined using {path=**} for collectionGroup queries
+    // These allow the Home Page (Feed) and Notifications to work without "Permission Denied"
     
     match /{path=**}/posts/{postId} {
       allow read: if true;
+      allow write: if isAdmin() || (isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid));
     }
 
     match /{path=**}/messages/{messageId} {
-      allow read: if isAuthenticated() && (
+      allow read: if isAdmin() || (isAuthenticated() && (
         request.auth.uid == resource.data.recipientId || 
-        request.auth.uid == resource.data.senderId ||
-        isAdmin()
-      );
+        request.auth.uid == resource.data.senderId
+      ));
       allow write: if isAuthenticated();
     }
 
     match /{path=**}/notifications/{notificationId} {
-      allow read: if isAuthenticated() && (
-        request.auth.uid == resource.data.recipientId || 
-        isAdmin()
-      );
+      allow read: if isAdmin() || (isAuthenticated() && request.auth.uid == resource.data.recipientId);
       allow write: if isAuthenticated();
     }
 
-    // Standard Document Rules for regular users
+    // 2. MASTER GLOBAL RULE - Overrides for Admin
+    match /{allPaths=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // 3. STANDARD HIERARCHICAL RULES
     match /users/{userId} {
       allow read: if true;
-      allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAuthenticated() && (request.auth.uid == userId);
       
       match /posts/{postId} {
         allow read: if true;
         allow create: if isAuthenticated() && (request.auth.uid == userId);
         allow update: if isAuthenticated();
-        allow delete: if (isAuthenticated() && request.auth.uid == userId) || isAdmin();
+        allow delete: if (isAuthenticated() && request.auth.uid == userId);
 
         match /comments/{commentId} {
           allow read: if true;
@@ -63,20 +60,20 @@ service cloud.firestore {
       }
 
       match /notifications/{notificationId} {
-        allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+        allow read: if isAuthenticated() && (request.auth.uid == userId);
         allow write: if isAuthenticated();
       }
     }
 
     // Chat Metadata Rules
     match /chats/{chatId} {
-      allow read, write: if isAuthenticated() && (request.auth.uid in chatId.split('_') || isAdmin());
+      allow read, write: if isAuthenticated() && (request.auth.uid in chatId.split('_'));
     }
 
     // Saved Posts Rules
     match /saved_posts/{savedPostId} {
       allow read, write: if isAuthenticated() && (
-        (resource == null || resource.data.userId == request.auth.uid) || isAdmin()
+        (resource == null || resource.data.userId == request.auth.uid)
       );
     }
   }

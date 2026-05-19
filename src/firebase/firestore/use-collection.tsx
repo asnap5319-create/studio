@@ -85,6 +85,7 @@ export function useCollection<T = any>(
             } else {
                 const target = memoizedTargetRefOrQuery as any;
                 // Try to find the actual collection ID/Name being queried
+                // Use the collectionId if available, or extract from internal _query path
                 path = target.collectionId || 
                        (target._query?.path?.toString()) || 
                        'Collection Group Query';
@@ -110,7 +111,7 @@ export function useCollection<T = any>(
   }, [memoizedTargetRefOrQuery]);
 
   if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
-    throw new Error(memoizedTargetRefOrQuery + ' was not properly memoized using useMemoFirebase');
+    throw new Error('Firestore target was not properly memoized using useMemoFirebase');
   }
   return { data, isLoading, error };
 }
