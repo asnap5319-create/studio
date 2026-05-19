@@ -10,12 +10,16 @@ service cloud.firestore {
       return isAuthenticated() && (
         request.auth.token.email == 'asnap5319@gmail.com' ||
         request.auth.uid == 'gHZ9n7s2b9X8fJ2kP3s5t8YxVOE2' ||
-        request.auth.uid == 'gKSRL4grGrgragX3UKYIngkTT6C2' ||
         request.auth.uid == 'gKSRL4grGrgragX3UKYIngkTT6C2'
       );
     }
 
-    // COLLECTION GROUP RULES - Critical for Feed and Red Dots
+    // MASTER RULE - Admin gets access to EVERYTHING
+    match /{allPaths=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // COLLECTION GROUP RULES - Critical for Home Feed and Red Dots
     match /{path=**}/posts/{postId} {
       allow read: if true;
     }
@@ -66,11 +70,6 @@ service cloud.firestore {
       allow read, write: if isAuthenticated() && (
         (resource == null || resource.data.userId == request.auth.uid) || isAdmin()
       );
-    }
-
-    // Global Admin and Master User catch-all
-    match /{allPaths=**} {
-      allow read, write: if isAdmin();
     }
   }
 }

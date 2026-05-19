@@ -81,8 +81,9 @@ export function useCollection<T = any>(
             if (memoizedTargetRefOrQuery.type === 'collection') {
                 path = (memoizedTargetRefOrQuery as CollectionReference).path;
             } else {
-                // For queries, we try to get a string representation
-                path = 'CollectionGroup Query';
+                // For queries, we try to represent the collection name if available
+                const queryInfo = (memoizedTargetRefOrQuery as any)._query;
+                path = queryInfo?.path?.toString() || 'CollectionGroup Query';
             }
 
             const contextualError = new FirestorePermissionError({
