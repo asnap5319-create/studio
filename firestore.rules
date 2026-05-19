@@ -51,27 +51,24 @@ service cloud.firestore {
       }
     }
 
-    // Chat Rules - Improved for better path matching
+    // Chat Rules - Improved for better path matching and string splitting
     match /chats/{chatId} {
-      function isParticipant() {
-        return isAuthenticated() && (
-          request.auth.uid in chatId.split('_') || 
-          isAdmin()
-        );
+      function isChatParticipant() {
+        return isAuthenticated() && (request.auth.uid in chatId.split('_'));
       }
 
-      allow read: if isParticipant();
-      allow create, update: if isParticipant();
+      allow read: if isChatParticipant() || isAdmin();
+      allow create, update: if isChatParticipant() || isAdmin();
       allow delete: if isAdmin();
       
       match /messages/{messageId} {
-        allow read: if isParticipant();
-        allow create: if isParticipant();
-        allow update, delete: if isParticipant() || isAdmin();
+        allow read: if isChatParticipant() || isAdmin();
+        allow create: if isChatParticipant() || isAdmin();
+        allow update, delete: if isChatParticipant() || isAdmin();
       }
     }
 
-    // Saved Posts Rules - User specific access
+    // Saved Posts Rules - As requested, fixed with correct auth check
     match /saved_posts/{savedPostId} {
       allow read, write: if isAuthenticated() && (
         resource == null || resource.data.userId == request.auth.uid

@@ -30,11 +30,11 @@ export default function ChatPage() {
     setHasMounted(true);
   }, []);
 
+  // Strict check to prevent permission errors before auth is fully ready or if user is not in chat
   const isUserParticipant = useMemo(() => {
     if (!user || !chatId) return false;
-    const uid = user.uid;
     const idStr = chatId as string;
-    return idStr.split('_').includes(uid);
+    return idStr.split('_').includes(user.uid);
   }, [user, chatId]);
 
   const chatRef = useMemoFirebase(() => {
