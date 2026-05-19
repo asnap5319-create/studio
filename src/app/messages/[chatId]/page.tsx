@@ -42,7 +42,7 @@ export default function ChatPage() {
     return doc(firestore, 'chats', chatId as string);
   }, [firestore, chatId, isUserParticipant]);
 
-  const { data: chat, isLoading: isChatLoading } = useDoc<Chat>(chatRef);
+  const { data: chat, isLoading: isChatLoading, error: chatError } = useDoc<Chat>(chatRef);
   
   const otherUserId = useMemo(() => {
     if (!chatId || !user) return null;
@@ -147,7 +147,7 @@ export default function ChatPage() {
         )}
       </header>
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
-        {messagesError && (
+        {(messagesError || chatError) && (
           <div className="p-4 bg-destructive/10 text-destructive text-center rounded-xl text-xs font-bold">
             Unable to load messages. Please check permissions.
           </div>

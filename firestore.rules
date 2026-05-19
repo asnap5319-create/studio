@@ -6,10 +6,6 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-
     function isAdmin() {
       return isAuthenticated() && (
         request.auth.token.email == 'asnap5319@gmail.com' ||
@@ -20,17 +16,17 @@ service cloud.firestore {
     // User Rules
     match /users/{userId} {
       allow read: if true;
-      allow write: if isOwner(userId) || isAdmin();
+      allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       
       match /{allData=**} {
-        allow read, write: if isOwner(userId) || isAdmin();
+        allow read, write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       }
 
       match /posts/{postId} {
         allow read: if true;
-        allow create: if isOwner(userId);
+        allow create: if isAuthenticated() && (request.auth.uid == userId);
         allow update: if isAuthenticated();
-        allow delete: if isOwner(userId) || isAdmin();
+        allow delete: if (isAuthenticated() && request.auth.uid == userId) || isAdmin();
         
         match /likes/{likeId} {
           allow read: if true;
@@ -41,41 +37,53 @@ service cloud.firestore {
           allow read: if true;
           allow create: if isAuthenticated();
           allow update: if isAuthenticated();
-          allow delete: if isOwner(userId) || isAdmin() || (isAuthenticated() && request.auth.uid == resource.data.userId);
+          allow delete: if (isAuthenticated() && (request.auth.uid == userId || request.auth.uid == resource.data.userId)) || isAdmin();
         }
       }
       
       match /notifications/{notificationId} {
-        allow read: if isOwner(userId);
+        allow read: if isAuthenticated() && (request.auth.uid == userId);
         allow write: if isAuthenticated();
       }
     }
 
-    // Chat Rules - Improved for better path matching and string splitting
+    // Chat Rules - Fixed using direct ID split check for robust permissions
     match /chats/{chatId} {
       function isChatParticipant() {
         return isAuthenticated() && (request.auth.uid in chatId.split('_'));
       }
 
-      allow read: if isChatParticipant() || isAdmin();
-      allow create, update: if isChatParticipant() || isAdmin();
-      allow delete: if isAdmin();
+      allow read, write: if isChatParticipant() || isAdmin();
       
       match /messages/{messageId} {
-        allow read: if isChatParticipant() || isAdmin();
-        allow create: if isChatParticipant() || isAdmin();
-        allow update, delete: if isChatParticipant() || isAdmin();
+        allow read, write: if isChatParticipant() || isAdmin();
       }
     }
 
-    // Saved Posts Rules - As requested, fixed with correct auth check
-    match /saved_posts/{savedPostId} {
-      allow read, write: if isAuthenticated() && (
-        resource == null || resource.data.userId == request.auth.uid
+    // Saved Posts Rules - Fixed with proper auth mapping
+    match /saved_posts/{id} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow write: if isAuthenticated() && (
+        (request.resource != null && request.resource.data.userId == request.auth.uid) ||
+        (resource != null && resource.data.userId == request.auth.uid)
       );
     }
 
-    // Support for collectionGroup queries (Red Dot feature)
+    // Follower/Following rules
+    match /user_followers/{followedUserId}/followers/{followerUserId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && request.auth.uid == followerUserId;
+    }
+    match /user_following/{followerUserId}/following/{followedUserId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && request.auth.uid == followerUserId;
+    }
+
+    // Collection Group Rules - CRITICAL for Red Dot and Explore
+    match /{path=**}/posts/{postId} {
+      allow read: if true;
+    }
+
     match /{path=**}/messages/{messageId} {
       allow read: if isAuthenticated() && (
         request.auth.uid == resource.data.recipientId || 
@@ -84,20 +92,7 @@ service cloud.firestore {
       );
     }
 
-    match /{path=**}/posts/{postId} {
-        allow read: if true;
-    }
-
-    // Follower/Following rules
-    match /user_followers/{followedUserId}/followers/{followerUserId} {
-      allow read: if true;
-      allow write: if isOwner(followerUserId);
-    }
-    match /user_following/{followerUserId}/following/{followedUserId} {
-      allow read: if true;
-      allow write: if isOwner(followerUserId);
-    }
-
+    // Global Admin catch-all
     match /{allPaths=**} {
       allow read, write: if isAdmin();
     }
