@@ -9,11 +9,39 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthenticated() && (
         request.auth.token.email == 'asnap5319@gmail.com' ||
-        request.auth.uid == 'gHZ9n7s2b9X8fJ2kP3s5t8YxVOE2'
+        request.auth.uid == 'gHZ9n7s2b9X8fJ2kP3s5t8YxVOE2' ||
+        request.auth.uid == 'gKSRL4grGrgragX3UKYIngkTT6C2'
       );
     }
 
-    // User Rules
+    // COLLECTION GROUP RULES - These MUST be defined broadly to support cross-user queries
+    match /{path=**}/posts/{postId} {
+      allow read: if true;
+    }
+
+    match /{path=**}/messages/{messageId} {
+      // Allow if user is recipient or sender, critical for Red Dot collectionGroup query
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.recipientId || 
+        request.auth.uid == resource.data.senderId ||
+        isAdmin()
+      );
+      allow write: if isAuthenticated() && (
+        request.auth.uid == request.resource.data.senderId ||
+        isAdmin()
+      );
+    }
+
+    match /{path=**}/notifications/{notificationId} {
+      // Allow if user is recipient, critical for Red Dot collectionGroup query
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.recipientId || 
+        isAdmin()
+      );
+      allow write: if isAuthenticated();
+    }
+
+    // Standard User Rules
     match /users/{userId} {
       allow read: if true;
       allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
@@ -40,14 +68,9 @@ service cloud.firestore {
           allow delete: if (isAuthenticated() && (request.auth.uid == userId || request.auth.uid == resource.data.userId)) || isAdmin();
         }
       }
-      
-      match /notifications/{notificationId} {
-        allow read: if isAuthenticated() && (request.auth.uid == userId);
-        allow write: if isAuthenticated();
-      }
     }
 
-    // Chat Rules - Robust Participant Check
+    // Chat Metadata Rules
     match /chats/{chatId} {
       function isChatParticipant() {
         return isAuthenticated() && (request.auth.uid in chatId.split('_'));
@@ -60,26 +83,12 @@ service cloud.firestore {
       }
     }
 
-    // Saved Posts Rules - As requested
+    // Saved Posts Rules
     match /saved_posts/{savedPostId} {
-      allow read, write: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid) && (request.resource == null || request.resource.data.userId == request.auth.uid);
-    }
-
-    // Collection Group Rules - CRITICAL for Red Dot and Explore
-    match /{path=**}/posts/{postId} {
-      allow read: if true;
-    }
-
-    match /{path=**}/messages/{messageId} {
-      allow read: if isAuthenticated() && (
-        request.auth.uid == resource.data.recipientId || 
-        request.auth.uid == resource.data.senderId ||
-        isAdmin()
-      );
-    }
-
-    match /{path=**}/notifications/{notificationId} {
-      allow read: if isAuthenticated() && (request.auth.uid == resource.data.recipientId || isAdmin());
+      allow read, write: if isAuthenticated() && (
+        (resource == null || resource.data.userId == request.auth.uid) && 
+        (request.resource == null || request.resource.data.userId == request.auth.uid)
+      ) || isAdmin();
     }
 
     // Global Admin catch-all
