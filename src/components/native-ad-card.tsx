@@ -5,12 +5,12 @@ import { Logo } from './pwa-install-prompt';
 
 /**
  * NativeAdCard handles the injection of Adsterra Native Banner ads.
- * It uses a ref to ensure the script is injected only once into the specific container.
  */
 export function NativeAdCard() {
   const adContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Only inject if not already injected
     if (adContainerRef.current && adContainerRef.current.childNodes.length === 0) {
       const script = document.createElement('script');
       script.async = true;

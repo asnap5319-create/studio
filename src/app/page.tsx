@@ -64,12 +64,12 @@ export default function HomePage() {
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
 
-    // Inject ads every 4 posts
+    // Inject ads every 3 posts as requested
     const result: (Post | { type: 'ad'; id: string })[] = [];
     shuffled.forEach((post, index) => {
       result.push(post);
-      if ((index + 1) % 4 === 0) {
-        result.push({ type: 'ad', id: `ad-${index}` });
+      if ((index + 1) % 3 === 0) {
+        result.push({ type: 'ad', id: `ad-${index}-${Date.now()}` });
       }
     });
     return result;

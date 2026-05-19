@@ -3,13 +3,13 @@ import { useState, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogHeader } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck, Wallet, Eye, TrendingUp } from "lucide-react";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck, Wallet, Eye, TrendingUp, X } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -35,6 +35,7 @@ export default function ProfilePage() {
     const [selectedPost, setSelectedPost] = useState<Post | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [postToDelete, setPostToDelete] = useState<Post | null>(null);
+    const [isEarningsOpen, setIsEarningsOpen] = useState(false);
 
     const isOwnProfile = user?.uid === userId;
     const isCurrentUserAdmin = user?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -142,6 +143,9 @@ export default function ProfilePage() {
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[180px] p-2">
+                            <DropdownMenuItem onClick={() => setIsEarningsOpen(true)} className="font-bold p-3 rounded-xl text-green-400 cursor-pointer">
+                                <Wallet className="mr-2 h-4 w-4" /> Creator Earnings
+                            </DropdownMenuItem>
                             {isCurrentUserAdmin && (
                                 <DropdownMenuItem onClick={() => router.push('/admin')} className="font-bold p-3 rounded-xl text-primary cursor-pointer">
                                     <ShieldCheck className="mr-2 h-4 w-4" /> Master Panel
@@ -203,35 +207,6 @@ export default function ProfilePage() {
                 )}
             </div>
 
-            {/* Creator Earnings Dashboard - Visible only to owner */}
-            {isOwnProfile && (
-                <div className="px-4 mt-8">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-4 flex items-center gap-2">
-                        <TrendingUp size={14} /> Creator Dashboard
-                    </h3>
-                    <div className="grid grid-cols-2 gap-3">
-                        <Card className="bg-secondary/30 border-white/5 rounded-[1.5rem] overflow-hidden">
-                            <CardContent className="p-4">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <Wallet size={12} className="text-primary" />
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Estimated Earnings</span>
-                                </div>
-                                <p className="text-xl font-black italic text-white">${earningsStats.total.toFixed(2)}</p>
-                            </CardContent>
-                        </Card>
-                        <Card className="bg-secondary/30 border-white/5 rounded-[1.5rem] overflow-hidden">
-                            <CardContent className="p-4">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <Eye size={12} className="text-primary" />
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Ad Impressions</span>
-                                </div>
-                                <p className="text-xl font-black italic text-white">{earningsStats.impressions.toLocaleString()}</p>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
-            )}
-
             <Tabs defaultValue="posts" className="mt-8">
                 <TabsList className="grid w-full grid-cols-1 bg-transparent border-t border-white/5 rounded-none h-14">
                     <TabsTrigger value="posts" className="data-[state=active]:bg-transparent data-[state=active]:border-t-2 border-white"><Grid3x3 className="h-6 w-6" /></TabsTrigger>
@@ -275,6 +250,41 @@ export default function ProfilePage() {
             </Tabs>
 
             <EditProfileSheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen} userProfile={userProfile} />
+
+            {/* Earnings Modal inside the menu logic */}
+            <Dialog open={isEarningsOpen} onOpenChange={setIsEarningsOpen}>
+                <DialogContent className="bg-[#121212] border-white/10 rounded-[2.5rem] p-6 max-w-sm">
+                    <DialogHeader className="flex flex-row items-center justify-between border-b border-white/5 pb-4">
+                        <DialogTitle className="text-xl font-black italic uppercase text-primary">Creator Earnings</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-6">
+                        <Card className="bg-secondary/30 border-white/5 rounded-3xl">
+                            <CardContent className="p-6">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Wallet size={16} className="text-primary" />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Estimated Balance</span>
+                                </div>
+                                <p className="text-4xl font-black italic text-white">${earningsStats.total.toFixed(2)}</p>
+                            </CardContent>
+                        </Card>
+                        <Card className="bg-secondary/30 border-white/5 rounded-3xl">
+                            <CardContent className="p-6">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Eye size={16} className="text-primary" />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Total Ad Impressions</span>
+                                </div>
+                                <p className="text-3xl font-black italic text-white">{earningsStats.impressions.toLocaleString()}</p>
+                            </CardContent>
+                        </Card>
+                        <div className="bg-primary/10 p-4 rounded-2xl border border-primary/20">
+                            <p className="text-[10px] font-bold text-center text-primary uppercase tracking-widest">
+                                Keep sharing reels to increase your earnings! 🎬
+                            </p>
+                        </div>
+                    </div>
+                    <Button onClick={() => setIsEarningsOpen(false)} className="w-full h-14 rounded-2xl font-black uppercase bg-secondary hover:bg-white/10">Close</Button>
+                </DialogContent>
+            </Dialog>
             
             <Dialog open={!!selectedPost} onOpenChange={(isOpen) => !isOpen && setSelectedPost(null)}>
                 <DialogContent className="p-0 border-0 bg-black w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center overflow-hidden">
