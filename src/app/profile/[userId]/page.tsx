@@ -1,14 +1,15 @@
 'use client';
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Card, CardContent } from "@/components/ui/card";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck } from "lucide-react";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck, Wallet, Eye, TrendingUp } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -66,6 +67,15 @@ export default function ProfilePage() {
     }, [firestore, user, userId, isOwnProfile]);
     const { data: followData } = useDoc(followCheckRef);
     const isFollowing = !!followData;
+
+    // Calculate total earnings and impressions
+    const earningsStats = useMemo(() => {
+        if (!posts) return { total: 0, impressions: 0 };
+        return posts.reduce((acc, post) => ({
+            total: acc.total + (post.estimatedEarnings || 0),
+            impressions: acc.impressions + (post.adImpressions || 0)
+        }), { total: 0, impressions: 0 });
+    }, [posts]);
 
     const handleLogout = async () => {
         await signOut(auth!);
@@ -193,6 +203,35 @@ export default function ProfilePage() {
                 )}
             </div>
 
+            {/* Creator Earnings Dashboard - Visible only to owner */}
+            {isOwnProfile && (
+                <div className="px-4 mt-8">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-4 flex items-center gap-2">
+                        <TrendingUp size={14} /> Creator Dashboard
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3">
+                        <Card className="bg-secondary/30 border-white/5 rounded-[1.5rem] overflow-hidden">
+                            <CardContent className="p-4">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Wallet size={12} className="text-primary" />
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Estimated Earnings</span>
+                                </div>
+                                <p className="text-xl font-black italic text-white">${earningsStats.total.toFixed(2)}</p>
+                            </CardContent>
+                        </Card>
+                        <Card className="bg-secondary/30 border-white/5 rounded-[1.5rem] overflow-hidden">
+                            <CardContent className="p-4">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Eye size={12} className="text-primary" />
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Ad Impressions</span>
+                                </div>
+                                <p className="text-xl font-black italic text-white">{earningsStats.impressions.toLocaleString()}</p>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            )}
+
             <Tabs defaultValue="posts" className="mt-8">
                 <TabsList className="grid w-full grid-cols-1 bg-transparent border-t border-white/5 rounded-none h-14">
                     <TabsTrigger value="posts" className="data-[state=active]:bg-transparent data-[state=active]:border-t-2 border-white"><Grid3x3 className="h-6 w-6" /></TabsTrigger>
@@ -203,6 +242,12 @@ export default function ProfilePage() {
                             <div key={post.id} className="aspect-square bg-secondary/30 relative cursor-pointer group" onClick={() => setSelectedPost(post)}>
                                 <video src={post.mediaUrl} className="w-full h-full object-cover" muted />
                                 
+                                {isOwnProfile && post.estimatedEarnings !== undefined && (
+                                    <div className="absolute top-1 left-1 bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded-full z-10">
+                                        <p className="text-[8px] font-black text-green-400 italic">${post.estimatedEarnings.toFixed(2)}</p>
+                                    </div>
+                                )}
+
                                 {(isOwnProfile || isCurrentUserAdmin) && (
                                     <div className="absolute top-1 right-1 z-10">
                                         <Button 

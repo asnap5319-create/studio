@@ -33,6 +33,8 @@ interface PostCardProps {
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 let globalMuted = true;
+// CPM estimated at $2.50 per 1000 views
+const EARNING_PER_VIEW = 0.0025;
 
 export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { firestore } = useFirebase();
@@ -176,12 +178,18 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       });
       if (firestore && !viewCounted.current) {
         viewCounted.current = true; 
-        updateDoc(doc(firestore, 'users', post.userId, 'posts', post.id), { viewCount: increment(1) });
+        // Track ad view and earnings
+        const newEarnings = (post.viewCount + 1) * EARNING_PER_VIEW;
+        updateDoc(doc(firestore, 'users', post.userId, 'posts', post.id), { 
+          viewCount: increment(1),
+          adImpressions: increment(1),
+          estimatedEarnings: Number(newEarnings.toFixed(4))
+        });
       }
     } else {
       video.pause();
     }
-  }, [isInView, firestore, post.id, post.userId]);
+  }, [isInView, firestore, post.id, post.userId, post.viewCount]);
 
   return (
     <div ref={cardRef} className="relative w-full h-full bg-black overflow-hidden select-none" onClick={(e) => {

@@ -1,9 +1,9 @@
-
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
 import { collectionGroup, query, orderBy, limit, where, collection } from 'firebase/firestore';
 import { PostCard } from '@/components/post-card';
+import { NativeAdCard } from '@/components/native-ad-card';
 import { Loader2, MessageCircle, Bell, RefreshCw } from 'lucide-react';
 import type { Post } from '@/models/post';
 import type { Notification } from '@/models/notification';
@@ -18,7 +18,7 @@ const MemoizedPostCard = memo(PostCard);
 export default function HomePage() {
   const { firestore } = useFirebase();
   const { user } = useUser();
-  const [displayItems, setDisplayItems] = useState<Post[]>([]);
+  const [displayItems, setDisplayItems] = useState<(Post | { type: 'ad'; id: string })[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
 
@@ -57,30 +57,39 @@ export default function HomePage() {
   const hasUnreadNotifications = unreadNotifications && unreadNotifications.length > 0;
   const hasUnreadMessages = unreadMessages && unreadMessages.length > 0;
 
-  const shuffleFeed = useCallback((items: Post[]) => {
+  const shuffleAndInjectAds = useCallback((items: Post[]) => {
     const shuffled = [...items];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-    return shuffled;
+
+    // Inject ads every 4 posts
+    const result: (Post | { type: 'ad'; id: string })[] = [];
+    shuffled.forEach((post, index) => {
+      result.push(post);
+      if ((index + 1) % 4 === 0) {
+        result.push({ type: 'ad', id: `ad-${index}` });
+      }
+    });
+    return result;
   }, []);
 
   const buildFeed = useCallback(() => {
     if (!posts || posts.length === 0) return;
     setIsRefreshing(true);
     setTimeout(() => {
-      setDisplayItems(shuffleFeed(posts));
+      setDisplayItems(shuffleAndInjectAds(posts));
       setIsRefreshing(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 400);
-  }, [posts, shuffleFeed]);
+  }, [posts, shuffleAndInjectAds]);
 
   useEffect(() => {
     if (hasMounted && posts && posts.length > 0 && displayItems.length === 0) {
-      setDisplayItems(shuffleFeed(posts));
+      setDisplayItems(shuffleAndInjectAds(posts));
     }
-  }, [hasMounted, posts, displayItems.length, shuffleFeed]);
+  }, [hasMounted, posts, displayItems.length, shuffleAndInjectAds]);
 
   if (!hasMounted) return <div className="h-screen bg-black" />;
 
@@ -126,11 +135,17 @@ export default function HomePage() {
           </div>
         </div>
       ) : displayItems.length > 0 ? (
-        displayItems.map((post) => (
-          <div key={post.id} className="h-screen w-full snap-start snap-always overflow-hidden flex flex-col">
-            <MemoizedPostCard post={post} />
-          </div>
-        ))
+        displayItems.map((item) => {
+          if ('type' in item && item.type === 'ad') {
+            return <NativeAdCard key={item.id} />;
+          }
+          const post = item as Post;
+          return (
+            <div key={post.id} className="h-screen w-full snap-start snap-always overflow-hidden flex flex-col">
+              <MemoizedPostCard post={post} />
+            </div>
+          );
+        })
       ) : !isLoading && (
         <div className="flex h-full items-center justify-center text-white p-10 text-center">
             <div className="flex flex-col gap-6 items-center">

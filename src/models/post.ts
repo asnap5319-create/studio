@@ -16,4 +16,7 @@ export interface Post {
   overlayColor?: string;
   overlayPosition?: number; // 0 to 100 (percentage from top)
   overlayX?: number; // 0 to 100 (percentage from left)
+  // New monetization fields
+  adImpressions?: number;
+  estimatedEarnings?: number;
 }
