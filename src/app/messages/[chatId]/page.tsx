@@ -34,7 +34,6 @@ export default function ChatPage() {
     if (!user || !chatId) return false;
     const uid = user.uid;
     const idStr = chatId as string;
-    // Safe check if current user is part of the chatId string
     return idStr.split('_').includes(uid);
   }, [user, chatId]);
 
@@ -43,7 +42,7 @@ export default function ChatPage() {
     return doc(firestore, 'chats', chatId as string);
   }, [firestore, chatId, isUserParticipant]);
 
-  const { data: chat } = useDoc<Chat>(chatRef);
+  const { data: chat, isLoading: isChatLoading } = useDoc<Chat>(chatRef);
   
   const otherUserId = useMemo(() => {
     if (!chatId || !user) return null;
@@ -59,7 +58,6 @@ export default function ChatPage() {
   const { data: otherUser } = useDoc<UserProfile>(otherUserRef);
 
   const messagesQuery = useMemoFirebase(() => {
-    // CRITICAL: Only query if we are confirmed as a participant to avoid Permission Denied
     if (!firestore || !chatId || !isUserParticipant) return null;
     return query(collection(firestore, 'chats', chatId as string, 'messages'), orderBy('createdAt', 'asc'));
   }, [firestore, chatId, isUserParticipant]);
@@ -92,22 +90,25 @@ export default function ChatPage() {
     
     const participants = [user.uid, otherUserId].sort();
     
-    // Ensure the chat document exists with correct participants
-    await setDoc(doc(firestore, 'chats', chatId as string), {
-        id: chatId,
-        participants,
-        lastMessage: text,
-        lastMessageAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-    }, { merge: true });
+    try {
+      await setDoc(doc(firestore, 'chats', chatId as string), {
+          id: chatId,
+          participants,
+          lastMessage: text,
+          lastMessageAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+      }, { merge: true });
 
-    await addDoc(collection(firestore, 'chats', chatId as string, 'messages'), {
-      senderId: user.uid, 
-      recipientId: otherUserId, 
-      text, 
-      createdAt: serverTimestamp(), 
-      read: false,
-    });
+      await addDoc(collection(firestore, 'chats', chatId as string, 'messages'), {
+        senderId: user.uid, 
+        recipientId: otherUserId, 
+        text, 
+        createdAt: serverTimestamp(), 
+        read: false,
+      });
+    } catch (err) {
+      console.error("Error sending message:", err);
+    }
   };
 
   if (isUserLoading || !hasMounted) {
@@ -164,6 +165,12 @@ export default function ChatPage() {
             </span>
           </div>
         ))}
+        {messages?.length === 0 && !isChatLoading && (
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-50 pt-20">
+            <Send className="h-12 w-12 mb-4" />
+            <p className="text-sm font-bold uppercase tracking-widest">Start a new chat</p>
+          </div>
+        )}
       </div>
       <form onSubmit={handleSendMessage} className="p-4 border-t border-border flex gap-2 mb-safe">
         <Input value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder="Message..." className="flex-1 bg-secondary border-none rounded-full h-12" />

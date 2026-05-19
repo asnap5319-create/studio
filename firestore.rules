@@ -51,7 +51,7 @@ service cloud.firestore {
       }
     }
 
-    // Chat Rules
+    // Chat Rules - Improved for better path matching
     match /chats/{chatId} {
       function isParticipant() {
         return isAuthenticated() && (
@@ -60,14 +60,18 @@ service cloud.firestore {
         );
       }
 
-      allow read, write: if isParticipant();
+      allow read: if isParticipant();
+      allow create, update: if isParticipant();
+      allow delete: if isAdmin();
       
       match /messages/{messageId} {
-        allow read, write: if isParticipant();
+        allow read: if isParticipant();
+        allow create: if isParticipant();
+        allow update, delete: if isParticipant() || isAdmin();
       }
     }
 
-    // Saved Posts Rules - Fixed the variable issue
+    // Saved Posts Rules - User specific access
     match /saved_posts/{savedPostId} {
       allow read, write: if isAuthenticated() && (
         resource == null || resource.data.userId == request.auth.uid
