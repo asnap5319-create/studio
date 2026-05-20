@@ -1,15 +1,15 @@
+
 'use client';
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogTitle, DialogHeader } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Card, CardContent } from "@/components/ui/card";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck, Wallet, Eye, Zap, TrendingUp, Calendar } from "lucide-react";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck, Wallet, Eye, Zap, TrendingUp, Calendar, X } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -161,16 +161,21 @@ export default function ProfilePage() {
                 </div>
                 {isOwnProfile && (
                     <DropdownMenu>
-                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical /></Button></DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[220px] p-2 shadow-2xl">
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="rounded-full">
+                                <MoreVertical />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[220px] p-2 shadow-2xl z-[100]">
                             <DropdownMenuItem 
                                 onSelect={(e) => {
                                     e.preventDefault();
-                                    setIsEarningsOpen(true);
+                                    // Small delay to ensure menu closes properly
+                                    setTimeout(() => setIsEarningsOpen(true), 150);
                                 }}
                                 className="font-black p-4 rounded-xl text-green-400 focus:bg-green-400/10 cursor-pointer"
                             >
-                                <Zap className="mr-3 h-5 w-5 fill-green-400" /> Creator Dashboard
+                                <Zap className="mr-3 h-5 w-5 fill-green-400" /> Creator Studio
                             </DropdownMenuItem>
                             
                             {isCurrentUserAdmin && (
@@ -187,7 +192,7 @@ export default function ProfilePage() {
                             
                             <DropdownMenuSeparator className="bg-white/5 my-2" />
                             
-                            <DropdownMenuItem onClick={handleLogout} className="text-destructive font-black p-4 rounded-xl focus:bg-destructive/10 cursor-pointer">
+                            <DropdownMenuItem onSelect={handleLogout} className="text-destructive font-black p-4 rounded-xl focus:bg-destructive/10 cursor-pointer">
                                 <LogOut className="mr-3 h-5 w-5" /> Logout
                             </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -202,15 +207,15 @@ export default function ProfilePage() {
                         <AvatarFallback>{userProfile?.username?.[0]}</AvatarFallback>
                     </Avatar>
                     <div className="flex flex-1 justify-around text-center">
-                        <div>
+                        <div className="flex flex-col">
                             <p className="font-black text-xl">{posts?.length || 0}</p>
                             <p className="text-[10px] uppercase font-bold text-muted-foreground">Posts</p>
                         </div>
-                        <Link href={`/profile/${userId}/followers`} className="hover:opacity-70 transition-opacity">
+                        <Link href={`/profile/${userId}/followers`} className="flex flex-col hover:opacity-70 transition-opacity">
                             <p className="font-black text-xl">{followers?.length || 0}</p>
                             <p className="text-[10px] uppercase font-bold text-muted-foreground">Followers</p>
                         </Link>
-                        <Link href={`/profile/${userId}/following`} className="hover:opacity-70 transition-opacity">
+                        <Link href={`/profile/${userId}/following`} className="flex flex-col hover:opacity-70 transition-opacity">
                             <p className="font-black text-xl">{following?.length || 0}</p>
                             <p className="text-[10px] uppercase font-bold text-muted-foreground">Following</p>
                         </Link>
@@ -293,7 +298,7 @@ export default function ProfilePage() {
 
             {/* Premium Creator Dashboard */}
             <Dialog open={isEarningsOpen} onOpenChange={setIsEarningsOpen}>
-                <DialogContent className="bg-[#0a0a0a] border-white/10 p-0 rounded-[2.5rem] max-w-lg w-[95%] overflow-hidden h-[85vh] flex flex-col">
+                <DialogContent className="bg-[#0a0a0a] border-white/10 p-0 rounded-[2.5rem] max-w-lg w-[95%] overflow-hidden h-[85vh] flex flex-col z-[110] outline-none">
                     <DialogHeader className="p-6 border-b border-white/5 bg-gradient-to-br from-green-500/10 via-transparent to-transparent">
                         <div className="flex items-center justify-between">
                              <div className="flex items-center gap-3">
@@ -305,8 +310,8 @@ export default function ProfilePage() {
                                     <p className="text-[10px] text-green-500 font-bold uppercase tracking-widest mt-0.5">Monetization Active</p>
                                 </div>
                              </div>
-                             <Button variant="ghost" size="icon" onClick={() => setIsEarningsOpen(false)} className="rounded-full">
-                                <LogOut className="rotate-180" />
+                             <Button variant="ghost" size="icon" onClick={() => setIsEarningsOpen(false)} className="rounded-full hover:bg-white/10">
+                                <X className="h-6 w-6" />
                              </Button>
                         </div>
                     </DialogHeader>
@@ -314,7 +319,7 @@ export default function ProfilePage() {
                     <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
                         {/* Main Balance Card */}
                         <div className="bg-gradient-to-br from-green-600 to-green-900 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:scale-150 transition-transform duration-700">
+                            <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:scale-150 transition-transform duration-700 pointer-events-none">
                                 <Wallet size={120} />
                             </div>
                             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 mb-2">Current Balance</p>
@@ -350,21 +355,21 @@ export default function ProfilePage() {
                             </div>
                         </div>
 
-                        {/* Recent Performance Chart (Mock Title) */}
+                        {/* Recent Performance Breakdown */}
                         <div className="bg-secondary/10 p-6 rounded-[2rem] border border-white/5">
                             <div className="flex items-center justify-between mb-6">
                                 <div className="flex items-center gap-2">
                                     <Calendar size={16} className="text-green-500" />
                                     <h3 className="text-xs font-black uppercase tracking-wider">Performance Breakdown</h3>
                                 </div>
-                                <span className="text-[10px] text-muted-foreground font-bold">Last 30 Days</span>
+                                <span className="text-[10px] text-muted-foreground font-bold">Recent Posts</span>
                             </div>
                             
                             <div className="space-y-4">
-                                {posts?.slice(0, 5).map(post => (
+                                {posts && posts.length > 0 ? posts.slice(0, 5).map(post => (
                                     <div key={post.id} className="flex items-center justify-between p-3 bg-black/40 rounded-2xl border border-white/5">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 bg-secondary rounded-xl overflow-hidden">
+                                        <div className="flex items-center gap-3 overflow-hidden">
+                                            <div className="h-10 w-10 bg-secondary rounded-xl overflow-hidden shrink-0">
                                                 <video src={post.mediaUrl} className="object-cover w-full h-full" muted />
                                             </div>
                                             <div className="min-w-0">
@@ -372,17 +377,22 @@ export default function ProfilePage() {
                                                 <p className="text-[9px] font-black text-green-500 mt-1 uppercase">{post.viewCount} Views</p>
                                             </div>
                                         </div>
-                                        <div className="text-right">
+                                        <div className="text-right shrink-0">
                                             <p className="text-sm font-black text-white">₹{post.estimatedEarnings?.toFixed(2) || '0.00'}</p>
                                         </div>
                                     </div>
-                                ))}
+                                )) : (
+                                    <div className="text-center py-6 opacity-30 italic text-xs">No posts yet</div>
+                                )}
                             </div>
                         </div>
                     </div>
 
                     <div className="p-6 border-t border-white/5">
-                        <Button onClick={() => setIsEarningsOpen(false)} className="w-full h-14 rounded-2xl font-black uppercase bg-secondary hover:bg-white/10 tracking-widest">
+                        <Button 
+                            onClick={() => setIsEarningsOpen(false)} 
+                            className="w-full h-14 rounded-2xl font-black uppercase bg-secondary hover:bg-white/10 tracking-widest transition-all"
+                        >
                             Return to Profile
                         </Button>
                     </div>
@@ -390,14 +400,14 @@ export default function ProfilePage() {
             </Dialog>
             
             <Dialog open={!!selectedPost} onOpenChange={(isOpen) => !isOpen && setSelectedPost(null)}>
-                <DialogContent className="p-0 border-0 bg-black w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center overflow-hidden">
+                <DialogContent className="p-0 border-0 bg-black w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center overflow-hidden z-[110]">
                     <DialogTitle className="sr-only">Post Preview</DialogTitle>
                     {selectedPost && <PostCard post={selectedPost} isFocused />}
                 </DialogContent>
             </Dialog>
 
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent className="bg-[#121212] text-white rounded-[2rem] border-white/10">
+                <AlertDialogContent className="bg-[#121212] text-white rounded-[2rem] border-white/10 z-[120]">
                     <AlertDialogHeader>
                         <AlertDialogTitle className="text-center font-black italic">Delete Post?</AlertDialogTitle>
                         <AlertDialogDescription className="text-center text-muted-foreground text-xs font-bold uppercase tracking-widest mt-2">This action cannot be undone.</AlertDialogDescription>
