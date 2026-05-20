@@ -1,3 +1,28 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "offer-1",
+      "url": "https://picsum.photos/seed/offer1/600/1000",
+      "width": 600,
+      "height": 1000,
+      "alt": "Exclusive Online Offer",
+      "hint": "shopping offer"
+    },
+    {
+      "id": "offer-2",
+      "url": "https://picsum.photos/seed/offer2/600/1000",
+      "width": 600,
+      "height": 1000,
+      "alt": "Win Cash Rewards",
+      "hint": "money cash"
+    },
+    {
+      "id": "offer-3",
+      "url": "https://picsum.photos/seed/offer3/600/1000",
+      "width": 600,
+      "height": 1000,
+      "alt": "Luxury Gift Surprise",
+      "hint": "gift box"
+    }
+  ]
 }

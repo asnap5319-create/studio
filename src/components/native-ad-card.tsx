@@ -1,53 +1,89 @@
 'use client';
 
-import { ExternalLink, Sparkles } from 'lucide-react';
+import { ExternalLink, Sparkles, Gift, Zap } from 'lucide-react';
 import { Logo } from './pwa-install-prompt';
 import { Button } from './ui/button';
+import Image from 'next/image';
+import { useState, useEffect } from 'react';
+import placeholderData from '@/lib/placeholder-images.json';
 
 export function NativeAdCard() {
   const SMART_LINK = "https://www.effectivecpmnetwork.com/s7vnb4svx?key=6fbe7d0fbbc6272dd7abe4042e76a4e0";
+  const [adImage, setAdImage] = useState(placeholderData.placeholderImages[0]);
+
+  useEffect(() => {
+    // Pick a random offer image from our placeholder list
+    const randomIndex = Math.floor(Math.random() * placeholderData.placeholderImages.length);
+    setAdImage(placeholderData.placeholderImages[randomIndex]);
+  }, []);
 
   const handleAdClick = () => {
     window.open(SMART_LINK, '_blank');
   };
 
   return (
-    <div className="h-screen w-full snap-start snap-always bg-black flex flex-col items-center justify-center p-6 relative overflow-hidden" onClick={handleAdClick}>
-      {/* Background Glow */}
-      <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-black pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-primary/20 blur-[100px] rounded-full animate-pulse pointer-events-none" />
-
-      <div className="absolute top-8 left-8 flex items-center gap-2 opacity-80 z-20">
-        <Logo className="w-8 h-8" />
-        <span className="text-xs font-black uppercase tracking-widest text-white italic drop-shadow-lg">Sponsored</span>
+    <div className="h-screen w-full snap-start snap-always bg-black flex flex-col items-center justify-center relative overflow-hidden" onClick={handleAdClick}>
+      {/* Background Image with Overlay */}
+      <div className="absolute inset-0 z-0">
+        <Image 
+          src={adImage.url} 
+          alt={adImage.alt}
+          fill
+          className="object-cover opacity-60 scale-105 animate-pulse-soft"
+          data-ai-hint={adImage.hint}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-black z-10" />
       </div>
-      
-      <div className="w-full max-w-sm aspect-[9/16] bg-secondary/10 rounded-[3rem] border border-white/10 flex flex-col items-center justify-center overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] relative group cursor-pointer">
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-10" />
+
+      {/* Top Badge */}
+      <div className="absolute top-10 left-8 flex items-center gap-2 z-30 bg-black/40 backdrop-blur-xl px-4 py-2 rounded-full border border-white/10">
+        <Logo className="w-6 h-6" />
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white italic">Sponsored Post</span>
+      </div>
+
+      {/* Main Content Card */}
+      <div className="w-[85%] max-w-sm aspect-[9/16] bg-white/5 backdrop-blur-md rounded-[3rem] border border-white/20 flex flex-col items-center justify-end overflow-hidden shadow-[0_0_100px_rgba(255,51,102,0.3)] relative group cursor-pointer animate-in fade-in zoom-in duration-500">
         
-        {/* Ad Content */}
-        <div className="flex flex-col items-center gap-6 p-8 text-center z-20">
-          <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center border border-primary/30 shadow-2xl group-hover:scale-110 transition-transform duration-500">
-             <Sparkles className="w-10 h-10 text-primary animate-pulse" />
-          </div>
+        {/* Animated Glow in center */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-primary/30 blur-[80px] rounded-full pointer-events-none group-hover:bg-primary/50 transition-colors" />
+
+        {/* Ad Info Area */}
+        <div className="w-full p-8 flex flex-col items-center gap-6 text-center z-20 bg-gradient-to-t from-black/95 via-black/80 to-transparent pt-20">
           
-          <div className="space-y-2">
-            <h3 className="text-2xl font-black italic uppercase tracking-tighter text-white">Hot Offer! 🎬</h3>
-            <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest leading-tight">
-              Exclusive Content & Rewards Waiting for You
+          <div className="flex items-center gap-2 bg-yellow-400 text-black px-3 py-1 rounded-full animate-bounce">
+             <Zap size={12} className="fill-black" />
+             <span className="text-[10px] font-black uppercase">Limited Time Deal</span>
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="text-3xl font-black italic uppercase tracking-tighter text-white drop-shadow-[0_2px_10px_rgba(255,255,255,0.3)] leading-tight">
+              {adImage.alt}
+            </h3>
+            <p className="text-xs font-bold text-primary-foreground/80 uppercase tracking-[0.15em] leading-relaxed">
+              Unlock exclusive rewards & gifts specially for you! 🎁
             </p>
           </div>
 
           <Button 
-            className="mt-4 h-14 px-8 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-2xl shadow-2xl shadow-primary/30 group-hover:translate-y-[-5px] transition-all"
+            className="w-full h-16 text-lg bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-2xl shadow-[0_15px_40px_rgba(255,51,102,0.5)] group-hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3"
           >
-            <ExternalLink className="mr-2 h-5 w-5" /> Open Now
+            <Gift className="h-6 w-6 animate-pulse" /> 
+            Claim Now
+            <ExternalLink className="h-5 w-5 opacity-50" />
           </Button>
-        </div>
 
-        <div className="absolute bottom-10 left-0 right-0 px-6 z-20 opacity-40">
-           <p className="text-[8px] font-black uppercase tracking-[0.4em] text-center text-white">Click to view full video</p>
+          <div className="pb-2">
+             <p className="text-[8px] font-black uppercase tracking-[0.5em] text-white/40">Tap to explore offer</p>
+          </div>
         </div>
+      </div>
+
+      {/* Floating Elements for extra vibe */}
+      <div className="absolute bottom-20 right-10 z-20 opacity-30 animate-bounce delay-700">
+         <Sparkles className="text-primary h-12 w-12" />
+      </div>
+      <div className="absolute top-40 left-10 z-20 opacity-30 animate-pulse">
+         <Zap className="text-yellow-400 h-10 w-10 fill-yellow-400" />
       </div>
     </div>
   );
