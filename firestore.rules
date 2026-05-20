@@ -21,7 +21,8 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // 2. PUBLIC COLLECTIONS (Access for everyone, even without login)
+    // 2. PUBLIC ACCESS (For Everyone - Guest Mode)
+    // Allows anyone to see posts and profiles like Instagram
     match /{path=**}/posts/{postId} {
       allow read, get, list: if true;
       allow write: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
@@ -29,7 +30,7 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if true; // Public profiles
+      allow read, get: if true;
       allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
     }
 

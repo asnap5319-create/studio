@@ -5,6 +5,7 @@ import type { Post } from '@/models/post';
 import type { UserProfile } from '@/models/user';
 import { useDoc, useFirebase, useMemoFirebase, useUser } from '@/firebase';
 import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection, deleteDoc } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
@@ -39,6 +40,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { firestore } = useFirebase();
   const { user } = useUser();
   const { toast } = useToast();
+  const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const viewCounted = useRef(false);
@@ -66,7 +68,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { data: author } = useDoc<UserProfile>(authorRef);
   const isProfileAdmin = author?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-  // Guard for guests - like state only for logged in users
   const likeRef = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
     return doc(firestore, 'users', post.userId, 'posts', post.id, 'likes', user.uid);
@@ -75,7 +76,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { data: likeData } = useDoc(likeRef);
   const isLiked = !!likeData;
 
-  // Guard for guests - follow state only for logged in users
   const followCheckRef = useMemoFirebase(() => {
     if (!firestore || !user?.uid || !post.userId) return null;
     return doc(firestore, 'user_followers', post.userId, 'followers', user.uid);
@@ -86,6 +86,14 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   useEffect(() => {
     setLocalLikeCount(post.likeCount || 0);
   }, [post.likeCount]);
+
+  const requireAuth = () => {
+    if (!user) {
+      router.push('/login?auth=true');
+      return true;
+    }
+    return false;
+  };
 
   const toggleMute = () => {
     const video = videoRef.current;
@@ -100,10 +108,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   };
 
   const handleLikeToggle = async () => {
-    if (!user) {
-      toast({ title: "Login Required", description: "Please login to like this reel." });
-      return;
-    }
+    if (requireAuth()) return;
     if (!firestore || isLiking) return;
     setIsLiking(true);
     const wasLiked = isLiked;
@@ -113,19 +118,19 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       setTimeout(() => setShowBigHeart(false), 800);
     }
     try {
-      const batch = writeBatch(firestore);
-      const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
-      const likeDocRef = doc(firestore, 'users', post.userId, 'posts', post.id, 'likes', user.uid);
+      const batch = writeBatch(firestore!);
+      const postRef = doc(firestore!, 'users', post.userId, 'posts', post.id);
+      const likeDocRef = doc(firestore!, 'users', post.userId, 'posts', post.id, 'likes', user!.uid);
       if (wasLiked) {
         batch.update(postRef, { likeCount: increment(-1) });
         batch.delete(likeDocRef);
       } else {
         batch.update(postRef, { likeCount: increment(1) });
-        batch.set(likeDocRef, { userId: user.uid, createdAt: serverTimestamp() });
-        if (post.userId !== user.uid) {
-            const notificationRef = doc(collection(firestore, 'users', post.userId, 'notifications'));
+        batch.set(likeDocRef, { userId: user!.uid, createdAt: serverTimestamp() });
+        if (post.userId !== user!.uid) {
+            const notificationRef = doc(collection(firestore!, 'users', post.userId, 'notifications'));
             batch.set(notificationRef, {
-                type: 'like', senderId: user.uid, recipientId: post.userId, postId: post.id, read: false, createdAt: serverTimestamp(),
+                type: 'like', senderId: user!.uid, recipientId: post.userId, postId: post.id, read: false, createdAt: serverTimestamp(),
             });
         }
       }
@@ -139,23 +144,20 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
 
   const handleFollowToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!user) {
-      toast({ title: "Login Required", description: "Please login to follow creators." });
-      return;
-    }
+    if (requireAuth()) return;
     if (!firestore || !post.userId || isOwnPost) return;
-    const batch = writeBatch(firestore);
+    const batch = writeBatch(firestore!);
     const followedUserId = post.userId;
-    const followerUserId = user.uid;
-    const followerDocRef = doc(firestore, 'user_followers', followedUserId, 'followers', followerUserId);
-    const followingDocRef = doc(firestore, 'user_following', followerUserId, 'following', followedUserId);
+    const followerUserId = user!.uid;
+    const followerDocRef = doc(firestore!, 'user_followers', followedUserId, 'followers', followerUserId);
+    const followingDocRef = doc(firestore!, 'user_following', followerUserId, 'following', followedUserId);
     if (isFollowing) {
       batch.delete(followerDocRef);
       batch.delete(followingDocRef);
     } else {
       batch.set(followerDocRef, { createdAt: serverTimestamp() });
       batch.set(followingDocRef, { createdAt: serverTimestamp() });
-      const notificationRef = doc(collection(firestore, 'users', followedUserId, 'notifications'));
+      const notificationRef = doc(collection(firestore!, 'users', followedUserId, 'notifications'));
       batch.set(notificationRef, {
         type: 'follow', senderId: followerUserId, recipientId: followedUserId, read: false, createdAt: serverTimestamp(),
       });
@@ -310,7 +312,10 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
             </div>
             
             <div className="flex flex-col items-center">
-                <Sheet open={isCommentSheetOpen} onOpenChange={setIsCommentSheetOpen}>
+                <Sheet open={isCommentSheetOpen} onOpenChange={(open) => {
+                  if (open && requireAuth()) return;
+                  setIsCommentSheetOpen(open);
+                }}>
                   <SheetTrigger asChild>
                     <button className="text-white active:scale-125 transition-all"><MessageCircle className="h-10 w-10 drop-shadow-2xl" /></button>
                   </SheetTrigger>
@@ -323,7 +328,10 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
             </div>
 
             <div className="flex flex-col items-center">
-                <Sheet open={isShareSheetOpen} onOpenChange={setIsShareSheetOpen}>
+                <Sheet open={isShareSheetOpen} onOpenChange={(open) => {
+                   if (open && requireAuth()) return;
+                   setIsShareSheetOpen(open);
+                }}>
                   <SheetTrigger asChild>
                     <button className="text-white active:scale-125 transition-all"><Share2 className="h-10 w-10 drop-shadow-2xl" /></button>
                   </SheetTrigger>

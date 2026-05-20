@@ -61,23 +61,17 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (err: FirestoreError) => {
-        console.error("Firestore hook error:", err);
-        
         if (err.code === 'permission-denied') {
-            const target = memoizedTargetRefOrQuery as any;
-            const path = target.path || 'Private Query';
-
+            const path = (memoizedTargetRefOrQuery as any).path || 'Firestore Collection';
             const contextualError = new FirestorePermissionError({
                 operation: 'list',
                 path: path,
             });
-
             setError(contextualError);
             errorEmitter.emit('permission-error', contextualError);
         } else {
             setError(err);
         }
-        
         setData(null);
         setIsLoading(false);
       }
