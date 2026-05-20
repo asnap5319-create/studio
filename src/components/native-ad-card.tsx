@@ -12,21 +12,19 @@ export function NativeAdCard() {
     
     const containerId = 'container-286ef4dc1c3c9afc429b42567c2d2b99';
     
-    // Clear the container
+    // Clear and prepare
     adContainerRef.current.innerHTML = '';
-    
-    // Create the target div
     const adDiv = document.createElement('div');
     adDiv.id = containerId;
     adContainerRef.current.appendChild(adDiv);
 
-    // Create the script manually to ensure it executes
+    // Create the script element
     const script = document.createElement('script');
     script.async = true;
     script.setAttribute('data-cfasync', 'false');
     script.src = 'https://pl29411112.effectivecpmnetwork.com/286ef4dc1c3c9afc429b42567c2d2b99/invoke.js';
     
-    // Append script directly to body or container to trigger loading
+    // Inject script
     adContainerRef.current.appendChild(script);
     
     isInitialized.current = true;
@@ -46,7 +44,7 @@ export function NativeAdCard() {
       </div>
       
       <div className="w-full max-w-sm aspect-[9/16] bg-secondary/10 rounded-[3rem] border border-white/5 flex flex-col items-center justify-center overflow-hidden shadow-2xl">
-        <div ref={adContainerRef} className="w-full h-full flex items-center justify-center">
+        <div ref={adContainerRef} className="w-full h-full flex items-center justify-center min-h-[300px]">
           <div className="text-center p-10 flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary"></div>
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">

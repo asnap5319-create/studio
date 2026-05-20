@@ -24,6 +24,7 @@ export default function HomePage() {
 
   useEffect(() => { setHasMounted(true); }, []);
 
+  // PUBLIC QUERY - For everyone
   const postsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'), limit(100));
@@ -65,7 +66,6 @@ export default function HomePage() {
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
 
-    // Inject ads every 2 posts
     const result: (Post | { type: 'ad'; id: string })[] = [];
     shuffled.forEach((post, index) => {
       result.push(post);

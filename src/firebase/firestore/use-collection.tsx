@@ -64,7 +64,6 @@ export function useCollection<T = any>(
         console.error("Firestore hook error:", err);
         
         if (err.code === 'permission-denied') {
-            // Get actual path instead of generic strings
             const target = memoizedTargetRefOrQuery as any;
             const path = target.path || 'Private Query';
 

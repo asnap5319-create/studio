@@ -33,7 +33,6 @@ interface PostCardProps {
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 let globalMuted = true;
-// CPM estimated at $2.50 per 1000 views
 const EARNING_PER_VIEW = 0.0025;
 
 export function PostCard({ post, isFocused = false }: PostCardProps) {
@@ -67,6 +66,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { data: author } = useDoc<UserProfile>(authorRef);
   const isProfileAdmin = author?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
+  // Guard for guests - like state only for logged in users
   const likeRef = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
     return doc(firestore, 'users', post.userId, 'posts', post.id, 'likes', user.uid);
@@ -75,6 +75,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { data: likeData } = useDoc(likeRef);
   const isLiked = !!likeData;
 
+  // Guard for guests - follow state only for logged in users
   const followCheckRef = useMemoFirebase(() => {
     if (!firestore || !user?.uid || !post.userId) return null;
     return doc(firestore, 'user_followers', post.userId, 'followers', user.uid);
@@ -99,7 +100,11 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   };
 
   const handleLikeToggle = async () => {
-    if (!firestore || !user || isLiking) return;
+    if (!user) {
+      toast({ title: "Login Required", description: "Please login to like this reel." });
+      return;
+    }
+    if (!firestore || isLiking) return;
     setIsLiking(true);
     const wasLiked = isLiked;
     setLocalLikeCount(prev => wasLiked ? Math.max(0, prev - 1) : prev + 1);
@@ -134,7 +139,11 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
 
   const handleFollowToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!firestore || !user || !post.userId || isOwnPost) return;
+    if (!user) {
+      toast({ title: "Login Required", description: "Please login to follow creators." });
+      return;
+    }
+    if (!firestore || !post.userId || isOwnPost) return;
     const batch = writeBatch(firestore);
     const followedUserId = post.userId;
     const followerUserId = user.uid;
@@ -178,7 +187,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       });
       if (firestore && !viewCounted.current) {
         viewCounted.current = true; 
-        // Track ad view and earnings
         const newEarnings = (post.viewCount + 1) * EARNING_PER_VIEW;
         updateDoc(doc(firestore, 'users', post.userId, 'posts', post.id), { 
           viewCount: increment(1),
@@ -216,7 +224,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
           onPlaying={() => setIsBuffering(false)}
       />
 
-      {/* Text Overlay Display - Supports X and Y Positioning */}
       {post.overlayText && (
           <div 
               className="absolute px-8 text-center pointer-events-none z-20"
@@ -277,7 +284,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
             </div>
           )}
           
-          {!isOwnPost && author && (
+          {author && !isOwnPost && (
             <Button 
               onClick={handleFollowToggle} 
               variant={isFollowing ? "secondary" : "default"} 
