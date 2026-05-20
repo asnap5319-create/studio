@@ -65,7 +65,7 @@ export default function HomePage() {
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
 
-    // Inject ads every 2 posts as requested
+    // Inject ads every 2 posts
     const result: (Post | { type: 'ad'; id: string })[] = [];
     shuffled.forEach((post, index) => {
       result.push(post);
@@ -125,7 +125,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      {isLoading && displayItems.length === 0 ? (
+      {(isLoading || (hasMounted && posts === null)) && displayItems.length === 0 ? (
         <div className="flex h-screen items-center justify-center bg-black">
           <div className="flex flex-col items-center gap-4">
              <div className="relative">

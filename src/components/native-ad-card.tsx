@@ -5,7 +5,7 @@ import { Logo } from './pwa-install-prompt';
 
 /**
  * NativeAdCard handles the injection of Adsterra Native Banner ads.
- * Fixed script injection to ensure ads load correctly as functional scripts instead of text.
+ * Fixed to prevent code from being displayed as text.
  */
 export function NativeAdCard() {
   const adContainerRef = useRef<HTMLDivElement>(null);
@@ -16,6 +16,11 @@ export function NativeAdCard() {
     if (isInitialized.current || !adContainerRef.current) return;
     
     const containerId = 'container-286ef4dc1c3c9afc429b42567c2d2b99';
+    
+    // Clear any existing text/code
+    adContainerRef.current.innerHTML = '';
+    
+    // Create the container div
     const adDiv = document.createElement('div');
     adDiv.id = containerId;
     adContainerRef.current.appendChild(adDiv);
@@ -26,12 +31,11 @@ export function NativeAdCard() {
     script.setAttribute('data-cfasync', 'false');
     script.src = 'https://pl29411112.effectivecpmnetwork.com/286ef4dc1c3c9afc429b42567c2d2b99/invoke.js';
     
-    // Append script to the same container
+    // Append script - this executes it instead of showing it as text
     adContainerRef.current.appendChild(script);
     isInitialized.current = true;
 
     return () => {
-        // Cleanup if necessary
         if (adContainerRef.current) {
             adContainerRef.current.innerHTML = '';
         }
@@ -47,7 +51,7 @@ export function NativeAdCard() {
       
       <div className="w-full max-w-sm aspect-[9/16] bg-secondary/10 rounded-[3rem] border border-white/5 flex flex-col items-center justify-center overflow-hidden shadow-2xl relative">
         <div ref={adContainerRef} className="w-full h-full flex items-center justify-center min-h-[250px]">
-          {/* Adsterra script will populate this */}
+          {/* Adsterra script will populate this, nothing will show as text */}
           {!isInitialized.current && (
             <div className="text-center p-10 flex flex-col items-center gap-4">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary"></div>

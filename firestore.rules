@@ -23,13 +23,13 @@ service cloud.firestore {
 
     // 2. COLLECTION GROUP RULES - Crucial for Guest Access & Home Feed
     
-    // Allow anyone (even guests) to read posts
+    // Allow anyone (even guests) to read posts - FIXED: Explicitly allow list/get for collectionGroup
     match /{path=**}/posts/{postId} {
-      allow read: if true;
+      allow read, get, list: if true;
       allow write: if isAdmin() || (isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid));
     }
 
-    // Messages and Notifications are for participants only, but need path=** for collectionGroup queries
+    // Messages and Notifications are for participants only
     match /{path=**}/messages/{messageId} {
       allow read: if isAdmin() || (isAuthenticated() && (
         request.auth.uid == resource.data.recipientId || 
