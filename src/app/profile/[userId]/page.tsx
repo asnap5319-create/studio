@@ -86,10 +86,8 @@ export default function ProfilePage() {
 
     const earningsStats = useMemo(() => {
         if (!posts) return { total: 0, impressions: 0, today: 0, totalViews: 0, withdrawn: 0, available: 0 };
-        
         const now = new Date();
         const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-        
         const withdrawnTotal = userPayouts?.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0) || 0;
 
         const stats = posts.reduce((acc, post) => {
@@ -97,11 +95,9 @@ export default function ProfilePage() {
             const impressions = post.adImpressions || 0;
             const views = post.viewCount || 0;
             const postTime = post.createdAt?.toMillis() || 0;
-
             acc.total += earnings;
             acc.impressions += impressions;
             acc.totalViews += views;
-
             if (postTime >= startOfToday) acc.today += earnings;
             return acc;
         }, { total: 0, impressions: 0, today: 0, totalViews: 0 });
@@ -112,7 +108,6 @@ export default function ProfilePage() {
     const handleWithdrawRequest = async () => {
         if (!firestore || !user || !isOwnProfile) return;
         const amount = parseFloat(withdrawAmount);
-        
         if (isNaN(amount) || amount <= 0) {
             toast({ variant: 'destructive', title: "Invalid Amount" });
             return;
@@ -121,7 +116,6 @@ export default function ProfilePage() {
             toast({ variant: 'destructive', title: "Insufficient Balance" });
             return;
         }
-
         setIsSubmitting(true);
         try {
             await addDoc(collection(firestore, 'payout_requests'), {
@@ -158,7 +152,6 @@ export default function ProfilePage() {
         const batch = writeBatch(firestore);
         const followerDocRef = doc(firestore, 'user_followers', userId, 'followers', user.uid);
         const followingDocRef = doc(firestore, 'user_following', user.uid, 'following', userId);
-
         if (isFollowing) {
             batch.delete(followerDocRef);
             batch.delete(followingDocRef);
@@ -173,12 +166,28 @@ export default function ProfilePage() {
         await batch.commit();
     };
 
-    // Fix for focus trap when opening dialog from dropdown
     const openEarnings = () => {
-      // Small timeout ensures the dropdown closes properly before the dialog opens
       setTimeout(() => {
         setIsEarningsOpen(true);
       }, 150);
+    };
+
+    const handleDeleteClick = (e: React.MouseEvent, post: Post) => {
+        e.stopPropagation();
+        setPostToDelete(post);
+        setIsDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!firestore || !postToDelete) return;
+        try {
+            await deleteDoc(doc(firestore, 'users', postToDelete.userId, 'posts', postToDelete.id));
+            toast({ title: "Deleted!", description: "Video has been removed." });
+            setIsDeleteDialogOpen(false);
+            setPostToDelete(null);
+        } catch (e) {
+            toast({ variant: 'destructive', title: "Error", description: "Failed to delete video." });
+        }
     };
 
     if (isUserLoading || isProfileLoading) return <div className="h-screen flex items-center justify-center bg-black"><Loader2 className="animate-spin text-primary" /></div>;
@@ -196,7 +205,7 @@ export default function ProfilePage() {
                             <Button variant="ghost" size="icon" className="rounded-full"><MoreVertical /></Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[220px] p-2 shadow-2xl z-[100]">
-                            <DropdownMenuItem onSelect={openEarnings} className="font-black p-4 rounded-xl text-green-400 focus:bg-green-400/10 cursor-pointer">
+                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); openEarnings(); }} className="font-black p-4 rounded-xl text-green-400 focus:bg-green-400/10 cursor-pointer">
                                 <Zap className="mr-3 h-5 w-5 fill-green-400" /> Creator Studio
                             </DropdownMenuItem>
                             {isCurrentUserAdmin && (
@@ -247,8 +256,16 @@ export default function ProfilePage() {
                 <TabsContent value="posts" className="mt-0">
                     <div className="grid grid-cols-3 gap-0.5">
                         {posts?.map((post) => (
-                            <div key={post.id} className="aspect-square bg-secondary/30 relative cursor-pointer" onClick={() => setSelectedPost(post)}>
+                            <div key={post.id} className="aspect-square bg-secondary/30 relative cursor-pointer overflow-hidden group" onClick={() => setSelectedPost(post)}>
                                 <video src={post.mediaUrl} className="w-full h-full object-cover" muted />
+                                {isOwnProfile && (
+                                    <button 
+                                        onClick={(e) => handleDeleteClick(e, post)}
+                                        className="absolute top-1 right-1 p-1.5 bg-black/60 backdrop-blur-md rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                    >
+                                        <Trash2 size={12} className="text-red-400" />
+                                    </button>
+                                )}
                                 {isOwnProfile && post.estimatedEarnings !== undefined && (
                                     <div className="absolute top-1 left-1 bg-green-500/80 backdrop-blur-md px-2 py-0.5 rounded-full z-10 shadow-lg"><p className="text-[9px] font-black text-white italic">₹{post.estimatedEarnings.toFixed(2)}</p></div>
                                 )}
@@ -263,7 +280,6 @@ export default function ProfilePage() {
             <Dialog open={isEarningsOpen} onOpenChange={(open) => {
               setIsEarningsOpen(open);
               if (!open) {
-                // Force interaction reset when closing
                 document.body.style.pointerEvents = 'auto';
               }
             }}>
@@ -280,7 +296,6 @@ export default function ProfilePage() {
                            <X className="h-6 w-6" />
                          </Button>
                     </DialogHeader>
-
                     <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide pb-32">
                         <div className="bg-gradient-to-br from-green-600 to-green-900 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
                             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 mb-2">Available Balance</p>
@@ -291,12 +306,10 @@ export default function ProfilePage() {
                             </div>
                             <Button onClick={() => setIsWithdrawOpen(true)} className="w-full mt-6 h-12 bg-white text-black hover:bg-white/90 font-black uppercase rounded-2xl" disabled={earningsStats.available < 1}>Withdraw Funds</Button>
                         </div>
-
                         <div className="grid grid-cols-2 gap-4">
                             <div className="bg-secondary/20 p-5 rounded-3xl border border-white/5 text-center"><TrendingUp size={16} className="text-blue-400 mx-auto mb-2" /><p className="text-2xl font-black">{earningsStats.totalViews.toLocaleString()}</p><p className="text-[9px] font-bold text-muted-foreground uppercase">Views</p></div>
                             <div className="bg-secondary/20 p-5 rounded-3xl border border-white/5 text-center"><Eye size={16} className="text-primary mx-auto mb-2" /><p className="text-2xl font-black">{earningsStats.impressions.toLocaleString()}</p><p className="text-[9px] font-bold text-muted-foreground uppercase">Ad Impressions</p></div>
                         </div>
-
                         <div className="space-y-4">
                             <div className="flex items-center gap-2 mb-2"><History size={16} className="text-muted-foreground" /><h3 className="text-xs font-black uppercase tracking-wider">Payment History</h3></div>
                             {userPayouts?.map(p => (
@@ -312,7 +325,6 @@ export default function ProfilePage() {
                                     )}>{p.status}</div>
                                 </div>
                             ))}
-                            {(!userPayouts || userPayouts.length === 0) && <p className="text-center py-10 opacity-30 text-xs italic">No transactions yet</p>}
                         </div>
                     </div>
                 </DialogContent>
@@ -326,52 +338,30 @@ export default function ProfilePage() {
               }
             }}>
                 <DialogContent className="bg-[#0a0a0a] border-white/10 rounded-[2.5rem] max-w-lg w-[95%] z-[300]">
-                    <DialogHeader>
-                        <DialogTitle className="text-xl font-black italic uppercase text-center mb-2">Request Cash Out</DialogTitle>
-                        <DialogDescription className="text-center text-xs font-bold text-muted-foreground">Select method and enter details to withdraw ₹{earningsStats.available.toFixed(2)}</DialogDescription>
-                    </DialogHeader>
-
+                    <DialogHeader><DialogTitle className="text-xl font-black italic uppercase text-center mb-2">Request Cash Out</DialogTitle></DialogHeader>
                     <div className="space-y-6 mt-6">
-                        <div className="space-y-3">
-                            <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground ml-1">Payment Method</Label>
-                            <RadioGroup value={withdrawMethod} onValueChange={(v: any) => setWithdrawMethod(v)} className="flex gap-4">
-                                <div className={cn("flex-1 flex items-center justify-center gap-2 p-4 rounded-2xl border transition-all cursor-pointer", withdrawMethod === 'bank' ? "border-primary bg-primary/10" : "border-white/5 bg-secondary/20")}>
-                                    <RadioGroupItem value="bank" id="bank" className="sr-only" /><Label htmlFor="bank" className="flex items-center gap-2 cursor-pointer font-bold"><CreditCard size={16} /> Bank</Label>
-                                </div>
-                                <div className={cn("flex-1 flex items-center justify-center gap-2 p-4 rounded-2xl border transition-all cursor-pointer", withdrawMethod === 'paypal' ? "border-primary bg-primary/10" : "border-white/5 bg-secondary/20")}>
-                                    <RadioGroupItem value="paypal" id="paypal" className="sr-only" /><Label htmlFor="paypal" className="flex items-center gap-2 cursor-pointer font-bold"><DollarSign size={16} /> PayPal</Label>
-                                </div>
-                            </RadioGroup>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground ml-1">Amount to Withdraw (₹)</Label>
-                                <Input type="number" placeholder="Enter amount" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} className="h-14 bg-secondary/40 border-white/10 rounded-2xl font-black text-xl text-center" />
+                        <RadioGroup value={withdrawMethod} onValueChange={(v: any) => setWithdrawMethod(v)} className="flex gap-4">
+                            <div className={cn("flex-1 flex items-center justify-center gap-2 p-4 rounded-2xl border transition-all cursor-pointer", withdrawMethod === 'bank' ? "border-primary bg-primary/10" : "border-white/5 bg-secondary/20")}>
+                                <RadioGroupItem value="bank" id="bank" className="sr-only" /><Label htmlFor="bank" className="flex items-center gap-2 cursor-pointer font-bold"><CreditCard size={16} /> Bank</Label>
                             </div>
-
-                            {withdrawMethod === 'bank' ? (
-                                <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                                    <Input placeholder="A/C Holder Name" value={payoutDetails.holderName} onChange={(e) => setPayoutDetails({...payoutDetails, holderName: e.target.value})} className="h-12 bg-secondary/40 border-white/5 rounded-xl" />
-                                    <Input placeholder="Bank Account Number" value={payoutDetails.accountNo} onChange={(e) => setPayoutDetails({...payoutDetails, accountNo: e.target.value})} className="h-12 bg-secondary/40 border-white/5 rounded-xl" />
-                                    <Input placeholder="Bank IFSC Code" value={payoutDetails.ifsc} onChange={(e) => setPayoutDetails({...payoutDetails, ifsc: e.target.value})} className="h-12 bg-secondary/40 border-white/5 rounded-xl" />
-                                </div>
-                            ) : (
-                                <div className="animate-in fade-in slide-in-from-top-2">
-                                    <Input placeholder="PayPal Email Address" value={payoutDetails.paypalEmail} onChange={(e) => setPayoutDetails({...payoutDetails, paypalEmail: e.target.value})} className="h-12 bg-secondary/40 border-white/5 rounded-xl" />
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="bg-yellow-500/10 p-4 rounded-2xl border border-yellow-500/20 flex items-start gap-3">
-                            <AlertCircle size={16} className="text-yellow-500 shrink-0 mt-0.5" />
-                            <p className="text-[10px] text-yellow-500 font-bold leading-relaxed">Withdrawal requests are processed manually. It may take up to 48-72 hours for funds to reflect in your account.</p>
-                        </div>
+                            <div className={cn("flex-1 flex items-center justify-center gap-2 p-4 rounded-2xl border transition-all cursor-pointer", withdrawMethod === 'paypal' ? "border-primary bg-primary/10" : "border-white/5 bg-secondary/20")}>
+                                <RadioGroupItem value="paypal" id="paypal" className="sr-only" /><Label htmlFor="paypal" className="flex items-center gap-2 cursor-pointer font-bold"><DollarSign size={16} /> PayPal</Label>
+                            </div>
+                        </RadioGroup>
+                        <Input type="number" placeholder="Amount (₹)" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} className="h-14 bg-secondary/40 border-white/10 rounded-2xl font-black text-xl text-center" />
+                        {withdrawMethod === 'bank' ? (
+                            <div className="space-y-4">
+                                <Input placeholder="A/C Holder Name" value={payoutDetails.holderName} onChange={(e) => setPayoutDetails({...payoutDetails, holderName: e.target.value})} className="h-12 bg-secondary/40 border-white/5 rounded-xl" />
+                                <Input placeholder="Bank Account Number" value={payoutDetails.accountNo} onChange={(e) => setPayoutDetails({...payoutDetails, accountNo: e.target.value})} className="h-12 bg-secondary/40 border-white/5 rounded-xl" />
+                                <Input placeholder="Bank IFSC Code" value={payoutDetails.ifsc} onChange={(e) => setPayoutDetails({...payoutDetails, ifsc: e.target.value})} className="h-12 bg-secondary/40 border-white/5 rounded-xl" />
+                            </div>
+                        ) : (
+                            <Input placeholder="PayPal Email Address" value={payoutDetails.paypalEmail} onChange={(e) => setPayoutDetails({...payoutDetails, paypalEmail: e.target.value})} className="h-12 bg-secondary/40 border-white/5 rounded-xl" />
+                        )}
                     </div>
-
                     <DialogFooter className="mt-8 flex gap-3 sm:flex-row">
                         <Button variant="ghost" onClick={() => setIsWithdrawOpen(false)} className="flex-1 rounded-xl h-14 font-black uppercase text-xs">Cancel</Button>
-                        <Button onClick={handleWithdrawRequest} disabled={isSubmitting || !withdrawAmount} className="flex-1 bg-primary hover:bg-primary/90 rounded-xl h-14 font-black uppercase text-xs shadow-lg shadow-primary/20">
+                        <Button onClick={handleWithdrawRequest} disabled={isSubmitting || !withdrawAmount} className="flex-1 bg-primary hover:bg-primary/90 rounded-xl h-14 font-black uppercase text-xs">
                             {isSubmitting ? <Loader2 className="animate-spin h-5 w-5" /> : "Submit Request"}
                         </Button>
                     </DialogFooter>
@@ -379,7 +369,6 @@ export default function ProfilePage() {
             </Dialog>
 
             <EditProfileSheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen} userProfile={userProfile} />
-            
             <Dialog open={!!selectedPost} onOpenChange={(isOpen) => {
               setSelectedPost(isOpen ? selectedPost : null);
               if (!isOpen) document.body.style.pointerEvents = 'auto';
@@ -389,6 +378,20 @@ export default function ProfilePage() {
                     {selectedPost && <PostCard post={selectedPost} isFocused />}
                 </DialogContent>
             </Dialog>
+
+            {/* Global Delete Confirmation */}
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent className="bg-[#121212] text-white rounded-[2.5rem] border-white/10">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-center font-black uppercase italic tracking-wider text-xl">Delete Post?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-center text-muted-foreground text-xs font-bold uppercase tracking-widest mt-2">This action cannot be undone.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex-col gap-3 sm:flex-row mt-8">
+                        <AlertDialogCancel className="rounded-2xl bg-secondary/50 h-14 font-black border-none uppercase text-xs flex-1">Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90 rounded-2xl h-14 font-black uppercase text-xs flex-1">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             <BottomNav />
         </div>
     );
