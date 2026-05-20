@@ -60,6 +60,15 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const isOwnPost = user?.uid === post.userId;
   const isCurrentUserAdmin = user?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
+  // Helper to handle guest actions (Instagram-style redirect)
+  const requireAuth = () => {
+    if (!user) {
+      router.push('/login?auth=true');
+      return true;
+    }
+    return false;
+  };
+
   const authorRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'users', post.userId);
@@ -86,14 +95,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   useEffect(() => {
     setLocalLikeCount(post.likeCount || 0);
   }, [post.likeCount]);
-
-  const requireAuth = () => {
-    if (!user) {
-      router.push('/login?auth=true');
-      return true;
-    }
-    return false;
-  };
 
   const toggleMute = () => {
     const video = videoRef.current;
@@ -257,7 +258,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
 
       {showMuteIndicator && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-          <div className="bg-black/60 p-5 rounded-full animate-in fade-in zoom-in duration-300">
+          <div className="bg-black/60 p-5 rounded-full">
             {isMuted ? <VolumeX className="w-12 h-12 text-white" /> : <Volume2 className="w-12 h-12 text-white" />}
           </div>
         </div>

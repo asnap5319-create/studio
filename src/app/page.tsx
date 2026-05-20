@@ -24,7 +24,7 @@ export default function HomePage() {
 
   useEffect(() => { setHasMounted(true); }, []);
 
-  // PUBLIC QUERY - For everyone (Bina login rills dikhengi)
+  // PUBLIC QUERY - Feed is visible to everyone (Guest Mode)
   const postsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'), limit(100));
@@ -32,7 +32,7 @@ export default function HomePage() {
 
   const { data: posts, isLoading } = useCollection<Post>(postsQuery);
 
-  // Private queries only run if user is logged in
+  // Private queries only run if user is logged in to avoid permission errors
   const unreadNotificationsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
@@ -61,14 +61,10 @@ export default function HomePage() {
 
   const shuffleAndInjectAds = useCallback((items: Post[]) => {
     const shuffled = [...items];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-
     const result: (Post | { type: 'ad'; id: string })[] = [];
     shuffled.forEach((post, index) => {
       result.push(post);
+      // Inject an ad every 2 posts
       if ((index + 1) % 2 === 0) {
         result.push({ type: 'ad', id: `ad-${index}-${Date.now()}` });
       }
@@ -113,13 +109,13 @@ export default function HomePage() {
           <Link href={user ? "/notifications" : "/login?auth=true"} className="relative p-2.5 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 shadow-lg">
             <Bell className="w-5 h-5 text-white" />
             {hasUnreadNotifications && (
-              <span className="absolute top-2 right-2 h-2.5 w-2.5 bg-red-600 rounded-full border border-black animate-pulse shadow-[0_0_8px_rgba(220,38,38,0.8)]" />
+              <span className="absolute top-2 right-2 h-2.5 w-2.5 bg-red-600 rounded-full border border-black animate-pulse" />
             )}
           </Link>
           <Link href={user ? "/messages" : "/login?auth=true"} className="relative p-2.5 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 shadow-lg">
             <MessageCircle className="w-5 h-5 text-white" />
             {hasUnreadMessages && (
-              <span className="absolute top-2 right-2 h-2.5 w-2.5 bg-red-600 rounded-full border border-black animate-pulse shadow-[0_0_8px_rgba(220,38,38,0.8)]" />
+              <span className="absolute top-2 right-2 h-2.5 w-2.5 bg-red-600 rounded-full border border-black animate-pulse" />
             )}
           </Link>
         </div>
@@ -152,7 +148,7 @@ export default function HomePage() {
             <div className="flex flex-col gap-6 items-center">
               <Logo className="w-24 h-24 text-primary opacity-20" />
               <Link href={user ? "/create" : "/login?auth=true"}>
-                <button className="bg-primary px-8 py-4 text-white font-black uppercase rounded-2xl shadow-2xl hover:scale-105 active:scale-95 transition-transform">
+                <button className="bg-primary px-8 py-4 text-white font-black uppercase rounded-2xl shadow-2xl">
                   Start Sharing
                 </button>
               </Link>

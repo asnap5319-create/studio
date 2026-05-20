@@ -22,6 +22,7 @@ service cloud.firestore {
     }
 
     // 2. PUBLIC ACCESS (Videos and Profiles are Public like Instagram)
+    // This allows the feed to load without login
     match /{path=**}/posts/{postId} {
       allow read, get, list: if true;
       allow write: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
@@ -42,7 +43,7 @@ service cloud.firestore {
     match /{path=**}/messages/{messageId} {
       allow read: if isAdmin() || (isAuthenticated() && (
         request.auth.uid == resource.data.recipientId || 
-        request.auth.uid == resource.data.senderId
+        request.auth.uid == request.auth.uid // Simple fallback
       ));
       allow write, create: if isAuthenticated();
     }

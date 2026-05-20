@@ -10,14 +10,15 @@ export function NativeAdCard() {
     if (!adContainerRef.current) return;
     
     const containerId = 'container-286ef4dc1c3c9afc429b42567c2d2b99';
-    adContainerRef.current.innerHTML = '';
+    adContainerRef.current.innerHTML = ''; // Clear previous content
     
     const adDiv = document.createElement('div');
     adDiv.id = containerId;
     adContainerRef.current.appendChild(adDiv);
 
-    // Properly injecting script to execute
+    // Properly injecting script to execute by appending a real script tag
     const script = document.createElement('script');
+    script.type = 'text/javascript';
     script.async = true;
     script.setAttribute('data-cfasync', 'false');
     script.src = 'https://pl29411112.effectivecpmnetwork.com/286ef4dc1c3c9afc429b42567c2d2b99/invoke.js';

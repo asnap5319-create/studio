@@ -15,9 +15,10 @@ export function FirebaseErrorListener() {
 
   useEffect(() => {
     const handleError = (error: FirestorePermissionError) => {
-      // If no user is logged in, don't throw to avoid "Application Error" for guests
+      // If no user is logged in, don't throw to avoid "Application Error" for guest users
+      // This is crucial for "Guest Mode" like Instagram
       if (!user) {
-        console.warn("Silent Permission Error (Guest):", error.message);
+        console.warn("Silent Permission Error (Guest Mode):", error.message);
         return;
       }
       setError(error);
