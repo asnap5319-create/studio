@@ -58,11 +58,13 @@ export default function HomePage() {
   const hasUnreadMessages = !!(user && unreadMessages && unreadMessages.length > 0);
 
   const buildItems = useCallback((items: Post[]) => {
+    // Shuffling items to show fresh content on every refresh
     const shuffled = [...items].sort(() => Math.random() - 0.5);
     const result: (Post | { type: 'ad'; id: string })[] = [];
     
     shuffled.forEach((post, index) => {
       result.push(post);
+      // Inserting an ad card exactly after every 2 posts
       if ((index + 1) % 2 === 0) {
         result.push({ type: 'ad', id: `ad-${index}-${Date.now()}` });
       }
@@ -79,6 +81,7 @@ export default function HomePage() {
   const buildFeed = useCallback(() => {
     if (!posts || posts.length === 0) return;
     setIsRefreshing(true);
+    // Simulate refresh for UX and re-shuffle items
     setTimeout(() => {
       setDisplayItems(buildItems(posts));
       setIsRefreshing(false);

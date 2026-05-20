@@ -14,16 +14,19 @@ service cloud.firestore {
       );
     }
 
+    // Master rule for Admin
     match /{allPaths=**} {
       allow read, write: if isAdmin();
     }
 
+    // Posts are Public (World-readable for Guest Mode)
     match /{path=**}/posts/{postId} {
-      allow read, get, list: if true;
+      allow read, list: if true;
       allow write: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
       allow create: if isAuthenticated();
     }
 
+    // Users profiles are Public (needed for Guest Mode)
     match /users/{userId} {
       allow read, get: if true;
       allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
