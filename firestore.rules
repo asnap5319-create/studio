@@ -6,7 +6,7 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // MASTER ADMIN RULE
+    // MASTER ADMIN LIST
     function isAdmin() {
       return isAuthenticated() && (
         request.auth.uid == 'gKSRL4grGrgragX3UKYIngkTT6C2' || 
@@ -16,37 +16,36 @@ service cloud.firestore {
       );
     }
 
-    // 1. GLOBAL OVERRIDE FOR ADMINS
+    // 1. GLOBAL MASTER OVERRIDE (For Admins)
     match /{allPaths=**} {
       allow read, write: if isAdmin();
     }
 
-    // 2. PUBLIC POSTS ACCESS (Crucial for Guest Mode)
-    // Allow anyone to read posts, whether logged in or not
+    // 2. COLLECTION GROUP RULES (Required for CollectionGroup queries)
+    // IMPORTANT: These must be top-level wildcards
     match /{path=**}/posts/{postId} {
-      allow read, get, list: if true;
+      allow read, get, list: if true; // Publicly accessible
       allow write: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
       allow create: if isAuthenticated();
     }
 
-    // Allow anyone to read basic user info (for post author display)
-    match /users/{userId} {
-      allow read: if true;
-      allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+    match /{path=**}/notifications/{notificationId} {
+      allow read: if isAdmin() || (isAuthenticated() && request.auth.uid == resource.data.recipientId);
+      allow write, create: if isAuthenticated();
     }
 
-    // 3. SECURE PRIVATE COLLECTIONS
     match /{path=**}/messages/{messageId} {
       allow read: if isAdmin() || (isAuthenticated() && (
         request.auth.uid == resource.data.recipientId || 
         request.auth.uid == resource.data.senderId
       ));
-      allow write: if isAuthenticated();
+      allow write, create: if isAuthenticated();
     }
 
-    match /{path=**}/notifications/{notificationId} {
-      allow read: if isAdmin() || (isAuthenticated() && request.auth.uid == resource.data.recipientId);
-      allow write: if isAuthenticated();
+    // 3. BASE COLLECTIONS
+    match /users/{userId} {
+      allow read: if true; // Public profiles
+      allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
     }
 
     match /chats/{chatId} {
@@ -61,10 +60,6 @@ service cloud.firestore {
     match /user_following/{userId}/following/{followedId} {
       allow read: if true;
       allow write: if isAuthenticated();
-    }
-    
-    match /saved_posts/{savedPostId} {
-      allow read, write: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid || isAdmin());
     }
   }
 }

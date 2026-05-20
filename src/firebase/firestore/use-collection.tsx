@@ -63,18 +63,10 @@ export function useCollection<T = any>(
       (err: FirestoreError) => {
         console.error("Firestore hook error:", err);
         
-        // Handle Permission Denied specifically
         if (err.code === 'permission-denied') {
-            let path: string = 'Firestore Query';
-            
-            // Attempt to get a better path description
-            if (memoizedTargetRefOrQuery.type === 'collection') {
-                path = (memoizedTargetRefOrQuery as CollectionReference).path;
-            } else {
-                // For collectionGroup or filtered queries, report the source
-                const target = memoizedTargetRefOrQuery as any;
-                path = target.path || 'Filtered Query';
-            }
+            // Get actual path instead of generic strings
+            const target = memoizedTargetRefOrQuery as any;
+            const path = target.path || 'Private Query';
 
             const contextualError = new FirestorePermissionError({
                 operation: 'list',
