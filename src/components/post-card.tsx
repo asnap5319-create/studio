@@ -60,7 +60,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const isOwnPost = user?.uid === post.userId;
   const isCurrentUserAdmin = user?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-  // Instagram-style requireAuth: Always redirect guests to login for actions
   const requireAuth = () => {
     if (!user) {
       router.push('/login?auth=true');
@@ -238,7 +237,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                   textShadow: '0 2px 15px rgba(0,0,0,0.9)'
               }}
           >
-              <p className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter leading-tight drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in duration-500">
+              <p className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter leading-tight drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)]">
                   {post.overlayText}
               </p>
           </div>
@@ -266,8 +265,8 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
 
       <div className="absolute bottom-0 left-0 right-16 p-6 pb-28 bg-gradient-to-t from-black/90 via-transparent text-white z-30" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-4">
-          {author ? (
-            <Link href={`/profile/${author.id}`} className="flex items-center gap-3 group">
+          {author && (
+            <Link href={`/profile/${author.id}`} onClick={(e) => { if(!user) { e.preventDefault(); router.push('/login?auth=true'); } }} className="flex items-center gap-3 group">
               <Avatar className="h-14 w-14 border-2 border-primary shadow-2xl">
                 <AvatarImage src={author.profileImageUrl} className="object-cover" />
                 <AvatarFallback className="font-black bg-secondary">{author.username?.[0]?.toUpperCase()}</AvatarFallback>
@@ -280,11 +279,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                 <span className="text-[10px] text-primary font-black uppercase tracking-widest">Creator</span>
               </div>
             </Link>
-          ) : (
-            <div className="flex items-center gap-3 animate-pulse">
-              <div className="h-14 w-14 rounded-full bg-white/10" />
-              <div className="h-4 w-24 bg-white/10 rounded" />
-            </div>
           )}
           
           {author && !isOwnPost && (
@@ -292,7 +286,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
               onClick={handleFollowToggle} 
               variant={isFollowing ? "secondary" : "default"} 
               className={cn(
-                "h-8 px-6 text-[11px] font-black uppercase rounded-full border border-white/20 transition-all active:scale-95",
+                "h-8 px-6 text-[11px] font-black uppercase rounded-full border border-white/20",
                 !isFollowing && "bg-primary text-white border-none"
               )}
             >

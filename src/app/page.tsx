@@ -24,7 +24,6 @@ export default function HomePage() {
 
   useEffect(() => { setHasMounted(true); }, []);
 
-  // PUBLIC QUERY - Always loads regardless of login
   const postsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'), limit(100));
@@ -32,7 +31,6 @@ export default function HomePage() {
 
   const { data: posts, isLoading } = useCollection<Post>(postsQuery);
 
-  // Private queries - ONLY run if user is logged in
   const unreadNotificationsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
@@ -59,11 +57,12 @@ export default function HomePage() {
   const hasUnreadNotifications = !!(user && unreadNotifications && unreadNotifications.length > 0);
   const hasUnreadMessages = !!(user && unreadMessages && unreadMessages.length > 0);
 
-  const shuffleAndInjectAds = useCallback((items: Post[]) => {
+  const buildItems = useCallback((items: Post[]) => {
+    const shuffled = [...items].sort(() => Math.random() - 0.5);
     const result: (Post | { type: 'ad'; id: string })[] = [];
-    items.forEach((post, index) => {
+    
+    shuffled.forEach((post, index) => {
       result.push(post);
-      // Inject an ad every 2 posts
       if ((index + 1) % 2 === 0) {
         result.push({ type: 'ad', id: `ad-${index}-${Date.now()}` });
       }
@@ -72,20 +71,20 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (hasMounted && posts && posts.length > 0) {
-      setDisplayItems(shuffleAndInjectAds(posts));
+    if (hasMounted && posts && posts.length > 0 && displayItems.length === 0) {
+      setDisplayItems(buildItems(posts));
     }
-  }, [hasMounted, posts, shuffleAndInjectAds]);
+  }, [hasMounted, posts, buildItems, displayItems.length]);
 
   const buildFeed = useCallback(() => {
     if (!posts || posts.length === 0) return;
     setIsRefreshing(true);
     setTimeout(() => {
-      setDisplayItems(shuffleAndInjectAds(posts));
+      setDisplayItems(buildItems(posts));
       setIsRefreshing(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 400);
-  }, [posts, shuffleAndInjectAds]);
+    }, 600);
+  }, [posts, buildItems]);
 
   if (!hasMounted) return <div className="h-screen bg-black" />;
 

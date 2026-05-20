@@ -9,14 +9,15 @@ export function NativeAdCard() {
   useEffect(() => {
     if (!adContainerRef.current) return;
     
+    // Clear and prepare
     const containerId = 'container-286ef4dc1c3c9afc429b42567c2d2b99';
-    adContainerRef.current.innerHTML = ''; // Clear previous content
+    adContainerRef.current.innerHTML = '';
     
     const adDiv = document.createElement('div');
     adDiv.id = containerId;
     adContainerRef.current.appendChild(adDiv);
 
-    // Properly injecting script to execute by appending a real script tag
+    // Inject the script element
     const script = document.createElement('script');
     script.type = 'text/javascript';
     script.async = true;
@@ -26,7 +27,9 @@ export function NativeAdCard() {
     adContainerRef.current.appendChild(script);
 
     return () => {
-      if (adContainerRef.current) adContainerRef.current.innerHTML = '';
+      if (adContainerRef.current) {
+        adContainerRef.current.innerHTML = '';
+      }
     };
   }, []);
 
