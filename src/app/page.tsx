@@ -24,7 +24,7 @@ export default function HomePage() {
 
   useEffect(() => { setHasMounted(true); }, []);
 
-  // PUBLIC QUERY - For everyone
+  // PUBLIC QUERY - For everyone (Bina login rills dikhengi)
   const postsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'), limit(100));
@@ -32,7 +32,7 @@ export default function HomePage() {
 
   const { data: posts, isLoading } = useCollection<Post>(postsQuery);
 
-  // Red Dot Queries - ONLY for authenticated users
+  // Private queries only run if user is logged in
   const unreadNotificationsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
@@ -110,13 +110,13 @@ export default function HomePage() {
         </div>
         
         <div className="flex items-center gap-3 pointer-events-auto">
-          <Link href="/notifications" className="relative p-2.5 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 shadow-lg">
+          <Link href={user ? "/notifications" : "/login?auth=true"} className="relative p-2.5 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 shadow-lg">
             <Bell className="w-5 h-5 text-white" />
             {hasUnreadNotifications && (
               <span className="absolute top-2 right-2 h-2.5 w-2.5 bg-red-600 rounded-full border border-black animate-pulse shadow-[0_0_8px_rgba(220,38,38,0.8)]" />
             )}
           </Link>
-          <Link href="/messages" className="relative p-2.5 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 shadow-lg">
+          <Link href={user ? "/messages" : "/login?auth=true"} className="relative p-2.5 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 shadow-lg">
             <MessageCircle className="w-5 h-5 text-white" />
             {hasUnreadMessages && (
               <span className="absolute top-2 right-2 h-2.5 w-2.5 bg-red-600 rounded-full border border-black animate-pulse shadow-[0_0_8px_rgba(220,38,38,0.8)]" />

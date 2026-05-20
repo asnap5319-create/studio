@@ -5,10 +5,9 @@ import { Logo } from './pwa-install-prompt';
 
 export function NativeAdCard() {
   const adContainerRef = useRef<HTMLDivElement>(null);
-  const isInitialized = useRef(false);
 
   useEffect(() => {
-    if (isInitialized.current || !adContainerRef.current) return;
+    if (!adContainerRef.current) return;
     
     const containerId = 'container-286ef4dc1c3c9afc429b42567c2d2b99';
     adContainerRef.current.innerHTML = '';
@@ -17,13 +16,13 @@ export function NativeAdCard() {
     adDiv.id = containerId;
     adContainerRef.current.appendChild(adDiv);
 
+    // Properly injecting script to execute
     const script = document.createElement('script');
     script.async = true;
     script.setAttribute('data-cfasync', 'false');
     script.src = 'https://pl29411112.effectivecpmnetwork.com/286ef4dc1c3c9afc429b42567c2d2b99/invoke.js';
     
     adContainerRef.current.appendChild(script);
-    isInitialized.current = true;
 
     return () => {
       if (adContainerRef.current) adContainerRef.current.innerHTML = '';

@@ -21,8 +21,7 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // 2. PUBLIC ACCESS (For Everyone - Guest Mode)
-    // Allows anyone to see posts and profiles like Instagram
+    // 2. PUBLIC ACCESS (Videos and Profiles are Public like Instagram)
     match /{path=**}/posts/{postId} {
       allow read, get, list: if true;
       allow write: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
