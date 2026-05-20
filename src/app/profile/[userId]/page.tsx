@@ -173,6 +173,14 @@ export default function ProfilePage() {
         await batch.commit();
     };
 
+    // Fix for focus trap when opening dialog from dropdown
+    const openEarnings = () => {
+      // Small timeout ensures the dropdown closes properly before the dialog opens
+      setTimeout(() => {
+        setIsEarningsOpen(true);
+      }, 150);
+    };
+
     if (isUserLoading || isProfileLoading) return <div className="h-screen flex items-center justify-center bg-black"><Loader2 className="animate-spin text-primary" /></div>;
     
     return (
@@ -188,11 +196,11 @@ export default function ProfilePage() {
                             <Button variant="ghost" size="icon" className="rounded-full"><MoreVertical /></Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[220px] p-2 shadow-2xl z-[100]">
-                            <DropdownMenuItem onSelect={() => setIsEarningsOpen(true)} className="font-black p-4 rounded-xl text-green-400 focus:bg-green-400/10 cursor-pointer">
+                            <DropdownMenuItem onSelect={openEarnings} className="font-black p-4 rounded-xl text-green-400 focus:bg-green-400/10 cursor-pointer">
                                 <Zap className="mr-3 h-5 w-5 fill-green-400" /> Creator Studio
                             </DropdownMenuItem>
                             {isCurrentUserAdmin && (
-                                <DropdownMenuItem onSelect={() => router.push('/admin')} className="font-black p-4 rounded-xl text-primary focus:bg-primary/10 cursor-pointer">
+                                <DropdownMenuItem onSelect={() => setTimeout(() => router.push('/admin'), 150)} className="font-black p-4 rounded-xl text-primary focus:bg-primary/10 cursor-pointer">
                                     <ShieldCheck className="mr-3 h-5 w-5" /> Master Panel
                                 </DropdownMenuItem>
                             )}
@@ -222,7 +230,7 @@ export default function ProfilePage() {
                 {isOwnProfile ? (
                     <div className="flex gap-2 mt-6">
                         <Button className="flex-1 h-12 rounded-2xl bg-secondary/80 font-bold uppercase text-xs" onClick={() => setIsEditSheetOpen(true)}>Edit Profile</Button>
-                        <Button className="h-12 w-12 rounded-2xl bg-green-500/10 text-green-500" onClick={() => setIsEarningsOpen(true)}><Wallet className="h-5 w-5" /></Button>
+                        <Button className="h-12 w-12 rounded-2xl bg-green-500/10 text-green-500" onClick={openEarnings}><Wallet className="h-5 w-5" /></Button>
                     </div>
                 ) : user && (
                     <div className="flex gap-2 mt-6">
@@ -252,8 +260,14 @@ export default function ProfilePage() {
             </Tabs>
 
             {/* Creator Dashboard Payouts & Earnings */}
-            <Dialog open={isEarningsOpen} onOpenChange={setIsEarningsOpen}>
-                <DialogContent className="bg-[#0a0a0a] border-white/10 p-0 rounded-[2.5rem] max-w-lg w-[95%] overflow-hidden h-[90vh] flex flex-col z-[110]">
+            <Dialog open={isEarningsOpen} onOpenChange={(open) => {
+              setIsEarningsOpen(open);
+              if (!open) {
+                // Force interaction reset when closing
+                document.body.style.pointerEvents = 'auto';
+              }
+            }}>
+                <DialogContent className="bg-[#0a0a0a] border-white/10 p-0 rounded-[2.5rem] max-w-lg w-[95%] overflow-hidden h-[90vh] flex flex-col z-[200]">
                     <DialogHeader className="p-6 border-b border-white/5 bg-gradient-to-br from-green-500/10 via-transparent to-transparent flex flex-row items-center justify-between">
                          <div className="flex items-center gap-3 text-left">
                             <div className="p-2 bg-green-500 rounded-xl"><Zap size={20} className="text-white fill-white" /></div>
@@ -262,7 +276,9 @@ export default function ProfilePage() {
                                 <p className="text-[10px] text-green-500 font-bold uppercase tracking-widest mt-0.5">Monetization Active</p>
                             </div>
                          </div>
-                         <Button variant="ghost" size="icon" onClick={() => setIsEarningsOpen(false)}><X /></Button>
+                         <Button variant="ghost" size="icon" onClick={() => setIsEarningsOpen(false)} className="rounded-full hover:bg-white/10">
+                           <X className="h-6 w-6" />
+                         </Button>
                     </DialogHeader>
 
                     <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide pb-32">
@@ -303,8 +319,13 @@ export default function ProfilePage() {
             </Dialog>
 
             {/* Withdrawal Form Dialog */}
-            <Dialog open={isWithdrawOpen} onOpenChange={setIsWithdrawOpen}>
-                <DialogContent className="bg-[#0a0a0a] border-white/10 rounded-[2.5rem] max-w-lg w-[95%] z-[120]">
+            <Dialog open={isWithdrawOpen} onOpenChange={(open) => {
+              setIsWithdrawOpen(open);
+              if (!open) {
+                document.body.style.pointerEvents = 'auto';
+              }
+            }}>
+                <DialogContent className="bg-[#0a0a0a] border-white/10 rounded-[2.5rem] max-w-lg w-[95%] z-[300]">
                     <DialogHeader>
                         <DialogTitle className="text-xl font-black italic uppercase text-center mb-2">Request Cash Out</DialogTitle>
                         <DialogDescription className="text-center text-xs font-bold text-muted-foreground">Select method and enter details to withdraw ₹{earningsStats.available.toFixed(2)}</DialogDescription>
@@ -358,8 +379,12 @@ export default function ProfilePage() {
             </Dialog>
 
             <EditProfileSheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen} userProfile={userProfile} />
-            <Dialog open={!!selectedPost} onOpenChange={(isOpen) => !isOpen && setSelectedPost(null)}>
-                <DialogContent className="p-0 border-0 bg-black w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center overflow-hidden z-[110]">
+            
+            <Dialog open={!!selectedPost} onOpenChange={(isOpen) => {
+              setSelectedPost(isOpen ? selectedPost : null);
+              if (!isOpen) document.body.style.pointerEvents = 'auto';
+            }}>
+                <DialogContent className="p-0 border-0 bg-black w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center overflow-hidden z-[200]">
                     <DialogTitle className="sr-only">Post Preview</DialogTitle>
                     {selectedPost && <PostCard post={selectedPost} isFocused />}
                 </DialogContent>
