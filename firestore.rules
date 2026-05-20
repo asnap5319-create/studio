@@ -6,7 +6,7 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // MASTER ADMIN RULE - Complete access for specifically listed UIDs and Emails
+    // MASTER ADMIN RULE
     function isAdmin() {
       return isAuthenticated() && (
         request.auth.uid == 'gKSRL4grGrgragX3UKYIngkTT6C2' || 
@@ -21,15 +21,21 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // 2. COLLECTION GROUP RULES - Crucial for Guest Access & Home Feed
-    
-    // Allow anyone (even guests) to read posts - FIXED: Explicitly allow list/get for collectionGroup
+    // 2. PUBLIC POSTS ACCESS (Crucial for Guest Mode)
+    // Allow anyone to read posts, whether logged in or not
     match /{path=**}/posts/{postId} {
       allow read, get, list: if true;
-      allow write: if isAdmin() || (isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid));
+      allow write: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
+      allow create: if isAuthenticated();
     }
 
-    // Messages and Notifications are for participants only
+    // Allow anyone to read basic user info (for post author display)
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+    }
+
+    // 3. SECURE PRIVATE COLLECTIONS
     match /{path=**}/messages/{messageId} {
       allow read: if isAdmin() || (isAuthenticated() && (
         request.auth.uid == resource.data.recipientId || 
@@ -43,20 +49,22 @@ service cloud.firestore {
       allow write: if isAuthenticated();
     }
 
-    // 3. STANDARD HIERARCHICAL RULES
-    match /users/{userId} {
-      allow read: if true;
-      allow write: if isAuthenticated() && (request.auth.uid == userId);
-    }
-
     match /chats/{chatId} {
-      allow read, write: if isAuthenticated() && (request.auth.uid in chatId.split('_'));
+      allow read, write: if isAuthenticated() && (request.auth.uid in chatId.split('_') || isAdmin());
     }
 
+    match /user_followers/{userId}/followers/{followerId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    match /user_following/{userId}/following/{followedId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+    
     match /saved_posts/{savedPostId} {
-      allow read, write: if isAuthenticated() && (
-        (resource == null || resource.data.userId == request.auth.uid)
-      );
+      allow read, write: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid || isAdmin());
     }
   }
 }

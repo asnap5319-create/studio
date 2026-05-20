@@ -5,40 +5,42 @@ import { Logo } from './pwa-install-prompt';
 
 /**
  * NativeAdCard handles the injection of Adsterra Native Banner ads.
- * Fixed to prevent code from being displayed as text.
+ * It uses direct DOM manipulation to ensure scripts are executed and not shown as text.
  */
 export function NativeAdCard() {
   const adContainerRef = useRef<HTMLDivElement>(null);
   const isInitialized = useRef(false);
 
   useEffect(() => {
-    // Only run on client side and once
     if (isInitialized.current || !adContainerRef.current) return;
     
     const containerId = 'container-286ef4dc1c3c9afc429b42567c2d2b99';
     
-    // Clear any existing text/code
+    // Clear existing content to be sure
     adContainerRef.current.innerHTML = '';
     
-    // Create the container div
+    // 1. Create the div that the ad will be injected into
     const adDiv = document.createElement('div');
     adDiv.id = containerId;
     adContainerRef.current.appendChild(adDiv);
 
-    // Create script element
+    // 2. Create and append the script element
+    // This script must be appended to the DOM to execute correctly
     const script = document.createElement('script');
     script.async = true;
     script.setAttribute('data-cfasync', 'false');
     script.src = 'https://pl29411112.effectivecpmnetwork.com/286ef4dc1c3c9afc429b42567c2d2b99/invoke.js';
     
-    // Append script - this executes it instead of showing it as text
+    // Append the script to the adContainerRef div
     adContainerRef.current.appendChild(script);
+    
     isInitialized.current = true;
 
     return () => {
-        if (adContainerRef.current) {
-            adContainerRef.current.innerHTML = '';
-        }
+      // Cleanup
+      if (adContainerRef.current) {
+        adContainerRef.current.innerHTML = '';
+      }
     };
   }, []);
 
@@ -51,15 +53,13 @@ export function NativeAdCard() {
       
       <div className="w-full max-w-sm aspect-[9/16] bg-secondary/10 rounded-[3rem] border border-white/5 flex flex-col items-center justify-center overflow-hidden shadow-2xl relative">
         <div ref={adContainerRef} className="w-full h-full flex items-center justify-center min-h-[250px]">
-          {/* Adsterra script will populate this, nothing will show as text */}
-          {!isInitialized.current && (
-            <div className="text-center p-10 flex flex-col items-center gap-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary"></div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">
-                Loading Sponsored Reel...
-              </p>
-            </div>
-          )}
+          {/* Adsterra script will populate this container. If script fails or lags, we show a loader */}
+          <div className="text-center p-10 flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary"></div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">
+              Loading Sponsored Reel...
+            </p>
+          </div>
         </div>
       </div>
 
