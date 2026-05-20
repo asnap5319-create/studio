@@ -24,8 +24,7 @@ export default function HomePage() {
 
   useEffect(() => { setHasMounted(true); }, []);
 
-  // PUBLIC QUERY - Feed is visible to everyone (Guest Mode)
-  // No auth required here
+  // PUBLIC QUERY - Always loads regardless of login
   const postsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'), limit(100));
@@ -33,7 +32,7 @@ export default function HomePage() {
 
   const { data: posts, isLoading } = useCollection<Post>(postsQuery);
 
-  // Private queries only run if user is logged in to avoid permission errors
+  // Private queries - ONLY run if user is logged in
   const unreadNotificationsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
@@ -61,9 +60,8 @@ export default function HomePage() {
   const hasUnreadMessages = !!(user && unreadMessages && unreadMessages.length > 0);
 
   const shuffleAndInjectAds = useCallback((items: Post[]) => {
-    const shuffled = [...items];
     const result: (Post | { type: 'ad'; id: string })[] = [];
-    shuffled.forEach((post, index) => {
+    items.forEach((post, index) => {
       result.push(post);
       // Inject an ad every 2 posts
       if ((index + 1) % 2 === 0) {
@@ -72,6 +70,12 @@ export default function HomePage() {
     });
     return result;
   }, []);
+
+  useEffect(() => {
+    if (hasMounted && posts && posts.length > 0) {
+      setDisplayItems(shuffleAndInjectAds(posts));
+    }
+  }, [hasMounted, posts, shuffleAndInjectAds]);
 
   const buildFeed = useCallback(() => {
     if (!posts || posts.length === 0) return;
@@ -82,12 +86,6 @@ export default function HomePage() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 400);
   }, [posts, shuffleAndInjectAds]);
-
-  useEffect(() => {
-    if (hasMounted && posts && posts.length > 0) {
-      setDisplayItems(shuffleAndInjectAds(posts));
-    }
-  }, [hasMounted, posts, shuffleAndInjectAds]);
 
   if (!hasMounted) return <div className="h-screen bg-black" />;
 

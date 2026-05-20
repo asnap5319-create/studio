@@ -60,7 +60,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const isOwnPost = user?.uid === post.userId;
   const isCurrentUserAdmin = user?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-  // Helper to handle guest actions (Instagram-style redirect)
+  // Instagram-style requireAuth: Always redirect guests to login for actions
   const requireAuth = () => {
     if (!user) {
       router.push('/login?auth=true');

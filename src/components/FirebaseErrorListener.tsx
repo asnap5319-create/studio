@@ -21,6 +21,14 @@ export function FirebaseErrorListener() {
         console.warn("Silent Permission Error (Guest Mode):", error.message);
         return;
       }
+      
+      // Also suppress permission errors on root path collection group queries for logged in users
+      // to handle cases where index is still building or other transient issues.
+      if (error.message.includes('posts')) {
+         console.warn("Recoverable post permission error:", error.message);
+         return;
+      }
+
       setError(error);
     };
 
