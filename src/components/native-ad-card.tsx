@@ -5,33 +5,33 @@ import { Logo } from './pwa-install-prompt';
 
 /**
  * NativeAdCard handles the injection of Adsterra Native Banner ads.
- * It uses a script tag to load the ad and a container div to display it.
+ * Fixed script injection to ensure ads load correctly instead of showing code.
  */
 export function NativeAdCard() {
   const adContainerRef = useRef<HTMLDivElement>(null);
+  const isInitialized = useRef(false);
 
   useEffect(() => {
-    // Only inject if the container exists and is empty
-    if (adContainerRef.current && adContainerRef.current.querySelector('#ad-script-container') === null) {
-      const containerId = 'container-286ef4dc1c3c9afc429b42567c2d2b99';
-      
-      // Create a wrapper for the script and the ad div
-      const wrapper = document.createElement('div');
-      wrapper.id = 'ad-script-container';
-      
-      const adDiv = document.createElement('div');
-      adDiv.id = containerId;
-      
-      const script = document.createElement('script');
-      script.async = true;
-      script.setAttribute('data-cfasync', 'false');
-      script.src = 'https://pl29411112.effectivecpmnetwork.com/286ef4dc1c3c9afc429b42567c2d2b99/invoke.js';
-      
-      wrapper.appendChild(adDiv);
-      wrapper.appendChild(script);
-      
-      adContainerRef.current.appendChild(wrapper);
-    }
+    if (isInitialized.current || !adContainerRef.current) return;
+    
+    const containerId = 'container-286ef4dc1c3c9afc429b42567c2d2b99';
+    const adDiv = document.createElement('div');
+    adDiv.id = containerId;
+    adContainerRef.current.appendChild(adDiv);
+
+    const script = document.createElement('script');
+    script.async = true;
+    script.setAttribute('data-cfasync', 'false');
+    script.src = 'https://pl29411112.effectivecpmnetwork.com/286ef4dc1c3c9afc429b42567c2d2b99/invoke.js';
+    
+    adContainerRef.current.appendChild(script);
+    isInitialized.current = true;
+
+    return () => {
+        if (adContainerRef.current) {
+            adContainerRef.current.innerHTML = '';
+        }
+    };
   }, []);
 
   return (
@@ -42,14 +42,16 @@ export function NativeAdCard() {
       </div>
       
       <div className="w-full max-w-sm aspect-[9/16] bg-secondary/10 rounded-[3rem] border border-white/5 flex flex-col items-center justify-center overflow-hidden shadow-2xl relative">
-        <div ref={adContainerRef} className="w-full h-full flex items-center justify-center">
+        <div ref={adContainerRef} className="w-full h-full flex items-center justify-center min-h-[250px]">
           {/* Adsterra script will populate this */}
-          <div className="text-center p-10 flex flex-col items-center gap-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary"></div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">
-              Loading Sponsored Reel...
-            </p>
-          </div>
+          {!isInitialized.current && (
+            <div className="text-center p-10 flex flex-col items-center gap-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary"></div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">
+                Loading Sponsored Reel...
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

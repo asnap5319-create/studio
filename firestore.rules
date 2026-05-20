@@ -16,19 +16,20 @@ service cloud.firestore {
       );
     }
 
-    // 1. GLOBAL OVERRIDE FOR ADMINS (Priority #1)
+    // 1. GLOBAL OVERRIDE FOR ADMINS
     match /{allPaths=**} {
       allow read, write: if isAdmin();
     }
 
-    // 2. COLLECTION GROUP RULES - Required for the Home Feed and Red Dots
-    // These allow queries across all users for specific collection IDs
+    // 2. COLLECTION GROUP RULES - Crucial for Guest Access & Home Feed
     
+    // Allow anyone (even guests) to read posts
     match /{path=**}/posts/{postId} {
       allow read: if true;
       allow write: if isAdmin() || (isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid));
     }
 
+    // Messages and Notifications are strictly for the recipients/senders
     match /{path=**}/messages/{messageId} {
       allow read: if isAdmin() || (isAuthenticated() && (
         request.auth.uid == resource.data.recipientId || 
@@ -42,38 +43,14 @@ service cloud.firestore {
       allow write: if isAuthenticated();
     }
 
-    // 3. STANDARD HIERARCHICAL RULES (Fallback)
+    // 3. STANDARD HIERARCHICAL RULES
     match /users/{userId} {
       allow read: if true;
       allow write: if isAuthenticated() && (request.auth.uid == userId);
-      
-      match /posts/{postId} {
-        allow read: if true;
-        allow write: if isAuthenticated() && (request.auth.uid == userId);
-
-        match /comments/{commentId} {
-          allow read: if true;
-          allow write: if isAuthenticated();
-        }
-        
-        match /likes/{likeId} {
-          allow read: if true;
-          allow write: if isAuthenticated();
-        }
-      }
-
-      match /notifications/{notificationId} {
-        allow read: if isAuthenticated() && (request.auth.uid == userId);
-        allow write: if isAuthenticated();
-      }
     }
 
     match /chats/{chatId} {
       allow read, write: if isAuthenticated() && (request.auth.uid in chatId.split('_'));
-      
-      match /messages/{messageId} {
-        allow read, write: if isAuthenticated() && (request.auth.uid in chatId.split('_'));
-      }
     }
 
     match /saved_posts/{savedPostId} {
