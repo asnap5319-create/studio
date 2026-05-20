@@ -25,6 +25,7 @@ export default function HomePage() {
   useEffect(() => { setHasMounted(true); }, []);
 
   // PUBLIC QUERY - Feed is visible to everyone (Guest Mode)
+  // No auth required here
   const postsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'), limit(100));
@@ -83,10 +84,10 @@ export default function HomePage() {
   }, [posts, shuffleAndInjectAds]);
 
   useEffect(() => {
-    if (hasMounted && posts && posts.length > 0 && displayItems.length === 0) {
+    if (hasMounted && posts && posts.length > 0) {
       setDisplayItems(shuffleAndInjectAds(posts));
     }
-  }, [hasMounted, posts, displayItems.length, shuffleAndInjectAds]);
+  }, [hasMounted, posts, shuffleAndInjectAds]);
 
   if (!hasMounted) return <div className="h-screen bg-black" />;
 
@@ -121,7 +122,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      {(isLoading || (hasMounted && posts === null)) && displayItems.length === 0 ? (
+      {(isLoading) && displayItems.length === 0 ? (
         <div className="flex h-screen items-center justify-center bg-black">
           <div className="flex flex-col items-center gap-4">
              <div className="relative">

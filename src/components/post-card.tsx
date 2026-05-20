@@ -64,9 +64,9 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const requireAuth = () => {
     if (!user) {
       router.push('/login?auth=true');
-      return true;
+      return false;
     }
-    return false;
+    return true;
   };
 
   const authorRef = useMemoFirebase(() => {
@@ -109,7 +109,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   };
 
   const handleLikeToggle = async () => {
-    if (requireAuth()) return;
+    if (!requireAuth()) return;
     if (!firestore || isLiking) return;
     setIsLiking(true);
     const wasLiked = isLiked;
@@ -145,7 +145,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
 
   const handleFollowToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (requireAuth()) return;
+    if (!requireAuth()) return;
     if (!firestore || !post.userId || isOwnPost) return;
     const batch = writeBatch(firestore!);
     const followedUserId = post.userId;
@@ -314,7 +314,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
             
             <div className="flex flex-col items-center">
                 <Sheet open={isCommentSheetOpen} onOpenChange={(open) => {
-                  if (open && requireAuth()) return;
+                  if (open && !requireAuth()) return;
                   setIsCommentSheetOpen(open);
                 }}>
                   <SheetTrigger asChild>
@@ -330,7 +330,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
 
             <div className="flex flex-col items-center">
                 <Sheet open={isShareSheetOpen} onOpenChange={(open) => {
-                   if (open && requireAuth()) return;
+                   if (open && !requireAuth()) return;
                    setIsShareSheetOpen(open);
                 }}>
                   <SheetTrigger asChild>
