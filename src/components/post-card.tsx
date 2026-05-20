@@ -218,14 +218,28 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       }
     }}>
       <video ref={videoRef} src={post.mediaUrl} className="object-contain w-full h-full" loop playsInline muted={isMuted} preload="auto" onWaiting={() => setIsBuffering(true)} onPlaying={() => setIsBuffering(false)}/>
+      
       {post.overlayText && (
-          <div className="absolute px-8 text-center pointer-events-none z-20" style={{ top: `${post.overlayPosition ?? 50}%`, left: `${post.overlayX ?? 50}%`, transform: 'translate(-50%, -50%)', color: post.overlayColor || '#ffffff', textShadow: '0 2px 15px rgba(0,0,0,0.9)' }}>
-              <p className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter leading-tight drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)]">{post.overlayText}</p>
+          <div 
+            className="absolute px-8 text-center pointer-events-none z-20" 
+            style={{ 
+              top: `${post.overlayPosition ?? 50}%`, 
+              left: `${post.overlayX ?? 50}%`, 
+              transform: 'translate(-50%, -50%)', 
+              color: post.overlayColor || '#ffffff', 
+              textShadow: '0 2px 15px rgba(0,0,0,0.9)' 
+            }}
+          >
+              <p className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter leading-tight drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)]">
+                {post.overlayText}
+              </p>
           </div>
       )}
+
       {isBuffering && <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-20"><Loader2 className="w-10 h-10 text-primary animate-spin" /></div>}
       {showBigHeart && <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30"><Heart className="w-32 h-32 text-primary fill-primary animate-heart-pop" /></div>}
       {showMuteIndicator && <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30"><div className="bg-black/60 p-5 rounded-full">{isMuted ? <VolumeX className="w-12 h-12 text-white" /> : <Volume2 className="w-12 h-12 text-white" />}</div></div>}
+      
       <div className="absolute bottom-0 left-0 right-16 p-6 pb-28 bg-gradient-to-t from-black/90 via-transparent text-white z-30" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-4">
           {author && (
@@ -247,36 +261,83 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         </div>
         <p className="text-sm line-clamp-2 font-bold drop-shadow-md leading-relaxed">{post.caption}</p>
       </div>
+
       <div className="absolute right-4 bottom-28 flex flex-col gap-10 z-30" onClick={(e) => e.stopPropagation()}>
-            <div className="flex flex-col items-center"><button className="text-white transition-all active:scale-150" onClick={handleLikeToggle}><Heart className={cn("h-10 w-10 drop-shadow-2xl transition-all", isLiked ? "fill-primary text-primary scale-110" : "text-white")} /></button><span className="text-xs font-black mt-2 drop-shadow-md">{localLikeCount}</span></div>
+            <div className="flex flex-col items-center">
+                <button className="text-white transition-all active:scale-150" onClick={handleLikeToggle}>
+                    <Heart className={cn("h-10 w-10 drop-shadow-2xl transition-all", isLiked ? "fill-primary text-primary scale-110" : "text-white")} />
+                </button>
+                <span className="text-xs font-black mt-2 drop-shadow-md">{localLikeCount}</span>
+            </div>
             <div className="flex flex-col items-center">
                 <Sheet open={isCommentSheetOpen} onOpenChange={(open) => { if (open && !requireAuth()) return; setIsCommentSheetOpen(open); }}>
-                  <SheetTrigger asChild><button className="text-white active:scale-125 transition-all"><MessageCircle className="h-10 w-10 drop-shadow-2xl" /></button></SheetTrigger>
-                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[3rem] overflow-hidden bg-background border-t-0 shadow-2xl"><SheetHeader className="sr-only"><SheetTitle>Comments</SheetTitle></SheetHeader><CommentSection postId={post.id} postOwnerId={post.userId} /></SheetContent>
+                  <SheetTrigger asChild>
+                      <button className="text-white active:scale-125 transition-all">
+                          <MessageCircle className="h-10 w-10 drop-shadow-2xl" />
+                      </button>
+                  </SheetTrigger>
+                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[3rem] overflow-hidden bg-background border-t-0 shadow-2xl">
+                      <SheetHeader className="sr-only"><SheetTitle>Comments</SheetTitle></SheetHeader>
+                      <CommentSection postId={post.id} postOwnerId={post.userId} />
+                  </SheetContent>
                 </Sheet>
                 <span className="text-xs font-black mt-2 drop-shadow-md">{post.commentCount}</span>
             </div>
             <div className="flex flex-col items-center">
                 <Sheet open={isShareSheetOpen} onOpenChange={(open) => { if (open && !requireAuth()) return; setIsShareSheetOpen(open); }}>
-                  <SheetTrigger asChild><button className="text-white active:scale-125 transition-all"><Share2 className="h-10 w-10 drop-shadow-2xl" /></button></SheetTrigger>
-                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[3rem] overflow-hidden bg-background border-t-0 shadow-2xl"><SheetHeader className="sr-only"><SheetTitle>Share</SheetTitle></SheetHeader><ShareSheet postId={post.id} postOwnerId={post.userId} mediaUrl={post.mediaUrl} onClose={() => setIsShareSheetOpen(false)} /></SheetContent>
+                  <SheetTrigger asChild>
+                      <button className="text-white active:scale-125 transition-all">
+                          <Share2 className="h-10 w-10 drop-shadow-2xl" />
+                      </button>
+                  </SheetTrigger>
+                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[3rem] overflow-hidden bg-background border-t-0 shadow-2xl">
+                      <SheetHeader className="sr-only"><SheetTitle>Share</SheetTitle></SheetHeader>
+                      <ShareSheet postId={post.id} postOwnerId={post.userId} mediaUrl={post.mediaUrl} onClose={() => setIsShareSheetOpen(false)} />
+                  </SheetContent>
                 </Sheet>
             </div>
       </div>
+
       {(isOwnPost || isCurrentUserAdmin) && (
         <div className="absolute top-8 right-6 z-50" onClick={(e) => e.stopPropagation()}>
             <DropdownMenu>
-                <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-12 w-12 rounded-full bg-black/40 border border-white/10 text-white backdrop-blur-md"><MoreVertical className="h-7 w-7" /></Button></DropdownMenuTrigger>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full bg-black/40 border border-white/10 text-white backdrop-blur-md">
+                        <MoreVertical className="h-7 w-7" />
+                    </Button>
+                </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl p-2 min-w-[200px]">
-                    <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive font-black p-4 rounded-xl cursor-pointer"><Trash2 className="h-5 w-5 mr-3" /> Delete Post</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive font-black p-4 rounded-xl cursor-pointer">
+                        <Trash2 className="h-5 w-5 mr-3" /> Delete Post
+                    </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>
       )}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent className="bg-[#121212] text-white rounded-[2.5rem] border-white/10">
-            <AlertDialogHeader><AlertDialogTitle className="text-center font-black uppercase italic tracking-wider text-xl">Delete Post?</AlertDialogTitle><AlertDialogDescription className="text-center text-muted-foreground text-xs font-bold uppercase tracking-widest mt-2">This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-            <AlertDialogFooter className="flex-col gap-3 sm:flex-row mt-8"><AlertDialogCancel className="rounded-2xl bg-secondary/50 h-14 font-black border-none uppercase text-xs flex-1">Cancel</AlertDialogCancel><AlertDialogAction onClick={async () => { if(firestore) { await deleteDoc(doc(firestore, 'users', post.userId, 'posts', post.id)); window.location.reload(); } }} className="bg-destructive hover:bg-destructive/90 rounded-2xl h-14 font-black uppercase text-xs flex-1">Delete</AlertDialogAction></AlertDialogFooter>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={(open) => {
+          setIsDeleteDialogOpen(open);
+          if (!open) document.body.style.pointerEvents = 'auto';
+      }}>
+        <AlertDialogContent className="bg-[#121212] text-white rounded-[2.5rem] border-white/10 z-[300]">
+            <AlertDialogHeader>
+                <AlertDialogTitle className="text-center font-black uppercase italic tracking-wider text-xl">Delete Post?</AlertDialogTitle>
+                <AlertDialogDescription className="text-center text-muted-foreground text-xs font-bold uppercase tracking-widest mt-2">This action cannot be undone.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col gap-3 sm:flex-row mt-8">
+                <AlertDialogCancel className="rounded-2xl bg-secondary/50 h-14 font-black border-none uppercase text-xs flex-1">Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                    onClick={async () => { 
+                        if(firestore) { 
+                            await deleteDoc(doc(firestore, 'users', post.userId, 'posts', post.id)); 
+                            window.location.reload(); 
+                        } 
+                    }} 
+                    className="bg-destructive hover:bg-destructive/90 rounded-2xl h-14 font-black uppercase text-xs flex-1"
+                >
+                    Delete
+                </AlertDialogAction>
+            </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>

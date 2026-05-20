@@ -167,13 +167,14 @@ export default function ProfilePage() {
     };
 
     const openEarnings = () => {
+      // Small delay to let the dropdown menu close properly and avoid UI lockup
       setTimeout(() => {
         setIsEarningsOpen(true);
       }, 150);
     };
 
-    const handleDeleteClick = (e: React.MouseEvent, post: Post) => {
-        e.stopPropagation();
+    const handleDeleteClickFromGrid = (e: React.MouseEvent, post: Post) => {
+        e.stopPropagation(); // VERY IMPORTANT: Prevents opening the video dialog
         setPostToDelete(post);
         setIsDeleteDialogOpen(true);
     };
@@ -185,6 +186,9 @@ export default function ProfilePage() {
             toast({ title: "Deleted!", description: "Video has been removed." });
             setIsDeleteDialogOpen(false);
             setPostToDelete(null);
+            if (selectedPost?.id === postToDelete.id) {
+                setSelectedPost(null);
+            }
         } catch (e) {
             toast({ variant: 'destructive', title: "Error", description: "Failed to delete video." });
         }
@@ -256,20 +260,30 @@ export default function ProfilePage() {
                 <TabsContent value="posts" className="mt-0">
                     <div className="grid grid-cols-3 gap-0.5">
                         {posts?.map((post) => (
-                            <div key={post.id} className="aspect-square bg-secondary/30 relative cursor-pointer overflow-hidden group" onClick={() => setSelectedPost(post)}>
+                            <div 
+                                key={post.id} 
+                                className="aspect-square bg-secondary/30 relative cursor-pointer overflow-hidden group" 
+                                onClick={() => setSelectedPost(post)}
+                            >
                                 <video src={post.mediaUrl} className="w-full h-full object-cover" muted />
+                                
                                 {isOwnProfile && (
                                     <button 
-                                        onClick={(e) => handleDeleteClick(e, post)}
-                                        className="absolute top-1 right-1 p-1.5 bg-black/60 backdrop-blur-md rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                        onClick={(e) => handleDeleteClickFromGrid(e, post)}
+                                        className="absolute top-2 right-2 p-2 bg-black/60 backdrop-blur-md rounded-full text-white shadow-lg border border-white/10 z-10 transition-transform active:scale-90"
                                     >
-                                        <Trash2 size={12} className="text-red-400" />
+                                        <Trash2 size={14} className="text-red-500" />
                                     </button>
                                 )}
+
                                 {isOwnProfile && post.estimatedEarnings !== undefined && (
-                                    <div className="absolute top-1 left-1 bg-green-500/80 backdrop-blur-md px-2 py-0.5 rounded-full z-10 shadow-lg"><p className="text-[9px] font-black text-white italic">₹{post.estimatedEarnings.toFixed(2)}</p></div>
+                                    <div className="absolute top-2 left-2 bg-green-500/80 backdrop-blur-md px-2 py-0.5 rounded-full z-10 shadow-lg">
+                                        <p className="text-[9px] font-black text-white italic">₹{post.estimatedEarnings.toFixed(2)}</p>
+                                    </div>
                                 )}
-                                <div className="absolute bottom-1 left-1.5 flex items-center gap-1 text-white text-[10px] font-bold"><Play className="h-3 w-3 fill-white" /> {post.viewCount || 0}</div>
+                                <div className="absolute bottom-2 left-2 flex items-center gap-1 text-white text-[10px] font-bold">
+                                    <Play className="h-3 w-3 fill-white" /> {post.viewCount || 0}
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -280,6 +294,7 @@ export default function ProfilePage() {
             <Dialog open={isEarningsOpen} onOpenChange={(open) => {
               setIsEarningsOpen(open);
               if (!open) {
+                // Manually force interaction restoration just in case
                 document.body.style.pointerEvents = 'auto';
               }
             }}>
@@ -369,9 +384,12 @@ export default function ProfilePage() {
             </Dialog>
 
             <EditProfileSheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen} userProfile={userProfile} />
+            
             <Dialog open={!!selectedPost} onOpenChange={(isOpen) => {
-              setSelectedPost(isOpen ? selectedPost : null);
-              if (!isOpen) document.body.style.pointerEvents = 'auto';
+              if (!isOpen) {
+                setSelectedPost(null);
+                document.body.style.pointerEvents = 'auto';
+              }
             }}>
                 <DialogContent className="p-0 border-0 bg-black w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center overflow-hidden z-[200]">
                     <DialogTitle className="sr-only">Post Preview</DialogTitle>
@@ -380,8 +398,11 @@ export default function ProfilePage() {
             </Dialog>
 
             {/* Global Delete Confirmation */}
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent className="bg-[#121212] text-white rounded-[2.5rem] border-white/10">
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={(open) => {
+                setIsDeleteDialogOpen(open);
+                if (!open) document.body.style.pointerEvents = 'auto';
+            }}>
+                <AlertDialogContent className="bg-[#121212] text-white rounded-[2.5rem] border-white/10 z-[300]">
                     <AlertDialogHeader>
                         <AlertDialogTitle className="text-center font-black uppercase italic tracking-wider text-xl">Delete Post?</AlertDialogTitle>
                         <AlertDialogDescription className="text-center text-muted-foreground text-xs font-bold uppercase tracking-widest mt-2">This action cannot be undone.</AlertDialogDescription>

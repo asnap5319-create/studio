@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
@@ -78,7 +79,7 @@ export default function HomePage() {
     }
   }, [hasMounted, posts, buildItems, displayItems.length]);
 
-  const buildFeed = useCallback(() => {
+  const handleRefresh = useCallback(() => {
     if (!posts || posts.length === 0) return;
     setIsRefreshing(true);
     // Simulate refresh for UX and re-shuffle items
@@ -86,7 +87,8 @@ export default function HomePage() {
       setDisplayItems(buildItems(posts));
       setIsRefreshing(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 600);
+      toast({ title: "Feed Updated! ✨", description: "Showing fresh reels for you." });
+    }, 800);
   }, [posts, buildItems]);
 
   if (!hasMounted) return <div className="h-screen bg-black" />;
@@ -101,7 +103,10 @@ export default function HomePage() {
               A.snap
             </h1>
           </div>
-          <button onClick={buildFeed} className="p-2.5 bg-white/5 backdrop-blur-md rounded-full border border-white/10 active:rotate-180 transition-transform">
+          <button 
+            onClick={handleRefresh} 
+            className="p-2.5 bg-white/5 backdrop-blur-md rounded-full border border-white/10 active:rotate-180 transition-transform"
+          >
             <RefreshCw className={`w-4 h-4 text-white ${isRefreshing ? 'animate-spin' : ''}`} />
           </button>
         </div>
