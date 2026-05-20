@@ -34,7 +34,9 @@ interface PostCardProps {
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 let globalMuted = true;
-const EARNING_PER_VIEW = 0.0025;
+
+// Earning Rate: ₹8 per 1000 views => ₹0.008 per view
+const REVENUE_PER_VIEW = 0.008;
 
 export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { firestore } = useFirebase();
@@ -187,12 +189,17 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         setIsMuted(true);
         video.play().catch(() => {}); 
       });
+
+      // Update Analytics & Earnings
       if (firestore && !viewCounted.current) {
-        viewCounted.current = true; 
-        const newEarnings = (post.viewCount + 1) * EARNING_PER_VIEW;
-        updateDoc(doc(firestore, 'users', post.userId, 'posts', post.id), { 
+        viewCounted.current = true;
+        const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
+        const newViewCount = (post.viewCount || 0) + 1;
+        const newEarnings = newViewCount * REVENUE_PER_VIEW;
+
+        updateDoc(postRef, { 
           viewCount: increment(1),
-          adImpressions: increment(1),
+          adImpressions: increment(1), // Assume 1 ad impression per view for simplicity
           estimatedEarnings: Number(newEarnings.toFixed(4))
         });
       }

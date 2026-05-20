@@ -9,7 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Card, CardContent } from "@/components/ui/card";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck, Wallet, Eye } from "lucide-react";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck, Wallet, Eye, Zap, TrendingUp, Calendar } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -69,12 +69,33 @@ export default function ProfilePage() {
     const { data: followData } = useDoc(followCheckRef);
     const isFollowing = !!followData;
 
+    // Advanced Earnings Calculation
     const earningsStats = useMemo(() => {
-        if (!posts) return { total: 0, impressions: 0 };
-        return posts.reduce((acc, post) => ({
-            total: acc.total + (post.estimatedEarnings || 0),
-            impressions: acc.impressions + (post.adImpressions || 0)
-        }), { total: 0, impressions: 0 });
+        if (!posts) return { total: 0, impressions: 0, today: 0, monthly: 0, totalViews: 0 };
+        
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+        return posts.reduce((acc, post) => {
+            const earnings = post.estimatedEarnings || 0;
+            const impressions = post.adImpressions || 0;
+            const views = post.viewCount || 0;
+            const postTime = post.createdAt?.toMillis() || 0;
+
+            acc.total += earnings;
+            acc.impressions += impressions;
+            acc.totalViews += views;
+
+            if (postTime >= startOfToday) {
+                acc.today += earnings;
+            }
+            if (postTime >= startOfMonth) {
+                acc.monthly += earnings;
+            }
+
+            return acc;
+        }, { total: 0, impressions: 0, today: 0, monthly: 0, totalViews: 0 });
     }, [posts]);
 
     const handleLogout = async () => {
@@ -141,30 +162,33 @@ export default function ProfilePage() {
                 {isOwnProfile && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical /></Button></DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[180px] p-2">
+                        <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[220px] p-2 shadow-2xl">
                             <DropdownMenuItem 
                                 onSelect={(e) => {
                                     e.preventDefault();
                                     setIsEarningsOpen(true);
                                 }}
-                                className="font-bold p-3 rounded-xl text-green-400 cursor-pointer"
+                                className="font-black p-4 rounded-xl text-green-400 focus:bg-green-400/10 cursor-pointer"
                             >
-                                <Wallet className="mr-2 h-4 w-4" /> Creator Earnings
+                                <Zap className="mr-3 h-5 w-5 fill-green-400" /> Creator Dashboard
                             </DropdownMenuItem>
+                            
                             {isCurrentUserAdmin && (
                                 <DropdownMenuItem 
                                     onSelect={(e) => {
                                         e.preventDefault();
                                         router.push('/admin');
                                     }} 
-                                    className="font-bold p-3 rounded-xl text-primary cursor-pointer"
+                                    className="font-black p-4 rounded-xl text-primary focus:bg-primary/10 cursor-pointer"
                                 >
-                                    <ShieldCheck className="mr-2 h-4 w-4" /> Master Panel
+                                    <ShieldCheck className="mr-3 h-5 w-5" /> Master Panel
                                 </DropdownMenuItem>
                             )}
-                            <DropdownMenuSeparator className="bg-white/5" />
-                            <DropdownMenuItem onClick={handleLogout} className="text-destructive font-bold p-3 rounded-xl cursor-pointer">
-                                <LogOut className="mr-2 h-4 w-4" /> Logout
+                            
+                            <DropdownMenuSeparator className="bg-white/5 my-2" />
+                            
+                            <DropdownMenuItem onClick={handleLogout} className="text-destructive font-black p-4 rounded-xl focus:bg-destructive/10 cursor-pointer">
+                                <LogOut className="mr-3 h-5 w-5" /> Logout
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -198,7 +222,12 @@ export default function ProfilePage() {
                 </div>
                 
                 {isOwnProfile ? (
-                    <Button className="w-full mt-6 h-12 rounded-2xl bg-secondary/80 font-bold uppercase text-xs" onClick={() => setIsEditSheetOpen(true)}>Edit Profile</Button>
+                    <div className="flex gap-2 mt-6">
+                        <Button className="flex-1 h-12 rounded-2xl bg-secondary/80 font-bold uppercase text-xs" onClick={() => setIsEditSheetOpen(true)}>Edit Profile</Button>
+                        <Button className="h-12 w-12 rounded-2xl bg-green-500/10 text-green-500 hover:bg-green-500/20" onClick={() => setIsEarningsOpen(true)}>
+                            <Wallet className="h-5 w-5" />
+                        </Button>
+                    </div>
                 ) : user && (
                     <div className="flex gap-2 mt-6">
                         <Button 
@@ -229,8 +258,8 @@ export default function ProfilePage() {
                                 <video src={post.mediaUrl} className="w-full h-full object-cover" muted />
                                 
                                 {isOwnProfile && post.estimatedEarnings !== undefined && (
-                                    <div className="absolute top-1 left-1 bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded-full z-10">
-                                        <p className="text-[8px] font-black text-green-400 italic">${post.estimatedEarnings.toFixed(2)}</p>
+                                    <div className="absolute top-1 left-1 bg-green-500/80 backdrop-blur-md px-2 py-0.5 rounded-full z-10 shadow-lg">
+                                        <p className="text-[9px] font-black text-white italic">₹{post.estimatedEarnings.toFixed(2)}</p>
                                     </div>
                                 )}
 
@@ -262,37 +291,101 @@ export default function ProfilePage() {
 
             <EditProfileSheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen} userProfile={userProfile} />
 
+            {/* Premium Creator Dashboard */}
             <Dialog open={isEarningsOpen} onOpenChange={setIsEarningsOpen}>
-                <DialogContent className="bg-[#121212] border-white/10 rounded-[2.5rem] p-6 max-w-sm" onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
-                    <DialogHeader className="flex flex-row items-center justify-between border-b border-white/5 pb-4">
-                        <DialogTitle className="text-xl font-black italic uppercase text-primary">Creator Earnings</DialogTitle>
+                <DialogContent className="bg-[#0a0a0a] border-white/10 p-0 rounded-[2.5rem] max-w-lg w-[95%] overflow-hidden h-[85vh] flex flex-col">
+                    <DialogHeader className="p-6 border-b border-white/5 bg-gradient-to-br from-green-500/10 via-transparent to-transparent">
+                        <div className="flex items-center justify-between">
+                             <div className="flex items-center gap-3">
+                                <div className="p-2 bg-green-500 rounded-xl">
+                                    <Zap size={20} className="text-white fill-white" />
+                                </div>
+                                <div>
+                                    <DialogTitle className="text-xl font-black italic uppercase tracking-tighter text-white">Creator Studio</DialogTitle>
+                                    <p className="text-[10px] text-green-500 font-bold uppercase tracking-widest mt-0.5">Monetization Active</p>
+                                </div>
+                             </div>
+                             <Button variant="ghost" size="icon" onClick={() => setIsEarningsOpen(false)} className="rounded-full">
+                                <LogOut className="rotate-180" />
+                             </Button>
+                        </div>
                     </DialogHeader>
-                    <div className="space-y-4 py-6">
-                        <Card className="bg-secondary/30 border-white/5 rounded-3xl">
-                            <CardContent className="p-6">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Wallet size={16} className="text-primary" />
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Estimated Balance</span>
+
+                    <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
+                        {/* Main Balance Card */}
+                        <div className="bg-gradient-to-br from-green-600 to-green-900 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:scale-150 transition-transform duration-700">
+                                <Wallet size={120} />
+                            </div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 mb-2">Current Balance</p>
+                            <h2 className="text-6xl font-black italic text-white tracking-tighter">₹{earningsStats.total.toFixed(2)}</h2>
+                            <div className="flex items-center gap-4 mt-8 pt-6 border-t border-white/10">
+                                <div className="flex-1">
+                                    <p className="text-[9px] font-bold text-white/50 uppercase">Today</p>
+                                    <p className="text-lg font-black text-white">₹{earningsStats.today.toFixed(2)}</p>
                                 </div>
-                                <p className="text-4xl font-black italic text-white">${earningsStats.total.toFixed(2)}</p>
-                            </CardContent>
-                        </Card>
-                        <Card className="bg-secondary/30 border-white/5 rounded-3xl">
-                            <CardContent className="p-6">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Eye size={16} className="text-primary" />
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Total Ad Impressions</span>
+                                <div className="w-px h-8 bg-white/10" />
+                                <div className="flex-1">
+                                    <p className="text-[9px] font-bold text-white/50 uppercase">Monthly</p>
+                                    <p className="text-lg font-black text-white">₹{earningsStats.monthly.toFixed(2)}</p>
                                 </div>
-                                <p className="text-3xl font-black italic text-white">{earningsStats.impressions.toLocaleString()}</p>
-                            </CardContent>
-                        </Card>
-                        <div className="bg-primary/10 p-4 rounded-2xl border border-primary/20">
-                            <p className="text-[10px] font-bold text-center text-primary uppercase tracking-widest">
-                                Keep sharing reels to increase your earnings! 🎬
-                            </p>
+                            </div>
+                        </div>
+
+                        {/* Quick Stats Grid */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-secondary/20 p-5 rounded-3xl border border-white/5">
+                                <div className="flex items-center gap-2 text-muted-foreground mb-3">
+                                    <TrendingUp size={14} className="text-blue-400" />
+                                    <span className="text-[9px] font-black uppercase tracking-widest">Total Views</span>
+                                </div>
+                                <p className="text-2xl font-black">{earningsStats.totalViews.toLocaleString()}</p>
+                            </div>
+                            <div className="bg-secondary/20 p-5 rounded-3xl border border-white/5">
+                                <div className="flex items-center gap-2 text-muted-foreground mb-3">
+                                    <Eye size={14} className="text-primary" />
+                                    <span className="text-[9px] font-black uppercase tracking-widest">Ad Impressions</span>
+                                </div>
+                                <p className="text-2xl font-black">{earningsStats.impressions.toLocaleString()}</p>
+                            </div>
+                        </div>
+
+                        {/* Recent Performance Chart (Mock Title) */}
+                        <div className="bg-secondary/10 p-6 rounded-[2rem] border border-white/5">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-2">
+                                    <Calendar size={16} className="text-green-500" />
+                                    <h3 className="text-xs font-black uppercase tracking-wider">Performance Breakdown</h3>
+                                </div>
+                                <span className="text-[10px] text-muted-foreground font-bold">Last 30 Days</span>
+                            </div>
+                            
+                            <div className="space-y-4">
+                                {posts?.slice(0, 5).map(post => (
+                                    <div key={post.id} className="flex items-center justify-between p-3 bg-black/40 rounded-2xl border border-white/5">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-10 w-10 bg-secondary rounded-xl overflow-hidden">
+                                                <video src={post.mediaUrl} className="object-cover w-full h-full" muted />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-[10px] font-bold truncate opacity-60">"{post.caption?.slice(0,20)}..."</p>
+                                                <p className="text-[9px] font-black text-green-500 mt-1 uppercase">{post.viewCount} Views</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm font-black text-white">₹{post.estimatedEarnings?.toFixed(2) || '0.00'}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
-                    <Button onClick={() => setIsEarningsOpen(false)} className="w-full h-14 rounded-2xl font-black uppercase bg-secondary hover:bg-white/10">Close</Button>
+
+                    <div className="p-6 border-t border-white/5">
+                        <Button onClick={() => setIsEarningsOpen(false)} className="w-full h-14 rounded-2xl font-black uppercase bg-secondary hover:bg-white/10 tracking-widest">
+                            Return to Profile
+                        </Button>
+                    </div>
                 </DialogContent>
             </Dialog>
             

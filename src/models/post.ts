@@ -11,12 +11,13 @@ export interface Post {
   likeCount: number;
   commentCount: number;
   viewCount: number;
-  // New fields for text overlay
+  // Text overlay fields
   overlayText?: string;
   overlayColor?: string;
   overlayPosition?: number; // 0 to 100 (percentage from top)
   overlayX?: number; // 0 to 100 (percentage from left)
-  // New monetization fields
+  // Monetization & Analytics fields
   adImpressions?: number;
-  estimatedEarnings?: number;
+  estimatedEarnings?: number; // Total earnings for this post
+  dailyEarnings?: Record<string, number>; // Mock tracking for stats
 }
