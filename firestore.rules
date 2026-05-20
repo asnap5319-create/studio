@@ -29,7 +29,7 @@ service cloud.firestore {
       allow write: if isAdmin() || (isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid));
     }
 
-    // Messages and Notifications are strictly for the recipients/senders
+    // Messages and Notifications are for participants only, but need path=** for collectionGroup queries
     match /{path=**}/messages/{messageId} {
       allow read: if isAdmin() || (isAuthenticated() && (
         request.auth.uid == resource.data.recipientId || 

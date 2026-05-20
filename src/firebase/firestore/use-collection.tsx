@@ -25,18 +25,6 @@ export interface UseCollectionResult<T> {
   error: FirestoreError | Error | null; // Error object, or null.
 }
 
-/* Internal implementation of Query:
-  https://github.com/firebase/firebase-js-sdk/blob/c5f08a9bc5da0d2b0207802c972d53724ccef055/packages/firestore/src/lite-api/reference.ts#L143
-*/
-export interface InternalQuery extends Query<DocumentData> {
-  _query?: {
-    path?: {
-      canonicalString(): string;
-      toString(): string;
-    }
-  }
-}
-
 /**
  * React hook to subscribe to a Firestore collection or query in real-time.
  */
@@ -79,17 +67,18 @@ export function useCollection<T = any>(
         if (err.code === 'permission-denied') {
             let path: string = 'Firestore Query';
             
-            // Attempt to get the collection name for better error reporting
+            // Attempt to get a better path description
             if (memoizedTargetRefOrQuery.type === 'collection') {
                 path = (memoizedTargetRefOrQuery as CollectionReference).path;
             } else {
+                // For collectionGroup or filtered queries, report the source
                 const target = memoizedTargetRefOrQuery as any;
-                path = target.path || (target as any)._query?.path?.toString() || 'Global Collection';
+                path = target.path || 'Filtered Query';
             }
 
             const contextualError = new FirestorePermissionError({
                 operation: 'list',
-                path: path.replace(/^\/databases\/\(default\)\/documents\//, ''),
+                path: path,
             });
 
             setError(contextualError);

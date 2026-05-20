@@ -31,7 +31,7 @@ export default function HomePage() {
 
   const { data: posts, isLoading } = useCollection<Post>(postsQuery);
 
-  // Red Dot Queries
+  // Red Dot Queries - ONLY for authenticated users
   const unreadNotificationsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
@@ -55,8 +55,8 @@ export default function HomePage() {
   const { data: unreadNotifications } = useCollection<Notification>(unreadNotificationsQuery);
   const { data: unreadMessages } = useCollection<Message>(unreadMessagesQuery);
 
-  const hasUnreadNotifications = unreadNotifications && unreadNotifications.length > 0;
-  const hasUnreadMessages = unreadMessages && unreadMessages.length > 0;
+  const hasUnreadNotifications = !!(user && unreadNotifications && unreadNotifications.length > 0);
+  const hasUnreadMessages = !!(user && unreadMessages && unreadMessages.length > 0);
 
   const shuffleAndInjectAds = useCallback((items: Post[]) => {
     const shuffled = [...items];
@@ -65,7 +65,7 @@ export default function HomePage() {
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
 
-    // Inject ads every 2 posts
+    // Inject ads every 2 posts as requested
     const result: (Post | { type: 'ad'; id: string })[] = [];
     shuffled.forEach((post, index) => {
       result.push(post);
@@ -151,7 +151,7 @@ export default function HomePage() {
         <div className="flex h-full items-center justify-center text-white p-10 text-center">
             <div className="flex flex-col gap-6 items-center">
               <Logo className="w-24 h-24 text-primary opacity-20" />
-              <Link href="/create">
+              <Link href={user ? "/create" : "/login?auth=true"}>
                 <button className="bg-primary px-8 py-4 text-white font-black uppercase rounded-2xl shadow-2xl hover:scale-105 active:scale-95 transition-transform">
                   Start Sharing
                 </button>

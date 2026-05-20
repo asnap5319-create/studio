@@ -5,13 +5,14 @@ import { Logo } from './pwa-install-prompt';
 
 /**
  * NativeAdCard handles the injection of Adsterra Native Banner ads.
- * Fixed script injection to ensure ads load correctly instead of showing code.
+ * Fixed script injection to ensure ads load correctly as functional scripts instead of text.
  */
 export function NativeAdCard() {
   const adContainerRef = useRef<HTMLDivElement>(null);
   const isInitialized = useRef(false);
 
   useEffect(() => {
+    // Only run on client side and once
     if (isInitialized.current || !adContainerRef.current) return;
     
     const containerId = 'container-286ef4dc1c3c9afc429b42567c2d2b99';
@@ -19,15 +20,18 @@ export function NativeAdCard() {
     adDiv.id = containerId;
     adContainerRef.current.appendChild(adDiv);
 
+    // Create script element
     const script = document.createElement('script');
     script.async = true;
     script.setAttribute('data-cfasync', 'false');
     script.src = 'https://pl29411112.effectivecpmnetwork.com/286ef4dc1c3c9afc429b42567c2d2b99/invoke.js';
     
+    // Append script to the same container
     adContainerRef.current.appendChild(script);
     isInitialized.current = true;
 
     return () => {
+        // Cleanup if necessary
         if (adContainerRef.current) {
             adContainerRef.current.innerHTML = '';
         }
