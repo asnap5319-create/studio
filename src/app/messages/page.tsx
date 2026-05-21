@@ -1,20 +1,16 @@
-
 'use client';
 
-import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, orderBy, doc } from 'firebase/firestore';
 import type { Chat } from '@/models/chat';
 import type { UserProfile } from '@/models/user';
 import type { Message } from '@/models/message';
-import { useDoc } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
-import { ArrowLeft, MessageSquare, Database, RefreshCw, Send, BadgeCheck, Loader2 } from 'lucide-react';
+import { ArrowLeft, Send, BadgeCheck, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { BottomNav } from "@/components/bottom-nav";
-import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { useState, useEffect } from 'react';
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
@@ -23,12 +19,8 @@ function ChatItem({ chat, currentUserId, hasMounted }: { chat: Chat; currentUser
   const { firestore } = useFirebase();
   const otherUserId = chat.participants.find(id => id !== currentUserId);
 
-  const otherUserRef = useMemoFirebase(() => {
-    if (!firestore || !otherUserId) return null;
-    return doc(firestore, 'users', otherUserId);
-  }, [firestore, otherUserId]);
-
-  const { data: otherUser } = useDoc<UserProfile>(otherUserRef);
+  const { data: otherUser } = useDoc<UserProfile>(useMemoFirebase(() => 
+    (firestore && otherUserId) ? doc(firestore, 'users', otherUserId) : null, [firestore, otherUserId]));
 
   const unreadQuery = useMemoFirebase(() => {
     if (!firestore || !currentUserId || !chat.id) return null;
@@ -48,36 +40,41 @@ function ChatItem({ chat, currentUserId, hasMounted }: { chat: Chat; currentUser
     <Link 
       href={`/messages/${chat.id}`}
       className={cn(
-        "flex items-center gap-4 p-4 hover:bg-secondary/50 transition-colors",
+        "flex items-center gap-4 p-4 hover:bg-secondary/30 transition-all border-b border-white/5",
         isUnread && "bg-primary/5"
       )}
     >
       <div className="relative">
-        <Avatar className="h-14 w-14 border border-border">
-          <AvatarImage src={otherUser.profileImageUrl} />
+        <Avatar className="h-14 w-14 border-2 border-primary/20">
+          <AvatarImage src={otherUser.profileImageUrl} className="object-cover" />
           <AvatarFallback>{otherUser.username?.[0]?.toUpperCase()}</AvatarFallback>
         </Avatar>
         {isUnread && (
-          <span className="absolute -top-1 -right-1 h-4 w-4 bg-primary rounded-full border-2 border-background animate-pulse" />
+          <span className="absolute -top-1 -right-1 h-5 w-5 bg-primary rounded-full border-4 border-background flex items-center justify-center text-[8px] font-black text-white">
+            {unreadMessages.length}
+          </span>
         )}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-center mb-1">
           <div className="flex items-center gap-1.5 truncate">
-            <span className={cn("text-sm truncate", isUnread ? "font-black text-white" : "font-bold text-muted-foreground")}>
+            <span className={cn("text-sm truncate font-bold", isUnread ? "text-white" : "text-muted-foreground")}>
               {otherUser.username}
             </span>
-            {otherUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && <BadgeCheck className="h-3 w-3 text-blue-400 fill-blue-400/20" />}
+            {otherUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && <BadgeCheck className="h-3 w-3 text-blue-400" />}
           </div>
           {chat.lastMessageAt && hasMounted && (
-            <span className={cn("text-[10px]", isUnread ? "text-primary font-bold" : "text-muted-foreground")}>
+            <span className={cn("text-[10px]", isUnread ? "text-primary font-black" : "text-muted-foreground")}>
               {formatDistanceToNow(chat.lastMessageAt.toDate(), { addSuffix: false })}
             </span>
           )}
         </div>
-        <p className={cn("text-xs truncate", isUnread ? "text-white font-bold" : "text-muted-foreground")}>
-          {chat.lastMessage || 'Start a conversation'}
-        </p>
+        <div className="flex items-center justify-between">
+            <p className={cn("text-xs truncate max-w-[200px]", isUnread ? "text-white font-black" : "text-muted-foreground")}>
+                {chat.lastMessage || 'Sent a reel'}
+            </p>
+            {isUnread && <div className="h-2.5 w-2.5 bg-primary rounded-full" />}
+        </div>
       </div>
     </Link>
   );
@@ -101,39 +98,18 @@ export default function InboxPage() {
     );
   }, [firestore, user]);
 
-  const { data: chats, isLoading, error } = useCollection<Chat>(chatsQuery);
+  const { data: chats, isLoading } = useCollection<Chat>(chatsQuery);
 
-  if (!hasMounted || isUserLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-black">
-        <Loader2 className="animate-spin text-primary h-8 w-8" />
-      </div>
-    );
-  }
+  if (!hasMounted || isUserLoading) return <div className="flex h-screen items-center justify-center bg-black"><Loader2 className="animate-spin text-primary" /></div>;
 
   return (
     <div className="flex min-h-screen flex-col text-white bg-background max-w-lg mx-auto border-x border-border pb-16">
       <header className="flex items-center p-4 border-b border-border sticky top-0 bg-background/80 backdrop-blur-md z-10">
-        <Link href="/" className="p-2 -ml-2">
-          <ArrowLeft />
-        </Link>
-        <h1 className="text-xl font-bold ml-4 uppercase italic tracking-tighter">Messages</h1>
+        <Link href="/" className="p-2 -ml-2"><ArrowLeft /></Link>
+        <h1 className="text-xl font-black ml-4 uppercase italic tracking-tighter">Direct</h1>
       </header>
 
-      <div className="flex-1 overflow-y-auto">
-        {error && (error.message.includes('index') || error.message.includes('INDEX')) && (
-            <div className="m-6 p-8 bg-primary/10 rounded-3xl border border-primary/20 text-center shadow-2xl">
-                <Database className="h-14 w-14 text-primary mx-auto mb-6" />
-                <h3 className="font-black text-xl italic uppercase mb-2">चैट लोड हो रही है...</h3>
-                <p className="text-sm text-muted-foreground mb-6">
-                    Google "Index" बना रहा है। कृपया कुछ मिनट प्रतीक्षा करें।
-                </p>
-                <Button variant="outline" onClick={() => window.location.reload()} className="w-full">
-                    <RefreshCw className="h-4 w-4 mr-2" /> रिफ्रेश करें
-                </Button>
-            </div>
-        )}
-
+      <div className="flex-1 overflow-y-auto scrollbar-hide">
         {isLoading ? (
           <div className="p-4 space-y-4">
              {[1,2,3,4,5].map(i => (
@@ -149,17 +125,16 @@ export default function InboxPage() {
               <ChatItem key={chat.id} chat={chat} currentUserId={user?.uid || ''} hasMounted={hasMounted} />
             ))}
           </div>
-        ) : !error && (
+        ) : (
           <div className="flex flex-col items-center justify-center h-[70vh] text-center p-10">
-            <div className="w-20 h-20 bg-secondary/50 rounded-full flex items-center justify-center mb-6">
-                <Send className="h-10 w-10 text-muted-foreground -rotate-12" />
+            <div className="w-24 h-24 bg-secondary/50 rounded-full flex items-center justify-center mb-6 shadow-2xl border border-white/5">
+                <Send className="h-12 w-12 text-primary -rotate-12" />
             </div>
-            <h2 className="text-2xl font-black italic uppercase text-white mb-2">Your Inbox</h2>
-            <p className="text-muted-foreground text-sm">दोस्तों को वीडियो भेजें और चैट शुरू करें!</p>
+            <h2 className="text-2xl font-black italic uppercase text-white mb-2">Message Friends</h2>
+            <p className="text-muted-foreground text-sm font-medium">Send photos and videos to a friend.</p>
           </div>
         )}
       </div>
-      <PwaInstallPrompt />
       <BottomNav />
     </div>
   );

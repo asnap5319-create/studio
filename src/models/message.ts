@@ -1,15 +1,18 @@
-
 import type { Timestamp } from 'firebase/firestore';
 
 export interface Message {
   id: string;
   senderId: string;
-  recipientId: string; // Added to facilitate unread filtering
+  recipientId: string;
   text: string;
   createdAt: Timestamp;
   sharedPostId?: string;
   sharedPostMediaUrl?: string;
   sharedPostOwnerId?: string;
-  isDeleted?: boolean;
-  read?: boolean; // Track if the message has been seen
+  read?: boolean;
+  // Instagram Style Features
+  replyToId?: string;
+  replyToText?: string;
+  replyToSenderName?: string;
+  reactions?: Record<string, string>; // userId -> emoji
 }
