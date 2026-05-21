@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, addDoc, where } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck, Wallet, Eye, Zap, TrendingUp, Calendar, X, CreditCard, DollarSign, History, AlertCircle } from "lucide-react";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck, Wallet, Eye, Zap, TrendingUp, Calendar, X, CreditCard, DollarSign, History, AlertCircle, CheckCircle2, Lock, Sparkles, Target } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -24,6 +24,7 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Progress } from "@/components/ui/progress";
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
@@ -40,6 +41,7 @@ export default function ProfilePage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [postToDelete, setPostToDelete] = useState<Post | null>(null);
     const [isEarningsOpen, setIsEarningsOpen] = useState(false);
+    const [isMonetizationOpen, setIsMonetizationOpen] = useState(false);
     const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
     const [withdrawAmount, setWithdrawAmount] = useState('');
     const [withdrawMethod, setWithdrawMethod] = useState<'bank' | 'paypal'>('bank');
@@ -105,6 +107,16 @@ export default function ProfilePage() {
         return { ...stats, withdrawn: withdrawnTotal, available: Math.max(0, stats.total - withdrawnTotal) };
     }, [posts, userPayouts]);
 
+    // Monetization Requirements
+    const reqFollowers = 50;
+    const reqViews = 2000;
+    const reqEarnings = 100;
+
+    const hasFollowers = (followers?.length || 0) >= reqFollowers;
+    const hasViews = earningsStats.totalViews >= reqViews;
+    const hasEarnings = earningsStats.total >= reqEarnings;
+    const isMonetizationUnlocked = hasFollowers && hasViews && hasEarnings;
+
     // Force unlock UI by ensuring body pointer-events are auto
     const forceUnlockUI = () => {
         if (typeof document !== 'undefined') {
@@ -114,9 +126,8 @@ export default function ProfilePage() {
     };
 
     useEffect(() => {
-        // Aggressive cleanup on mount and whenever any dialog state changes
         forceUnlockUI();
-    }, [isEarningsOpen, isWithdrawOpen, isDeleteDialogOpen, selectedPost, isEditSheetOpen]);
+    }, [isEarningsOpen, isWithdrawOpen, isDeleteDialogOpen, selectedPost, isEditSheetOpen, isMonetizationOpen]);
 
     const handleWithdrawRequest = async () => {
         if (!firestore || !user || !isOwnProfile) return;
@@ -205,9 +216,16 @@ export default function ProfilePage() {
 
     const handleEarningsClick = (e: any) => {
         e.preventDefault();
-        // Crucial: Let the menu close fully before opening dialog
         setTimeout(() => {
             setIsEarningsOpen(true);
+            forceUnlockUI();
+        }, 200);
+    };
+
+    const handleMonetizationClick = (e: any) => {
+        e.preventDefault();
+        setTimeout(() => {
+            setIsMonetizationOpen(true);
             forceUnlockUI();
         }, 200);
     };
@@ -229,6 +247,9 @@ export default function ProfilePage() {
                         <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[220px] p-2 shadow-2xl z-[100]">
                             <DropdownMenuItem onSelect={handleEarningsClick} className="font-black p-4 rounded-xl text-green-400 focus:bg-green-400/10 cursor-pointer">
                                 <Zap className="mr-3 h-5 w-5 fill-green-400" /> Creator Studio
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={handleMonetizationClick} className="font-black p-4 rounded-xl text-blue-400 focus:bg-blue-400/10 cursor-pointer">
+                                <Target className="mr-3 h-5 w-5 fill-blue-400" /> Monetization
                             </DropdownMenuItem>
                             {isCurrentUserAdmin && (
                                 <DropdownMenuItem onSelect={() => { forceUnlockUI(); setTimeout(() => router.push('/admin'), 150); }} className="font-black p-4 rounded-xl text-primary focus:bg-primary/10 cursor-pointer">
@@ -308,6 +329,119 @@ export default function ProfilePage() {
                 </TabsContent>
             </Tabs>
 
+            {/* Monetization Dialog */}
+            <Dialog open={isMonetizationOpen} onOpenChange={(open) => { setIsMonetizationOpen(open); forceUnlockUI(); }}>
+                <DialogContent className="bg-[#080808] border-white/10 p-0 rounded-[2.5rem] max-w-lg w-[95%] overflow-hidden h-[90vh] flex flex-col z-[200]">
+                    <DialogHeader className="p-8 border-b border-white/5 bg-gradient-to-br from-blue-500/10 via-transparent to-transparent flex flex-row items-center justify-between">
+                         <div className="flex items-center gap-4 text-left">
+                            <div className="p-3 bg-blue-600 rounded-2xl shadow-lg shadow-blue-500/20"><Target size={24} className="text-white fill-white" /></div>
+                            <div>
+                                <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter text-white">Monetization</DialogTitle>
+                                <p className="text-[10px] text-blue-400 font-bold uppercase tracking-[0.2em] mt-1">Status: {isMonetizationUnlocked ? "Eligible" : "Pending"}</p>
+                            </div>
+                         </div>
+                         <Button variant="ghost" size="icon" onClick={() => { setIsMonetizationOpen(false); forceUnlockUI(); }} className="rounded-full hover:bg-white/10">
+                           <X className="h-6 w-6" />
+                         </Button>
+                    </DialogHeader>
+
+                    <div className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-hide pb-32">
+                        <div className="space-y-2">
+                            <h3 className="text-xs font-black uppercase text-muted-foreground tracking-[0.3em] mb-4">Unlock Requirements</h3>
+                            
+                            {/* Requirement Cards */}
+                            {[
+                                { 
+                                    label: "Followers", 
+                                    current: followers?.length || 0, 
+                                    target: reqFollowers, 
+                                    isDone: hasFollowers,
+                                    icon: BadgeCheck,
+                                    color: "blue"
+                                },
+                                { 
+                                    label: "Reel Views", 
+                                    current: earningsStats.totalViews, 
+                                    target: reqViews, 
+                                    isDone: hasViews,
+                                    icon: Eye,
+                                    color: "primary"
+                                },
+                                { 
+                                    label: "Total Earnings", 
+                                    current: earningsStats.total, 
+                                    target: reqEarnings, 
+                                    isDone: hasEarnings,
+                                    icon: Wallet,
+                                    color: "green",
+                                    isCurrency: true
+                                }
+                            ].map((req, i) => (
+                                <div key={i} className={cn(
+                                    "p-6 rounded-[2rem] border transition-all duration-500",
+                                    req.isDone ? "bg-green-500/10 border-green-500/30 shadow-[0_0_30px_rgba(34,197,94,0.1)]" : "bg-secondary/20 border-white/5"
+                                )}>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className={cn("p-2 rounded-xl", req.isDone ? "bg-green-500 text-white" : "bg-white/5 text-muted-foreground")}>
+                                                <req.icon size={18} />
+                                            </div>
+                                            <span className="text-sm font-black uppercase italic">{req.label}</span>
+                                        </div>
+                                        {req.isDone ? (
+                                            <div className="flex items-center gap-1.5 text-green-500 animate-in zoom-in duration-500">
+                                                <CheckCircle2 size={18} fill="currentColor" className="text-background" />
+                                                <span className="text-[10px] font-black uppercase">Complete</span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-[10px] font-black text-muted-foreground uppercase">{Math.round((req.current / req.target) * 100)}%</span>
+                                        )}
+                                    </div>
+                                    <Progress value={(req.current / req.target) * 100} className="h-2 bg-black/40" indicatorClassName={req.isDone ? "bg-green-500" : ""} />
+                                    <div className="mt-3 flex justify-between items-baseline">
+                                        <p className="text-lg font-black">{req.isCurrency ? '₹' : ''}{req.current.toLocaleString()}</p>
+                                        <p className="text-[10px] font-bold text-muted-foreground uppercase">Target: {req.isCurrency ? '₹' : ''}{req.target.toLocaleString()}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Withdraw Section */}
+                        <div className={cn(
+                            "relative group p-1 rounded-[2.5rem] overflow-hidden transition-all duration-1000",
+                            isMonetizationUnlocked ? "bg-gradient-to-r from-primary via-purple-500 to-blue-500 animate-pulse" : "bg-white/5"
+                        )}>
+                            <div className="bg-background rounded-[2.4rem] p-8 text-center space-y-4">
+                                {isMonetizationUnlocked ? (
+                                    <>
+                                        <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-2 border border-primary/30 animate-bounce">
+                                            <Sparkles className="w-10 h-10 text-primary" />
+                                        </div>
+                                        <h3 className="text-2xl font-black italic uppercase tracking-tighter">Withdraw Unlocked!</h3>
+                                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest px-4">Congratulations! You are now eligible to cash out your earnings.</p>
+                                        <Button 
+                                            onClick={() => { setIsMonetizationOpen(false); setIsWithdrawOpen(true); forceUnlockUI(); }}
+                                            className="w-full h-16 bg-primary hover:bg-primary/90 text-white font-black uppercase text-sm rounded-2xl shadow-[0_15px_40px_rgba(255,51,102,0.4)] mt-4 animate-in slide-in-from-bottom-4 duration-1000"
+                                        >
+                                            Start Withdrawing
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Lock className="w-12 h-12 text-muted-foreground/30 mx-auto mb-2" />
+                                        <h3 className="text-xl font-black italic uppercase text-muted-foreground">Payouts Locked</h3>
+                                        <p className="text-[10px] text-muted-foreground/60 font-bold uppercase tracking-widest leading-relaxed">Complete all requirements above to unlock secure manual payouts to Bank or PayPal.</p>
+                                        <Button disabled className="w-full h-16 bg-secondary text-muted-foreground font-black uppercase text-sm rounded-2xl mt-4 opacity-50">
+                                            Withdraw Locked
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
             {/* Creator Dashboard */}
             <Dialog open={isEarningsOpen} onOpenChange={(open) => { setIsEarningsOpen(open); forceUnlockUI(); }}>
                 <DialogContent className="bg-[#0a0a0a] border-white/10 p-0 rounded-[2.5rem] max-w-lg w-[95%] overflow-hidden h-[90vh] flex flex-col z-[200]">
@@ -331,7 +465,7 @@ export default function ProfilePage() {
                                 <div className="flex-1"><p className="text-[9px] font-bold text-white/50 uppercase">Total Earned</p><p className="text-lg font-black text-white">₹{earningsStats.total.toFixed(2)}</p></div>
                                 <div className="flex-1"><p className="text-[9px] font-bold text-white/50 uppercase">Paid Out</p><p className="text-lg font-black text-white">₹{earningsStats.withdrawn.toFixed(2)}</p></div>
                             </div>
-                            <Button onClick={() => { setIsWithdrawOpen(true); forceUnlockUI(); }} className="w-full mt-6 h-12 bg-white text-black hover:bg-white/90 font-black uppercase rounded-2xl" disabled={earningsStats.available < 1}>Withdraw Funds</Button>
+                            <Button onClick={() => { setIsWithdrawOpen(true); forceUnlockUI(); }} className="w-full mt-6 h-12 bg-white text-black hover:bg-white/90 font-black uppercase rounded-2xl" disabled={!isMonetizationUnlocked || earningsStats.available < 1}>Withdraw Funds</Button>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="bg-secondary/20 p-5 rounded-3xl border border-white/5 text-center"><TrendingUp size={16} className="text-blue-400 mx-auto mb-2" /><p className="text-2xl font-black">{earningsStats.totalViews.toLocaleString()}</p><p className="text-[9px] font-bold text-muted-foreground uppercase">Views</p></div>
