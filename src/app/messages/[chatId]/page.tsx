@@ -10,7 +10,7 @@ import type { UserProfile } from '@/models/user';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Send, BadgeCheck, Loader2 } from 'lucide-react';
+import { ArrowLeft, Send, BadgeCheck, Loader2, Play } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -30,7 +30,6 @@ export default function ChatPage() {
     setHasMounted(true);
   }, []);
 
-  // Strict check to prevent permission errors before auth is fully ready or if user is not in chat
   const isUserParticipant = useMemo(() => {
     if (!user || !chatId) return false;
     const idStr = chatId as string;
@@ -154,8 +153,32 @@ export default function ChatPage() {
         )}
         {messages?.map((msg) => (
           <div key={msg.id} className={cn("flex flex-col max-w-[80%]", msg.senderId === user.uid ? "ml-auto items-end" : "mr-auto items-start")}>
-            <div className={cn("px-4 py-2 rounded-2xl text-sm", msg.senderId === user.uid ? "bg-primary text-white rounded-tr-none" : "bg-secondary text-white rounded-tl-none")}>
-              {msg.text}
+            <div className={cn(
+              "rounded-2xl overflow-hidden", 
+              msg.senderId === user.uid ? "bg-primary text-white rounded-tr-none" : "bg-secondary text-white rounded-tl-none"
+            )}>
+              {msg.sharedPostMediaUrl && (
+                <div 
+                  className="aspect-[9/16] w-48 relative bg-black cursor-pointer group"
+                  onClick={() => router.push(`/?postId=${msg.sharedPostId}`)}
+                >
+                  <video 
+                    src={msg.sharedPostMediaUrl} 
+                    className="w-full h-full object-cover" 
+                    muted 
+                    playsInline 
+                    autoPlay 
+                    loop 
+                  />
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Play className="text-white h-10 w-10 drop-shadow-lg" />
+                  </div>
+                  <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg">
+                    <span className="text-[8px] font-black uppercase tracking-widest">Shared Reel</span>
+                  </div>
+                </div>
+              )}
+              {msg.text && <div className="px-4 py-2 text-sm">{msg.text}</div>}
             </div>
             <span className="text-[8px] text-muted-foreground mt-1 px-1">
               {msg.createdAt && hasMounted ? format(msg.createdAt.toDate(), 'HH:mm') : ''}
