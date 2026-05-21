@@ -64,7 +64,7 @@ function HomeContent() {
   const hasUnreadNotifications = !!(user && unreadNotifications && unreadNotifications.length > 0);
   const hasUnreadMessages = !!(user && unreadMessages && unreadMessages.length > 0);
 
-  // Optimized building items with shuffle and target post support
+  // Optimized building items with shuffle and target post priority
   const buildItems = useCallback((items: Post[], focusId?: string | null) => {
     if (!items.length) return [];
     
@@ -75,7 +75,7 @@ function HomeContent() {
       const focusIndex = list.findIndex(p => p.id === focusId);
       if (focusIndex > -1) {
         const [focusedPost] = list.splice(focusIndex, 1);
-        // Shuffle the rest
+        // Shuffle the rest of the list
         list.sort(() => Math.random() - 0.5);
         list = [focusedPost, ...list];
       } else {
@@ -88,8 +88,8 @@ function HomeContent() {
     const result: (Post | { type: 'ad'; id: string })[] = [];
     list.forEach((post, index) => {
       result.push(post);
-      // Ads every 3 posts for better UX
-      if ((index + 1) % 3 === 0) {
+      // Insert ad every 2 posts for better monetization/spacing
+      if ((index + 1) % 2 === 0) {
         result.push({ type: 'ad', id: `ad-${index}-${Date.now()}` });
       }
     });
@@ -98,6 +98,7 @@ function HomeContent() {
 
   useEffect(() => {
     if (hasMounted && posts && posts.length > 0) {
+      // Avoid re-building if focusId hasn't changed to prevent video restarts
       setDisplayItems(buildItems(posts, targetPostId));
     }
   }, [hasMounted, posts, buildItems, targetPostId]);
@@ -165,7 +166,11 @@ function HomeContent() {
       ) : displayItems.length > 0 ? (
         displayItems.map((item) => {
           if ('type' in item && item.type === 'ad') {
-            return <NativeAdCard key={item.id} />;
+            return (
+              <div key={item.id} className="h-screen w-full snap-start snap-always overflow-hidden flex flex-col">
+                <NativeAdCard />
+              </div>
+            );
           }
           const post = item as Post;
           return (

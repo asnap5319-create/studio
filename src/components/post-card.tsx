@@ -34,7 +34,7 @@ interface PostCardProps {
 }
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
-let globalMuted = true; // Maintains mute state across reels
+let globalMuted = true; // Maintains mute state across reels globally
 const REVENUE_PER_VIEW = 0.008;
 
 export function PostCard({ post, isFocused = false }: PostCardProps) {
@@ -96,7 +96,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     const newMuteState = !isMuted;
     globalMuted = newMuteState;
     
-    // Applying to all videos to ensure sync
+    // Applying to all videos in the DOM for sync
     const allVideos = document.querySelectorAll('video');
     allVideos.forEach(v => { (v as HTMLVideoElement).muted = newMuteState; });
     
@@ -115,7 +115,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     setIsLiking(true);
     const wasLiked = isLiked;
     
-    // Optimistic UI update
     setLocalLikeCount(prev => wasLiked ? Math.max(0, prev - 1) : prev + 1);
     if (!wasLiked) {
       setShowBigHeart(true);
@@ -143,7 +142,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       }
       await batch.commit(); 
     } catch (e) { 
-      // Rollback on error
       setLocalLikeCount(prev => wasLiked ? prev + 1 : Math.max(0, prev - 1));
     } finally {
       setIsLiking(false);
@@ -182,36 +180,41 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     } catch (error) {}
   };
 
-  // Intersection Observer for autoplay/pause logic
+  // Intersection Observer to precisely detect focal post
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => { 
-        setIsInView(entry.isIntersecting && entry.intersectionRatio >= 0.6); 
-    }, { threshold: [0, 0.6, 1.0] });
+        // Only consider it focal if at least 70% visible to avoid multiple playing
+        setIsInView(entry.isIntersecting && entry.intersectionRatio >= 0.7); 
+    }, { 
+      threshold: [0, 0.7, 1.0],
+      rootMargin: "0px" 
+    });
     
     if (cardRef.current) observer.observe(cardRef.current);
     return () => observer.disconnect();
   }, []);
 
-  // Sync video play state with view visibility
+  // Control playback based on visibility
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     if (isInView) {
+      // Apply global mute state
       video.muted = globalMuted;
       setIsMuted(globalMuted);
       
       const playPromise = video.play();
       if (playPromise !== undefined) {
         playPromise.catch(() => {
-          // If interaction required, start muted
+          // If interaction required, start muted to ensure autoplay
           video.muted = true;
           setIsMuted(true);
           video.play().catch(() => {});
         });
       }
 
-      // Track view only once per focused impression
+      // Track monetization view only once
       if (firestore && !viewCounted.current) {
         viewCounted.current = true;
         const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
@@ -226,8 +229,8 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       }
     } else {
       video.pause();
-      // Reset view counted if we want to count multiple views in one session (optional)
-      // viewCounted.current = false;
+      // Keep it muted when paused to prevent noise on resume before observer kicks in
+      video.muted = true;
     }
   }, [isInView, firestore, post.id, post.userId, post.viewCount]);
 
@@ -238,7 +241,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   };
 
   return (
-    <div ref={cardRef} className="relative w-full h-full bg-black overflow-hidden select-none" 
+    <div ref={cardRef} className="relative w-full h-full bg-black overflow-hidden flex flex-col justify-center select-none" 
       onClick={(e) => {
         if (tapTimerRef.current) {
           clearTimeout(tapTimerRef.current);
@@ -252,11 +255,10 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         }
       }}
     >
-      {/* High-performance Video Component */}
       <video 
         ref={videoRef} 
         src={post.mediaUrl} 
-        className="object-contain w-full h-full" 
+        className="object-contain w-full h-full max-h-screen" 
         loop 
         playsInline 
         muted={isMuted} 
@@ -308,11 +310,11 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       )}
       
       {/* Bottom Info Section */}
-      <div className="absolute bottom-0 left-0 right-16 p-6 pb-28 bg-gradient-to-t from-black/90 via-black/20 to-transparent text-white z-30" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-3 mb-4">
+      <div className="absolute bottom-0 left-0 right-16 p-6 pb-28 bg-gradient-to-t from-black/95 via-black/30 to-transparent text-white z-30 pointer-events-none" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-3 mb-4 pointer-events-auto">
           {author && (
             <Link href={`/profile/${author.id}`} onClick={(e) => { if(!user) { e.preventDefault(); router.push('/login?auth=true'); } }} className="flex items-center gap-3 group">
-              <Avatar className="h-12 w-12 border-2 border-primary shadow-2xl">
+              <Avatar className="h-11 w-11 border-2 border-primary shadow-2xl">
                 <AvatarImage src={author.profileImageUrl} className="object-cover" />
                 <AvatarFallback className="font-black bg-secondary">{author.username?.[0]?.toUpperCase()}</AvatarFallback>
               </Avatar>
@@ -331,7 +333,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
             </Button>
           )}
         </div>
-        <p className="text-sm line-clamp-2 font-medium drop-shadow-md leading-relaxed pr-4">{post.caption}</p>
+        <p className="text-sm line-clamp-2 font-medium drop-shadow-md leading-relaxed pr-4 pointer-events-auto">{post.caption}</p>
       </div>
 
       {/* Right Side Actions */}
@@ -373,10 +375,10 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
 
       {/* Admin/Owner Menu */}
       {(isOwnPost || isCurrentUserAdmin) && (
-        <div className="absolute top-8 right-6 z-50" onClick={(e) => e.stopPropagation()}>
+        <div className="absolute top-10 right-6 z-50" onClick={(e) => e.stopPropagation()}>
             <DropdownMenu onOpenChange={() => forceUnlockUI()}>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-black/30 border border-white/5 text-white backdrop-blur-md">
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-black/40 border border-white/5 text-white backdrop-blur-md">
                         <MoreVertical className="h-6 w-6" />
                     </Button>
                 </DropdownMenuTrigger>
