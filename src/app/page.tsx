@@ -64,18 +64,15 @@ function HomeContent() {
   const hasUnreadNotifications = !!(user && unreadNotifications && unreadNotifications.length > 0);
   const hasUnreadMessages = !!(user && unreadMessages && unreadMessages.length > 0);
 
-  // Optimized building items with shuffle and target post priority
   const buildItems = useCallback((items: Post[], focusId?: string | null) => {
     if (!items.length) return [];
     
     let list = [...items];
     
-    // Sort logic: If focusId exists, bring it to front. Else, full shuffle.
     if (focusId) {
       const focusIndex = list.findIndex(p => p.id === focusId);
       if (focusIndex > -1) {
         const [focusedPost] = list.splice(focusIndex, 1);
-        // Shuffle the rest of the list
         list.sort(() => Math.random() - 0.5);
         list = [focusedPost, ...list];
       } else {
@@ -88,8 +85,7 @@ function HomeContent() {
     const result: (Post | { type: 'ad'; id: string })[] = [];
     list.forEach((post, index) => {
       result.push(post);
-      // Insert ad every 2 posts for better monetization/spacing
-      if ((index + 1) % 2 === 0) {
+      if ((index + 1) % 4 === 0) { // Spread ads more to focus on reels
         result.push({ type: 'ad', id: `ad-${index}-${Date.now()}` });
       }
     });
@@ -98,21 +94,20 @@ function HomeContent() {
 
   useEffect(() => {
     if (hasMounted && posts && posts.length > 0) {
-      // Avoid re-building if focusId hasn't changed to prevent video restarts
-      setDisplayItems(buildItems(posts, targetPostId));
+      if (displayItems.length === 0 || targetPostId) {
+        setDisplayItems(buildItems(posts, targetPostId));
+      }
     }
-  }, [hasMounted, posts, buildItems, targetPostId]);
+  }, [hasMounted, posts, buildItems, targetPostId, displayItems.length]);
 
   const handleRefresh = useCallback(() => {
     if (!posts || posts.length === 0) return;
     setIsRefreshing(true);
     
-    // Smooth transition for refresh
     setTimeout(() => {
       setDisplayItems(buildItems(posts));
       setIsRefreshing(false);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      toast({ title: "Feed Refreshed! ✨", description: "Showing new videos for you." });
+      toast({ title: "Feed Refreshed! ✨" });
     }, 600);
   }, [posts, buildItems, toast]);
 
@@ -120,7 +115,6 @@ function HomeContent() {
 
   return (
     <div className="h-screen bg-black overflow-y-scroll snap-y snap-mandatory scrollbar-hide relative overflow-x-hidden">
-      {/* Header Overlay */}
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
         <div className="flex items-center gap-3 pointer-events-auto">
           <div className="flex items-center gap-2">
@@ -167,15 +161,15 @@ function HomeContent() {
         displayItems.map((item) => {
           if ('type' in item && item.type === 'ad') {
             return (
-              <div key={item.id} className="h-screen w-full snap-start snap-always overflow-hidden flex flex-col">
+              <div key={item.id} className="h-screen w-full snap-start snap-always overflow-hidden flex flex-col shrink-0">
                 <NativeAdCard />
               </div>
             );
           }
           const post = item as Post;
           return (
-            <div key={post.id} className="h-screen w-full snap-start snap-always overflow-hidden flex flex-col">
-              <MemoizedPostCard post={post} isFocused={post.id === targetPostId} />
+            <div key={post.id} className="h-screen w-full snap-start snap-always overflow-hidden flex flex-col shrink-0">
+              <MemoizedPostCard post={post} />
             </div>
           );
         })

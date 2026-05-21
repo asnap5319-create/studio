@@ -34,7 +34,7 @@ interface PostCardProps {
 }
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
-let globalMuted = true; // Maintains mute state across reels globally
+let globalMuted = true; 
 const REVENUE_PER_VIEW = 0.008;
 
 export function PostCard({ post, isFocused = false }: PostCardProps) {
@@ -85,7 +85,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { data: followData } = useDoc(followCheckRef);
   const isFollowing = !!followData;
 
-  // Sync like count when post data updates
   useEffect(() => {
     setLocalLikeCount(post.likeCount || 0);
   }, [post.likeCount]);
@@ -96,7 +95,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     const newMuteState = !isMuted;
     globalMuted = newMuteState;
     
-    // Applying to all videos in the DOM for sync
     const allVideos = document.querySelectorAll('video');
     allVideos.forEach(v => { (v as HTMLVideoElement).muted = newMuteState; });
     
@@ -180,13 +178,12 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     } catch (error) {}
   };
 
-  // Intersection Observer to precisely detect focal post
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => { 
-        // Only consider it focal if at least 70% visible to avoid multiple playing
-        setIsInView(entry.isIntersecting && entry.intersectionRatio >= 0.7); 
+        // INCREASED THRESHOLD TO PREVENT CLASHING
+        setIsInView(entry.isIntersecting && entry.intersectionRatio >= 0.8); 
     }, { 
-      threshold: [0, 0.7, 1.0],
+      threshold: [0, 0.8, 1.0],
       rootMargin: "0px" 
     });
     
@@ -194,27 +191,23 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     return () => observer.disconnect();
   }, []);
 
-  // Control playback based on visibility
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     if (isInView) {
-      // Apply global mute state
       video.muted = globalMuted;
       setIsMuted(globalMuted);
       
       const playPromise = video.play();
       if (playPromise !== undefined) {
         playPromise.catch(() => {
-          // If interaction required, start muted to ensure autoplay
           video.muted = true;
           setIsMuted(true);
           video.play().catch(() => {});
         });
       }
 
-      // Track monetization view only once
       if (firestore && !viewCounted.current) {
         viewCounted.current = true;
         const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
@@ -228,11 +221,12 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         }).catch(() => {});
       }
     } else {
+      // HARD PAUSE AND MUTE WHEN OUT OF FOCUS
       video.pause();
-      // Keep it muted when paused to prevent noise on resume before observer kicks in
       video.muted = true;
+      video.currentTime = 0; // Reset to start if wanted, or just pause
     }
-  }, [isInView, firestore, post.id, post.userId, post.viewCount]);
+  }, [isInView, firestore, post.id, post.userId]);
 
   const forceUnlockUI = () => {
     if (typeof document !== 'undefined') {
@@ -268,7 +262,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         onLoadedData={() => setIsBuffering(false)}
       />
       
-      {/* Visual Overlay Text */}
       {post.overlayText && (
           <div 
             className="absolute px-8 text-center pointer-events-none z-20" 
@@ -286,21 +279,18 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
           </div>
       )}
 
-      {/* Buffering State */}
       {isBuffering && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/10 z-20">
           <Loader2 className="w-10 h-10 text-primary animate-spin opacity-50" />
         </div>
       )}
 
-      {/* Big Heart Animation */}
       {showBigHeart && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
           <Heart className="w-32 h-32 text-primary fill-primary animate-heart-pop" />
         </div>
       )}
 
-      {/* Mute/Unmute Indicator */}
       {showMuteIndicator && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
           <div className="bg-black/50 backdrop-blur-md p-5 rounded-full">
@@ -309,7 +299,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         </div>
       )}
       
-      {/* Bottom Info Section */}
       <div className="absolute bottom-0 left-0 right-16 p-6 pb-28 bg-gradient-to-t from-black/95 via-black/30 to-transparent text-white z-30 pointer-events-none" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-4 pointer-events-auto">
           {author && (
@@ -336,7 +325,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         <p className="text-sm line-clamp-2 font-medium drop-shadow-md leading-relaxed pr-4 pointer-events-auto">{post.caption}</p>
       </div>
 
-      {/* Right Side Actions */}
       <div className="absolute right-4 bottom-28 flex flex-col gap-8 z-30" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center group">
                 <button className="text-white transition-all active:scale-150 group-hover:scale-110" onClick={handleLikeToggle}>
@@ -373,7 +361,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
             </div>
       </div>
 
-      {/* Admin/Owner Menu */}
       {(isOwnPost || isCurrentUserAdmin) && (
         <div className="absolute top-10 right-6 z-50" onClick={(e) => e.stopPropagation()}>
             <DropdownMenu onOpenChange={() => forceUnlockUI()}>
@@ -391,7 +378,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         </div>
       )}
 
-      {/* Delete Confirmation */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={(open) => { setIsDeleteDialogOpen(open); forceUnlockUI(); }}>
         <AlertDialogContent className="bg-[#121212] text-white rounded-[2.5rem] border-white/10 z-[300]">
             <AlertDialogHeader>
