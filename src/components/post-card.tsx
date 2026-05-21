@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import type { Post } from '@/models/post';
 import type { UserProfile } from '@/models/user';
 import { useDoc, useFirebase, useMemoFirebase, useUser } from '@/firebase';
@@ -34,7 +34,7 @@ interface PostCardProps {
 }
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
-let globalMuted = true;
+let globalMuted = true; // Maintains mute state across reels
 const REVENUE_PER_VIEW = 0.008;
 
 export function PostCard({ post, isFocused = false }: PostCardProps) {
@@ -42,12 +42,13 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { user } = useUser();
   const { toast } = useToast();
   const router = useRouter();
+  
   const videoRef = useRef<HTMLVideoElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const viewCounted = useRef(false);
   const tapTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [isInView, setIsInView] = useState(isFocused);
+  const [isInView, setIsInView] = useState(false);
   const [isMuted, setIsMuted] = useState(globalMuted); 
   const [showBigHeart, setShowBigHeart] = useState(false);
   const [showMuteIndicator, setShowMuteIndicator] = useState(false);
@@ -60,14 +61,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
 
   const isOwnPost = user?.uid === post.userId;
   const isCurrentUserAdmin = user?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
-
-  const requireAuth = () => {
-    if (!user) {
-      router.push('/login?auth=true');
-      return false;
-    }
-    return true;
-  };
 
   const authorRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -92,42 +85,55 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { data: followData } = useDoc(followCheckRef);
   const isFollowing = !!followData;
 
+  // Sync like count when post data updates
   useEffect(() => {
     setLocalLikeCount(post.likeCount || 0);
   }, [post.likeCount]);
 
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
     const newMuteState = !isMuted;
     globalMuted = newMuteState;
+    
+    // Applying to all videos to ensure sync
     const allVideos = document.querySelectorAll('video');
-    allVideos.forEach(v => { v.muted = newMuteState; });
+    allVideos.forEach(v => { (v as HTMLVideoElement).muted = newMuteState; });
+    
     setIsMuted(newMuteState);
     setShowMuteIndicator(true);
     setTimeout(() => setShowMuteIndicator(false), 1000);
-  };
+  }, [isMuted]);
 
   const handleLikeToggle = async () => {
-    if (!requireAuth()) return;
+    if (!user) {
+      router.push('/login?auth=true');
+      return;
+    }
     if (!firestore || isLiking) return;
+    
     setIsLiking(true);
     const wasLiked = isLiked;
+    
+    // Optimistic UI update
     setLocalLikeCount(prev => wasLiked ? Math.max(0, prev - 1) : prev + 1);
     if (!wasLiked) {
       setShowBigHeart(true);
       setTimeout(() => setShowBigHeart(false), 800);
     }
+    
     try {
       const batch = writeBatch(firestore!);
       const postRef = doc(firestore!, 'users', post.userId, 'posts', post.id);
       const likeDocRef = doc(firestore!, 'users', post.userId, 'posts', post.id, 'likes', user!.uid);
+      
       if (wasLiked) {
         batch.update(postRef, { likeCount: increment(-1) });
         batch.delete(likeDocRef);
       } else {
         batch.update(postRef, { likeCount: increment(1) });
         batch.set(likeDocRef, { userId: user!.uid, createdAt: serverTimestamp() });
+        
         if (post.userId !== user!.uid) {
             const notificationRef = doc(collection(firestore!, 'users', post.userId, 'notifications'));
             batch.set(notificationRef, {
@@ -137,6 +143,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       }
       await batch.commit(); 
     } catch (e) { 
+      // Rollback on error
       setLocalLikeCount(prev => wasLiked ? prev + 1 : Math.max(0, prev - 1));
     } finally {
       setIsLiking(false);
@@ -145,13 +152,18 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
 
   const handleFollowToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!requireAuth()) return;
+    if (!user) {
+      router.push('/login?auth=true');
+      return;
+    }
     if (!firestore || !post.userId || isOwnPost) return;
+    
     const batch = writeBatch(firestore!);
     const followedUserId = post.userId;
     const followerUserId = user!.uid;
     const followerDocRef = doc(firestore!, 'user_followers', followedUserId, 'followers', followerUserId);
     const followingDocRef = doc(firestore!, 'user_following', followerUserId, 'following', followedUserId);
+    
     if (isFollowing) {
       batch.delete(followerDocRef);
       batch.delete(followingDocRef);
@@ -163,66 +175,98 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         type: 'follow', senderId: followerUserId, recipientId: followedUserId, read: false, createdAt: serverTimestamp(),
       });
     }
+    
     try {
       await batch.commit();
       toast({ title: isFollowing ? `Unfollowed` : `Following` });
     } catch (error) {}
   };
 
+  // Intersection Observer for autoplay/pause logic
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => { 
-        setIsInView(entry.isIntersecting); 
-    }, { threshold: 0.6 });
+        setIsInView(entry.isIntersecting && entry.intersectionRatio >= 0.6); 
+    }, { threshold: [0, 0.6, 1.0] });
+    
     if (cardRef.current) observer.observe(cardRef.current);
     return () => observer.disconnect();
   }, []);
 
+  // Sync video play state with view visibility
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+
     if (isInView) {
       video.muted = globalMuted;
       setIsMuted(globalMuted);
-      video.play().catch(() => { 
-        video.muted = true; 
-        setIsMuted(true);
-        video.play().catch(() => {}); 
-      });
+      
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // If interaction required, start muted
+          video.muted = true;
+          setIsMuted(true);
+          video.play().catch(() => {});
+        });
+      }
+
+      // Track view only once per focused impression
       if (firestore && !viewCounted.current) {
         viewCounted.current = true;
         const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
         const newViewCount = (post.viewCount || 0) + 1;
         const newEarnings = newViewCount * REVENUE_PER_VIEW;
+        
         updateDoc(postRef, { 
           viewCount: increment(1),
           adImpressions: increment(1),
           estimatedEarnings: Number(newEarnings.toFixed(4))
-        });
+        }).catch(() => {});
       }
     } else {
       video.pause();
+      // Reset view counted if we want to count multiple views in one session (optional)
+      // viewCounted.current = false;
     }
   }, [isInView, firestore, post.id, post.userId, post.viewCount]);
 
   const forceUnlockUI = () => {
-    document.body.style.pointerEvents = 'auto';
+    if (typeof document !== 'undefined') {
+      document.body.style.pointerEvents = 'auto';
+    }
   };
 
   return (
-    <div ref={cardRef} className="relative w-full h-full bg-black overflow-hidden select-none" onClick={(e) => {
-      if (tapTimerRef.current) {
-        clearTimeout(tapTimerRef.current);
-        tapTimerRef.current = null;
-        if (!isLiked) handleLikeToggle();
-      } else {
-        tapTimerRef.current = setTimeout(() => {
-          toggleMute();
+    <div ref={cardRef} className="relative w-full h-full bg-black overflow-hidden select-none" 
+      onClick={(e) => {
+        if (tapTimerRef.current) {
+          clearTimeout(tapTimerRef.current);
           tapTimerRef.current = null;
-        }, 250);
-      }
-    }}>
-      <video ref={videoRef} src={post.mediaUrl} className="object-contain w-full h-full" loop playsInline muted={isMuted} preload="auto" onWaiting={() => setIsBuffering(true)} onPlaying={() => setIsBuffering(false)}/>
+          handleLikeToggle();
+        } else {
+          tapTimerRef.current = setTimeout(() => {
+            toggleMute();
+            tapTimerRef.current = null;
+          }, 250);
+        }
+      }}
+    >
+      {/* High-performance Video Component */}
+      <video 
+        ref={videoRef} 
+        src={post.mediaUrl} 
+        className="object-contain w-full h-full" 
+        loop 
+        playsInline 
+        muted={isMuted} 
+        preload="auto"
+        onWaiting={() => setIsBuffering(true)} 
+        onPlaying={() => setIsBuffering(false)}
+        onLoadedData={() => setIsBuffering(false)}
+      />
       
+      {/* Visual Overlay Text */}
       {post.overlayText && (
           <div 
             className="absolute px-8 text-center pointer-events-none z-20" 
@@ -231,70 +275,95 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
               left: `${post.overlayX ?? 50}%`, 
               transform: 'translate(-50%, -50%)', 
               color: post.overlayColor || '#ffffff', 
-              textShadow: '0 2px 15px rgba(0,0,0,0.9)' 
+              textShadow: '0 2px 20px rgba(0,0,0,0.9)' 
             }}
           >
-              <p className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter leading-tight drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)]">
+              <p className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter leading-tight drop-shadow-2xl">
                 {post.overlayText}
               </p>
           </div>
       )}
 
-      {isBuffering && <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-20"><Loader2 className="w-10 h-10 text-primary animate-spin" /></div>}
-      {showBigHeart && <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30"><Heart className="w-32 h-32 text-primary fill-primary animate-heart-pop" /></div>}
-      {showMuteIndicator && <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30"><div className="bg-black/60 p-5 rounded-full">{isMuted ? <VolumeX className="w-12 h-12 text-white" /> : <Volume2 className="w-12 h-12 text-white" />}</div></div>}
+      {/* Buffering State */}
+      {isBuffering && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/10 z-20">
+          <Loader2 className="w-10 h-10 text-primary animate-spin opacity-50" />
+        </div>
+      )}
+
+      {/* Big Heart Animation */}
+      {showBigHeart && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+          <Heart className="w-32 h-32 text-primary fill-primary animate-heart-pop" />
+        </div>
+      )}
+
+      {/* Mute/Unmute Indicator */}
+      {showMuteIndicator && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+          <div className="bg-black/50 backdrop-blur-md p-5 rounded-full">
+            {isMuted ? <VolumeX className="w-10 h-10 text-white" /> : <Volume2 className="w-10 h-10 text-white" />}
+          </div>
+        </div>
+      )}
       
-      <div className="absolute bottom-0 left-0 right-16 p-6 pb-28 bg-gradient-to-t from-black/90 via-transparent text-white z-30" onClick={(e) => e.stopPropagation()}>
+      {/* Bottom Info Section */}
+      <div className="absolute bottom-0 left-0 right-16 p-6 pb-28 bg-gradient-to-t from-black/90 via-black/20 to-transparent text-white z-30" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-4">
           {author && (
             <Link href={`/profile/${author.id}`} onClick={(e) => { if(!user) { e.preventDefault(); router.push('/login?auth=true'); } }} className="flex items-center gap-3 group">
-              <Avatar className="h-14 w-14 border-2 border-primary shadow-2xl">
+              <Avatar className="h-12 w-12 border-2 border-primary shadow-2xl">
                 <AvatarImage src={author.profileImageUrl} className="object-cover" />
                 <AvatarFallback className="font-black bg-secondary">{author.username?.[0]?.toUpperCase()}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
-                    <p className="font-black text-base drop-shadow-md">{author.username}</p>
+                    <p className="font-black text-sm drop-shadow-md">{author.username}</p>
                     {isProfileAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />}
                 </div>
-                <span className="text-[10px] text-primary font-black uppercase tracking-widest">Creator</span>
+                <span className="text-[9px] text-primary/80 font-black uppercase tracking-widest">Premium Creator</span>
               </div>
             </Link>
           )}
-          {author && !isOwnPost && <Button onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"} className={cn("h-8 px-6 text-[11px] font-black uppercase rounded-full border border-white/20", !isFollowing && "bg-primary text-white border-none")}>{isFollowing ? 'Following' : 'Follow'}</Button>}
+          {author && !isOwnPost && (
+            <Button onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"} className={cn("h-7 px-4 text-[10px] font-black uppercase rounded-full border border-white/10", !isFollowing && "bg-primary text-white border-none")}>
+              {isFollowing ? 'Following' : 'Follow'}
+            </Button>
+          )}
         </div>
-        <p className="text-sm line-clamp-2 font-bold drop-shadow-md leading-relaxed">{post.caption}</p>
+        <p className="text-sm line-clamp-2 font-medium drop-shadow-md leading-relaxed pr-4">{post.caption}</p>
       </div>
 
-      <div className="absolute right-4 bottom-28 flex flex-col gap-10 z-30" onClick={(e) => e.stopPropagation()}>
-            <div className="flex flex-col items-center">
-                <button className="text-white transition-all active:scale-150" onClick={handleLikeToggle}>
-                    <Heart className={cn("h-10 w-10 drop-shadow-2xl transition-all", isLiked ? "fill-primary text-primary scale-110" : "text-white")} />
+      {/* Right Side Actions */}
+      <div className="absolute right-4 bottom-28 flex flex-col gap-8 z-30" onClick={(e) => e.stopPropagation()}>
+            <div className="flex flex-col items-center group">
+                <button className="text-white transition-all active:scale-150 group-hover:scale-110" onClick={handleLikeToggle}>
+                    <Heart className={cn("h-9 w-9 drop-shadow-2xl transition-all", isLiked ? "fill-primary text-primary scale-110" : "text-white")} />
                 </button>
-                <span className="text-xs font-black mt-2 drop-shadow-md">{localLikeCount}</span>
+                <span className="text-[10px] font-black mt-1.5 drop-shadow-md">{localLikeCount}</span>
             </div>
-            <div className="flex flex-col items-center">
-                <Sheet open={isCommentSheetOpen} onOpenChange={(open) => { if (open && !requireAuth()) return; setIsCommentSheetOpen(open); forceUnlockUI(); }}>
+            <div className="flex flex-col items-center group">
+                <Sheet open={isCommentSheetOpen} onOpenChange={(open) => { if (open && !user) { router.push('/login?auth=true'); return; } setIsCommentSheetOpen(open); forceUnlockUI(); }}>
                   <SheetTrigger asChild>
-                      <button className="text-white active:scale-125 transition-all">
-                          <MessageCircle className="h-10 w-10 drop-shadow-2xl" />
+                      <button className="text-white active:scale-125 transition-all group-hover:scale-110">
+                          <MessageCircle className="h-9 w-9 drop-shadow-2xl" />
                       </button>
                   </SheetTrigger>
-                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[3rem] overflow-hidden bg-background border-t-0 shadow-2xl">
+                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[3rem] overflow-hidden bg-background border-t-0 shadow-2xl z-[100]">
                       <SheetHeader className="sr-only"><SheetTitle>Comments</SheetTitle></SheetHeader>
                       <CommentSection postId={post.id} postOwnerId={post.userId} />
                   </SheetContent>
                 </Sheet>
-                <span className="text-xs font-black mt-2 drop-shadow-md">{post.commentCount}</span>
+                <span className="text-[10px] font-black mt-1.5 drop-shadow-md">{post.commentCount}</span>
             </div>
-            <div className="flex flex-col items-center">
-                <Sheet open={isShareSheetOpen} onOpenChange={(open) => { if (open && !requireAuth()) return; setIsShareSheetOpen(open); forceUnlockUI(); }}>
+            <div className="flex flex-col items-center group">
+                <Sheet open={isShareSheetOpen} onOpenChange={(open) => { if (open && !user) { router.push('/login?auth=true'); return; } setIsShareSheetOpen(open); forceUnlockUI(); }}>
                   <SheetTrigger asChild>
-                      <button className="text-white active:scale-125 transition-all">
-                          <Share2 className="h-10 w-10 drop-shadow-2xl" />
+                      <button className="text-white active:scale-125 transition-all group-hover:scale-110">
+                          <Share2 className="h-9 w-9 drop-shadow-2xl" />
                       </button>
                   </SheetTrigger>
-                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[3rem] overflow-hidden bg-background border-t-0 shadow-2xl">
+                  <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[3rem] overflow-hidden bg-background border-t-0 shadow-2xl z-[100]">
                       <SheetHeader className="sr-only"><SheetTitle>Share</SheetTitle></SheetHeader>
                       <ShareSheet postId={post.id} postOwnerId={post.userId} mediaUrl={post.mediaUrl} onClose={() => setIsShareSheetOpen(false)} />
                   </SheetContent>
@@ -302,31 +371,30 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
             </div>
       </div>
 
+      {/* Admin/Owner Menu */}
       {(isOwnPost || isCurrentUserAdmin) && (
         <div className="absolute top-8 right-6 z-50" onClick={(e) => e.stopPropagation()}>
             <DropdownMenu onOpenChange={() => forceUnlockUI()}>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full bg-black/40 border border-white/10 text-white backdrop-blur-md">
-                        <MoreVertical className="h-7 w-7" />
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-black/30 border border-white/5 text-white backdrop-blur-md">
+                        <MoreVertical className="h-6 w-6" />
                     </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl p-2 min-w-[200px]">
-                    <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive font-black p-4 rounded-xl cursor-pointer">
-                        <Trash2 className="h-5 w-5 mr-3" /> Delete Post
+                <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl p-2 min-w-[180px]">
+                    <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive font-black p-3 rounded-xl cursor-pointer">
+                        <Trash2 className="h-4 w-4 mr-3" /> Delete Post
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>
       )}
 
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={(open) => {
-          setIsDeleteDialogOpen(open);
-          forceUnlockUI();
-      }}>
+      {/* Delete Confirmation */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={(open) => { setIsDeleteDialogOpen(open); forceUnlockUI(); }}>
         <AlertDialogContent className="bg-[#121212] text-white rounded-[2.5rem] border-white/10 z-[300]">
             <AlertDialogHeader>
                 <AlertDialogTitle className="text-center font-black uppercase italic tracking-wider text-xl">Delete Post?</AlertDialogTitle>
-                <AlertDialogDescription className="text-center text-muted-foreground text-xs font-bold uppercase tracking-widest mt-2">This action cannot be undone.</AlertDialogDescription>
+                <AlertDialogDescription className="text-center text-muted-foreground text-[10px] font-bold uppercase tracking-widest mt-2">This reel will be removed from your profile.</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="flex-col gap-3 sm:flex-row mt-8">
                 <AlertDialogCancel className="rounded-2xl bg-secondary/50 h-14 font-black border-none uppercase text-xs flex-1">Cancel</AlertDialogCancel>
