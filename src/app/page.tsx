@@ -11,14 +11,20 @@ import type { Notification } from '@/models/notification';
 import type { Message } from '@/models/message';
 import { BottomNav } from "@/components/bottom-nav";
 import Link from 'next/link';
-import { useState, useEffect, useCallback, memo } from 'react';
+import { useState, useEffect, useCallback, memo, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Logo } from '@/components/pwa-install-prompt';
+import { useToast } from '@/hooks/use-toast';
 
 const MemoizedPostCard = memo(PostCard);
 
-export default function HomePage() {
+function HomeContent() {
   const { firestore } = useFirebase();
   const { user } = useUser();
+  const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const targetPostId = searchParams.get('postId');
+
   const [displayItems, setDisplayItems] = useState<(Post | { type: 'ad'; id: string })[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
@@ -58,12 +64,23 @@ export default function HomePage() {
   const hasUnreadNotifications = !!(user && unreadNotifications && unreadNotifications.length > 0);
   const hasUnreadMessages = !!(user && unreadMessages && unreadMessages.length > 0);
 
-  const buildItems = useCallback((items: Post[]) => {
-    // Shuffling items to show fresh content on every refresh
-    const shuffled = [...items].sort(() => Math.random() - 0.5);
-    const result: (Post | { type: 'ad'; id: string })[] = [];
+  const buildItems = useCallback((items: Post[], focusId?: string | null) => {
+    let list = [...items];
     
-    shuffled.forEach((post, index) => {
+    // If we have a focusId (from shared post), put it at the top
+    if (focusId) {
+      const focusIndex = list.findIndex(p => p.id === focusId);
+      if (focusIndex > -1) {
+        const [focusedPost] = list.splice(focusIndex, 1);
+        list = [focusedPost, ...list];
+      }
+    } else {
+      // Shuffling items only if no specific post is focused
+      list.sort(() => Math.random() - 0.5);
+    }
+
+    const result: (Post | { type: 'ad'; id: string })[] = [];
+    list.forEach((post, index) => {
       result.push(post);
       // Inserting an ad card exactly after every 2 posts
       if ((index + 1) % 2 === 0) {
@@ -74,22 +91,22 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (hasMounted && posts && posts.length > 0 && displayItems.length === 0) {
-      setDisplayItems(buildItems(posts));
+    if (hasMounted && posts && posts.length > 0) {
+      // Re-build items if posts change or if targetPostId is present
+      setDisplayItems(buildItems(posts, targetPostId));
     }
-  }, [hasMounted, posts, buildItems, displayItems.length]);
+  }, [hasMounted, posts, buildItems, targetPostId]);
 
   const handleRefresh = useCallback(() => {
     if (!posts || posts.length === 0) return;
     setIsRefreshing(true);
-    // Simulate refresh for UX and re-shuffle items
     setTimeout(() => {
       setDisplayItems(buildItems(posts));
       setIsRefreshing(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
       toast({ title: "Feed Updated! ✨", description: "Showing fresh reels for you." });
     }, 800);
-  }, [posts, buildItems]);
+  }, [posts, buildItems, toast]);
 
   if (!hasMounted) return <div className="h-screen bg-black" />;
 
@@ -145,7 +162,7 @@ export default function HomePage() {
           const post = item as Post;
           return (
             <div key={post.id} className="h-screen w-full snap-start snap-always overflow-hidden flex flex-col">
-              <MemoizedPostCard post={post} />
+              <MemoizedPostCard post={post} isFocused={post.id === targetPostId} />
             </div>
           );
         })
@@ -163,5 +180,13 @@ export default function HomePage() {
       )}
       <BottomNav />
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="h-screen bg-black flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>}>
+      <HomeContent />
+    </Suspense>
   );
 }
