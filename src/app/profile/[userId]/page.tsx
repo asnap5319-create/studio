@@ -105,6 +105,19 @@ export default function ProfilePage() {
         return { ...stats, withdrawn: withdrawnTotal, available: Math.max(0, stats.total - withdrawnTotal) };
     }, [posts, userPayouts]);
 
+    // Force unlock UI by ensuring body pointer-events are auto
+    const forceUnlockUI = () => {
+        if (typeof document !== 'undefined') {
+            document.body.style.pointerEvents = 'auto';
+            document.documentElement.style.pointerEvents = 'auto';
+        }
+    };
+
+    useEffect(() => {
+        // Aggressive cleanup on mount and whenever any dialog state changes
+        forceUnlockUI();
+    }, [isEarningsOpen, isWithdrawOpen, isDeleteDialogOpen, selectedPost, isEditSheetOpen]);
+
     const handleWithdrawRequest = async () => {
         if (!firestore || !user || !isOwnProfile) return;
         const amount = parseFloat(withdrawAmount);
@@ -139,6 +152,7 @@ export default function ProfilePage() {
             toast({ variant: 'destructive', title: "Failed", description: "Something went wrong." });
         } finally {
             setIsSubmitting(false);
+            forceUnlockUI();
         }
     };
 
@@ -166,15 +180,8 @@ export default function ProfilePage() {
         await batch.commit();
     };
 
-    // Interaction Fix: Ensure menu closes before dialog opens
-    const openEarnings = () => {
-      setTimeout(() => {
-        setIsEarningsOpen(true);
-      }, 150);
-    };
-
     const handleDeleteClickFromGrid = (e: React.MouseEvent, post: Post) => {
-        e.stopPropagation(); // Prevents opening the video
+        e.stopPropagation(); 
         setPostToDelete(post);
         setIsDeleteDialogOpen(true);
     };
@@ -191,12 +198,18 @@ export default function ProfilePage() {
             }
         } catch (e) {
             toast({ variant: 'destructive', title: "Error", description: "Failed to delete video." });
+        } finally {
+            forceUnlockUI();
         }
     };
 
-    // Helper to force unlock UI if Radix fails
-    const forceUnlockUI = () => {
-        document.body.style.pointerEvents = 'auto';
+    const handleEarningsClick = (e: any) => {
+        e.preventDefault();
+        // Crucial: Let the menu close fully before opening dialog
+        setTimeout(() => {
+            setIsEarningsOpen(true);
+            forceUnlockUI();
+        }, 200);
     };
 
     if (isUserLoading || isProfileLoading) return <div className="h-screen flex items-center justify-center bg-black"><Loader2 className="animate-spin text-primary" /></div>;
@@ -209,16 +222,16 @@ export default function ProfilePage() {
                     {isProfileAdmin && <BadgeCheck className="h-5 w-5 text-blue-400 fill-blue-400/20" />}
                 </div>
                 {isOwnProfile && (
-                    <DropdownMenu>
+                    <DropdownMenu onOpenChange={() => forceUnlockUI()}>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="rounded-full"><MoreVertical /></Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[220px] p-2 shadow-2xl z-[100]">
-                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); openEarnings(); }} className="font-black p-4 rounded-xl text-green-400 focus:bg-green-400/10 cursor-pointer">
+                            <DropdownMenuItem onSelect={handleEarningsClick} className="font-black p-4 rounded-xl text-green-400 focus:bg-green-400/10 cursor-pointer">
                                 <Zap className="mr-3 h-5 w-5 fill-green-400" /> Creator Studio
                             </DropdownMenuItem>
                             {isCurrentUserAdmin && (
-                                <DropdownMenuItem onSelect={() => setTimeout(() => router.push('/admin'), 150)} className="font-black p-4 rounded-xl text-primary focus:bg-primary/10 cursor-pointer">
+                                <DropdownMenuItem onSelect={() => { forceUnlockUI(); setTimeout(() => router.push('/admin'), 150); }} className="font-black p-4 rounded-xl text-primary focus:bg-primary/10 cursor-pointer">
                                     <ShieldCheck className="mr-3 h-5 w-5" /> Master Panel
                                 </DropdownMenuItem>
                             )}
@@ -248,7 +261,7 @@ export default function ProfilePage() {
                 {isOwnProfile ? (
                     <div className="flex gap-2 mt-6">
                         <Button className="flex-1 h-12 rounded-2xl bg-secondary/80 font-bold uppercase text-xs" onClick={() => setIsEditSheetOpen(true)}>Edit Profile</Button>
-                        <Button className="h-12 w-12 rounded-2xl bg-green-500/10 text-green-500" onClick={openEarnings}><Wallet className="h-5 w-5" /></Button>
+                        <Button className="h-12 w-12 rounded-2xl bg-green-500/10 text-green-500" onClick={() => { setIsEarningsOpen(true); forceUnlockUI(); }}><Wallet className="h-5 w-5" /></Button>
                     </div>
                 ) : user && (
                     <div className="flex gap-2 mt-6">
@@ -295,11 +308,8 @@ export default function ProfilePage() {
                 </TabsContent>
             </Tabs>
 
-            {/* Creator Dashboard Payouts & Earnings */}
-            <Dialog open={isEarningsOpen} onOpenChange={(open) => {
-              setIsEarningsOpen(open);
-              forceUnlockUI();
-            }}>
+            {/* Creator Dashboard */}
+            <Dialog open={isEarningsOpen} onOpenChange={(open) => { setIsEarningsOpen(open); forceUnlockUI(); }}>
                 <DialogContent className="bg-[#0a0a0a] border-white/10 p-0 rounded-[2.5rem] max-w-lg w-[95%] overflow-hidden h-[90vh] flex flex-col z-[200]">
                     <DialogHeader className="p-6 border-b border-white/5 bg-gradient-to-br from-green-500/10 via-transparent to-transparent flex flex-row items-center justify-between">
                          <div className="flex items-center gap-3 text-left">
@@ -309,7 +319,7 @@ export default function ProfilePage() {
                                 <p className="text-[10px] text-green-500 font-bold uppercase tracking-widest mt-0.5">Monetization Active</p>
                             </div>
                          </div>
-                         <Button variant="ghost" size="icon" onClick={() => setIsEarningsOpen(false)} className="rounded-full hover:bg-white/10">
+                         <Button variant="ghost" size="icon" onClick={() => { setIsEarningsOpen(false); forceUnlockUI(); }} className="rounded-full hover:bg-white/10">
                            <X className="h-6 w-6" />
                          </Button>
                     </DialogHeader>
@@ -321,7 +331,7 @@ export default function ProfilePage() {
                                 <div className="flex-1"><p className="text-[9px] font-bold text-white/50 uppercase">Total Earned</p><p className="text-lg font-black text-white">₹{earningsStats.total.toFixed(2)}</p></div>
                                 <div className="flex-1"><p className="text-[9px] font-bold text-white/50 uppercase">Paid Out</p><p className="text-lg font-black text-white">₹{earningsStats.withdrawn.toFixed(2)}</p></div>
                             </div>
-                            <Button onClick={() => setIsWithdrawOpen(true)} className="w-full mt-6 h-12 bg-white text-black hover:bg-white/90 font-black uppercase rounded-2xl" disabled={earningsStats.available < 1}>Withdraw Funds</Button>
+                            <Button onClick={() => { setIsWithdrawOpen(true); forceUnlockUI(); }} className="w-full mt-6 h-12 bg-white text-black hover:bg-white/90 font-black uppercase rounded-2xl" disabled={earningsStats.available < 1}>Withdraw Funds</Button>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="bg-secondary/20 p-5 rounded-3xl border border-white/5 text-center"><TrendingUp size={16} className="text-blue-400 mx-auto mb-2" /><p className="text-2xl font-black">{earningsStats.totalViews.toLocaleString()}</p><p className="text-[9px] font-bold text-muted-foreground uppercase">Views</p></div>
@@ -347,11 +357,8 @@ export default function ProfilePage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Withdrawal Form Dialog */}
-            <Dialog open={isWithdrawOpen} onOpenChange={(open) => {
-              setIsWithdrawOpen(open);
-              forceUnlockUI();
-            }}>
+            {/* Withdrawal Dialog */}
+            <Dialog open={isWithdrawOpen} onOpenChange={(open) => { setIsWithdrawOpen(open); forceUnlockUI(); }}>
                 <DialogContent className="bg-[#0a0a0a] border-white/10 rounded-[2.5rem] max-w-lg w-[95%] z-[300]">
                     <DialogHeader><DialogTitle className="text-xl font-black italic uppercase text-center mb-2">Request Cash Out</DialogTitle></DialogHeader>
                     <div className="space-y-6 mt-6">
@@ -375,7 +382,7 @@ export default function ProfilePage() {
                         )}
                     </div>
                     <DialogFooter className="mt-8 flex gap-3 sm:flex-row">
-                        <Button variant="ghost" onClick={() => setIsWithdrawOpen(false)} className="flex-1 h-14 rounded-2xl font-black uppercase text-xs">Cancel</Button>
+                        <Button variant="ghost" onClick={() => { setIsWithdrawOpen(false); forceUnlockUI(); }} className="flex-1 h-14 rounded-2xl font-black uppercase text-xs">Cancel</Button>
                         <Button onClick={handleWithdrawRequest} disabled={isSubmitting || !withdrawAmount} className="flex-1 bg-primary hover:bg-primary/90 rounded-xl h-14 font-black uppercase text-xs">
                             {isSubmitting ? <Loader2 className="animate-spin h-5 w-5" /> : "Submit Request"}
                         </Button>
@@ -385,28 +392,21 @@ export default function ProfilePage() {
 
             <EditProfileSheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen} userProfile={userProfile} />
             
-            <Dialog open={!!selectedPost} onOpenChange={(isOpen) => {
-              setSelectedPost(isOpen ? selectedPost : null);
-              forceUnlockUI();
-            }}>
+            <Dialog open={!!selectedPost} onOpenChange={(isOpen) => { setSelectedPost(isOpen ? selectedPost : null); forceUnlockUI(); }}>
                 <DialogContent className="p-0 border-0 bg-black w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center overflow-hidden z-[200]">
                     <DialogTitle className="sr-only">Post Preview</DialogTitle>
                     {selectedPost && <PostCard post={selectedPost} isFocused />}
                 </DialogContent>
             </Dialog>
 
-            {/* Global Delete Confirmation */}
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={(open) => {
-                setIsDeleteDialogOpen(open);
-                forceUnlockUI();
-            }}>
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={(open) => { setIsDeleteDialogOpen(open); forceUnlockUI(); }}>
                 <AlertDialogContent className="bg-[#121212] text-white rounded-[2.5rem] border-white/10 z-[300]">
                     <AlertDialogHeader>
                         <AlertDialogTitle className="text-center font-black uppercase italic tracking-wider text-xl">Delete Post?</AlertDialogTitle>
                         <AlertDialogDescription className="text-center text-muted-foreground text-xs font-bold uppercase tracking-widest mt-2">This action cannot be undone.</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="flex-col gap-3 sm:flex-row mt-8">
-                        <AlertDialogCancel className="rounded-2xl bg-secondary/50 h-14 font-black border-none uppercase text-xs flex-1">Cancel</AlertDialogCancel>
+                        <AlertDialogCancel onClick={() => forceUnlockUI()} className="rounded-2xl bg-secondary/50 h-14 font-black border-none uppercase text-xs flex-1">Cancel</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90 rounded-2xl h-14 font-black uppercase text-xs flex-1">Delete</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
