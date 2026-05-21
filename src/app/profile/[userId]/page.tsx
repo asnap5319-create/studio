@@ -166,15 +166,15 @@ export default function ProfilePage() {
         await batch.commit();
     };
 
+    // Interaction Fix: Ensure menu closes before dialog opens
     const openEarnings = () => {
-      // Small delay to let the dropdown menu close properly and avoid UI lockup
       setTimeout(() => {
         setIsEarningsOpen(true);
       }, 150);
     };
 
     const handleDeleteClickFromGrid = (e: React.MouseEvent, post: Post) => {
-        e.stopPropagation(); // VERY IMPORTANT: Prevents opening the video dialog
+        e.stopPropagation(); // Prevents opening the video
         setPostToDelete(post);
         setIsDeleteDialogOpen(true);
     };
@@ -192,6 +192,11 @@ export default function ProfilePage() {
         } catch (e) {
             toast({ variant: 'destructive', title: "Error", description: "Failed to delete video." });
         }
+    };
+
+    // Helper to force unlock UI if Radix fails
+    const forceUnlockUI = () => {
+        document.body.style.pointerEvents = 'auto';
     };
 
     if (isUserLoading || isProfileLoading) return <div className="h-screen flex items-center justify-center bg-black"><Loader2 className="animate-spin text-primary" /></div>;
@@ -293,10 +298,7 @@ export default function ProfilePage() {
             {/* Creator Dashboard Payouts & Earnings */}
             <Dialog open={isEarningsOpen} onOpenChange={(open) => {
               setIsEarningsOpen(open);
-              if (!open) {
-                // Manually force interaction restoration just in case
-                document.body.style.pointerEvents = 'auto';
-              }
+              forceUnlockUI();
             }}>
                 <DialogContent className="bg-[#0a0a0a] border-white/10 p-0 rounded-[2.5rem] max-w-lg w-[95%] overflow-hidden h-[90vh] flex flex-col z-[200]">
                     <DialogHeader className="p-6 border-b border-white/5 bg-gradient-to-br from-green-500/10 via-transparent to-transparent flex flex-row items-center justify-between">
@@ -348,9 +350,7 @@ export default function ProfilePage() {
             {/* Withdrawal Form Dialog */}
             <Dialog open={isWithdrawOpen} onOpenChange={(open) => {
               setIsWithdrawOpen(open);
-              if (!open) {
-                document.body.style.pointerEvents = 'auto';
-              }
+              forceUnlockUI();
             }}>
                 <DialogContent className="bg-[#0a0a0a] border-white/10 rounded-[2.5rem] max-w-lg w-[95%] z-[300]">
                     <DialogHeader><DialogTitle className="text-xl font-black italic uppercase text-center mb-2">Request Cash Out</DialogTitle></DialogHeader>
@@ -375,7 +375,7 @@ export default function ProfilePage() {
                         )}
                     </div>
                     <DialogFooter className="mt-8 flex gap-3 sm:flex-row">
-                        <Button variant="ghost" onClick={() => setIsWithdrawOpen(false)} className="flex-1 rounded-xl h-14 font-black uppercase text-xs">Cancel</Button>
+                        <Button variant="ghost" onClick={() => setIsWithdrawOpen(false)} className="flex-1 h-14 rounded-2xl font-black uppercase text-xs">Cancel</Button>
                         <Button onClick={handleWithdrawRequest} disabled={isSubmitting || !withdrawAmount} className="flex-1 bg-primary hover:bg-primary/90 rounded-xl h-14 font-black uppercase text-xs">
                             {isSubmitting ? <Loader2 className="animate-spin h-5 w-5" /> : "Submit Request"}
                         </Button>
@@ -386,10 +386,8 @@ export default function ProfilePage() {
             <EditProfileSheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen} userProfile={userProfile} />
             
             <Dialog open={!!selectedPost} onOpenChange={(isOpen) => {
-              if (!isOpen) {
-                setSelectedPost(null);
-                document.body.style.pointerEvents = 'auto';
-              }
+              setSelectedPost(isOpen ? selectedPost : null);
+              forceUnlockUI();
             }}>
                 <DialogContent className="p-0 border-0 bg-black w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center overflow-hidden z-[200]">
                     <DialogTitle className="sr-only">Post Preview</DialogTitle>
@@ -400,7 +398,7 @@ export default function ProfilePage() {
             {/* Global Delete Confirmation */}
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={(open) => {
                 setIsDeleteDialogOpen(open);
-                if (!open) document.body.style.pointerEvents = 'auto';
+                forceUnlockUI();
             }}>
                 <AlertDialogContent className="bg-[#121212] text-white rounded-[2.5rem] border-white/10 z-[300]">
                     <AlertDialogHeader>

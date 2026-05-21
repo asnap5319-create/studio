@@ -204,6 +204,10 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     }
   }, [isInView, firestore, post.id, post.userId, post.viewCount]);
 
+  const forceUnlockUI = () => {
+    document.body.style.pointerEvents = 'auto';
+  };
+
   return (
     <div ref={cardRef} className="relative w-full h-full bg-black overflow-hidden select-none" onClick={(e) => {
       if (tapTimerRef.current) {
@@ -270,7 +274,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                 <span className="text-xs font-black mt-2 drop-shadow-md">{localLikeCount}</span>
             </div>
             <div className="flex flex-col items-center">
-                <Sheet open={isCommentSheetOpen} onOpenChange={(open) => { if (open && !requireAuth()) return; setIsCommentSheetOpen(open); }}>
+                <Sheet open={isCommentSheetOpen} onOpenChange={(open) => { if (open && !requireAuth()) return; setIsCommentSheetOpen(open); forceUnlockUI(); }}>
                   <SheetTrigger asChild>
                       <button className="text-white active:scale-125 transition-all">
                           <MessageCircle className="h-10 w-10 drop-shadow-2xl" />
@@ -284,7 +288,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                 <span className="text-xs font-black mt-2 drop-shadow-md">{post.commentCount}</span>
             </div>
             <div className="flex flex-col items-center">
-                <Sheet open={isShareSheetOpen} onOpenChange={(open) => { if (open && !requireAuth()) return; setIsShareSheetOpen(open); }}>
+                <Sheet open={isShareSheetOpen} onOpenChange={(open) => { if (open && !requireAuth()) return; setIsShareSheetOpen(open); forceUnlockUI(); }}>
                   <SheetTrigger asChild>
                       <button className="text-white active:scale-125 transition-all">
                           <Share2 className="h-10 w-10 drop-shadow-2xl" />
@@ -300,7 +304,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
 
       {(isOwnPost || isCurrentUserAdmin) && (
         <div className="absolute top-8 right-6 z-50" onClick={(e) => e.stopPropagation()}>
-            <DropdownMenu>
+            <DropdownMenu onOpenChange={() => forceUnlockUI()}>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full bg-black/40 border border-white/10 text-white backdrop-blur-md">
                         <MoreVertical className="h-7 w-7" />
@@ -317,7 +321,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={(open) => {
           setIsDeleteDialogOpen(open);
-          if (!open) document.body.style.pointerEvents = 'auto';
+          forceUnlockUI();
       }}>
         <AlertDialogContent className="bg-[#121212] text-white rounded-[2.5rem] border-white/10 z-[300]">
             <AlertDialogHeader>
