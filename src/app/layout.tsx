@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { Metadata, Viewport } from "next";
@@ -9,6 +8,7 @@ import { FirebaseClientProvider } from "@/firebase/client-provider";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
+import { NotificationPermissionPrompt } from "@/components/notification-permission-prompt";
 import { useFCM } from "@/hooks/use-fcm";
 
 function FCMHandler({ children }: { children: React.ReactNode }) {
@@ -45,6 +45,7 @@ export default function RootLayout({
           <FCMHandler>
             {children}
             <PwaInstallPrompt />
+            <NotificationPermissionPrompt />
           </FCMHandler>
         </FirebaseClientProvider>
         <SpeedInsights />
