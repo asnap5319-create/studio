@@ -9,9 +9,9 @@ export function Logo({ className }: { className?: string }) {
     <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
       <defs>
         <linearGradient id="logoGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#ff0080" stopOpacity="1" />
-          <stop offset="50%" stopColor="#ff3366" stopOpacity="1" />
-          <stop offset="100%" stopColor="#ffcc33" stopOpacity="1" />
+          <stop offset="0%" stopColor="#22c55e" stopOpacity="1" />
+          <stop offset="50%" stopColor="#16a34a" stopOpacity="1" />
+          <stop offset="100%" stopColor="#15803d" stopOpacity="1" />
         </linearGradient>
       </defs>
       <path 
@@ -22,7 +22,7 @@ export function Logo({ className }: { className?: string }) {
         strokeLinecap="round" 
         strokeLinejoin="round" 
       />
-      <circle cx="390" cy="120" r="40" fill="#ff0080" />
+      <circle cx="390" cy="120" r="40" fill="#22c55e" />
     </svg>
   );
 }
@@ -64,7 +64,7 @@ export function PwaInstallPrompt() {
       <div className="bg-gradient-to-r from-[#1a1a1a] to-black border border-white/10 p-5 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex items-center justify-between gap-4 backdrop-blur-xl">
         <div className="flex items-center gap-4">
           <div className="relative w-12 h-12 bg-[#0a0a0a] rounded-xl flex items-center justify-center border border-white/10 shrink-0 shadow-lg overflow-hidden">
-             <Logo className="w-8 h-8 drop-shadow-[0_0_8px_rgba(255,51,102,0.6)]" />
+             <Logo className="w-8 h-8 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">

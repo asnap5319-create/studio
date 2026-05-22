@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
@@ -118,8 +117,8 @@ function HomeContent() {
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
         <div className="flex items-center gap-3 pointer-events-auto">
           <div className="flex items-center gap-2">
-            <Logo className="w-10 h-10 drop-shadow-[0_0_15px_rgba(255,51,102,0.6)]" />
-            <h1 className="text-2xl font-black text-primary italic tracking-tighter drop-shadow-[0_2px_15px_rgba(255,51,102,0.6)]">
+            <Logo className="w-10 h-10 drop-shadow-[0_0_15px_rgba(34,197,94,0.6)]" />
+            <h1 className="text-2xl font-black text-primary italic tracking-tighter drop-shadow-[0_2px_15px_rgba(34,197,94,0.6)]">
               A.snap
             </h1>
           </div>
@@ -151,7 +150,7 @@ function HomeContent() {
         <div className="flex h-screen items-center justify-center bg-black">
           <div className="flex flex-col items-center gap-4">
              <div className="relative">
-                <div className="absolute inset-0 blur-3xl bg-primary/30 animate-pulse rounded-full"></div>
+                <div className="absolute inset-0 blur-3xl bg-green-500/20 animate-pulse rounded-full"></div>
                 <Logo className="w-20 h-20 animate-pulse relative z-10" />
              </div>
              <p className="text-[10px] font-black uppercase tracking-[0.5em] text-primary/80 animate-pulse mt-4">Loading Reels...</p>
