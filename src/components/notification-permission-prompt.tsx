@@ -22,12 +22,17 @@ export function NotificationPermissionPrompt() {
     const checkPermissionStatus = async () => {
       if (Capacitor.isNativePlatform()) {
         const permStatus = await PushNotifications.checkPermissions();
-        if (permStatus.receive !== 'granted') {
+        // If it's prompt, we show our UI to explain why we need it
+        if (permStatus.receive === 'prompt') {
+          setIsVisible(true);
+        } else if (permStatus.receive === 'denied') {
+          // If denied, we might show it once in a while or a different UI
+          // For now, let's keep it simple and show if not granted
           setIsVisible(true);
         }
       } else {
         if (typeof window !== 'undefined' && 'Notification' in window) {
-          if (Notification.permission !== 'granted') {
+          if (Notification.permission === 'default') {
             setIsVisible(true);
           }
         }
@@ -35,7 +40,7 @@ export function NotificationPermissionPrompt() {
     };
 
     // Small delay to let the app load first
-    const timer = setTimeout(checkPermissionStatus, 2000);
+    const timer = setTimeout(checkPermissionStatus, 3000);
     return () => clearTimeout(timer);
   }, [user]);
 
@@ -45,19 +50,25 @@ export function NotificationPermissionPrompt() {
 
     try {
       if (Capacitor.isNativePlatform()) {
-        // Native Permission Request
+        // ACTUAL NATIVE SYSTEM PERMISSION REQUEST
         let permStatus = await PushNotifications.requestPermissions();
+        
         if (permStatus.receive === 'granted') {
+          // Register for push notifications to get the token
           await PushNotifications.register();
-          // The 'registration' listener in useFCM will handle saving the token
+          // Token will be handled by the 'registration' listener in useFCM
           setIsVisible(false);
+        } else {
+          console.warn('User denied native permissions');
         }
       } else if (messaging) {
-        // Web Permission Request
+        // ACTUAL WEB BROWSER PERMISSION REQUEST
         const status = await Notification.requestPermission();
+        
         if (status === 'granted') {
+          // Get FCM Token immediately
           const token = await getToken(messaging, {
-            vapidKey: 'BIsy80z_I2uC-p9N5T_M4E-V5J9XvW-L6R-Q8Q-P-O-S-H-I-K-E-R' // Match with useFCM
+            vapidKey: 'BIsy80z_I2uC-p9N5T_M4E-V5J9XvW-L6R-Q8Q-P-O-S-H-I-K-E-R' 
           });
 
           if (token) {
@@ -113,7 +124,7 @@ export function NotificationPermissionPrompt() {
                 disabled={isAsking}
                 className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black uppercase text-xs rounded-2xl shadow-[0_10px_25px_rgba(255,51,102,0.3)] hover:scale-[1.02] active:scale-95 transition-all"
             >
-                {isAsking ? "Setting up..." : "Enable Notifications"}
+                {isAsking ? "Opening System Dialog..." : "Allow System Notifications"}
             </Button>
             
             <div className="flex items-center justify-center gap-2 pt-1 opacity-40">

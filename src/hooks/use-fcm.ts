@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect } from 'react';
@@ -10,7 +9,7 @@ import { Capacitor } from '@capacitor/core';
 import { useToast } from './use-toast';
 
 export function useFCM() {
-  const { messaging, firestore, auth } = useFirebase();
+  const { messaging, firestore } = useFirebase();
   const { user } = useUser();
   const { toast } = useToast();
 
@@ -19,51 +18,51 @@ export function useFCM() {
 
     const setupNotifications = async () => {
       if (Capacitor.isNativePlatform()) {
-        // Native Push Setup (Android/iOS)
-        let permStatus = await PushNotifications.checkPermissions();
+        // Check permissions first without requesting, we handle request in the prompt component
+        const permStatus = await PushNotifications.checkPermissions();
 
-        if (permStatus.receive === 'prompt') {
-          permStatus = await PushNotifications.requestPermissions();
+        if (permStatus.receive === 'granted') {
+          await PushNotifications.register();
         }
 
-        if (permStatus.receive !== 'granted') {
-          console.warn('Push notification permission denied on native');
-          return;
-        }
-
-        await PushNotifications.register();
-
-        PushNotifications.addListener('registration', async (token) => {
+        // Listener for registration success
+        const addRegListener = await PushNotifications.addListener('registration', async (token) => {
           console.log('Push registration success, token: ' + token.value);
-          await updateDoc(doc(firestore, 'users', user.uid), {
-            fcmToken: token.value,
-            updatedAt: new Date()
-          });
+          try {
+            await updateDoc(doc(firestore, 'users', user.uid), {
+              fcmToken: token.value,
+              updatedAt: new Date()
+            });
+          } catch (e) {
+            console.error('Error updating fcmToken in firestore:', e);
+          }
         });
 
-        PushNotifications.addListener('registrationError', (error: any) => {
+        // Listener for registration error
+        const addRegErrorListener = await PushNotifications.addListener('registrationError', (error: any) => {
           console.error('Error on registration: ' + JSON.stringify(error));
         });
 
-        PushNotifications.addListener('pushNotificationReceived', (notification) => {
+        // Listener for incoming notifications
+        const addReceivedListener = await PushNotifications.addListener('pushNotificationReceived', (notification) => {
           toast({
-            title: notification.title || 'New Message',
-            description: notification.body || 'You have a new notification',
+            title: notification.title || 'New Notification',
+            description: notification.body || 'Open the app to see more',
           });
         });
 
-        PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
-          console.log('Push action performed: ' + JSON.stringify(notification));
-          // Logic to navigate can be added here
-        });
+        return () => {
+          addRegListener.remove();
+          addRegErrorListener.remove();
+          addReceivedListener.remove();
+        };
 
       } else if (messaging) {
         // Web FCM Setup
         try {
-          const status = await Notification.requestPermission();
-          if (status === 'granted') {
+          if (Notification.permission === 'granted') {
             const token = await getToken(messaging, {
-              vapidKey: 'BIsy80z_I2uC-p9N5T_M4E-V5J9XvW-L6R-Q8Q-P-O-S-H-I-K-E-R' // Replace with your real VAPID key from Firebase Console
+              vapidKey: 'BIsy80z_I2uC-p9N5T_M4E-V5J9XvW-L6R-Q8Q-P-O-S-H-I-K-E-R' 
             });
 
             if (token) {
