@@ -1,3 +1,4 @@
+
 export type UserProfile = {
   id: string;
   name: string;
@@ -6,4 +7,6 @@ export type UserProfile = {
   profileImageUrl: string;
   email: string;
   bio?: string;
+  fcmToken?: string; // Token for push notifications
+  updatedAt?: any;
 };

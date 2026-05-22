@@ -1,3 +1,6 @@
+
+'use client';
+
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
@@ -6,37 +9,12 @@ import { FirebaseClientProvider } from "@/firebase/client-provider";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
+import { useFCM } from "@/hooks/use-fcm";
 
-export const metadata: Metadata = {
-  title: "A.snap - Share Your World in Short Videos",
-  description: "A.snap is the ultimate premium short video sharing application.",
-  manifest: "/manifest.json",
-  icons: {
-    icon: "/logo.svg",
-    shortcut: "/logo.svg",
-    apple: "/logo.svg",
-  },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "A.snap",
-  },
-  other: {
-    "mobile-web-app-capable": "yes",
-    "theme-color": "#000000",
-    "apple-mobile-web-app-capable": "yes",
-    "apple-mobile-web-app-status-bar-style": "black",
-    "application-name": "A.snap",
-  },
-};
-
-export const viewport: Viewport = {
-  themeColor: "#000000",
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-};
+function FCMHandler({ children }: { children: React.ReactNode }) {
+  useFCM();
+  return <>{children}</>;
+}
 
 export default function RootLayout({
   children,
@@ -64,8 +42,10 @@ export default function RootLayout({
       </head>
       <body className={cn("min-h-screen bg-background font-sans antialiased overflow-x-hidden")}>
         <FirebaseClientProvider>
-          {children}
-          <PwaInstallPrompt />
+          <FCMHandler>
+            {children}
+            <PwaInstallPrompt />
+          </FCMHandler>
         </FirebaseClientProvider>
         <SpeedInsights />
         <Toaster />
@@ -73,10 +53,10 @@ export default function RootLayout({
           {`
             if ('serviceWorker' in navigator) {
               window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js').then(function(registration) {
-                  console.log('ServiceWorker registration successful');
+                navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function(registration) {
+                  console.log('FCM ServiceWorker registration successful');
                 }, function(err) {
-                  console.log('ServiceWorker registration failed: ', err);
+                  console.log('FCM ServiceWorker registration failed: ', err);
                 });
               });
             }

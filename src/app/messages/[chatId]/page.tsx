@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -104,6 +105,8 @@ export default function ChatPage() {
         replyToText: currentReply?.text || null,
         replyToSenderName: currentReply?.senderId === user.uid ? 'You' : otherUser?.username || 'User',
       });
+
+      // Note: Real push notification requires a Cloud Function to send to otherUser?.fcmToken
     } catch (err) {
       console.error("Error sending message:", err);
     }
