@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { Metadata, Viewport } from "next";
@@ -36,6 +35,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#16a34a" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/favicon.ico" />
+        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
         
         {/* Adsterra Social Bar Script */}
         <Script
