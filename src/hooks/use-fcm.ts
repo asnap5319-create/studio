@@ -1,24 +1,27 @@
+
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useFirebase, useUser } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { getToken, onMessage } from 'firebase/messaging';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { Capacitor } from '@capacitor/core';
 import { useToast } from './use-toast';
+import { useRouter } from 'next/navigation';
 
 export function useFCM() {
   const { messaging, firestore } = useFirebase();
   const { user } = useUser();
   const { toast } = useToast();
+  const router = useRouter();
+  const hasRegisteredRef = useRef(false);
 
   useEffect(() => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || hasRegisteredRef.current) return;
 
     const setupNotifications = async () => {
       if (Capacitor.isNativePlatform()) {
-        // Check permissions first without requesting, we handle request in the prompt component
         const permStatus = await PushNotifications.checkPermissions();
 
         if (permStatus.receive === 'granted') {
@@ -27,12 +30,13 @@ export function useFCM() {
 
         // Listener for registration success
         const addRegListener = await PushNotifications.addListener('registration', async (token) => {
-          console.log('Push registration success, token: ' + token.value);
+          console.log('Native Push registration success, token: ' + token.value);
           try {
             await updateDoc(doc(firestore, 'users', user.uid), {
               fcmToken: token.value,
-              updatedAt: new Date()
+              updatedAt: serverTimestamp()
             });
+            hasRegisteredRef.current = true;
           } catch (e) {
             console.error('Error updating fcmToken in firestore:', e);
           }
@@ -45,16 +49,29 @@ export function useFCM() {
 
         // Listener for incoming notifications
         const addReceivedListener = await PushNotifications.addListener('pushNotificationReceived', (notification) => {
+          console.log('Native notification received in foreground: ', notification);
           toast({
             title: notification.title || 'New Notification',
             description: notification.body || 'Open the app to see more',
           });
         });
 
+        // Listener for notification action performed (clicked)
+        const addActionListener = await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+          console.log('Native notification action performed: ', action);
+          const data = action.notification.data;
+          if (data && data.chatId) {
+             router.push(`/messages/${data.chatId}`);
+          } else {
+             router.push('/notifications');
+          }
+        });
+
         return () => {
           addRegListener.remove();
           addRegErrorListener.remove();
           addReceivedListener.remove();
+          addActionListener.remove();
         };
 
       } else if (messaging) {
@@ -68,13 +85,14 @@ export function useFCM() {
             if (token) {
               await updateDoc(doc(firestore, 'users', user.uid), {
                 fcmToken: token,
-                updatedAt: new Date()
+                updatedAt: serverTimestamp()
               });
+              hasRegisteredRef.current = true;
             }
           }
 
           onMessage(messaging, (payload) => {
-            console.log('Foreground message received: ', payload);
+            console.log('Foreground web message received: ', payload);
             toast({
               title: payload.notification?.title || 'New Message',
               description: payload.notification?.body || 'Check your inbox',
@@ -87,5 +105,5 @@ export function useFCM() {
     };
 
     setupNotifications();
-  }, [user, firestore, messaging, toast]);
+  }, [user, firestore, messaging, toast, router]);
 }

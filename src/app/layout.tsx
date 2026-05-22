@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Metadata, Viewport } from "next";
@@ -32,6 +33,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-TileColor" content="#000000" />
         <meta name="msapplication-tap-highlight" content="no" />
+        <link rel="manifest" href="/manifest.json" />
         
         {/* Adsterra Social Bar Script */}
         <Script
