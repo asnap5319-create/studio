@@ -1,12 +1,11 @@
-<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="a_grad" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#ff0080;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#ff3366;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#ffcc33;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="100" fill="#0a0a0a" />
-  <path d="M150 400 L256 100 L362 400 M210 320 L302 320" stroke="url(#a_grad)" stroke-width="55" fill="none" stroke-linecap="round" stroke-linejoin="round" />
-  <circle cx="390" cy="120" r="35" fill="#ff0080" />
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="128" fill="#16a34a"/>
+  <!-- Money Symbols Pattern -->
+  <text x="40" y="80" fill="white" fill-opacity="0.1" font-family="Arial" font-size="40" font-weight="bold">₹</text>
+  <text x="440" y="460" fill="white" fill-opacity="0.1" font-family="Arial" font-size="40" font-weight="bold">$</text>
+  <text x="50" y="460" fill="white" fill-opacity="0.05" font-family="Arial" font-size="30">₹</text>
+  <text x="420" y="80" fill="white" fill-opacity="0.05" font-family="Arial" font-size="30">$</text>
+  <!-- The 'A' Logo -->
+  <path d="M150 400 L256 100 L362 400 M210 320 L302 320" stroke="#ff3366" stroke-width="64" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="390" cy="120" r="42" fill="#ff3366" />
 </svg>

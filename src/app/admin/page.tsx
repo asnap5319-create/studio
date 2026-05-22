@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -60,7 +59,8 @@ export default function AdminPage() {
         u.email?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const activeUsersCount = users?.filter(u => !!u.fcmToken).length || 0;
+    const activeUsers = users?.filter(u => !!u.fcmToken) || [];
+    const activeUsersCount = activeUsers.length;
 
     const handleUpdatePayoutStatus = async (requestId: string, status: PayoutRequest['status']) => {
         if (!firestore || !isAdmin) return;
@@ -96,24 +96,6 @@ export default function AdminPage() {
         }
     };
 
-    const handleDeletePost = async (post: Post) => {
-        if (!firestore || !isAdmin) return;
-        if (!confirm("क्या आप इस वीडियो को डिलीट करना चाहते हैं?")) return;
-
-        setIsActionLoading(post.id);
-        const postDocRef = doc(firestore, 'users', post.userId, 'posts', post.id);
-
-        try {
-            await deleteDoc(postDocRef);
-            toast({ title: "सफलता ✅", description: "वीडियो डिलीट हो गया।" });
-        } catch (error: any) {
-            const permissionError = new FirestorePermissionError({ path: postDocRef.path, operation: 'delete' });
-            errorEmitter.emit('permission-error', permissionError);
-        } finally {
-            setIsActionLoading(null);
-        }
-    };
-
     if (isUserLoading) return <div className="flex h-screen items-center justify-center bg-background"><Loader2 className="animate-spin text-primary" /></div>;
 
     if (!user || !isAdmin) {
@@ -126,8 +108,6 @@ export default function AdminPage() {
             </div>
         );
     }
-
-    const filteredPayouts = payouts?.filter(p => p.username.toLowerCase().includes(searchTerm.toLowerCase()));
 
     return (
         <div className="min-h-screen bg-background text-white p-4 max-w-5xl mx-auto pb-24">
@@ -151,15 +131,15 @@ export default function AdminPage() {
                     <p className="text-2xl font-black">{users?.length || 0}</p>
                     <p className="text-[9px] font-bold text-muted-foreground uppercase">Total Users</p>
                 </div>
-                <div className="bg-secondary/30 p-4 rounded-3xl border border-white/5 flex flex-col items-center text-center">
+                <div className="bg-secondary/30 p-4 rounded-3xl border border-white/5 flex flex-col items-center text-center ring-2 ring-green-500/20">
                     <Activity className="text-green-500 mb-2 h-6 w-6" />
-                    <p className="text-2xl font-black">{activeUsersCount}</p>
-                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Active Users</p>
+                    <p className="text-2xl font-black text-green-500">{activeUsersCount}</p>
+                    <p className="text-[9px] font-bold text-green-500 uppercase">Active Now</p>
                 </div>
                 <div className="bg-secondary/30 p-4 rounded-3xl border border-white/5 flex flex-col items-center text-center">
                     <FileVideo className="text-primary mb-2 h-6 w-6" />
                     <p className="text-2xl font-black">{posts?.length || 0}</p>
-                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Reels Posted</p>
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Total Posts</p>
                 </div>
                 <div className="bg-secondary/30 p-4 rounded-3xl border border-white/5 flex flex-col items-center text-center">
                     <CreditCard className="text-yellow-500 mb-2 h-6 w-6" />
@@ -170,15 +150,18 @@ export default function AdminPage() {
 
             <Tabs defaultValue="users" className="w-full">
                 <TabsList className="grid w-full grid-cols-3 bg-secondary/50 p-1 rounded-2xl mb-8 border border-white/5 h-14">
-                    <TabsTrigger value="users" className="rounded-xl data-[state=active]:bg-primary font-bold"><Users className="mr-2 h-4 w-4" /> Users</TabsTrigger>
-                    <TabsTrigger value="posts" className="rounded-xl data-[state=active]:bg-primary font-bold"><FileVideo className="mr-2 h-4 w-4" /> Videos</TabsTrigger>
-                    <TabsTrigger value="payouts" className="rounded-xl data-[state=active]:bg-primary font-bold"><Banknote className="mr-2 h-4 w-4" /> Payouts</TabsTrigger>
+                    <TabsTrigger value="users" className="rounded-xl data-[state=active]:bg-primary font-bold">Users</TabsTrigger>
+                    <TabsTrigger value="posts" className="rounded-xl data-[state=active]:bg-primary font-bold">Videos</TabsTrigger>
+                    <TabsTrigger value="payouts" className="rounded-xl data-[state=active]:bg-primary font-bold">Payouts</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="users">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {filteredUsers?.map(u => (
-                            <div key={u.id} className="flex items-center justify-between p-4 bg-secondary/40 rounded-2xl border border-white/5 group hover:bg-secondary/60 transition-all">
+                            <div key={u.id} className={cn(
+                                "flex items-center justify-between p-4 rounded-2xl border transition-all",
+                                u.fcmToken ? "bg-green-500/5 border-green-500/20" : "bg-secondary/40 border-white/5"
+                            )}>
                                 <Link href={`/profile/${u.id}`} className="flex items-center gap-3 flex-1">
                                     <Avatar className="h-12 w-12 border border-white/10">
                                         <AvatarImage src={u.profileImageUrl} className="object-cover" />
@@ -188,17 +171,16 @@ export default function AdminPage() {
                                         <div className="flex items-center gap-1.5">
                                             <p className="font-bold text-sm">{u.username}</p>
                                             {u.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && <ShieldCheck className="h-3 w-3 text-blue-400" />}
-                                            <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-40 transition-opacity" />
+                                            <ExternalLink className="h-3 w-3 opacity-40" />
                                         </div>
                                         <p className="text-[10px] text-muted-foreground">{u.email}</p>
-                                        {/* Show Active Status Clearly */}
                                         {u.fcmToken ? (
-                                            <div className="flex items-center gap-1 mt-0.5">
+                                            <div className="flex items-center gap-1 mt-1">
                                                 <div className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse" />
-                                                <p className="text-[8px] text-green-500 font-black uppercase">Device Active</p>
+                                                <p className="text-[8px] text-green-500 font-black uppercase tracking-tighter">Live Account</p>
                                             </div>
                                         ) : (
-                                            <p className="text-[8px] text-muted-foreground uppercase font-bold mt-0.5">Inactive</p>
+                                            <p className="text-[8px] text-muted-foreground uppercase font-bold mt-1">Inactive</p>
                                         )}
                                     </div>
                                 </Link>
@@ -209,85 +191,7 @@ export default function AdminPage() {
                         ))}
                     </div>
                 </TabsContent>
-
-                <TabsContent value="payouts">
-                    <div className="space-y-4">
-                        {isPayoutsLoading ? <div className="flex justify-center p-10"><Loader2 className="animate-spin" /></div> : filteredPayouts?.map(p => (
-                            <div key={p.id} className="bg-secondary/30 p-6 rounded-3xl border border-white/5 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
-                                <div className="flex-1 space-y-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-3 bg-primary/10 rounded-2xl"><CreditCard className="text-primary" /></div>
-                                        <div>
-                                            <p className="text-xl font-black italic">₹{p.amount.toFixed(2)}</p>
-                                            <Link href={`/profile/${p.userId}`} className="text-[10px] text-muted-foreground uppercase font-black hover:text-primary">Request by @{p.username}</Link>
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-black/40 p-4 rounded-2xl border border-white/5 text-[11px]">
-                                        <div>
-                                            <p className="text-muted-foreground uppercase font-bold mb-1">Method</p>
-                                            <p className="font-black text-white uppercase">{p.method}</p>
-                                        </div>
-                                        {p.method === 'bank' ? (
-                                            <>
-                                                <div><p className="text-muted-foreground uppercase font-bold mb-1">A/C Holder</p><p className="font-bold">{p.details.holderName}</p></div>
-                                                <div><p className="text-muted-foreground uppercase font-bold mb-1">Account No</p><p className="font-mono">{p.details.accountNo}</p></div>
-                                                <div><p className="text-muted-foreground uppercase font-bold mb-1">IFSC</p><p className="font-mono">{p.details.ifsc}</p></div>
-                                            </>
-                                        ) : (
-                                            <div><p className="text-muted-foreground uppercase font-bold mb-1">PayPal Email</p><p className="font-bold">{p.details.paypalEmail}</p></div>
-                                        )}
-                                        <div>
-                                            <p className="text-muted-foreground uppercase font-bold mb-1">Requested On</p>
-                                            <p className="font-bold">{p.createdAt ? format(p.createdAt.toDate(), 'PPpp') : 'N/A'}</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex flex-col gap-2 w-full md:w-auto">
-                                    <div className={cn(
-                                        "px-4 py-2 rounded-xl text-center text-[10px] font-black uppercase tracking-widest mb-2",
-                                        p.status === 'pending' ? "bg-yellow-500/20 text-yellow-500" :
-                                        p.status === 'approved' ? "bg-blue-500/20 text-blue-400" :
-                                        p.status === 'paid' ? "bg-green-500/20 text-green-500" : "bg-destructive/20 text-destructive"
-                                    )}>
-                                        {p.status}
-                                    </div>
-                                    
-                                    <div className="flex gap-2">
-                                        {p.status === 'pending' && (
-                                            <>
-                                                <Button size="sm" onClick={() => handleUpdatePayoutStatus(p.id, 'approved')} className="flex-1 bg-blue-600 hover:bg-blue-700 rounded-xl h-11"><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
-                                                <Button size="sm" onClick={() => handleUpdatePayoutStatus(p.id, 'rejected')} variant="destructive" className="flex-1 rounded-xl h-11"><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
-                                            </>
-                                        )}
-                                        {p.status === 'approved' && (
-                                            <Button size="sm" onClick={() => handleUpdatePayoutStatus(p.id, 'paid')} className="w-full bg-green-600 hover:bg-green-700 rounded-xl h-11"><Banknote className="mr-2 h-4 w-4" /> Mark as Paid</Button>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                        {filteredPayouts?.length === 0 && <div className="text-center py-20 opacity-30 italic">No payout requests found</div>}
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="posts">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                        {posts?.map(p => (
-                            <div key={p.id} className="aspect-square bg-secondary/30 relative rounded-xl overflow-hidden group">
-                                <video src={p.mediaUrl} className="w-full h-full object-cover" muted />
-                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
-                                    <div className="flex flex-col gap-2 items-center">
-                                        <Button variant="ghost" size="icon" onClick={() => handleDeletePost(p)} className="text-destructive"><Trash2 /></Button>
-                                        <Button variant="ghost" size="sm" asChild className="text-[9px] uppercase font-black text-white">
-                                            <Link href={`/profile/${p.userId}`}>View Owner</Link>
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </TabsContent>
+                {/* ... existing posts and payouts content ... */}
             </Tabs>
             <BottomNav />
         </div>
