@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Bell, X, Sparkles, ShieldCheck, Loader2 } from 'lucide-react';
+import { Bell, X, Sparkles, ShieldCheck, Loader2, MessageCircle, Heart, UserPlus } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { useFirebase, useUser } from '@/firebase';
@@ -23,14 +24,12 @@ export function NotificationPermissionPrompt() {
       try {
         if (Capacitor.isNativePlatform()) {
           const permStatus = await PushNotifications.checkPermissions();
-          // If permission is 'prompt', it means we can ask. 
-          // If 'denied', we still show the UI once to guide them to settings.
-          if (permStatus.receive === 'prompt' || permStatus.receive === 'denied') {
+          if (permStatus.receive === 'prompt') {
             setIsVisible(true);
           }
         } else {
           if (typeof window !== 'undefined' && 'Notification' in window) {
-            if (Notification.permission === 'default' || Notification.permission === 'denied') {
+            if (Notification.permission === 'default') {
               setIsVisible(true);
             }
           }
@@ -40,8 +39,7 @@ export function NotificationPermissionPrompt() {
       }
     };
 
-    // Delay to let the app load smoothly
-    const timer = setTimeout(checkPermissionStatus, 2000);
+    const timer = setTimeout(checkPermissionStatus, 3000);
     return () => clearTimeout(timer);
   }, [user]);
 
@@ -51,34 +49,24 @@ export function NotificationPermissionPrompt() {
 
     try {
       if (Capacitor.isNativePlatform()) {
-        // 1. ACTUAL NATIVE SYSTEM DIALOG REQUEST
         const permStatus = await PushNotifications.requestPermissions();
-        
         if (permStatus.receive === 'granted') {
-          // 2. REGISTER DEVICE WITH FCM
           await PushNotifications.register();
           setIsVisible(false);
         } else {
-          // If denied, alert user to go to settings
-          alert("Please enable notifications in your phone settings to stay updated!");
           setIsVisible(false);
         }
       } else {
-        // 1. WEB BROWSER SYSTEM DIALOG REQUEST
         if (!('Notification' in window)) {
-           alert("This browser does not support notifications.");
            setIsVisible(false);
            return;
         }
 
         const status = await Notification.requestPermission();
-        
         if (status === 'granted') {
-          // 2. GET WEB FCM TOKEN
           if (messaging) {
             try {
               const token = await getToken(messaging, {
-                // Using a standard VAPID key placeholder or user's key if available
                 vapidKey: 'BIsy80z_I2uC-p9N5T_M4E-V5J9XvW-L6R-Q8Q-P-O-S-H-I-K-E-R' 
               });
 
@@ -94,7 +82,6 @@ export function NotificationPermissionPrompt() {
           }
           setIsVisible(false);
         } else {
-           alert("Notification permission denied. You can change this in your browser settings.");
            setIsVisible(false);
         }
       }
@@ -108,53 +95,71 @@ export function NotificationPermissionPrompt() {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-24 left-4 right-4 z-[100] animate-in slide-in-from-bottom-10 duration-700 max-w-lg mx-auto">
-      <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] border border-white/10 p-6 rounded-[2.5rem] shadow-[0_25px_60px_rgba(0,0,0,0.9)] backdrop-blur-2xl relative overflow-hidden">
-        {/* Decorative Glow */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-[50px] rounded-full pointer-events-none" />
-        
-        <div className="flex items-start gap-4">
-          <div className="relative shrink-0">
-            <div className="w-14 h-14 bg-primary/20 rounded-2xl flex items-center justify-center border border-primary/30 shadow-inner">
-               <Bell className="w-7 h-7 text-primary animate-pulse" />
-            </div>
-            <div className="absolute -top-1 -right-1">
-               <Sparkles className="h-4 w-4 text-yellow-400" />
-            </div>
+    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-500 p-4">
+      <div className="w-full max-w-sm bg-background border border-white/10 rounded-[2.5rem] overflow-hidden shadow-[0_30px_70px_rgba(0,0,0,0.8)] animate-in slide-in-from-bottom-full duration-700">
+        {/* Instagram style Header */}
+        <div className="p-8 pb-0 text-center space-y-6">
+          <div className="relative mx-auto w-24 h-24">
+             <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse" />
+             <div className="relative w-full h-full bg-money-pattern rounded-3xl flex items-center justify-center border border-white/10 shadow-2xl rotate-3">
+                <Bell className="w-12 h-12 text-primary" />
+                <div className="absolute -top-2 -right-2">
+                   <Sparkles className="h-6 w-6 text-yellow-400" />
+                </div>
+             </div>
           </div>
 
-          <div className="flex-1 space-y-2">
-            <div className="flex items-center justify-between">
-               <h4 className="text-base font-black text-white uppercase italic tracking-tighter">Stay Connected</h4>
-               <button onClick={() => setIsVisible(false)} className="p-1 text-muted-foreground hover:text-white transition-colors">
-                  <X size={20} />
-               </button>
-            </div>
-            <p className="text-xs font-medium text-muted-foreground leading-relaxed">
-               Get instant alerts for <span className="text-white font-bold">New Messages</span>, <span className="text-white font-bold">Likes</span> and <span className="text-white font-bold">Followers</span> directly on your screen.
-            </p>
+          <div className="space-y-2">
+             <h4 className="text-2xl font-black text-white italic tracking-tighter uppercase">Turn on Alerts?</h4>
+             <p className="text-sm text-muted-foreground font-medium leading-relaxed">
+                Stay updated when someone messages you, likes your reels, or starts following you.
+             </p>
           </div>
         </div>
 
-        <div className="mt-6 flex flex-col gap-3">
+        {/* Action Items List */}
+        <div className="px-8 py-6 space-y-4">
+            <div className="flex items-center gap-4 bg-secondary/30 p-3 rounded-2xl border border-white/5">
+               <div className="h-10 w-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-400"><MessageCircle size={20} /></div>
+               <span className="text-xs font-bold uppercase tracking-widest text-white/90">Instant Messages</span>
+            </div>
+            <div className="flex items-center gap-4 bg-secondary/30 p-3 rounded-2xl border border-white/5">
+               <div className="h-10 w-10 bg-pink-500/10 rounded-xl flex items-center justify-center text-pink-400"><Heart size={20} /></div>
+               <span className="text-xs font-bold uppercase tracking-widest text-white/90">Likes & Comments</span>
+            </div>
+            <div className="flex items-center gap-4 bg-secondary/30 p-3 rounded-2xl border border-white/5">
+               <div className="h-10 w-10 bg-green-500/10 rounded-xl flex items-center justify-center text-green-400"><UserPlus size={20} /></div>
+               <span className="text-xs font-bold uppercase tracking-widest text-white/90">New Followers</span>
+            </div>
+        </div>
+
+        {/* Buttons */}
+        <div className="p-8 pt-2 flex flex-col gap-3">
             <Button 
                 onClick={handleRequestPermission} 
                 disabled={isAsking}
-                className="w-full h-16 bg-primary hover:bg-primary/90 text-white font-black uppercase text-sm rounded-2xl shadow-[0_15px_35px_rgba(255,51,102,0.4)] hover:scale-[1.02] active:scale-95 transition-all group"
+                className="w-full h-16 bg-primary hover:bg-primary/90 text-white font-black uppercase text-sm rounded-2xl shadow-[0_15px_30px_rgba(255,51,102,0.3)] transition-all active:scale-95"
             >
                 {isAsking ? (
                    <div className="flex items-center gap-2">
                       <Loader2 className="animate-spin h-5 w-5" />
-                      <span>Asking System...</span>
+                      <span>Opening System...</span>
                    </div>
                 ) : (
-                  "Allow System Notifications"
+                  "Allow Access"
                 )}
             </Button>
             
-            <div className="flex items-center justify-center gap-2 pt-1 opacity-40">
+            <button 
+                onClick={() => setIsVisible(false)}
+                className="w-full h-12 text-muted-foreground hover:text-white font-black uppercase text-[10px] tracking-[0.2em] transition-colors"
+            >
+                Not Now
+            </button>
+            
+            <div className="flex items-center justify-center gap-2 pt-2 opacity-30">
                <ShieldCheck size={12} className="text-primary" />
-               <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white">Official System Permission Request</span>
+               <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white">Verified Secure System Request</span>
             </div>
         </div>
       </div>
