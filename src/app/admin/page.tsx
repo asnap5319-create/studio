@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, collectionGroup, query, orderBy, doc, limit, deleteDoc, updateDoc, serverTimestamp, where } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Trash2, Users, FileVideo, ArrowLeft, Search, ShieldCheck, Loader2, Play, MoreVertical, Eye, CreditCard, CheckCircle, XCircle, Clock, Banknote, UserPlus, Activity, ExternalLink } from 'lucide-react';
+import { ShieldAlert, Trash2, Users, FileVideo, ArrowLeft, Search, ShieldCheck, Loader2, Play, MoreVertical, Eye, CreditCard, CheckCircle, XCircle, Clock, Banknote, UserPlus, Activity, ExternalLink, Fingerprint } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -56,7 +57,8 @@ export default function AdminPage() {
 
     const filteredUsers = users?.filter(u => 
         u.username?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        u.email?.toLowerCase().includes(searchTerm.toLowerCase())
+        u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.id.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const activeUsers = users?.filter(u => !!u.fcmToken) || [];
@@ -105,7 +107,7 @@ export default function AdminPage() {
                 </div>
                 <div className="relative w-full md:w-72">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Search Users/Payouts..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 bg-secondary/50 border-white/10 rounded-xl" />
+                    <Input placeholder="Search Users/Payouts/IDs..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 bg-secondary/50 border-white/10 rounded-xl" />
                 </div>
             </header>
 
@@ -115,10 +117,10 @@ export default function AdminPage() {
                     <p className="text-2xl font-black">{users?.length || 0}</p>
                     <p className="text-[9px] font-bold text-muted-foreground uppercase">Total Users</p>
                 </div>
-                <div className="bg-secondary/30 p-4 rounded-3xl border border-white/5 flex flex-col items-center text-center ring-2 ring-green-500/20">
+                <div className="bg-secondary/30 p-4 rounded-3xl border border-white/5 flex flex-col items-center text-center ring-2 ring-green-500/20 shadow-[0_0_20px_rgba(34,197,94,0.1)]">
                     <Activity className="text-green-500 mb-2 h-6 w-6" />
                     <p className="text-2xl font-black text-green-500">{activeUsersCount}</p>
-                    <p className="text-[9px] font-bold text-green-500 uppercase">Active Now</p>
+                    <p className="text-[9px] font-bold text-green-500 uppercase">Live Now</p>
                 </div>
                 <div className="bg-secondary/30 p-4 rounded-3xl border border-white/5 flex flex-col items-center text-center">
                     <FileVideo className="text-primary mb-2 h-6 w-6" />
@@ -144,32 +146,39 @@ export default function AdminPage() {
                         {filteredUsers?.map(u => (
                             <div key={u.id} className={cn(
                                 "flex items-center justify-between p-4 rounded-2xl border transition-all",
-                                u.fcmToken ? "bg-green-500/10 border-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.1)]" : "bg-secondary/40 border-white/5"
+                                u.fcmToken ? "bg-green-500/10 border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.1)]" : "bg-secondary/40 border-white/5"
                             )}>
-                                <Link href={`/profile/${u.id}`} className="flex items-center gap-3 flex-1">
-                                    <Avatar className="h-12 w-12 border border-white/10">
-                                        <AvatarImage src={u.profileImageUrl} className="object-cover" />
-                                        <AvatarFallback>{u.username?.[0]}</AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                        <div className="flex items-center gap-1.5">
-                                            <p className="font-bold text-sm">{u.username}</p>
+                                <div className="flex items-center gap-3 flex-1 overflow-hidden">
+                                    <Link href={`/profile/${u.id}`} className="shrink-0 relative">
+                                        <Avatar className="h-14 w-14 border border-white/10">
+                                            <AvatarImage src={u.profileImageUrl} className="object-cover" />
+                                            <AvatarFallback>{u.username?.[0]}</AvatarFallback>
+                                        </Avatar>
+                                        {u.fcmToken && <div className="absolute -top-1 -right-1 h-3 w-3 bg-green-500 rounded-full border-2 border-background animate-pulse" />}
+                                    </Link>
+                                    <div className="flex-1 min-w-0">
+                                        <Link href={`/profile/${u.id}`} className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                                            <p className="font-bold text-sm truncate">{u.username}</p>
                                             {u.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && <ShieldCheck className="h-3 w-3 text-blue-400" />}
                                             <ExternalLink className="h-3 w-3 opacity-40" />
+                                        </Link>
+                                        <p className="text-[10px] text-muted-foreground truncate">{u.email}</p>
+                                        <div className="flex items-center gap-1 mt-1 opacity-50">
+                                            <Fingerprint size={8} />
+                                            <p className="text-[8px] font-mono tracking-tighter truncate">{u.id}</p>
                                         </div>
-                                        <p className="text-[10px] text-muted-foreground">{u.email}</p>
                                         {u.fcmToken ? (
-                                            <div className="flex items-center gap-1 mt-1">
-                                                <div className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse" />
-                                                <p className="text-[8px] text-green-500 font-black uppercase tracking-tighter">Live / Active</p>
+                                            <div className="flex items-center gap-1 mt-1.5 bg-green-500/20 px-2 py-0.5 rounded-full w-fit">
+                                                <div className="h-1 w-1 bg-green-500 rounded-full animate-pulse" />
+                                                <p className="text-[7px] text-green-500 font-black uppercase tracking-widest">Active Device</p>
                                             </div>
                                         ) : (
-                                            <p className="text-[8px] text-muted-foreground uppercase font-bold mt-1">Inactive</p>
+                                            <p className="text-[7px] text-muted-foreground uppercase font-bold mt-1.5 ml-1">Offline</p>
                                         )}
                                     </div>
-                                </Link>
+                                </div>
                                 <div className="flex gap-2">
-                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(u.id, u.username)} className="text-destructive hover:bg-destructive/10"><Trash2 size={18} /></Button>
+                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(u.id, u.username)} className="text-destructive hover:bg-destructive/10 rounded-full"><Trash2 size={18} /></Button>
                                 </div>
                             </div>
                         ))}
@@ -183,8 +192,8 @@ export default function AdminPage() {
                                 <div className="aspect-[9/16] relative">
                                     <video src={post.mediaUrl} className="w-full h-full object-cover" muted />
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                                        <div className="flex items-center gap-1 font-bold"><Eye size={14} /> {post.viewCount}</div>
-                                        <Button size="sm" variant="destructive" onClick={() => { if(confirm('Delete video?')) deleteDoc(doc(firestore!, 'users', post.userId, 'posts', post.id)) }} className="h-8 text-[10px] uppercase font-black">Delete</Button>
+                                        <div className="flex items-center gap-1 font-bold text-xs"><Eye size={12} /> {post.viewCount}</div>
+                                        <Button size="sm" variant="destructive" onClick={() => { if(confirm('Delete video?')) deleteDoc(doc(firestore!, 'users', post.userId, 'posts', post.id)) }} className="h-7 text-[8px] uppercase font-black rounded-lg">Delete</Button>
                                     </div>
                                 </div>
                             </div>
@@ -206,8 +215,8 @@ export default function AdminPage() {
                                 <div className="flex gap-2">
                                     {p.status === 'pending' && (
                                         <>
-                                            <Button size="sm" onClick={() => updateDoc(doc(firestore!, 'payout_requests', p.id), { status: 'paid', updatedAt: serverTimestamp() })} className="bg-green-600 font-bold h-8">Approve</Button>
-                                            <Button size="sm" variant="destructive" onClick={() => updateDoc(doc(firestore!, 'payout_requests', p.id), { status: 'rejected', updatedAt: serverTimestamp() })} className="font-bold h-8">Reject</Button>
+                                            <Button size="sm" onClick={() => updateDoc(doc(firestore!, 'payout_requests', p.id), { status: 'paid', updatedAt: serverTimestamp() })} className="bg-green-600 font-bold h-8 rounded-lg">Approve</Button>
+                                            <Button size="sm" variant="destructive" onClick={() => updateDoc(doc(firestore!, 'payout_requests', p.id), { status: 'rejected', updatedAt: serverTimestamp() })} className="font-bold h-8 rounded-lg">Reject</Button>
                                         </>
                                     )}
                                     {p.status !== 'pending' && (

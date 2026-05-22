@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Metadata, Viewport } from "next";
@@ -34,11 +35,11 @@ export default function RootLayout({
         <meta name="msapplication-tap-highlight" content="no" />
         <meta name="theme-color" content="#16a34a" />
         
-        {/* Force refresh icons by using logo.svg with cache busting query */}
-        <link rel="manifest" href="/manifest.json?v=2" />
-        <link rel="apple-touch-icon" href="/logo.svg?v=2" />
-        <link rel="icon" type="image/svg+xml" href="/logo.svg?v=2" />
-        <link rel="shortcut icon" href="/logo.svg?v=2" />
+        {/* Cache-busting version v=3 to force update the logo everywhere */}
+        <link rel="manifest" href="/manifest.webmanifest?v=3" />
+        <link rel="apple-touch-icon" href="/logo.svg?v=3" />
+        <link rel="icon" type="image/svg+xml" href="/logo.svg?v=3" />
+        <link rel="shortcut icon" href="/logo.svg?v=3" />
         
         {/* Adsterra Social Bar Script */}
         <Script

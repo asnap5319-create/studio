@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -37,6 +38,7 @@ export function PwaInstallPrompt() {
         (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone);
         
       if (!isStandalone) {
+        // Show after a short delay to ensure user interaction
         setTimeout(() => setIsVisible(true), 3000);
       }
     };

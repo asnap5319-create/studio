@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,28 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { useFirebase, useUser } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ShieldCheck } from "lucide-react";
-import { Logo } from "@/components/pwa-install-prompt";
+
+/**
+ * Premium Logo for A.snap login page.
+ * Uses the same branding as the PWA icon.
+ */
+function BrandLogo() {
+  return (
+    <div className="w-24 h-24 bg-[#16a34a] bg-money-pattern rounded-3xl flex items-center justify-center border border-white/10 shadow-[0_0_50px_rgba(22,163,74,0.3)] overflow-hidden animate-in zoom-in duration-500">
+        <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-16 h-16">
+          <path 
+            d="M150 400 L256 100 L362 400 M210 320 L302 320" 
+            stroke="#ff3366" 
+            strokeWidth="64" 
+            fill="none" 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+          />
+          <circle cx="390" cy="120" r="42" fill="#ff3366" />
+        </svg>
+    </div>
+  );
+}
 
 function LoginForm() {
   const [email, setEmail] = useState("");
@@ -70,9 +92,7 @@ function LoginForm() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-black p-4">
       <div className="w-full max-sm space-y-8 text-center">
         <div className="flex flex-col items-center gap-4">
-            <div className="w-24 h-24 bg-[#16a34a] bg-money-pattern rounded-3xl flex items-center justify-center border border-white/10 shadow-[0_0_50px_rgba(22,163,74,0.3)] overflow-hidden animate-in zoom-in duration-500">
-                <Logo className="w-16 h-16" />
-            </div>
+            <BrandLogo />
             <div className="space-y-1">
                 <h1 className="text-5xl font-black text-[#ff3366] italic tracking-tighter drop-shadow-lg">
                   A.snap
