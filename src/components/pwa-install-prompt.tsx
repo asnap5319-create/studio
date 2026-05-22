@@ -9,8 +9,8 @@ export function Logo({ className }: { className?: string }) {
     <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
       <defs>
         <linearGradient id="logoGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
-          <stop offset="100%" stopColor="#ffffff" stopOpacity="0.9" />
+          <stop offset="0%" stopColor="#ff3366" stopOpacity="1" />
+          <stop offset="100%" stopColor="#ff3366" stopOpacity="0.9" />
         </linearGradient>
       </defs>
       <path 
@@ -21,7 +21,7 @@ export function Logo({ className }: { className?: string }) {
         strokeLinecap="round" 
         strokeLinejoin="round" 
       />
-      <circle cx="390" cy="120" r="40" fill="#ffffff" />
+      <circle cx="390" cy="120" r="40" fill="#ff3366" />
     </svg>
   );
 }
