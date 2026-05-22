@@ -10,8 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogTitle } from "@/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/models/user';
 import type { Post } from '@/models/post';
@@ -57,13 +55,11 @@ export default function AdminPage() {
     const { data: posts, isLoading: isPostsLoading } = useCollection<Post>(postsQuery);
     const { data: payouts, isLoading: isPayoutsLoading } = useCollection<PayoutRequest>(payoutsQuery);
 
-    // Filter users based on search
     const filteredUsers = users?.filter(u => 
         u.username?.toLowerCase().includes(searchTerm.toLowerCase()) || 
         u.email?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Active users count (Mocked as users with fcmToken or recently updated)
     const activeUsersCount = users?.filter(u => !!u.fcmToken).length || 0;
 
     const handleUpdatePayoutStatus = async (requestId: string, status: PayoutRequest['status']) => {
@@ -149,7 +145,6 @@ export default function AdminPage() {
                 </div>
             </header>
 
-            {/* Stats Overview */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
                 <div className="bg-secondary/30 p-4 rounded-3xl border border-white/5 flex flex-col items-center text-center">
                     <Users className="text-blue-400 mb-2 h-6 w-6" />
@@ -185,7 +180,10 @@ export default function AdminPage() {
                         {filteredUsers?.map(u => (
                             <div key={u.id} className="flex items-center justify-between p-4 bg-secondary/40 rounded-2xl border border-white/5 group hover:bg-secondary/60 transition-all">
                                 <Link href={`/profile/${u.id}`} className="flex items-center gap-3 flex-1">
-                                    <Avatar className="h-12 w-12 border border-white/10"><AvatarImage src={u.profileImageUrl} /><AvatarFallback>{u.username?.[0]}</AvatarFallback></Avatar>
+                                    <Avatar className="h-12 w-12 border border-white/10">
+                                        <AvatarImage src={u.profileImageUrl} className="object-cover" />
+                                        <AvatarFallback>{u.username?.[0]}</AvatarFallback>
+                                    </Avatar>
                                     <div>
                                         <div className="flex items-center gap-1.5">
                                             <p className="font-bold text-sm">{u.username}</p>
@@ -193,7 +191,15 @@ export default function AdminPage() {
                                             <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-40 transition-opacity" />
                                         </div>
                                         <p className="text-[10px] text-muted-foreground">{u.email}</p>
-                                        {u.fcmToken && <p className="text-[8px] text-green-500 font-black uppercase mt-0.5">Device Active</p>}
+                                        {/* Show Active Status Clearly */}
+                                        {u.fcmToken ? (
+                                            <div className="flex items-center gap-1 mt-0.5">
+                                                <div className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse" />
+                                                <p className="text-[8px] text-green-500 font-black uppercase">Device Active</p>
+                                            </div>
+                                        ) : (
+                                            <p className="text-[8px] text-muted-foreground uppercase font-bold mt-0.5">Inactive</p>
+                                        )}
                                     </div>
                                 </Link>
                                 <div className="flex gap-2">
@@ -207,13 +213,13 @@ export default function AdminPage() {
                 <TabsContent value="payouts">
                     <div className="space-y-4">
                         {isPayoutsLoading ? <div className="flex justify-center p-10"><Loader2 className="animate-spin" /></div> : filteredPayouts?.map(p => (
-                            <div key={p.id} className="bg-secondary/30 p-6 rounded-3xl border border-white/5 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center animate-in fade-in slide-in-from-bottom-4">
+                            <div key={p.id} className="bg-secondary/30 p-6 rounded-3xl border border-white/5 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
                                 <div className="flex-1 space-y-4">
                                     <div className="flex items-center gap-3">
                                         <div className="p-3 bg-primary/10 rounded-2xl"><CreditCard className="text-primary" /></div>
                                         <div>
                                             <p className="text-xl font-black italic">₹{p.amount.toFixed(2)}</p>
-                                            <Link href={`/profile/${p.userId}`} className="text-[10px] text-muted-foreground uppercase font-black hover:text-primary transition-colors">Request by @{p.username}</Link>
+                                            <Link href={`/profile/${p.userId}`} className="text-[10px] text-muted-foreground uppercase font-black hover:text-primary">Request by @{p.username}</Link>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-black/40 p-4 rounded-2xl border border-white/5 text-[11px]">

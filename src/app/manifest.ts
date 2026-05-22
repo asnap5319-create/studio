@@ -8,7 +8,7 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Premium Short Video Sharing Platform',
     start_url: '/',
     display: 'standalone',
-    background_color: '#16a34a',
+    background_color: '#16a34a', // Money Green
     theme_color: '#16a34a',
     icons: [
       {
@@ -16,8 +16,6 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: 'any',
         type: 'image/x-icon',
       },
-      // Note: In a real production app, we would provide 192x192 and 512x512 PNGs here
-      // matching the pink 'A' on green background with money pattern branding.
     ],
   }
 }
