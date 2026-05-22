@@ -10,6 +10,7 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { useFirebase, useUser } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ShieldCheck } from "lucide-react";
+import { Logo } from "@/components/pwa-install-prompt";
 
 function LoginForm() {
   const [email, setEmail] = useState("");
@@ -28,13 +29,10 @@ function LoginForm() {
   useEffect(() => {
     if (!isUserLoading) {
       if (user) {
-        // Already logged in, go to home
         router.replace('/');
       } else if (!showAuth) {
-        // No explicit auth intent, redirect to video feed root
         router.replace('/');
       } else {
-        // Show login form
         setIsRedirecting(false);
       }
     }
@@ -47,7 +45,7 @@ function LoginForm() {
              <div className="absolute inset-0 blur-2xl bg-primary/20 animate-pulse rounded-full"></div>
              <Loader2 className="animate-spin h-12 w-12 text-primary relative z-10" />
         </div>
-        <p className="mt-6 font-bold tracking-widest uppercase text-[10px] text-primary/80 animate-pulse">Redirecting to Feed...</p>
+        <p className="mt-6 font-bold tracking-widest uppercase text-[10px] text-primary/80 animate-pulse">Redirecting...</p>
       </div>
     );
   }
@@ -72,11 +70,16 @@ function LoginForm() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-black p-4">
       <div className="w-full max-w-sm space-y-8 text-center">
-        <div className="space-y-2">
-            <h1 className="text-6xl font-black text-primary italic tracking-tighter drop-shadow-[0_0_15px_rgba(var(--primary),0.5)]">
-              A.snap
-            </h1>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Premium Visual Sharing</p>
+        <div className="flex flex-col items-center gap-4">
+            <div className="w-24 h-24 bg-money-pattern rounded-3xl flex items-center justify-center border border-white/10 shadow-[0_0_50px_rgba(22,163,74,0.3)] overflow-hidden animate-in zoom-in duration-500">
+                <Logo className="w-16 h-16" />
+            </div>
+            <div className="space-y-1">
+                <h1 className="text-5xl font-black text-primary italic tracking-tighter drop-shadow-lg">
+                  A.snap
+                </h1>
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground opacity-50">Premium Visual Sharing</p>
+            </div>
         </div>
 
         <form onSubmit={handleLogin} className="w-full space-y-4 pt-6">
@@ -98,7 +101,7 @@ function LoginForm() {
             required
             disabled={isLoggingIn}
           />
-          <Button type="submit" className="w-full h-14 text-lg font-black uppercase rounded-2xl bg-primary shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform" disabled={isLoggingIn}>
+          <Button type="submit" className="w-full h-14 text-lg font-black uppercase rounded-2xl bg-primary shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all" disabled={isLoggingIn}>
             {isLoggingIn ? (
                 <span className="flex items-center gap-2"><Loader2 className="animate-spin h-5 w-5" /> Authenticating...</span>
             ) : "Unlock Feed"}
