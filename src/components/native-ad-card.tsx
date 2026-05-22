@@ -12,7 +12,6 @@ export function NativeAdCard() {
   const [adImage, setAdImage] = useState(placeholderData.placeholderImages[0]);
 
   useEffect(() => {
-    // Pick a random offer image from our placeholder list
     const randomIndex = Math.floor(Math.random() * placeholderData.placeholderImages.length);
     setAdImage(placeholderData.placeholderImages[randomIndex]);
   }, []);
@@ -23,7 +22,6 @@ export function NativeAdCard() {
 
   return (
     <div className="h-screen w-full snap-start snap-always bg-black flex flex-col items-center justify-center relative overflow-hidden" onClick={handleAdClick}>
-      {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
         <Image 
           src={adImage.url} 
@@ -35,21 +33,17 @@ export function NativeAdCard() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-black z-10" />
       </div>
 
-      {/* Top Badge */}
       <div className="absolute top-10 left-8 flex items-center gap-2 z-30 bg-black/40 backdrop-blur-xl px-4 py-2 rounded-full border border-white/10">
-        <Logo className="w-6 h-6" />
+        <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center mr-1">
+          <Logo className="w-5 h-5" />
+        </div>
         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white italic">Sponsored Post</span>
       </div>
 
-      {/* Main Content Card */}
       <div className="w-[85%] max-w-sm aspect-[9/16] bg-white/5 backdrop-blur-md rounded-[3rem] border border-white/20 flex flex-col items-center justify-end overflow-hidden shadow-[0_0_100px_rgba(255,51,102,0.3)] relative group cursor-pointer animate-in fade-in zoom-in duration-500">
-        
-        {/* Animated Glow in center */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-primary/30 blur-[80px] rounded-full pointer-events-none group-hover:bg-primary/50 transition-colors" />
 
-        {/* Ad Info Area */}
         <div className="w-full p-8 flex flex-col items-center gap-6 text-center z-20 bg-gradient-to-t from-black/95 via-black/80 to-transparent pt-20">
-          
           <div className="flex items-center gap-2 bg-yellow-400 text-black px-3 py-1 rounded-full animate-bounce">
              <Zap size={12} className="fill-black" />
              <span className="text-[10px] font-black uppercase">Limited Time Deal</span>
@@ -78,7 +72,6 @@ export function NativeAdCard() {
         </div>
       </div>
 
-      {/* Floating Elements for extra vibe */}
       <div className="absolute bottom-20 right-10 z-20 opacity-30 animate-bounce delay-700">
          <Sparkles className="text-primary h-12 w-12" />
       </div>

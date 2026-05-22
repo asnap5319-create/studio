@@ -84,7 +84,7 @@ function HomeContent() {
     const result: (Post | { type: 'ad'; id: string })[] = [];
     list.forEach((post, index) => {
       result.push(post);
-      if ((index + 1) % 4 === 0) { // Spread ads more to focus on reels
+      if ((index + 1) % 4 === 0) {
         result.push({ type: 'ad', id: `ad-${index}-${Date.now()}` });
       }
     });
@@ -117,8 +117,10 @@ function HomeContent() {
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
         <div className="flex items-center gap-3 pointer-events-auto">
           <div className="flex items-center gap-2">
-            <Logo className="w-10 h-10 drop-shadow-[0_0_15px_rgba(34,197,94,0.6)]" />
-            <h1 className="text-2xl font-black text-primary italic tracking-tighter drop-shadow-[0_2px_15px_rgba(34,197,94,0.6)]">
+            <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center border border-white/10 shadow-lg">
+              <Logo className="w-7 h-7" />
+            </div>
+            <h1 className="text-2xl font-black text-primary italic tracking-tighter drop-shadow-lg">
               A.snap
             </h1>
           </div>
@@ -151,7 +153,9 @@ function HomeContent() {
           <div className="flex flex-col items-center gap-4">
              <div className="relative">
                 <div className="absolute inset-0 blur-3xl bg-green-500/20 animate-pulse rounded-full"></div>
-                <Logo className="w-20 h-20 animate-pulse relative z-10" />
+                <div className="w-20 h-20 bg-green-600 rounded-2xl flex items-center justify-center relative z-10 shadow-2xl">
+                  <Logo className="w-14 h-14" />
+                </div>
              </div>
              <p className="text-[10px] font-black uppercase tracking-[0.5em] text-primary/80 animate-pulse mt-4">Loading Reels...</p>
           </div>
@@ -175,7 +179,9 @@ function HomeContent() {
       ) : !isLoading && (
         <div className="flex h-full items-center justify-center text-white p-10 text-center">
             <div className="flex flex-col gap-6 items-center">
-              <Logo className="w-24 h-24 text-primary opacity-20" />
+              <div className="w-24 h-24 bg-green-600/20 rounded-3xl flex items-center justify-center border border-green-600/30">
+                <Logo className="w-16 h-16 opacity-40" />
+              </div>
               <Link href={user ? "/create" : "/login?auth=true"}>
                 <button className="bg-primary px-8 py-4 text-white font-black uppercase rounded-2xl shadow-2xl">
                   Upload First Reel
