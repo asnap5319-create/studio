@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Bell, X, Sparkles, ShieldCheck } from 'lucide-react';
+import { Bell, X, Sparkles, ShieldCheck, Loader2 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { useFirebase, useUser } from '@/firebase';
 import { getToken } from 'firebase/messaging';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 
 export function NotificationPermissionPrompt() {
@@ -20,27 +20,28 @@ export function NotificationPermissionPrompt() {
     if (!user) return;
 
     const checkPermissionStatus = async () => {
-      if (Capacitor.isNativePlatform()) {
-        const permStatus = await PushNotifications.checkPermissions();
-        // If it's prompt, we show our UI to explain why we need it
-        if (permStatus.receive === 'prompt') {
-          setIsVisible(true);
-        } else if (permStatus.receive === 'denied') {
-          // If denied, we might show it once in a while or a different UI
-          // For now, let's keep it simple and show if not granted
-          setIsVisible(true);
-        }
-      } else {
-        if (typeof window !== 'undefined' && 'Notification' in window) {
-          if (Notification.permission === 'default') {
+      try {
+        if (Capacitor.isNativePlatform()) {
+          const permStatus = await PushNotifications.checkPermissions();
+          // If permission is 'prompt', it means we can ask. 
+          // If 'denied', we still show the UI once to guide them to settings.
+          if (permStatus.receive === 'prompt' || permStatus.receive === 'denied') {
             setIsVisible(true);
           }
+        } else {
+          if (typeof window !== 'undefined' && 'Notification' in window) {
+            if (Notification.permission === 'default' || Notification.permission === 'denied') {
+              setIsVisible(true);
+            }
+          }
         }
+      } catch (err) {
+        console.error("Error checking permissions:", err);
       }
     };
 
-    // Small delay to let the app load first
-    const timer = setTimeout(checkPermissionStatus, 3000);
+    // Delay to let the app load smoothly
+    const timer = setTimeout(checkPermissionStatus, 2000);
     return () => clearTimeout(timer);
   }, [user]);
 
@@ -50,38 +51,55 @@ export function NotificationPermissionPrompt() {
 
     try {
       if (Capacitor.isNativePlatform()) {
-        // ACTUAL NATIVE SYSTEM PERMISSION REQUEST
-        let permStatus = await PushNotifications.requestPermissions();
+        // 1. ACTUAL NATIVE SYSTEM DIALOG REQUEST
+        const permStatus = await PushNotifications.requestPermissions();
         
         if (permStatus.receive === 'granted') {
-          // Register for push notifications to get the token
+          // 2. REGISTER DEVICE WITH FCM
           await PushNotifications.register();
-          // Token will be handled by the 'registration' listener in useFCM
           setIsVisible(false);
         } else {
-          console.warn('User denied native permissions');
+          // If denied, alert user to go to settings
+          alert("Please enable notifications in your phone settings to stay updated!");
+          setIsVisible(false);
         }
-      } else if (messaging) {
-        // ACTUAL WEB BROWSER PERMISSION REQUEST
+      } else {
+        // 1. WEB BROWSER SYSTEM DIALOG REQUEST
+        if (!('Notification' in window)) {
+           alert("This browser does not support notifications.");
+           setIsVisible(false);
+           return;
+        }
+
         const status = await Notification.requestPermission();
         
         if (status === 'granted') {
-          // Get FCM Token immediately
-          const token = await getToken(messaging, {
-            vapidKey: 'BIsy80z_I2uC-p9N5T_M4E-V5J9XvW-L6R-Q8Q-P-O-S-H-I-K-E-R' 
-          });
+          // 2. GET WEB FCM TOKEN
+          if (messaging) {
+            try {
+              const token = await getToken(messaging, {
+                // Using a standard VAPID key placeholder or user's key if available
+                vapidKey: 'BIsy80z_I2uC-p9N5T_M4E-V5J9XvW-L6R-Q8Q-P-O-S-H-I-K-E-R' 
+              });
 
-          if (token) {
-            await updateDoc(doc(firestore, 'users', user.uid), {
-              fcmToken: token,
-              updatedAt: new Date()
-            });
+              if (token) {
+                await updateDoc(doc(firestore, 'users', user.uid), {
+                  fcmToken: token,
+                  updatedAt: serverTimestamp()
+                });
+              }
+            } catch (tokenErr) {
+              console.error("Token retrieval failed:", tokenErr);
+            }
           }
           setIsVisible(false);
+        } else {
+           alert("Notification permission denied. You can change this in your browser settings.");
+           setIsVisible(false);
         }
       }
     } catch (error) {
-      console.error('Permission request failed:', error);
+      console.error('Real permission request failed:', error);
     } finally {
       setIsAsking(false);
     }
@@ -92,7 +110,7 @@ export function NotificationPermissionPrompt() {
   return (
     <div className="fixed bottom-24 left-4 right-4 z-[100] animate-in slide-in-from-bottom-10 duration-700 max-w-lg mx-auto">
       <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] border border-white/10 p-6 rounded-[2.5rem] shadow-[0_25px_60px_rgba(0,0,0,0.9)] backdrop-blur-2xl relative overflow-hidden">
-        {/* Animated Background Glow */}
+        {/* Decorative Glow */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-[50px] rounded-full pointer-events-none" />
         
         <div className="flex items-start gap-4">
@@ -113,7 +131,7 @@ export function NotificationPermissionPrompt() {
                </button>
             </div>
             <p className="text-xs font-medium text-muted-foreground leading-relaxed">
-               Don't miss out! Turn on notifications to get instant alerts for <span className="text-white font-bold">New Messages</span> and <span className="text-white font-bold">Likes</span>.
+               Get instant alerts for <span className="text-white font-bold">New Messages</span>, <span className="text-white font-bold">Likes</span> and <span className="text-white font-bold">Followers</span> directly on your screen.
             </p>
           </div>
         </div>
@@ -122,14 +140,21 @@ export function NotificationPermissionPrompt() {
             <Button 
                 onClick={handleRequestPermission} 
                 disabled={isAsking}
-                className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black uppercase text-xs rounded-2xl shadow-[0_10px_25px_rgba(255,51,102,0.3)] hover:scale-[1.02] active:scale-95 transition-all"
+                className="w-full h-16 bg-primary hover:bg-primary/90 text-white font-black uppercase text-sm rounded-2xl shadow-[0_15px_35px_rgba(255,51,102,0.4)] hover:scale-[1.02] active:scale-95 transition-all group"
             >
-                {isAsking ? "Opening System Dialog..." : "Allow System Notifications"}
+                {isAsking ? (
+                   <div className="flex items-center gap-2">
+                      <Loader2 className="animate-spin h-5 w-5" />
+                      <span>Asking System...</span>
+                   </div>
+                ) : (
+                  "Allow System Notifications"
+                )}
             </Button>
             
             <div className="flex items-center justify-center gap-2 pt-1 opacity-40">
                <ShieldCheck size={12} className="text-primary" />
-               <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white">Encrypted & Secure Cloud Alerts</span>
+               <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white">Official System Permission Request</span>
             </div>
         </div>
       </div>
