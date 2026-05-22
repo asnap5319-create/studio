@@ -11,22 +11,22 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#16a34a',
     icons: [
       {
-        src: '/logo.svg',
-        sizes: 'any',
+        src: '/logo.svg?v=2',
+        sizes: '192x192',
         type: 'image/svg+xml',
         purpose: 'any'
       },
       {
-        src: '/logo.svg',
-        sizes: '192x192',
+        src: '/logo.svg?v=2',
+        sizes: '512x512',
         type: 'image/svg+xml',
         purpose: 'maskable'
       },
       {
-        src: '/logo.svg',
-        sizes: '512x512',
+        src: '/logo.svg?v=2',
+        sizes: 'any',
         type: 'image/svg+xml',
-        purpose: 'maskable'
+        purpose: 'any'
       }
     ],
   }

@@ -70,11 +70,11 @@ function LoginForm() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-black p-4">
       <div className="w-full max-sm space-y-8 text-center">
         <div className="flex flex-col items-center gap-4">
-            <div className="w-24 h-24 bg-money-pattern rounded-3xl flex items-center justify-center border border-white/10 shadow-[0_0_50px_rgba(22,163,74,0.3)] overflow-hidden animate-in zoom-in duration-500">
+            <div className="w-24 h-24 bg-[#16a34a] bg-money-pattern rounded-3xl flex items-center justify-center border border-white/10 shadow-[0_0_50px_rgba(22,163,74,0.3)] overflow-hidden animate-in zoom-in duration-500">
                 <Logo className="w-16 h-16" />
             </div>
             <div className="space-y-1">
-                <h1 className="text-5xl font-black text-primary italic tracking-tighter drop-shadow-lg">
+                <h1 className="text-5xl font-black text-[#ff3366] italic tracking-tighter drop-shadow-lg">
                   A.snap
                 </h1>
                 <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground opacity-50">Premium Visual Sharing</p>
@@ -100,7 +100,7 @@ function LoginForm() {
             required
             disabled={isLoggingIn}
           />
-          <Button type="submit" className="w-full h-14 text-lg font-black uppercase rounded-2xl bg-primary shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all" disabled={isLoggingIn}>
+          <Button type="submit" className="w-full h-14 text-lg font-black uppercase rounded-2xl bg-[#ff3366] shadow-lg shadow-[#ff3366]/20 hover:scale-[1.02] active:scale-95 transition-all" disabled={isLoggingIn}>
             {isLoggingIn ? (
                 <span className="flex items-center gap-2"><Loader2 className="animate-spin h-5 w-5" /> Authenticating...</span>
             ) : "Unlock Feed"}
@@ -110,12 +110,12 @@ function LoginForm() {
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground font-medium">
             New here?{' '}
-            <Link href="/signup" className="font-black text-primary hover:underline underline-offset-4">
+            <Link href="/signup" className="font-black text-[#ff3366] hover:underline underline-offset-4">
               Create Account
             </Link>
           </p>
           <div className="flex items-center justify-center gap-2 pt-4 opacity-50">
-             <ShieldCheck size={14} className="text-primary" />
+             <ShieldCheck size={14} className="text-[#ff3366]" />
              <span className="text-[10px] font-black uppercase tracking-widest">Secure Cloud Authentication</span>
           </div>
         </div>
