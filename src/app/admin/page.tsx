@@ -62,22 +62,6 @@ export default function AdminPage() {
     const activeUsers = users?.filter(u => !!u.fcmToken) || [];
     const activeUsersCount = activeUsers.length;
 
-    const handleUpdatePayoutStatus = async (requestId: string, status: PayoutRequest['status']) => {
-        if (!firestore || !isAdmin) return;
-        setIsActionLoading(requestId);
-        try {
-            await updateDoc(doc(firestore, 'payout_requests', requestId), {
-                status,
-                updatedAt: serverTimestamp()
-            });
-            toast({ title: `Status updated to ${status}` });
-        } catch (e) {
-            toast({ variant: 'destructive', title: "Error", description: "Failed to update status." });
-        } finally {
-            setIsActionLoading(null);
-        }
-    };
-
     const handleDeleteUser = async (userId: string, username: string) => {
         if (!firestore || !isAdmin) return;
         if (!confirm(`🚨 चेतावनी 🚨\n\nक्या आप वाकई "${username}" की आईडी डिलीट करना चाहते हैं?`)) return;
@@ -144,7 +128,7 @@ export default function AdminPage() {
                 <div className="bg-secondary/30 p-4 rounded-3xl border border-white/5 flex flex-col items-center text-center">
                     <CreditCard className="text-yellow-500 mb-2 h-6 w-6" />
                     <p className="text-2xl font-black">{payouts?.length || 0}</p>
-                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Payout Requests</p>
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Payouts</p>
                 </div>
             </div>
 
@@ -160,7 +144,7 @@ export default function AdminPage() {
                         {filteredUsers?.map(u => (
                             <div key={u.id} className={cn(
                                 "flex items-center justify-between p-4 rounded-2xl border transition-all",
-                                u.fcmToken ? "bg-green-500/5 border-green-500/20" : "bg-secondary/40 border-white/5"
+                                u.fcmToken ? "bg-green-500/10 border-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.1)]" : "bg-secondary/40 border-white/5"
                             )}>
                                 <Link href={`/profile/${u.id}`} className="flex items-center gap-3 flex-1">
                                     <Avatar className="h-12 w-12 border border-white/10">
@@ -177,7 +161,7 @@ export default function AdminPage() {
                                         {u.fcmToken ? (
                                             <div className="flex items-center gap-1 mt-1">
                                                 <div className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse" />
-                                                <p className="text-[8px] text-green-500 font-black uppercase tracking-tighter">Live Account</p>
+                                                <p className="text-[8px] text-green-500 font-black uppercase tracking-tighter">Live / Active</p>
                                             </div>
                                         ) : (
                                             <p className="text-[8px] text-muted-foreground uppercase font-bold mt-1">Inactive</p>
@@ -191,7 +175,52 @@ export default function AdminPage() {
                         ))}
                     </div>
                 </TabsContent>
-                {/* ... existing posts and payouts content ... */}
+                
+                <TabsContent value="posts">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {posts?.map(post => (
+                            <div key={post.id} className="bg-secondary/40 rounded-2xl overflow-hidden border border-white/5 group">
+                                <div className="aspect-[9/16] relative">
+                                    <video src={post.mediaUrl} className="w-full h-full object-cover" muted />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                                        <div className="flex items-center gap-1 font-bold"><Eye size={14} /> {post.viewCount}</div>
+                                        <Button size="sm" variant="destructive" onClick={() => { if(confirm('Delete video?')) deleteDoc(doc(firestore!, 'users', post.userId, 'posts', post.id)) }} className="h-8 text-[10px] uppercase font-black">Delete</Button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="payouts">
+                    <div className="space-y-3">
+                        {payouts?.map(p => (
+                            <div key={p.id} className="bg-secondary/40 p-4 rounded-2xl border border-white/5 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-3 bg-green-500/20 rounded-xl text-green-500"><Banknote /></div>
+                                    <div>
+                                        <p className="font-black text-lg">₹{p.amount}</p>
+                                        <p className="text-[10px] text-muted-foreground uppercase font-bold">@{p.username} • {p.method}</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    {p.status === 'pending' && (
+                                        <>
+                                            <Button size="sm" onClick={() => updateDoc(doc(firestore!, 'payout_requests', p.id), { status: 'paid', updatedAt: serverTimestamp() })} className="bg-green-600 font-bold h-8">Approve</Button>
+                                            <Button size="sm" variant="destructive" onClick={() => updateDoc(doc(firestore!, 'payout_requests', p.id), { status: 'rejected', updatedAt: serverTimestamp() })} className="font-bold h-8">Reject</Button>
+                                        </>
+                                    )}
+                                    {p.status !== 'pending' && (
+                                        <div className={cn(
+                                            "px-4 py-1.5 rounded-full text-[10px] font-black uppercase",
+                                            p.status === 'paid' ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500"
+                                        )}>{p.status}</div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </TabsContent>
             </Tabs>
             <BottomNav />
         </div>
