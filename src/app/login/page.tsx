@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -69,7 +68,7 @@ function LoginForm() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-black p-4">
-      <div className="w-full max-w-sm space-y-8 text-center">
+      <div className="w-full max-sm space-y-8 text-center">
         <div className="flex flex-col items-center gap-4">
             <div className="w-24 h-24 bg-money-pattern rounded-3xl flex items-center justify-center border border-white/10 shadow-[0_0_50px_rgba(22,163,74,0.3)] overflow-hidden animate-in zoom-in duration-500">
                 <Logo className="w-16 h-16" />
