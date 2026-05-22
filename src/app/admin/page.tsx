@@ -3,16 +3,15 @@
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, collectionGroup, query, orderBy, doc, limit, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, collectionGroup, query, orderBy, doc, limit, deleteDoc, updateDoc, serverTimestamp, where } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Trash2, Users, FileVideo, ArrowLeft, Search, ShieldCheck, Loader2, Play, MoreVertical, Eye, CreditCard, CheckCircle, XCircle, Clock, Banknote } from 'lucide-react';
+import { ShieldAlert, Trash2, Users, FileVideo, ArrowLeft, Search, ShieldCheck, Loader2, Play, MoreVertical, Eye, CreditCard, CheckCircle, XCircle, Clock, Banknote, UserPlus, Activity, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { PostCard } from "@/components/post-card";
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/models/user';
 import type { Post } from '@/models/post';
@@ -22,6 +21,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { BottomNav } from "@/components/bottom-nav";
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import Link from 'next/link';
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
@@ -32,7 +32,6 @@ export default function AdminPage() {
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('');
     const [isActionLoading, setIsActionLoading] = useState<string | null>(null);
-    const [selectedPost, setSelectedPost] = useState<Post | null>(null);
 
     const isAdmin = useMemo(() => {
         if (!user?.email) return false;
@@ -57,6 +56,15 @@ export default function AdminPage() {
     const { data: users, isLoading: isUsersLoading } = useCollection<UserProfile>(usersQuery);
     const { data: posts, isLoading: isPostsLoading } = useCollection<Post>(postsQuery);
     const { data: payouts, isLoading: isPayoutsLoading } = useCollection<PayoutRequest>(payoutsQuery);
+
+    // Filter users based on search
+    const filteredUsers = users?.filter(u => 
+        u.username?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        u.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    // Active users count (Mocked as users with fcmToken or recently updated)
+    const activeUsersCount = users?.filter(u => !!u.fcmToken).length || 0;
 
     const handleUpdatePayoutStatus = async (requestId: string, status: PayoutRequest['status']) => {
         if (!firestore || !isAdmin) return;
@@ -137,9 +145,33 @@ export default function AdminPage() {
                 </div>
                 <div className="relative w-full md:w-72">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 bg-secondary/50 border-white/10 rounded-xl" />
+                    <Input placeholder="Search Users/Payouts..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 bg-secondary/50 border-white/10 rounded-xl" />
                 </div>
             </header>
+
+            {/* Stats Overview */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+                <div className="bg-secondary/30 p-4 rounded-3xl border border-white/5 flex flex-col items-center text-center">
+                    <Users className="text-blue-400 mb-2 h-6 w-6" />
+                    <p className="text-2xl font-black">{users?.length || 0}</p>
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Total Users</p>
+                </div>
+                <div className="bg-secondary/30 p-4 rounded-3xl border border-white/5 flex flex-col items-center text-center">
+                    <Activity className="text-green-500 mb-2 h-6 w-6" />
+                    <p className="text-2xl font-black">{activeUsersCount}</p>
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Active Users</p>
+                </div>
+                <div className="bg-secondary/30 p-4 rounded-3xl border border-white/5 flex flex-col items-center text-center">
+                    <FileVideo className="text-primary mb-2 h-6 w-6" />
+                    <p className="text-2xl font-black">{posts?.length || 0}</p>
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Reels Posted</p>
+                </div>
+                <div className="bg-secondary/30 p-4 rounded-3xl border border-white/5 flex flex-col items-center text-center">
+                    <CreditCard className="text-yellow-500 mb-2 h-6 w-6" />
+                    <p className="text-2xl font-black">{payouts?.length || 0}</p>
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Payout Requests</p>
+                </div>
+            </div>
 
             <Tabs defaultValue="users" className="w-full">
                 <TabsList className="grid w-full grid-cols-3 bg-secondary/50 p-1 rounded-2xl mb-8 border border-white/5 h-14">
@@ -150,13 +182,23 @@ export default function AdminPage() {
 
                 <TabsContent value="users">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {users?.map(u => (
-                            <div key={u.id} className="flex items-center justify-between p-4 bg-secondary/40 rounded-2xl border border-white/5">
-                                <div className="flex items-center gap-3">
-                                    <Avatar className="h-12 w-12"><AvatarImage src={u.profileImageUrl} /><AvatarFallback>{u.username?.[0]}</AvatarFallback></Avatar>
-                                    <div><p className="font-bold text-sm">{u.username}</p><p className="text-[10px] text-muted-foreground">{u.email}</p></div>
+                        {filteredUsers?.map(u => (
+                            <div key={u.id} className="flex items-center justify-between p-4 bg-secondary/40 rounded-2xl border border-white/5 group hover:bg-secondary/60 transition-all">
+                                <Link href={`/profile/${u.id}`} className="flex items-center gap-3 flex-1">
+                                    <Avatar className="h-12 w-12 border border-white/10"><AvatarImage src={u.profileImageUrl} /><AvatarFallback>{u.username?.[0]}</AvatarFallback></Avatar>
+                                    <div>
+                                        <div className="flex items-center gap-1.5">
+                                            <p className="font-bold text-sm">{u.username}</p>
+                                            {u.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && <ShieldCheck className="h-3 w-3 text-blue-400" />}
+                                            <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-40 transition-opacity" />
+                                        </div>
+                                        <p className="text-[10px] text-muted-foreground">{u.email}</p>
+                                        {u.fcmToken && <p className="text-[8px] text-green-500 font-black uppercase mt-0.5">Device Active</p>}
+                                    </div>
+                                </Link>
+                                <div className="flex gap-2">
+                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(u.id, u.username)} className="text-destructive hover:bg-destructive/10"><Trash2 size={18} /></Button>
                                 </div>
-                                <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(u.id, u.username)} className="text-destructive"><Trash2 size={18} /></Button>
                             </div>
                         ))}
                     </div>
@@ -171,7 +213,7 @@ export default function AdminPage() {
                                         <div className="p-3 bg-primary/10 rounded-2xl"><CreditCard className="text-primary" /></div>
                                         <div>
                                             <p className="text-xl font-black italic">₹{p.amount.toFixed(2)}</p>
-                                            <p className="text-[10px] text-muted-foreground uppercase font-black">Request by @{p.username}</p>
+                                            <Link href={`/profile/${p.userId}`} className="text-[10px] text-muted-foreground uppercase font-black hover:text-primary transition-colors">Request by @{p.username}</Link>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-black/40 p-4 rounded-2xl border border-white/5 text-[11px]">
@@ -190,7 +232,7 @@ export default function AdminPage() {
                                         )}
                                         <div>
                                             <p className="text-muted-foreground uppercase font-bold mb-1">Requested On</p>
-                                            <p className="font-bold">{format(p.createdAt?.toDate(), 'PPpp')}</p>
+                                            <p className="font-bold">{p.createdAt ? format(p.createdAt.toDate(), 'PPpp') : 'N/A'}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -229,7 +271,12 @@ export default function AdminPage() {
                             <div key={p.id} className="aspect-square bg-secondary/30 relative rounded-xl overflow-hidden group">
                                 <video src={p.mediaUrl} className="w-full h-full object-cover" muted />
                                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
-                                    <Button variant="ghost" size="icon" onClick={() => handleDeletePost(p)} className="text-destructive"><Trash2 /></Button>
+                                    <div className="flex flex-col gap-2 items-center">
+                                        <Button variant="ghost" size="icon" onClick={() => handleDeletePost(p)} className="text-destructive"><Trash2 /></Button>
+                                        <Button variant="ghost" size="sm" asChild className="text-[9px] uppercase font-black text-white">
+                                            <Link href={`/profile/${p.userId}`}>View Owner</Link>
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
