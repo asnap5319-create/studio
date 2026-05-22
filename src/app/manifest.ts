@@ -7,14 +7,9 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Premium Short Video Sharing Platform',
     start_url: '/',
     display: 'standalone',
-    background_color: '#16a34a', // Money Green
+    background_color: '#16a34a',
     theme_color: '#16a34a',
     icons: [
-      {
-        src: '/favicon.ico',
-        sizes: 'any',
-        type: 'image/x-icon',
-      },
       {
         src: '/favicon.ico',
         sizes: '192x192',

@@ -1,34 +1,24 @@
-# A.snap Android Build Guide (HINDI)
+# A.snap Android Build & Logo Guide (HINDI)
 
-भाई, इस गाइड को फॉलो करो और आपका APK आपके कंप्यूटर पर बन जाएगा:
+भाई, वह "सड़क वाली फोटो" (Road/Tree image) डिफॉल्ट फाइल है। उसे हटाने के लिए ये स्टेप्स करें:
 
-### 1. कंप्यूटर पर तैयारी (Pre-requisites)
-अपने PC/Laptop पर ये चीजें इंस्टॉल करें:
-- **Node.js**: (LTS version)
-- **Android Studio**: इसको इंस्टॉल करें और 'Android SDK' को भी सेटअप होने दें।
-- **Java (JDK 17)**: Android बिल्ड के लिए ज़रूरी है।
+### 1. ऐप का लिंक (App Link)
+आपका ऐप यहाँ लाइव है: **https://studio-xi-henna-41.vercel.app**
 
-### 2. प्रोजेक्ट सेटअप
-- इस कोड को अपने कंप्यूटर पर एक फोल्डर में डाउनलोड करें।
-- टर्मिनल (CMD) खोलें और फोल्डर के अंदर जाएं।
-- ये कमांड चलाएं:
-  ```bash
-  npm install
-  npx cap add android
-  npx cap sync
-  ```
+### 2. लोगो कैसे बदलें (Important)
+- जो फोटो आपको दिख रही है वो `public/favicon.ico` फाइल है।
+- अपने कंप्यूटर पर अपनी 'A' वाली फोटो को `favicon.ico` नाम दें।
+- उसे इस फोल्डर में पेस्ट कर दें: `public/` (पुरानी फाइल को replace करें)।
 
-### 3. APK जनरेट करना
-- टर्मिनल में टाइप करें: `npx cap open android`
-- इससे **Android Studio** खुल जाएगा।
-- Android Studio को नीचे की लोडिंग (Gradle Sync) पूरी करने दें।
-- ऊपर मेनू में जाएं: **Build** -> **Build Bundle(s) / APK(s)** -> **Build APK(s)**.
-- बिल्ड खत्म होने के बाद नीचे एक मैसेज आएगा 'Build APK(s): inside folder...' वहां 'locate' पर क्लिक करें।
-- आपका **app-debug.apk** तैयार है!
+### 3. एंड्रॉयड आइकॉन फिक्स (Manual)
+- अपने PC पर **Android Studio** खोलें।
+- `app/src/main/res/mipmap` फोल्डर में जो भी पुरानी इमेज हैं उन्हें डिलीट कर दें।
+- मैंने कोड में `ic_launcher_foreground.xml` को अपडेट कर दिया है, अब यह कोड से 'A' बनाएगा।
 
-### 4. पैसे कैसे कमाएं? (Monetization)
-- मैंने आपके ऐप में **Adsterra** का स्क्रिप्ट पहले ही `layout.tsx` में जोड़ दिया है।
-- जैसे ही लोग आपका APK इंस्टॉल करके वीडियो देखेंगे, आपके Adsterra अकाउंट में पैसे बनने शुरू हो जाएंगे।
-- आप **Google AdMob** के प्लगइन्स भी बाद में जोड़ सकते हैं।
-
-हिम्मत मत हारो भाई, बस ये आखिरी स्टेप्स अपने PC पर पूरे कर लो!
+### 4. फिर से बिल्ड करें
+टर्मिनल में ये कमांड चलाएं:
+```bash
+npm run build
+npx cap sync android
+```
+इसके बाद Android Studio में जाकर **Build APK** करें। आपकी होम स्क्रीन पर अब गुलाबी 'A' और हरा बैकग्राउंड ही दिखेगा!
