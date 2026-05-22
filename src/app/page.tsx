@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
@@ -117,7 +118,7 @@ function HomeContent() {
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
         <div className="flex items-center gap-3 pointer-events-auto">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-green-600 bg-money-pattern rounded-xl flex items-center justify-center border border-white/10 shadow-lg">
+            <div className="w-10 h-10 bg-money-pattern rounded-xl flex items-center justify-center border border-white/10 shadow-lg overflow-hidden">
               <Logo className="w-7 h-7" />
             </div>
             <h1 className="text-2xl font-black text-primary italic tracking-tighter drop-shadow-lg">
@@ -153,7 +154,7 @@ function HomeContent() {
           <div className="flex flex-col items-center gap-4">
              <div className="relative">
                 <div className="absolute inset-0 blur-3xl bg-green-500/20 animate-pulse rounded-full"></div>
-                <div className="w-20 h-20 bg-green-600 bg-money-pattern rounded-2xl flex items-center justify-center relative z-10 shadow-2xl">
+                <div className="w-20 h-20 bg-money-pattern rounded-2xl flex items-center justify-center relative z-10 shadow-2xl overflow-hidden">
                   <Logo className="w-14 h-14" />
                 </div>
              </div>
@@ -179,7 +180,7 @@ function HomeContent() {
       ) : !isLoading && (
         <div className="flex h-full items-center justify-center text-white p-10 text-center">
             <div className="flex flex-col gap-6 items-center">
-              <div className="w-24 h-24 bg-green-600/20 bg-money-pattern rounded-3xl flex items-center justify-center border border-green-600/30">
+              <div className="w-24 h-24 bg-money-pattern rounded-3xl flex items-center justify-center border border-green-600/30 overflow-hidden">
                 <Logo className="w-16 h-16 opacity-40" />
               </div>
               <Link href={user ? "/create" : "/login?auth=true"}>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,21 +8,15 @@ import { Download, X, Sparkles } from 'lucide-react';
 export function Logo({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-      <defs>
-        <linearGradient id="logoGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#ff3366" stopOpacity="1" />
-          <stop offset="100%" stopColor="#ff3366" stopOpacity="0.9" />
-        </linearGradient>
-      </defs>
       <path 
         d="M150 400 L256 100 L362 400 M210 320 L302 320" 
-        stroke="url(#logoGrad)" 
-        strokeWidth="60" 
+        stroke="#ff3366" 
+        strokeWidth="64" 
         fill="none" 
         strokeLinecap="round" 
         strokeLinejoin="round" 
       />
-      <circle cx="390" cy="120" r="40" fill="#ff3366" />
+      <circle cx="390" cy="120" r="42" fill="#ff3366" />
     </svg>
   );
 }
@@ -62,7 +57,7 @@ export function PwaInstallPrompt() {
     <div className="fixed bottom-24 left-4 right-4 z-[100] animate-in slide-in-from-bottom-10 duration-700 max-w-lg mx-auto">
       <div className="bg-gradient-to-r from-[#1a1a1a] to-black border border-white/10 p-5 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex items-center justify-between gap-4 backdrop-blur-xl">
         <div className="flex items-center gap-4">
-          <div className="relative w-12 h-12 bg-green-600 bg-money-pattern rounded-xl flex items-center justify-center border border-white/10 shrink-0 shadow-lg overflow-hidden">
+          <div className="relative w-12 h-12 bg-money-pattern rounded-xl flex items-center justify-center border border-white/10 shrink-0 shadow-lg overflow-hidden">
              <Logo className="w-8 h-8 drop-shadow-sm" />
           </div>
           <div className="min-w-0">
