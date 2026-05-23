@@ -6,10 +6,10 @@ const config: CapacitorConfig = {
   appName: 'A.snap',
   webDir: 'out',
   server: {
-    // Professional URL sync
-    url: 'https://studio-xi-henna-41.vercel.app',
+    // Professional URL sync - Set to your preferred free Vercel subdomain
+    url: 'https://asnap.vercel.app',
     cleartext: true,
-    allowNavigation: ['studio-xi-henna-41.vercel.app']
+    allowNavigation: ['asnap.vercel.app', 'studio-xi-henna-41.vercel.app']
   },
   android: {
     allowMixedContent: true,

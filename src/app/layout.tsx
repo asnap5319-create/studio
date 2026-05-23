@@ -28,16 +28,16 @@ export default function RootLayout({
         <title>A.snap | Premium Visual Sharing</title>
         <meta name="description" content="A.snap - The premium short video sharing platform. Watch, share, and chat in real-time." />
         
-        {/* OpenGraph / Facebook */}
+        {/* OpenGraph / Facebook - Professional Social Preview */}
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://studio-xi-henna-41.vercel.app/" />
+        <meta property="og:url" content="https://asnap.vercel.app/" />
         <meta property="og:title" content="A.snap | Premium Visual Sharing" />
         <meta property="og:description" content="Join the next generation of visual storytelling. Watch amazing reels and connect with friends." />
         <meta property="og:image" content="/logo.svg?v=3" />
 
         {/* Twitter */}
         <meta property="twitter:card" content="summary_large_image" />
-        <meta property="twitter:url" content="https://studio-xi-henna-41.vercel.app/" />
+        <meta property="twitter:url" content="https://asnap.vercel.app/" />
         <meta property="twitter:title" content="A.snap | Premium Visual Sharing" />
         <meta property="twitter:description" content="Watch, share, and chat in real-time on A.snap." />
         <meta property="twitter:image" content="/logo.svg?v=3" />
