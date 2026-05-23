@@ -1,5 +1,7 @@
 
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /main/admin
 
-Sitemap: https://studio-8111746683-c1e57.web.app/sitemap.xml
+Sitemap: https://studio-xi-henna-41.vercel.app/sitemap.xml

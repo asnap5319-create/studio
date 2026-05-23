@@ -25,6 +25,23 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <head>
+        <title>A.snap | Premium Visual Sharing</title>
+        <meta name="description" content="A.snap - The premium short video sharing platform. Watch, share, and chat in real-time." />
+        
+        {/* OpenGraph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://studio-xi-henna-41.vercel.app/" />
+        <meta property="og:title" content="A.snap | Premium Visual Sharing" />
+        <meta property="og:description" content="Join the next generation of visual storytelling. Watch amazing reels and connect with friends." />
+        <meta property="og:image" content="/logo.svg?v=3" />
+
+        {/* Twitter */}
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content="https://studio-xi-henna-41.vercel.app/" />
+        <meta property="twitter:title" content="A.snap | Premium Visual Sharing" />
+        <meta property="twitter:description" content="Watch, share, and chat in real-time on A.snap." />
+        <meta property="twitter:image" content="/logo.svg?v=3" />
+
         <meta name="application-name" content="A.snap" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -35,7 +52,6 @@ export default function RootLayout({
         <meta name="msapplication-tap-highlight" content="no" />
         <meta name="theme-color" content="#16a34a" />
         
-        {/* Cache-busting version v=3 to force update the logo everywhere */}
         <link rel="manifest" href="/manifest.webmanifest?v=3" />
         <link rel="apple-touch-icon" href="/logo.svg?v=3" />
         <link rel="icon" type="image/svg+xml" href="/logo.svg?v=3" />

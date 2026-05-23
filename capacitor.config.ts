@@ -6,6 +6,7 @@ const config: CapacitorConfig = {
   appName: 'A.snap',
   webDir: 'out',
   server: {
+    // Professional URL sync
     url: 'https://studio-xi-henna-41.vercel.app',
     cleartext: true,
     allowNavigation: ['studio-xi-henna-41.vercel.app']

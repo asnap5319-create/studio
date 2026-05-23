@@ -3,13 +3,15 @@ import { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'A.snap',
+    name: 'A.snap - Premium Video Sharing',
     short_name: 'A.snap',
-    description: 'Premium Short Video Sharing Platform',
+    description: 'Share your world through premium short videos and real-time visual chat.',
     start_url: '/',
     display: 'standalone',
     background_color: '#16a34a',
     theme_color: '#16a34a',
+    categories: ['social', 'entertainment', 'video'],
+    orientation: 'portrait',
     icons: [
       {
         src: '/logo.svg?v=3',
