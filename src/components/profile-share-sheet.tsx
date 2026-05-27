@@ -6,7 +6,7 @@ import { collection, query, where, limit, doc, serverTimestamp, setDoc, addDoc }
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search, Send, Check, Share2, Copy } from 'lucide-react';
+import { Search, Send, Check, Share2, Copy, ExternalLink } from 'lucide-react';
 import type { UserProfile } from '@/models/user';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -24,6 +24,9 @@ export function ProfileShareSheet({ targetUserId, targetUsername, targetProfileI
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [sentTo, setSentTo] = useState<string[]>([]);
+
+  // Production URL for sharing (Private dev URLs cause 401 errors)
+  const PRODUCTION_DOMAIN = "https://asnap.vercel.app";
 
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -78,12 +81,12 @@ export function ProfileShareSheet({ targetUserId, targetUsername, targetProfileI
   };
 
   const handleExternalShare = async () => {
-    const shareUrl = window.location.origin + `/profile/${targetUserId}`;
-    const shareText = `Check out @${targetUsername} on A.snap! 🎬\n\n${shareUrl}`;
+    const shareUrl = `${PRODUCTION_DOMAIN}/profile/${targetUserId}`;
+    const shareText = `A.snap - Premium Video Sharing 🎬\n\nCheck out @${targetUsername} on A.snap! Watch their latest reels and follow for more.\n\nProfile Link: ${shareUrl}`;
     
     const shareData = {
       title: `A.snap - @${targetUsername}`,
-      text: `Check out @${targetUsername} on A.snap! 🎬`,
+      text: `Checkout @${targetUsername} on A.snap! 🎬`,
       url: shareUrl,
     };
 
@@ -97,7 +100,7 @@ export function ProfileShareSheet({ targetUserId, targetUsername, targetProfileI
       console.warn("Native share failed, falling back to clipboard:", err);
       try {
         await navigator.clipboard.writeText(shareText);
-        toast({ title: "Profile Message Copied! 🔗", description: "Now paste it on WhatsApp or Instagram." });
+        toast({ title: "Professional Link Copied! 🔗", description: "Paste it on WhatsApp or Instagram now." });
       } catch (clipErr) {
         toast({ variant: "destructive", title: "Share Failed", description: "Could not copy message." });
       }
@@ -108,7 +111,10 @@ export function ProfileShareSheet({ targetUserId, targetUsername, targetProfileI
     <div className="flex flex-col h-full bg-background text-foreground">
       <div className="p-6 border-b border-white/5 space-y-4">
         <div className="flex items-center justify-between">
-            <h3 className="font-black italic uppercase text-lg">Share Profile</h3>
+            <div className="flex items-center gap-2">
+                <Share2 className="h-5 w-5 text-primary" />
+                <h3 className="font-black italic uppercase text-lg">Share Profile</h3>
+            </div>
             <button onClick={onClose} className="p-2 hover:bg-secondary rounded-full transition-colors">✕</button>
         </div>
         
@@ -117,8 +123,8 @@ export function ProfileShareSheet({ targetUserId, targetUsername, targetProfileI
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search username..."
-            className="pl-10 bg-secondary/50 border-none h-12 rounded-2xl"
+            placeholder="Search friends to send..."
+            className="pl-10 bg-secondary/50 border-none h-12 rounded-2xl focus-visible:ring-primary"
           />
         </div>
 
@@ -126,7 +132,7 @@ export function ProfileShareSheet({ targetUserId, targetUsername, targetProfileI
             onClick={handleExternalShare}
             className="w-full h-14 bg-primary text-white font-black uppercase rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
         >
-            <Copy size={20} /> Copy Profile Link
+            <ExternalLink size={20} /> Copy Professional Link
         </Button>
       </div>
 
@@ -137,7 +143,7 @@ export function ProfileShareSheet({ targetUserId, targetUsername, targetProfileI
           </div>
         ) : (
           <div className="space-y-4 py-4 pb-20">
-            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-2">Suggestions</p>
+            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-2">Internal Suggestions</p>
             {searchResults?.filter(u => u.id !== user?.uid).map((u) => (
               <div key={u.id} className="flex items-center justify-between group">
                 <div className="flex items-center gap-3">

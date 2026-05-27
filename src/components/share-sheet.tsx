@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -7,7 +6,7 @@ import { collection, query, where, limit, doc, serverTimestamp, setDoc, addDoc }
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search, Send, Check } from 'lucide-react';
+import { Search, Send, Check, ExternalLink, Share2 } from 'lucide-react';
 import type { UserProfile } from '@/models/user';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -25,6 +24,8 @@ export function ShareSheet({ postId, postOwnerId, mediaUrl, onClose }: ShareShee
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [sentTo, setSentTo] = useState<string[]>([]);
+
+  const PRODUCTION_DOMAIN = "https://asnap.vercel.app";
 
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -78,31 +79,64 @@ export function ShareSheet({ postId, postOwnerId, mediaUrl, onClose }: ShareShee
     }
   };
 
+  const handleExternalShare = async () => {
+    const shareUrl = `${PRODUCTION_DOMAIN}/?postId=${postId}`;
+    const shareText = `A.snap - Amazing Reel! 🎬\n\nWatch this premium short video on A.snap platform.\n\nWatch Here: ${shareUrl}`;
+    
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({
+          title: 'A.snap Reel',
+          text: 'Check out this amazing reel on A.snap! 🎬',
+          url: shareUrl,
+        });
+      } else {
+        await navigator.clipboard.writeText(shareText);
+        toast({ title: "Link Copied! 🔗", description: "Share this reel with everyone on WhatsApp." });
+      }
+    } catch (err) {
+      console.error("Share failed", err);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-background text-foreground">
-      <div className="p-4 border-b border-border">
-        <div className="relative mb-4">
+      <div className="p-6 border-b border-white/5 space-y-4">
+        <div className="flex items-center justify-between">
+            <h3 className="font-black italic uppercase text-lg">Share Reel</h3>
+            <button onClick={onClose} className="p-2 hover:bg-secondary rounded-full transition-colors">✕</button>
+        </div>
+
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search friends..."
-            className="pl-10 bg-secondary border-none h-10 rounded-xl"
+            className="pl-10 bg-secondary/50 border-none h-12 rounded-2xl"
           />
         </div>
+
+        <Button 
+            onClick={handleExternalShare}
+            className="w-full h-14 bg-primary text-white font-black uppercase rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+        >
+            <ExternalLink size={20} /> Share to WhatsApp / Apps
+        </Button>
       </div>
 
-      <ScrollArea className="flex-1 px-4">
+      <ScrollArea className="flex-1 px-6">
         {isLoading ? (
           <div className="flex justify-center p-8">
             <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-primary"></div>
           </div>
         ) : (
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 pb-20">
+            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-2">Send to Friends</p>
             {searchResults?.filter(u => u.id !== user?.uid).map((u) => (
               <div key={u.id} className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Avatar className="h-12 w-12 border border-border">
+                  <Avatar className="h-12 w-12 border border-white/10">
                     <AvatarImage src={u.profileImageUrl} />
                     <AvatarFallback>{u.username?.[0]?.toUpperCase()}</AvatarFallback>
                   </Avatar>
@@ -115,17 +149,17 @@ export function ShareSheet({ postId, postOwnerId, mediaUrl, onClose }: ShareShee
                   size="sm" 
                   variant={sentTo.includes(u.id) ? "secondary" : "default"}
                   onClick={() => handleSendPost(u.id)}
-                  className="rounded-full px-5 font-bold h-8"
+                  className="rounded-full px-5 font-bold h-8 transition-all active:scale-90"
                   disabled={sentTo.includes(u.id)}
                 >
                   {sentTo.includes(u.id) ? (
-                    <span className="flex items-center gap-1"><Check className="h-3 w-3" /> Sent</span>
+                    <span className="flex items-center gap-1 text-green-500"><Check className="h-3 w-3" /> Sent</span>
                   ) : 'Send'}
                 </Button>
               </div>
             ))}
             {searchResults?.length === 0 && (
-                <p className="text-center text-muted-foreground py-10 text-sm">No users found.</p>
+                <p className="text-center text-muted-foreground py-10 text-[10px] font-bold uppercase">No users found.</p>
             )}
           </div>
         )}
