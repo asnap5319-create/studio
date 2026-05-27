@@ -5,7 +5,7 @@ import { useState, useMemo } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, collectionGroup, query, orderBy, doc, limit, deleteDoc, updateDoc, serverTimestamp, where } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Trash2, Users, FileVideo, ArrowLeft, Search, ShieldCheck, Loader2, Play, MoreVertical, Eye, CreditCard, CheckCircle, XCircle, Clock, Banknote, UserPlus, Activity, ExternalLink, Fingerprint } from 'lucide-react';
+import { ShieldAlert, Trash2, Users, FileVideo, ArrowLeft, Search, ShieldCheck, Loader2, Play, MoreVertical, Eye, CreditCard, CheckCircle, XCircle, Clock, Banknote, UserPlus, Activity, ExternalLink, Fingerprint, MessageSquare, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/models/user';
 import type { Post } from '@/models/post';
 import type { PayoutRequest } from '@/models/payout';
+import type { SupportTicket } from '@/models/support';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { BottomNav } from "@/components/bottom-nav";
@@ -51,18 +52,21 @@ export default function AdminPage() {
         return query(collection(firestore, 'payout_requests'), orderBy('createdAt', 'desc'), limit(50));
     }, [firestore]);
 
+    const supportQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(collection(firestore, 'support_tickets'), orderBy('createdAt', 'desc'), limit(50));
+    }, [firestore]);
+
     const { data: users, isLoading: isUsersLoading } = useCollection<UserProfile>(usersQuery);
     const { data: posts, isLoading: isPostsLoading } = useCollection<Post>(postsQuery);
     const { data: payouts, isLoading: isPayoutsLoading } = useCollection<PayoutRequest>(payoutsQuery);
+    const { data: supportTickets, isLoading: isSupportLoading } = useCollection<SupportTicket>(supportQuery);
 
     const filteredUsers = users?.filter(u => 
         u.username?.toLowerCase().includes(searchTerm.toLowerCase()) || 
         u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         u.id.toLowerCase().includes(searchTerm.toLowerCase())
     );
-
-    const activeUsers = users?.filter(u => !!u.fcmToken) || [];
-    const activeUsersCount = activeUsers.length;
 
     const handleDeleteUser = async (userId: string, username: string) => {
         if (!firestore || !isAdmin) return;
@@ -119,7 +123,7 @@ export default function AdminPage() {
                 </div>
                 <div className="bg-secondary/30 p-4 rounded-3xl border border-white/5 flex flex-col items-center text-center ring-2 ring-green-500/20 shadow-[0_0_20px_rgba(34,197,94,0.1)]">
                     <Activity className="text-green-500 mb-2 h-6 w-6" />
-                    <p className="text-2xl font-black text-green-500">{activeUsersCount}</p>
+                    <p className="text-2xl font-black text-green-500">{users?.filter(u => !!u.fcmToken).length || 0}</p>
                     <p className="text-[9px] font-bold text-green-500 uppercase">Live Now</p>
                 </div>
                 <div className="bg-secondary/30 p-4 rounded-3xl border border-white/5 flex flex-col items-center text-center">
@@ -128,17 +132,18 @@ export default function AdminPage() {
                     <p className="text-[9px] font-bold text-muted-foreground uppercase">Total Posts</p>
                 </div>
                 <div className="bg-secondary/30 p-4 rounded-3xl border border-white/5 flex flex-col items-center text-center">
-                    <CreditCard className="text-yellow-500 mb-2 h-6 w-6" />
-                    <p className="text-2xl font-black">{payouts?.length || 0}</p>
-                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Payouts</p>
+                    <MessageSquare className="text-purple-400 mb-2 h-6 w-6" />
+                    <p className="text-2xl font-black">{supportTickets?.length || 0}</p>
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Queries</p>
                 </div>
             </div>
 
             <Tabs defaultValue="users" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 bg-secondary/50 p-1 rounded-2xl mb-8 border border-white/5 h-14">
-                    <TabsTrigger value="users" className="rounded-xl data-[state=active]:bg-primary font-bold">Users</TabsTrigger>
-                    <TabsTrigger value="posts" className="rounded-xl data-[state=active]:bg-primary font-bold">Videos</TabsTrigger>
-                    <TabsTrigger value="payouts" className="rounded-xl data-[state=active]:bg-primary font-bold">Payouts</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-4 bg-secondary/50 p-1 rounded-2xl mb-8 border border-white/5 h-14">
+                    <TabsTrigger value="users" className="rounded-xl data-[state=active]:bg-primary font-bold text-[10px] uppercase">Users</TabsTrigger>
+                    <TabsTrigger value="posts" className="rounded-xl data-[state=active]:bg-primary font-bold text-[10px] uppercase">Videos</TabsTrigger>
+                    <TabsTrigger value="payouts" className="rounded-xl data-[state=active]:bg-primary font-bold text-[10px] uppercase">Payouts</TabsTrigger>
+                    <TabsTrigger value="support" className="rounded-xl data-[state=active]:bg-primary font-bold text-[10px] uppercase">Support</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="users">
@@ -160,21 +165,8 @@ export default function AdminPage() {
                                         <Link href={`/profile/${u.id}`} className="flex items-center gap-1.5 hover:text-primary transition-colors">
                                             <p className="font-bold text-sm truncate">{u.username}</p>
                                             {u.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && <ShieldCheck className="h-3 w-3 text-blue-400" />}
-                                            <ExternalLink className="h-3 w-3 opacity-40" />
                                         </Link>
                                         <p className="text-[10px] text-muted-foreground truncate">{u.email}</p>
-                                        <div className="flex items-center gap-1 mt-1 opacity-50">
-                                            <Fingerprint size={8} />
-                                            <p className="text-[8px] font-mono tracking-tighter truncate">{u.id}</p>
-                                        </div>
-                                        {u.fcmToken ? (
-                                            <div className="flex items-center gap-1 mt-1.5 bg-green-500/20 px-2 py-0.5 rounded-full w-fit">
-                                                <div className="h-1 w-1 bg-green-500 rounded-full animate-pulse" />
-                                                <p className="text-[7px] text-green-500 font-black uppercase tracking-widest">Active Device</p>
-                                            </div>
-                                        ) : (
-                                            <p className="text-[7px] text-muted-foreground uppercase font-bold mt-1.5 ml-1">Offline</p>
-                                        )}
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
@@ -192,7 +184,6 @@ export default function AdminPage() {
                                 <div className="aspect-[9/16] relative">
                                     <video src={post.mediaUrl} className="w-full h-full object-cover" muted />
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                                        <div className="flex items-center gap-1 font-bold text-xs"><Eye size={12} /> {post.viewCount}</div>
                                         <Button size="sm" variant="destructive" onClick={() => { if(confirm('Delete video?')) deleteDoc(doc(firestore!, 'users', post.userId, 'posts', post.id)) }} className="h-7 text-[8px] uppercase font-black rounded-lg">Delete</Button>
                                     </div>
                                 </div>
@@ -209,22 +200,46 @@ export default function AdminPage() {
                                     <div className="p-3 bg-green-500/20 rounded-xl text-green-500"><Banknote /></div>
                                     <div>
                                         <p className="font-black text-lg">₹{p.amount}</p>
-                                        <p className="text-[10px] text-muted-foreground uppercase font-bold">@{p.username} • {p.method}</p>
+                                        <p className="text-[10px] text-muted-foreground uppercase font-bold">@{p.username}</p>
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
                                     {p.status === 'pending' && (
-                                        <>
-                                            <Button size="sm" onClick={() => updateDoc(doc(firestore!, 'payout_requests', p.id), { status: 'paid', updatedAt: serverTimestamp() })} className="bg-green-600 font-bold h-8 rounded-lg">Approve</Button>
-                                            <Button size="sm" variant="destructive" onClick={() => updateDoc(doc(firestore!, 'payout_requests', p.id), { status: 'rejected', updatedAt: serverTimestamp() })} className="font-bold h-8 rounded-lg">Reject</Button>
-                                        </>
+                                        <Button size="sm" onClick={() => updateDoc(doc(firestore!, 'payout_requests', p.id), { status: 'paid', updatedAt: serverTimestamp() })} className="bg-green-600 font-bold h-8 rounded-lg">Pay</Button>
                                     )}
-                                    {p.status !== 'pending' && (
-                                        <div className={cn(
-                                            "px-4 py-1.5 rounded-full text-[10px] font-black uppercase",
-                                            p.status === 'paid' ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500"
-                                        )}>{p.status}</div>
-                                    )}
+                                    <div className={cn("px-4 py-1.5 rounded-full text-[10px] font-black uppercase", p.status === 'paid' ? "bg-green-500/20 text-green-500" : "bg-yellow-500/20 text-yellow-500")}>{p.status}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="support">
+                    <div className="space-y-4">
+                        {supportTickets?.map(ticket => (
+                            <div key={ticket.id} className="bg-secondary/30 p-6 rounded-[2rem] border border-white/5 space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <Avatar className="h-10 w-10"><AvatarFallback>{ticket.userName[0]}</AvatarFallback></Avatar>
+                                        <div>
+                                            <p className="font-black text-sm">@{ticket.userName}</p>
+                                            <p className="text-[9px] text-muted-foreground uppercase font-bold">{ticket.createdAt ? format(ticket.createdAt.toDate(), 'PPp') : ''}</p>
+                                        </div>
+                                    </div>
+                                    <div className="px-3 py-1 bg-purple-500/10 text-purple-400 rounded-full text-[8px] font-black uppercase">User Concern</div>
+                                </div>
+                                <div className="p-4 bg-black/40 rounded-2xl border border-white/5">
+                                    <p className="text-[10px] font-black text-primary uppercase mb-2">Question:</p>
+                                    <p className="text-sm font-medium">{ticket.query}</p>
+                                </div>
+                                <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                                    <p className="text-[10px] font-black text-green-500 uppercase mb-2 flex items-center gap-2"><Sparkles size={12}/> AI Answer:</p>
+                                    <p className="text-xs italic text-muted-foreground leading-relaxed">{ticket.aiResponse}</p>
+                                </div>
+                                <div className="flex items-center gap-4 text-[9px] font-bold text-muted-foreground uppercase">
+                                    <span>Followers: {ticket.statsAtTime.followers}</span>
+                                    <span>Posts: {ticket.statsAtTime.posts}</span>
+                                    <span>Views: {ticket.statsAtTime.views}</span>
                                 </div>
                             </div>
                         ))}

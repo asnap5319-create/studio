@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, addDoc, where } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck, Wallet, Eye, Zap, TrendingUp, Calendar, X, CreditCard, DollarSign, History, AlertCircle, CheckCircle2, Lock, Sparkles, Target, Youtube, Instagram } from "lucide-react";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck, Wallet, Eye, Zap, TrendingUp, Calendar, X, CreditCard, DollarSign, History, AlertCircle, CheckCircle2, Lock, Sparkles, Target, Youtube, Instagram, HelpCircle } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
+import { SupportChat } from "@/components/support-chat";
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
@@ -43,6 +44,7 @@ export default function ProfilePage() {
     const [isEarningsOpen, setIsEarningsOpen] = useState(false);
     const [isMonetizationOpen, setIsMonetizationOpen] = useState(false);
     const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
+    const [isSupportOpen, setIsSupportOpen] = useState(false);
     const [withdrawAmount, setWithdrawAmount] = useState('');
     const [withdrawMethod, setWithdrawMethod] = useState<'bank' | 'paypal'>('bank');
     const [payoutDetails, setPayoutDetails] = useState({ accountNo: '', ifsc: '', holderName: '', paypalEmail: '' });
@@ -89,33 +91,22 @@ export default function ProfilePage() {
     const earningsStats = useMemo(() => {
         if (!posts) return { total: 0, impressions: 0, today: 0, totalViews: 0, withdrawn: 0, available: 0 };
         const now = new Date();
-        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
         const withdrawnTotal = userPayouts?.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0) || 0;
 
         const stats = posts.reduce((acc, post) => {
-            const earnings = post.estimatedEarnings || 0;
-            const impressions = post.adImpressions || 0;
-            const views = post.viewCount || 0;
-            const postTime = post.createdAt?.toMillis() || 0;
-            acc.total += earnings;
-            acc.impressions += impressions;
-            acc.totalViews += views;
-            if (postTime >= startOfToday) acc.today += earnings;
+            acc.total += post.estimatedEarnings || 0;
+            acc.impressions += post.adImpressions || 0;
+            acc.totalViews += post.viewCount || 0;
             return acc;
         }, { total: 0, impressions: 0, today: 0, totalViews: 0 });
 
         return { ...stats, withdrawn: withdrawnTotal, available: Math.max(0, stats.total - withdrawnTotal) };
     }, [posts, userPayouts]);
 
-    // Monetization Requirements
     const reqFollowers = 50;
     const reqViews = 2000;
     const reqEarnings = 100;
-
-    const hasFollowers = (followers?.length || 0) >= reqFollowers;
-    const hasViews = earningsStats.totalViews >= reqViews;
-    const hasEarnings = earningsStats.total >= reqEarnings;
-    const isMonetizationUnlocked = hasFollowers && hasViews && hasEarnings;
+    const isMonetizationUnlocked = (followers?.length || 0) >= reqFollowers && earningsStats.totalViews >= reqViews && earningsStats.total >= reqEarnings;
 
     const forceUnlockUI = () => {
         if (typeof document !== 'undefined') {
@@ -126,17 +117,13 @@ export default function ProfilePage() {
 
     useEffect(() => {
         forceUnlockUI();
-    }, [isEarningsOpen, isWithdrawOpen, isDeleteDialogOpen, selectedPost, isEditSheetOpen, isMonetizationOpen]);
+    }, [isEarningsOpen, isWithdrawOpen, isDeleteDialogOpen, selectedPost, isEditSheetOpen, isMonetizationOpen, isSupportOpen]);
 
     const handleWithdrawRequest = async () => {
         if (!firestore || !user || !isOwnProfile) return;
         const amount = parseFloat(withdrawAmount);
-        if (isNaN(amount) || amount <= 0) {
-            toast({ variant: 'destructive', title: "Invalid Amount" });
-            return;
-        }
-        if (amount > earningsStats.available) {
-            toast({ variant: 'destructive', title: "Insufficient Balance" });
+        if (isNaN(amount) || amount <= 0 || amount > earningsStats.available) {
+            toast({ variant: 'destructive', title: "Invalid Request" });
             return;
         }
         setIsSubmitting(true);
@@ -146,20 +133,15 @@ export default function ProfilePage() {
                 username: userProfile?.username || 'user',
                 amount,
                 method: withdrawMethod,
-                details: withdrawMethod === 'bank' ? {
-                    accountNo: payoutDetails.accountNo,
-                    ifsc: payoutDetails.ifsc,
-                    holderName: payoutDetails.holderName
-                } : { paypalEmail: payoutDetails.paypalEmail },
+                details: withdrawMethod === 'bank' ? { accountNo: payoutDetails.accountNo, ifsc: payoutDetails.ifsc, holderName: payoutDetails.holderName } : { paypalEmail: payoutDetails.paypalEmail },
                 status: 'pending',
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp()
             });
-            toast({ title: "Request Sent! ⏳", description: "Admin will review your request soon." });
+            toast({ title: "Request Sent! ⏳" });
             setIsWithdrawOpen(false);
-            setWithdrawAmount('');
         } catch (e) {
-            toast({ variant: 'destructive', title: "Failed", description: "Something went wrong." });
+            toast({ variant: 'destructive', title: "Failed" });
         } finally {
             setIsSubmitting(false);
             forceUnlockUI();
@@ -177,56 +159,24 @@ export default function ProfilePage() {
         const followerDocRef = doc(firestore, 'user_followers', userId, 'followers', user.uid);
         const followingDocRef = doc(firestore, 'user_following', user.uid, 'following', userId);
         if (isFollowing) {
-            batch.delete(followerDocRef);
-            batch.delete(followingDocRef);
+            batch.delete(followerDocRef); batch.delete(followingDocRef);
         } else {
             batch.set(followerDocRef, { createdAt: serverTimestamp() });
             batch.set(followingDocRef, { createdAt: serverTimestamp() });
             const notificationRef = doc(collection(firestore, 'users', userId, 'notifications'));
-            batch.set(notificationRef, {
-                type: 'follow', senderId: user.uid, recipientId: userId, read: false, createdAt: serverTimestamp(),
-            });
+            batch.set(notificationRef, { type: 'follow', senderId: user.uid, recipientId: userId, read: false, createdAt: serverTimestamp() });
         }
         await batch.commit();
     };
 
     const handleDeleteClickFromGrid = (e: React.MouseEvent, post: Post) => {
-        e.stopPropagation(); 
-        setPostToDelete(post);
-        setIsDeleteDialogOpen(true);
+        e.stopPropagation(); setPostToDelete(post); setIsDeleteDialogOpen(true);
     };
 
     const confirmDelete = async () => {
         if (!firestore || !postToDelete) return;
-        try {
-            await deleteDoc(doc(firestore, 'users', postToDelete.userId, 'posts', postToDelete.id));
-            toast({ title: "Deleted!", description: "Video has been removed." });
-            setIsDeleteDialogOpen(false);
-            setPostToDelete(null);
-            if (selectedPost?.id === postToDelete.id) {
-                setSelectedPost(null);
-            }
-        } catch (e) {
-            toast({ variant: 'destructive', title: "Error", description: "Failed to delete video." });
-        } finally {
-            forceUnlockUI();
-        }
-    };
-
-    const handleEarningsClick = (e: any) => {
-        e.preventDefault();
-        setTimeout(() => {
-            setIsEarningsOpen(true);
-            forceUnlockUI();
-        }, 200);
-    };
-
-    const handleMonetizationClick = (e: any) => {
-        e.preventDefault();
-        setTimeout(() => {
-            setIsMonetizationOpen(true);
-            forceUnlockUI();
-        }, 200);
+        await deleteDoc(doc(firestore, 'users', postToDelete.userId, 'posts', postToDelete.id));
+        setIsDeleteDialogOpen(false); setPostToDelete(null); forceUnlockUI();
     };
 
     if (isUserLoading || isProfileLoading) return <div className="h-screen flex items-center justify-center bg-black"><Loader2 className="animate-spin text-primary" /></div>;
@@ -244,14 +194,17 @@ export default function ProfilePage() {
                             <Button variant="ghost" size="icon" className="rounded-full"><MoreVertical /></Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[220px] p-2 shadow-2xl z-[100]">
-                            <DropdownMenuItem onSelect={handleEarningsClick} className="font-black p-4 rounded-xl text-green-400 focus:bg-green-400/10 cursor-pointer">
+                            <DropdownMenuItem onSelect={() => { forceUnlockUI(); setTimeout(() => setIsSupportOpen(true), 200); }} className="font-black p-4 rounded-xl text-primary focus:bg-primary/10 cursor-pointer">
+                                <HelpCircle className="mr-3 h-5 w-5" /> Help & Support
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => { forceUnlockUI(); setTimeout(() => setIsEarningsOpen(true), 200); }} className="font-black p-4 rounded-xl text-green-400 focus:bg-green-400/10 cursor-pointer">
                                 <Zap className="mr-3 h-5 w-5 fill-green-400" /> Creator Studio
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={handleMonetizationClick} className="font-black p-4 rounded-xl text-blue-400 focus:bg-blue-400/10 cursor-pointer">
+                            <DropdownMenuItem onSelect={() => { forceUnlockUI(); setTimeout(() => setIsMonetizationOpen(true), 200); }} className="font-black p-4 rounded-xl text-blue-400 focus:bg-blue-400/10 cursor-pointer">
                                 <Target className="mr-3 h-5 w-5 fill-blue-400" /> Monetization
                             </DropdownMenuItem>
                             {isCurrentUserAdmin && (
-                                <DropdownMenuItem onSelect={() => { forceUnlockUI(); setTimeout(() => router.push('/admin'), 150); }} className="font-black p-4 rounded-xl text-primary focus:bg-primary/10 cursor-pointer">
+                                <DropdownMenuItem onSelect={() => { forceUnlockUI(); setTimeout(() => router.push('/admin'), 150); }} className="font-black p-4 rounded-xl text-white focus:bg-white/10 cursor-pointer">
                                     <ShieldCheck className="mr-3 h-5 w-5" /> Master Panel
                                 </DropdownMenuItem>
                             )}
@@ -272,24 +225,16 @@ export default function ProfilePage() {
                     </Avatar>
                     <div className="flex flex-1 justify-around text-center">
                         <div className="flex flex-col"><p className="font-black text-xl">{posts?.length || 0}</p><p className="text-[10px] uppercase font-bold text-muted-foreground">Posts</p></div>
-                        <Link href={`/profile/${userId}/followers`} className="flex flex-col hover:opacity-70"><p className="font-black text-xl">{followers?.length || 0}</p><p className="text-[10px] uppercase font-bold text-muted-foreground">Followers</p></Link>
-                        <Link href={`/profile/${userId}/following`} className="flex flex-col hover:opacity-70"><p className="font-black text-xl">{following?.length || 0}</p><p className="text-[10px] uppercase font-bold text-muted-foreground">Following</p></Link>
+                        <Link href={`/profile/${userId}/followers`} className="flex flex-col"><p className="font-black text-xl">{followers?.length || 0}</p><p className="text-[10px] uppercase font-bold text-muted-foreground">Followers</p></Link>
+                        <Link href={`/profile/${userId}/following`} className="flex flex-col"><p className="font-black text-xl">{following?.length || 0}</p><p className="text-[10px] uppercase font-bold text-muted-foreground">Following</p></Link>
                     </div>
                 </div>
                 <div className="mt-4">
                     <div className="flex items-center justify-between">
                         <p className="font-bold text-lg">{userProfile?.name}</p>
                         <div className="flex gap-3">
-                            {userProfile?.youtubeUrl && (
-                                <a href={userProfile.youtubeUrl} target="_blank" rel="noopener noreferrer" className="p-2 bg-red-600/10 rounded-full text-red-600 hover:scale-110 transition-transform">
-                                    <Youtube size={18} />
-                                </a>
-                            )}
-                            {userProfile?.instagramUrl && (
-                                <a href={`https://instagram.com/${userProfile.instagramUrl.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="p-2 bg-pink-600/10 rounded-full text-pink-600 hover:scale-110 transition-transform">
-                                    <Instagram size={18} />
-                                </a>
-                            )}
+                            {userProfile?.youtubeUrl && <a href={userProfile.youtubeUrl} target="_blank" className="p-2 bg-red-600/10 rounded-full text-red-600"><Youtube size={18} /></a>}
+                            {userProfile?.instagramUrl && <a href={`https://instagram.com/${userProfile.instagramUrl.replace('@', '')}`} target="_blank" className="p-2 bg-pink-600/10 rounded-full text-pink-600"><Instagram size={18} /></a>}
                         </div>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">{userProfile?.bio || "A.snap Creator🎬"}</p>
@@ -298,7 +243,7 @@ export default function ProfilePage() {
                 {isOwnProfile ? (
                     <div className="flex gap-2 mt-6">
                         <Button className="flex-1 h-12 rounded-2xl bg-secondary/80 font-bold uppercase text-xs" onClick={() => setIsEditSheetOpen(true)}>Edit Profile</Button>
-                        <Button className="h-12 w-12 rounded-2xl bg-green-500/10 text-green-500" onClick={() => { setIsEarningsOpen(true); forceUnlockUI(); }}><Wallet className="h-5 w-5" /></Button>
+                        <Button className="h-12 w-12 rounded-2xl bg-primary/10 text-primary" onClick={() => { setIsSupportOpen(true); forceUnlockUI(); }}><HelpCircle className="h-5 w-5" /></Button>
                     </div>
                 ) : user && (
                     <div className="flex gap-2 mt-6">
@@ -315,40 +260,37 @@ export default function ProfilePage() {
                 <TabsContent value="posts" className="mt-0">
                     <div className="grid grid-cols-3 gap-0.5">
                         {posts?.map((post) => (
-                            <div 
-                                key={post.id} 
-                                className="aspect-square bg-secondary/30 relative cursor-pointer overflow-hidden group" 
-                                onClick={() => setSelectedPost(post)}
-                            >
+                            <div key={post.id} className="aspect-square bg-secondary/30 relative cursor-pointer overflow-hidden group" onClick={() => setSelectedPost(post)}>
                                 <video src={post.mediaUrl} className="w-full h-full object-cover" muted />
-                                
                                 {isOwnProfile && (
-                                    <button 
-                                        onClick={(e) => handleDeleteClickFromGrid(e, post)}
-                                        className="absolute top-2 right-2 p-2 bg-black/60 backdrop-blur-md rounded-full text-white shadow-lg border border-white/10 z-10 transition-transform active:scale-90"
-                                    >
-                                        <Trash2 size={14} className="text-red-500" />
-                                    </button>
+                                    <button onClick={(e) => handleDeleteClickFromGrid(e, post)} className="absolute top-2 right-2 p-2 bg-black/60 rounded-full text-red-500 z-10"><Trash2 size={14} /></button>
                                 )}
-
-                                {isOwnProfile && post.estimatedEarnings !== undefined && (
-                                    <div className="absolute top-2 left-2 bg-green-500/80 backdrop-blur-md px-2 py-0.5 rounded-full z-10 shadow-lg">
-                                        <p className="text-[9px] font-black text-white italic">₹{post.estimatedEarnings.toFixed(2)}</p>
-                                    </div>
-                                )}
-                                <div className="absolute bottom-2 left-2 flex items-center gap-1 text-white text-[10px] font-bold">
-                                    <Play className="h-3 w-3 fill-white" /> {post.viewCount || 0}
-                                </div>
+                                <div className="absolute bottom-2 left-2 flex items-center gap-1 text-white text-[10px] font-bold"><Play className="h-3 w-3 fill-white" /> {post.viewCount || 0}</div>
                             </div>
                         ))}
                     </div>
                 </TabsContent>
             </Tabs>
 
-            {/* Monetization Dialog */}
+            {/* Support Dialog */}
+            <Dialog open={isSupportOpen} onOpenChange={(open) => { setIsSupportOpen(open); forceUnlockUI(); }}>
+                <DialogContent className="bg-background border-white/10 p-0 rounded-[2.5rem] max-w-lg w-[95%] h-[85vh] overflow-hidden z-[300]">
+                    <DialogHeader className="sr-only"><DialogTitle>AI Support</DialogTitle></DialogHeader>
+                    <SupportChat 
+                        userProfile={userProfile} 
+                        stats={{
+                            followers: followers?.length || 0,
+                            posts: posts?.length || 0,
+                            views: earningsStats.totalViews,
+                            earnings: earningsStats.total
+                        }} 
+                    />
+                </DialogContent>
+            </Dialog>
+
             <Dialog open={isMonetizationOpen} onOpenChange={(open) => { setIsMonetizationOpen(open); forceUnlockUI(); }}>
                 <DialogContent className="bg-[#080808] border-white/10 p-0 rounded-[2.5rem] max-w-lg w-[95%] overflow-hidden h-[90vh] flex flex-col z-[200]">
-                    <DialogHeader className="p-8 border-b border-white/5 bg-gradient-to-br from-blue-500/10 via-transparent to-transparent flex flex-row items-center justify-between">
+                    <DialogHeader className="p-8 border-b border-white/5 flex flex-row items-center justify-between">
                          <div className="flex items-center gap-4 text-left">
                             <div className="p-3 bg-blue-600 rounded-2xl shadow-lg shadow-blue-500/20"><Target size={24} className="text-white fill-white" /></div>
                             <div>
@@ -356,192 +298,55 @@ export default function ProfilePage() {
                                 <p className="text-[10px] text-blue-400 font-bold uppercase tracking-[0.2em] mt-1">Status: {isMonetizationUnlocked ? "Eligible" : "Pending"}</p>
                             </div>
                          </div>
-                         <Button variant="ghost" size="icon" onClick={() => { setIsMonetizationOpen(false); forceUnlockUI(); }} className="rounded-full hover:bg-white/10">
-                           <X className="h-6 w-6" />
-                         </Button>
+                         <Button variant="ghost" size="icon" onClick={() => { setIsMonetizationOpen(false); forceUnlockUI(); }} className="rounded-full"><X className="h-6 w-6" /></Button>
                     </DialogHeader>
-
                     <div className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-hide pb-32">
-                        <div className="space-y-2">
-                            <h3 className="text-xs font-black uppercase text-muted-foreground tracking-[0.3em] mb-4">Unlock Requirements</h3>
-                            
+                        <div className="space-y-6">
                             {[
-                                { 
-                                    label: "Followers", 
-                                    current: followers?.length || 0, 
-                                    target: reqFollowers, 
-                                    isDone: hasFollowers,
-                                    icon: BadgeCheck,
-                                    color: "blue"
-                                },
-                                { 
-                                    label: "Reel Views", 
-                                    current: earningsStats.totalViews, 
-                                    target: reqViews, 
-                                    isDone: hasViews,
-                                    icon: Eye,
-                                    color: "primary"
-                                },
-                                { 
-                                    label: "Total Earnings", 
-                                    current: earningsStats.total, 
-                                    target: reqEarnings, 
-                                    isDone: hasEarnings,
-                                    icon: Wallet,
-                                    color: "green",
-                                    isCurrency: true
-                                }
+                                { label: "Followers", current: followers?.length || 0, target: reqFollowers, icon: BadgeCheck, color: "blue", isDone: (followers?.length || 0) >= reqFollowers },
+                                { label: "Reel Views", current: earningsStats.totalViews, target: reqViews, icon: Eye, color: "primary", isDone: earningsStats.totalViews >= reqViews },
+                                { label: "Earnings", current: earningsStats.total, target: reqEarnings, icon: Wallet, color: "green", isDone: earningsStats.total >= reqEarnings, isCurrency: true }
                             ].map((req, i) => (
-                                <div key={i} className={cn(
-                                    "p-6 rounded-[2rem] border transition-all duration-500",
-                                    req.isDone ? "bg-green-500/10 border-green-500/30 shadow-[0_0_30px_rgba(34,197,94,0.1)]" : "bg-secondary/20 border-white/5"
-                                )}>
+                                <div key={i} className={cn("p-6 rounded-[2rem] border", req.isDone ? "bg-green-500/10 border-green-500/30" : "bg-secondary/20 border-white/5")}>
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-3">
-                                            <div className={cn("p-2 rounded-xl", req.isDone ? "bg-green-500 text-white" : "bg-white/5 text-muted-foreground")}>
+                                            <div className={cn("p-2 rounded-xl", req.isDone ? "bg-green-500" : "bg-white/5")}>
                                                 <req.icon size={18} />
                                             </div>
                                             <span className="text-sm font-black uppercase italic">{req.label}</span>
                                         </div>
-                                        {req.isDone ? (
-                                            <div className="flex items-center gap-1.5 text-green-500 animate-in zoom-in duration-500">
-                                                <CheckCircle2 size={18} fill="currentColor" className="text-background" />
-                                                <span className="text-[10px] font-black uppercase">Complete</span>
-                                            </div>
-                                        ) : (
-                                            <span className="text-[10px] font-black text-muted-foreground uppercase">{Math.round((req.current / req.target) * 100)}%</span>
-                                        )}
+                                        {req.isDone && <CheckCircle2 size={18} className="text-green-500" />}
                                     </div>
-                                    <Progress value={(req.current / req.target) * 100} className="h-2 bg-black/40" indicatorClassName={req.isDone ? "bg-green-500" : ""} />
-                                    <div className="mt-3 flex justify-between items-baseline">
-                                        <p className="text-lg font-black">{req.isCurrency ? '₹' : ''}{req.current.toLocaleString()}</p>
-                                        <p className="text-[10px] font-bold text-muted-foreground uppercase">Target: {req.isCurrency ? '₹' : ''}{req.target.toLocaleString()}</p>
-                                    </div>
+                                    <Progress value={(req.current / req.target) * 100} className="h-2" />
                                 </div>
                             ))}
-                        </div>
-
-                        <div className={cn(
-                            "relative group p-1 rounded-[2.5rem] overflow-hidden transition-all duration-1000",
-                            isMonetizationUnlocked ? "bg-gradient-to-r from-primary via-purple-500 to-blue-500 animate-pulse" : "bg-white/5"
-                        )}>
-                            <div className="bg-background rounded-[2.4rem] p-8 text-center space-y-4">
-                                {isMonetizationUnlocked ? (
-                                    <>
-                                        <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-2 border border-primary/30 animate-bounce">
-                                            <Sparkles className="w-10 h-10 text-primary" />
-                                        </div>
-                                        <h3 className="text-2xl font-black italic uppercase tracking-tighter">Withdraw Unlocked!</h3>
-                                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest px-4">Congratulations! You are now eligible to cash out your earnings.</p>
-                                        <Button 
-                                            onClick={() => { setIsMonetizationOpen(false); setIsWithdrawOpen(true); forceUnlockUI(); }}
-                                            className="w-full h-16 bg-primary hover:bg-primary/90 text-white font-black uppercase text-sm rounded-2xl shadow-[0_15px_40px_rgba(255,51,102,0.4)] mt-4 animate-in slide-in-from-bottom-4 duration-1000"
-                                        >
-                                            Start Withdrawing
-                                        </Button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Lock className="w-12 h-12 text-muted-foreground/30 mx-auto mb-2" />
-                                        <h3 className="text-xl font-black italic uppercase text-muted-foreground">Payouts Locked</h3>
-                                        <p className="text-[10px] text-muted-foreground/60 font-bold uppercase tracking-widest leading-relaxed">Complete all requirements above to unlock secure manual payouts to Bank or PayPal.</p>
-                                        <Button disabled className="w-full h-16 bg-secondary text-muted-foreground font-black uppercase text-sm rounded-2xl mt-4 opacity-50">
-                                            Withdraw Locked
-                                        </Button>
-                                    </>
-                                )}
-                            </div>
                         </div>
                     </div>
                 </DialogContent>
             </Dialog>
 
-            {/* Creator Dashboard */}
             <Dialog open={isEarningsOpen} onOpenChange={(open) => { setIsEarningsOpen(open); forceUnlockUI(); }}>
                 <DialogContent className="bg-[#0a0a0a] border-white/10 p-0 rounded-[2.5rem] max-w-lg w-[95%] overflow-hidden h-[90vh] flex flex-col z-[200]">
-                    <DialogHeader className="p-6 border-b border-white/5 bg-gradient-to-br from-green-500/10 via-transparent to-transparent flex flex-row items-center justify-between">
+                    <DialogHeader className="p-6 border-b border-white/5 flex flex-row items-center justify-between">
                          <div className="flex items-center gap-3 text-left">
                             <div className="p-2 bg-green-500 rounded-xl"><Zap size={20} className="text-white fill-white" /></div>
-                            <div>
-                                <DialogTitle className="text-xl font-black italic uppercase tracking-tighter text-white">Creator Studio</DialogTitle>
-                                <p className="text-[10px] text-green-500 font-bold uppercase tracking-widest mt-0.5">Monetization Active</p>
-                            </div>
+                            <DialogTitle className="text-xl font-black italic uppercase text-white">Creator Studio</DialogTitle>
                          </div>
-                         <Button variant="ghost" size="icon" onClick={() => { setIsEarningsOpen(false); forceUnlockUI(); }} className="rounded-full hover:bg-white/10">
-                           <X className="h-6 w-6" />
-                         </Button>
+                         <Button variant="ghost" size="icon" onClick={() => { setIsEarningsOpen(false); forceUnlockUI(); }}><X className="h-6 w-6" /></Button>
                     </DialogHeader>
-                    <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide pb-32">
-                        <div className="bg-gradient-to-br from-green-600 to-green-900 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
-                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 mb-2">Available Balance</p>
+                    <div className="flex-1 overflow-y-auto p-6 space-y-6 pb-32">
+                        <div className="bg-gradient-to-br from-green-600 to-green-900 p-8 rounded-[2.5rem] shadow-2xl">
+                            <p className="text-[10px] font-black uppercase text-white/70 mb-2">Available Balance</p>
                             <h2 className="text-5xl font-black italic text-white tracking-tighter">₹{earningsStats.available.toFixed(2)}</h2>
-                            <div className="flex items-center gap-4 mt-6 pt-6 border-t border-white/10">
-                                <div className="flex-1"><p className="text-[9px] font-bold text-white/50 uppercase">Total Earned</p><p className="text-lg font-black text-white">₹{earningsStats.total.toFixed(2)}</p></div>
-                                <div className="flex-1"><p className="text-[9px] font-bold text-white/50 uppercase">Paid Out</p><p className="text-lg font-black text-white">₹{earningsStats.withdrawn.toFixed(2)}</p></div>
-                            </div>
-                            <Button onClick={() => { setIsWithdrawOpen(true); forceUnlockUI(); }} className="w-full mt-6 h-12 bg-white text-black hover:bg-white/90 font-black uppercase rounded-2xl" disabled={!isMonetizationUnlocked || earningsStats.available < 1}>Withdraw Funds</Button>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-secondary/20 p-5 rounded-3xl border border-white/5 text-center"><TrendingUp size={16} className="text-blue-400 mx-auto mb-2" /><p className="text-2xl font-black">{earningsStats.totalViews.toLocaleString()}</p><p className="text-[9px] font-bold text-muted-foreground uppercase">Views</p></div>
-                            <div className="bg-secondary/20 p-5 rounded-3xl border border-white/5 text-center"><Eye size={16} className="text-primary mx-auto mb-2" /><p className="text-2xl font-black">{earningsStats.impressions.toLocaleString()}</p><p className="text-[9px] font-bold text-muted-foreground uppercase">Ad Impressions</p></div>
-                        </div>
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-2 mb-2"><History size={16} className="text-muted-foreground" /><h3 className="text-xs font-black uppercase tracking-wider">Payment History</h3></div>
-                            {userPayouts?.map(p => (
-                                <div key={p.id} className="bg-black/40 p-4 rounded-2xl border border-white/5 flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-secondary rounded-lg"><CreditCard size={14} /></div>
-                                        <div><p className="text-sm font-black text-white">₹{p.amount.toFixed(2)}</p><p className="text-[9px] text-muted-foreground uppercase">{p.method}</p></div>
-                                    </div>
-                                    <div className={cn(
-                                        "px-3 py-1 rounded-full text-[8px] font-black uppercase",
-                                        p.status === 'pending' ? "bg-yellow-500/20 text-yellow-500" :
-                                        p.status === 'paid' ? "bg-green-500/20 text-green-500" : "bg-destructive/20 text-destructive"
-                                    )}>{p.status}</div>
-                                </div>
-                            ))}
+                            <Button onClick={() => { setIsWithdrawOpen(true); forceUnlockUI(); }} className="w-full mt-6 h-12 bg-white text-black font-black uppercase rounded-2xl" disabled={!isMonetizationUnlocked || earningsStats.available < 1}>Withdraw</Button>
                         </div>
                     </div>
-                </DialogContent>
-            </Dialog>
-
-            {/* Withdrawal Dialog */}
-            <Dialog open={isWithdrawOpen} onOpenChange={(open) => { setIsWithdrawOpen(open); forceUnlockUI(); }}>
-                <DialogContent className="bg-[#0a0a0a] border-white/10 rounded-[2.5rem] max-w-lg w-[95%] z-[300]">
-                    <DialogHeader><DialogTitle className="text-xl font-black italic uppercase text-center mb-2">Request Cash Out</DialogTitle></DialogHeader>
-                    <div className="space-y-6 mt-6">
-                        <RadioGroup value={withdrawMethod} onValueChange={(v: any) => setWithdrawMethod(v)} className="flex gap-4">
-                            <div className={cn("flex-1 flex items-center justify-center gap-2 p-4 rounded-2xl border transition-all cursor-pointer", withdrawMethod === 'bank' ? "border-primary bg-primary/10" : "border-white/5 bg-secondary/20")}>
-                                <RadioGroupItem value="bank" id="bank" className="sr-only" /><Label htmlFor="bank" className="flex items-center gap-2 cursor-pointer font-bold"><CreditCard size={16} /> Bank</Label>
-                            </div>
-                            <div className={cn("flex-1 flex items-center justify-center gap-2 p-4 rounded-2xl border transition-all cursor-pointer", withdrawMethod === 'paypal' ? "border-primary bg-primary/10" : "border-white/5 bg-secondary/20")}>
-                                <RadioGroupItem value="paypal" id="paypal" className="sr-only" /><Label htmlFor="paypal" className="flex items-center gap-2 cursor-pointer font-bold"><DollarSign size={16} /> PayPal</Label>
-                            </div>
-                        </RadioGroup>
-                        <Input type="number" placeholder="Amount (₹)" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} className="h-14 bg-secondary/40 border-white/10 rounded-2xl font-black text-xl text-center" />
-                        {withdrawMethod === 'bank' ? (
-                            <div className="space-y-4">
-                                <Input placeholder="A/C Holder Name" value={payoutDetails.holderName} onChange={(e) => setPayoutDetails({...payoutDetails, holderName: e.target.value})} className="h-12 bg-secondary/40 border-white/5 rounded-xl" />
-                                <Input placeholder="Bank Account Number" value={payoutDetails.accountNo} onChange={(e) => setPayoutDetails({...payoutDetails, accountNo: e.target.value})} className="h-12 bg-secondary/40 border-white/5 rounded-xl" />
-                                <Input placeholder="Bank IFSC Code" value={payoutDetails.ifsc} onChange={(e) => setPayoutDetails({...payoutDetails, ifsc: e.target.value})} className="h-12 bg-secondary/40 border-white/5 rounded-xl" />
-                            </div>
-                        ) : (
-                            <Input placeholder="PayPal Email Address" value={payoutDetails.paypalEmail} onChange={(e) => setPayoutDetails({...payoutDetails, paypalEmail: e.target.value})} className="h-12 bg-secondary/40 border-white/5 rounded-xl" />
-                        )}
-                    </div>
-                    <DialogFooter className="mt-8 flex gap-3 sm:flex-row">
-                        <Button variant="ghost" onClick={() => { setIsWithdrawOpen(false); forceUnlockUI(); }} className="flex-1 h-14 rounded-2xl font-black uppercase text-xs">Cancel</Button>
-                        <Button onClick={handleWithdrawRequest} disabled={isSubmitting || !withdrawAmount} className="flex-1 bg-primary hover:bg-primary/90 rounded-xl h-14 font-black uppercase text-xs">
-                            {isSubmitting ? <Loader2 className="animate-spin h-5 w-5" /> : "Submit Request"}
-                        </Button>
-                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 
             <EditProfileSheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen} userProfile={userProfile} />
-            
             <Dialog open={!!selectedPost} onOpenChange={(isOpen) => { setSelectedPost(isOpen ? selectedPost : null); forceUnlockUI(); }}>
-                <DialogContent className="p-0 border-0 bg-black w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center overflow-hidden z-[200]">
+                <DialogContent className="p-0 border-0 bg-black w-full max-w-lg h-screen flex items-center justify-center overflow-hidden z-[200]">
                     <DialogTitle className="sr-only">Post Preview</DialogTitle>
                     {selectedPost && <PostCard post={selectedPost} isFocused />}
                 </DialogContent>
@@ -549,13 +354,10 @@ export default function ProfilePage() {
 
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={(open) => { setIsDeleteDialogOpen(open); forceUnlockUI(); }}>
                 <AlertDialogContent className="bg-[#121212] text-white rounded-[2.5rem] border-white/10 z-[300]">
-                    <AlertDialogHeader>
-                        <AlertDialogTitle className="text-center font-black uppercase italic tracking-wider text-xl">Delete Post?</AlertDialogTitle>
-                        <AlertDialogDescription className="text-center text-muted-foreground text-xs font-bold uppercase tracking-widest mt-2">This action cannot be undone.</AlertDialogDescription>
-                    </AlertDialogHeader>
+                    <AlertDialogHeader><AlertDialogTitle className="text-center font-black uppercase italic">Delete Post?</AlertDialogTitle></AlertDialogHeader>
                     <AlertDialogFooter className="flex-col gap-3 sm:flex-row mt-8">
                         <AlertDialogCancel onClick={() => forceUnlockUI()} className="rounded-2xl bg-secondary/50 h-14 font-black border-none uppercase text-xs flex-1">Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90 rounded-2xl h-14 font-black uppercase text-xs flex-1">Delete</AlertDialogAction>
+                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive rounded-2xl h-14 font-black uppercase text-xs flex-1">Delete</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
