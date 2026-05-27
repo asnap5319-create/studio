@@ -1,8 +1,14 @@
 
 'use server';
 
+/**
+ * @fileOverview A.snap AI Support Flow
+ * Handles user queries with channel stats analysis.
+ */
+
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const SupportInputSchema = z.object({
   query: z.string().describe('The user query or concern.'),
@@ -21,39 +27,54 @@ const SupportOutputSchema = z.object({
 });
 
 export async function getAiSupport(input: z.infer<typeof SupportInputSchema>) {
-  const flow = ai.defineFlow(
+  const supportFlow = ai.defineFlow(
     {
       name: 'supportFlow',
       inputSchema: SupportInputSchema,
       outputSchema: SupportOutputSchema,
     },
     async (input) => {
-      const { output } = await ai.generate({
-        prompt: `You are the A.snap AI Support Assistant. Your goal is to help users succeed on the platform.
+      try {
+        const { output } = await ai.generate({
+          // Backup के तौर पर 1.5-flash का इस्तेमाल ताकि 503 एरर कम आए
+          model: googleAI.model('gemini-1.5-flash'),
+          prompt: `You are the A.snap AI Support Assistant. Your goal is to help users succeed on the platform.
         
-        User: ${input.userName}
-        Stats:
-        - Followers: ${input.stats.followers}
-        - Posts: ${input.stats.posts}
-        - Total Views: ${input.stats.views}
-        - Current Earnings: ₹${input.stats.earnings}
+          User: ${input.userName}
+          Stats:
+          - Followers: ${input.stats.followers}
+          - Posts: ${input.stats.posts}
+          - Total Views: ${input.stats.views}
+          - Current Earnings: ₹${input.stats.earnings}
 
-        Platform Rules:
-        - Monetization unlocks at 50 followers, 2000 views, and ₹100 earnings.
-        - High quality reels with captions perform better.
+          Platform Rules:
+          - Monetization unlocks at 50 followers, 2000 views, and ₹100 earnings.
+          - High quality reels with captions perform better.
 
-        Instruction: 
-        1. Greet the user warmly.
-        2. Address their specific query: "${input.query}"
-        3. Analyze their stats and tell them what's missing (kami) in their channel.
-        4. Provide actionable suggestions in Hindi or English (Hinglish is preferred as users are from India).
+          Instruction: 
+          1. Greet the user warmly in Hindi/Hinglish.
+          2. Address their specific query: "${input.query}"
+          3. Analyze their stats and tell them what's missing (kami) in their channel to reach monetization.
+          4. Provide 3 actionable suggestions in Hinglish.
         
-        Keep it professional, encouraging, and concise.`,
-        output: { schema: SupportOutputSchema }
-      });
-      return output!;
+          Keep it professional, encouraging, and concise.`,
+          output: { schema: SupportOutputSchema }
+        });
+
+        if (!output) {
+          throw new Error('AI failed to generate a response.');
+        }
+
+        return output;
+      } catch (error: any) {
+        console.error("Flow execution error:", error);
+        return {
+          response: "माफी चाहता हूँ, अभी मेरे सर्वर पर बहुत लोड है। कृपया कुछ देर बाद फिर से प्रयास करें।",
+          suggestions: ["इंटरनेट कनेक्शन चेक करें", "कुछ देर इंतज़ार करें"]
+        };
+      }
     }
   );
 
-  return flow(input);
+  return supportFlow(input);
 }

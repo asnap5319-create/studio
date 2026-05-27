@@ -3,17 +3,17 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useUser, useFirebase } from '@/firebase';
-import { collection, addDoc, serverTimestamp, doc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getAiSupport } from '@/ai/flows/support-flow';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Send, Sparkles, MessageCircle, Info } from 'lucide-react';
+import { Loader2, Send, Sparkles, Info, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 interface Message {
-  role: 'user' | 'ai';
+  role: 'user' | 'ai' | 'error';
   text: string;
 }
 
@@ -39,8 +39,11 @@ export function SupportChat({ userProfile, stats }: SupportChatProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages]);
+    if (scrollRef.current) {
+        const scrollContainer = scrollRef.current.closest('.os-viewport') || scrollRef.current;
+        scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior: 'smooth' });
+    }
+  }, [messages, isLoading]);
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -58,7 +61,7 @@ export function SupportChat({ userProfile, stats }: SupportChatProps) {
         stats: stats
       });
 
-      const responseText = aiResult.response + "\n\n" + aiResult.suggestions.map(s => `• ${s}`).join('\n');
+      const responseText = aiResult.response + "\n\n" + (aiResult.suggestions?.map(s => `• ${s}`).join('\n') || "");
       
       setMessages(prev => [...prev, { role: 'ai', text: responseText }]);
 
@@ -79,9 +82,13 @@ export function SupportChat({ userProfile, stats }: SupportChatProps) {
           }
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("AI Support Error:", error);
-      toast({ variant: 'destructive', title: "Connection Error", description: "AI is sleeping. Try again later." });
+      setMessages(prev => [...prev, { 
+        role: 'error', 
+        text: "ओह! गूगल के सर्वर अभी बहुत बिजी हैं (503 Error)। कृपया 1-2 मिनट बाद दोबारा मैसेज भेजें। आपकी मेहनत बेकार नहीं जाएगी! 🙏" 
+      }]);
+      toast({ variant: 'destructive', title: "Server Busy", description: "Google AI is currently overloaded. Please retry in a bit." });
     } finally {
       setIsLoading(false);
     }
@@ -114,11 +121,23 @@ export function SupportChat({ userProfile, stats }: SupportChatProps) {
               "max-w-[85%] p-4 rounded-[20px] text-sm leading-relaxed shadow-sm",
               m.role === 'user' 
                 ? "ml-auto bg-primary text-white rounded-tr-none" 
+                : m.role === 'error'
+                ? "mr-auto bg-destructive/10 text-destructive border border-destructive/20 rounded-tl-none"
                 : "mr-auto bg-secondary/50 text-white rounded-tl-none border border-white/5"
             )}>
               {m.text.split('\n').map((line, li) => (
                 <p key={li} className={line.startsWith('•') ? "ml-2" : ""}>{line}</p>
               ))}
+              {m.role === 'error' && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => handleSendMessage()} 
+                    className="mt-2 h-7 text-[10px] uppercase font-bold text-destructive hover:bg-destructive/10"
+                  >
+                    <RefreshCw size={10} className="mr-1" /> Retry
+                  </Button>
+              )}
             </div>
           ))}
           {isLoading && (
@@ -134,7 +153,7 @@ export function SupportChat({ userProfile, stats }: SupportChatProps) {
       <form onSubmit={handleSendMessage} className="p-4 border-t border-white/5 bg-background/80 backdrop-blur-md">
         <div className="flex gap-2">
           <Input 
-            placeholder="Ask anything... (e.g. Channel kaise improve kare?)" 
+            placeholder="Ask anything..." 
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             disabled={isLoading}
@@ -143,7 +162,7 @@ export function SupportChat({ userProfile, stats }: SupportChatProps) {
           <Button 
             type="submit" 
             disabled={!inputText.trim() || isLoading}
-            className="h-12 w-12 rounded-2xl bg-primary shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+            className="h-12 w-12 rounded-2xl bg-primary shadow-lg shadow-primary/20 hover:scale-105 active:scale-90 transition-all"
           >
             <Send size={18} />
           </Button>

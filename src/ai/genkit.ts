@@ -6,5 +6,6 @@ export const ai = genkit({
   plugins: [
     googleAI(),
   ],
-  model: googleAI.model('gemini-2.5-flash'),
+  // Stability के लिए gemini-1.5-flash का इस्तेमाल किया जा रहा है अगर 2.5 पर लोड ज़्यादा है
+  model: googleAI.model('gemini-1.5-flash'),
 });
