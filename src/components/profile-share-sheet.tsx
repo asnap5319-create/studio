@@ -1,9 +1,3 @@
-'use server';
-/**
- * @fileOverview Profile Share Sheet Component.
- * Handles sharing a user profile internally to friends and externally via Web Share API.
- */
-
 'use client';
 
 import { useState } from 'react';
@@ -12,7 +6,7 @@ import { collection, query, where, limit, doc, serverTimestamp, setDoc, addDoc }
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search, Send, Check, Share2, MessageCircle } from 'lucide-react';
+import { Search, Send, Check, Share2 } from 'lucide-react';
 import type { UserProfile } from '@/models/user';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -97,7 +91,6 @@ export function ProfileShareSheet({ targetUserId, targetUsername, targetProfileI
         console.error("Native share failed", err);
       }
     } else {
-      // Fallback: Copy link
       await navigator.clipboard.writeText(shareData.url);
       toast({ title: "Link Copied!", description: "Share it on WhatsApp or Instagram." });
     }
