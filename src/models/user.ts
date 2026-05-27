@@ -9,4 +9,6 @@ export type UserProfile = {
   bio?: string;
   fcmToken?: string; // Token for push notifications
   updatedAt?: any;
+  youtubeUrl?: string;
+  instagramUrl?: string;
 };

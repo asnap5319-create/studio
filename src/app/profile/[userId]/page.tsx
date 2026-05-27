@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, addDoc, where } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck, Wallet, Eye, Zap, TrendingUp, Calendar, X, CreditCard, DollarSign, History, AlertCircle, CheckCircle2, Lock, Sparkles, Target } from "lucide-react";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck, Wallet, Eye, Zap, TrendingUp, Calendar, X, CreditCard, DollarSign, History, AlertCircle, CheckCircle2, Lock, Sparkles, Target, Youtube, Instagram } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -117,7 +117,6 @@ export default function ProfilePage() {
     const hasEarnings = earningsStats.total >= reqEarnings;
     const isMonetizationUnlocked = hasFollowers && hasViews && hasEarnings;
 
-    // Force unlock UI by ensuring body pointer-events are auto
     const forceUnlockUI = () => {
         if (typeof document !== 'undefined') {
             document.body.style.pointerEvents = 'auto';
@@ -277,7 +276,24 @@ export default function ProfilePage() {
                         <Link href={`/profile/${userId}/following`} className="flex flex-col hover:opacity-70"><p className="font-black text-xl">{following?.length || 0}</p><p className="text-[10px] uppercase font-bold text-muted-foreground">Following</p></Link>
                     </div>
                 </div>
-                <div className="mt-4"><p className="font-bold text-lg">{userProfile?.name}</p><p className="text-sm text-muted-foreground">{userProfile?.bio || "A.snap Creator🎬"}</p></div>
+                <div className="mt-4">
+                    <div className="flex items-center justify-between">
+                        <p className="font-bold text-lg">{userProfile?.name}</p>
+                        <div className="flex gap-3">
+                            {userProfile?.youtubeUrl && (
+                                <a href={userProfile.youtubeUrl} target="_blank" rel="noopener noreferrer" className="p-2 bg-red-600/10 rounded-full text-red-600 hover:scale-110 transition-transform">
+                                    <Youtube size={18} />
+                                </a>
+                            )}
+                            {userProfile?.instagramUrl && (
+                                <a href={`https://instagram.com/${userProfile.instagramUrl.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="p-2 bg-pink-600/10 rounded-full text-pink-600 hover:scale-110 transition-transform">
+                                    <Instagram size={18} />
+                                </a>
+                            )}
+                        </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">{userProfile?.bio || "A.snap Creator🎬"}</p>
+                </div>
                 
                 {isOwnProfile ? (
                     <div className="flex gap-2 mt-6">
@@ -349,7 +365,6 @@ export default function ProfilePage() {
                         <div className="space-y-2">
                             <h3 className="text-xs font-black uppercase text-muted-foreground tracking-[0.3em] mb-4">Unlock Requirements</h3>
                             
-                            {/* Requirement Cards */}
                             {[
                                 { 
                                     label: "Followers", 
@@ -406,7 +421,6 @@ export default function ProfilePage() {
                             ))}
                         </div>
 
-                        {/* Withdraw Section */}
                         <div className={cn(
                             "relative group p-1 rounded-[2.5rem] overflow-hidden transition-all duration-1000",
                             isMonetizationUnlocked ? "bg-gradient-to-r from-primary via-purple-500 to-blue-500 animate-pulse" : "bg-white/5"

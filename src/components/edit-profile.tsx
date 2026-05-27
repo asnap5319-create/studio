@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, ChangeEvent, useRef } from 'react';
@@ -16,6 +17,7 @@ import { useFirebase, useUser } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/models/user';
+import { Youtube, Instagram, Globe } from 'lucide-react';
 
 interface EditProfileSheetProps {
   open: boolean;
@@ -31,6 +33,8 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
   const [name, setName] = useState(userProfile?.name || '');
   const [username, setUsername] = useState(userProfile?.username || '');
   const [bio, setBio] = useState(userProfile?.bio || '');
+  const [youtubeUrl, setYoutubeUrl] = useState(userProfile?.youtubeUrl || '');
+  const [instagramUrl, setInstagramUrl] = useState(userProfile?.instagramUrl || '');
   const [isSaving, setIsSaving] = useState(false);
   
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -43,6 +47,8 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
       setName(userProfile.name || '');
       setUsername(userProfile.username || '');
       setBio(userProfile.bio || '');
+      setYoutubeUrl(userProfile.youtubeUrl || '');
+      setInstagramUrl(userProfile.instagramUrl || '');
       setImagePreviewUrl(userProfile.profileImageUrl || '');
       setImageFile(null);
     }
@@ -97,6 +103,8 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         username: username.trim(),
         username_lowercase: username.trim().toLowerCase(),
         bio: bio.trim(),
+        youtubeUrl: youtubeUrl.trim(),
+        instagramUrl: instagramUrl.trim(),
         profileImageUrl,
       }, { merge: true });
 
@@ -159,9 +167,41 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
                 value={bio} 
                 onChange={(e) => setBio(e.target.value)} 
                 placeholder="Tell us about yourself..."
-                className="min-h-[120px] bg-secondary/50 border-white/10 rounded-xl resize-none"
+                className="min-h-[100px] bg-secondary/50 border-white/10 rounded-xl resize-none"
                 disabled={isSaving}
               />
+            </div>
+
+            <div className="space-y-4 pt-4 border-t border-white/5">
+               <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary">Social Links</h3>
+               
+               <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-[9px] font-bold uppercase text-muted-foreground flex items-center gap-2">
+                      <Youtube className="h-3 w-3 text-red-500" /> YouTube Channel URL
+                    </Label>
+                    <Input 
+                      value={youtubeUrl} 
+                      onChange={(e) => setYoutubeUrl(e.target.value)} 
+                      placeholder="https://youtube.com/@yourchannel"
+                      disabled={isSaving} 
+                      className="h-12 bg-secondary/50 border-white/10 rounded-xl text-xs" 
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-[9px] font-bold uppercase text-muted-foreground flex items-center gap-2">
+                      <Instagram className="h-3 w-3 text-pink-500" /> Instagram Username
+                    </Label>
+                    <Input 
+                      value={instagramUrl} 
+                      onChange={(e) => setInstagramUrl(e.target.value)} 
+                      placeholder="@yourusername"
+                      disabled={isSaving} 
+                      className="h-12 bg-secondary/50 border-white/10 rounded-xl text-xs" 
+                    />
+                  </div>
+               </div>
             </div>
           </div>
         </div>
