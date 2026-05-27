@@ -78,21 +78,27 @@ export function ProfileShareSheet({ targetUserId, targetUsername, targetProfileI
   };
 
   const handleExternalShare = async () => {
+    const shareUrl = window.location.origin + `/profile/${targetUserId}`;
     const shareData = {
       title: `A.snap - @${targetUsername}`,
       text: `Check out @${targetUsername} on A.snap! 🎬`,
-      url: window.location.origin + `/profile/${targetUserId}`,
+      url: shareUrl,
     };
 
-    if (navigator.share) {
-      try {
+    try {
+      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
         await navigator.share(shareData);
-      } catch (err) {
-        console.error("Native share failed", err);
+      } else {
+        throw new Error('Native share not supported or blocked');
       }
-    } else {
-      await navigator.clipboard.writeText(shareData.url);
-      toast({ title: "Link Copied!", description: "Share it on WhatsApp or Instagram." });
+    } catch (err) {
+      console.warn("Native share failed, falling back to clipboard:", err);
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        toast({ title: "Link Copied! 🔗", description: "Now you can paste it on WhatsApp or Instagram." });
+      } catch (clipErr) {
+        toast({ variant: "destructive", title: "Share Failed", description: "Could not copy link." });
+      }
     }
   };
 
@@ -101,7 +107,7 @@ export function ProfileShareSheet({ targetUserId, targetUsername, targetProfileI
       <div className="p-6 border-b border-white/5 space-y-4">
         <div className="flex items-center justify-between">
             <h3 className="font-black italic uppercase text-lg">Share Profile</h3>
-            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">✕</Button>
+            <button onClick={onClose} className="p-2 hover:bg-secondary rounded-full transition-colors">✕</button>
         </div>
         
         <div className="relative">
