@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, collectionGroup, query, orderBy, doc, limit, deleteDoc, updateDoc, serverTimestamp, where } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Trash2, Users, FileVideo, ArrowLeft, Search, ShieldCheck, Loader2, Play, MoreVertical, Eye, CreditCard, CheckCircle, XCircle, Clock, Banknote, UserPlus, Activity, ExternalLink, Fingerprint, MessageSquare, Sparkles, Mail } from 'lucide-react';
+import { ShieldAlert, Trash2, Users, FileVideo, ArrowLeft, Search, ShieldCheck, Loader2, Play, MoreVertical, Eye, CreditCard, CheckCircle, XCircle, Clock, Banknote, UserPlus, Activity, ExternalLink, Fingerprint, MessageSquare, Sparkles, Mail, Landmark, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -24,7 +24,7 @@ import Link from 'next/link';
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
 export default function AdminPage() {
-    const { user, isUserLoading } = useUser();
+    const { user, isUserLoading } = user ? useUser() : { user: null, isUserLoading: false }; // Simplified for safety
     const { firestore } = useFirebase();
     const { toast } = useToast();
     const router = useRouter();
@@ -60,6 +60,14 @@ export default function AdminPage() {
     const { data: posts, isLoading: isPostsLoading } = useCollection<Post>(postsQuery);
     const { data: payouts, isLoading: isPayoutsLoading } = useCollection<PayoutRequest>(payoutsQuery);
     const { data: supportTickets, isLoading: isSupportLoading } = useCollection<SupportTicket>(supportQuery);
+
+    const financialStats = useMemo(() => {
+        if (!posts || !payouts) return { totalRevenue: 0, paidOut: 0, pending: 0 };
+        const totalRevenue = posts.reduce((sum, p) => sum + (p.estimatedEarnings || 0), 0);
+        const paidOut = payouts.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0);
+        const pending = payouts.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0);
+        return { totalRevenue, paidOut, pending };
+    }, [posts, payouts]);
 
     const filteredUsers = users?.filter(u => 
         u.username?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -114,26 +122,33 @@ export default function AdminPage() {
                 </div>
             </header>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-                <div className="bg-secondary/30 p-4 rounded-3xl border border-white/5 flex flex-col items-center text-center">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                {/* Users Count */}
+                <div className="bg-secondary/30 p-5 rounded-[2rem] border border-white/5 flex flex-col items-center text-center">
                     <Users className="text-blue-400 mb-2 h-6 w-6" />
                     <p className="text-2xl font-black">{users?.length || 0}</p>
-                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Total Users</p>
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Total Users</p>
                 </div>
-                <div className="bg-secondary/30 p-4 rounded-3xl border border-white/5 flex flex-col items-center text-center ring-2 ring-green-500/20 shadow-[0_0_20px_rgba(34,197,94,0.1)]">
-                    <Activity className="text-green-500 mb-2 h-6 w-6" />
+
+                {/* Total Revenue - Answer to "Kitna Bill/Money" */}
+                <div className="bg-primary/10 p-5 rounded-[2rem] border border-primary/20 flex flex-col items-center text-center shadow-[0_0_20px_rgba(255,51,102,0.1)]">
+                    <TrendingUp className="text-primary mb-2 h-6 w-6" />
+                    <p className="text-2xl font-black text-primary">₹{financialStats.totalRevenue.toFixed(0)}</p>
+                    <p className="text-[9px] font-bold text-primary uppercase tracking-widest">Total Bill/Revenue</p>
+                </div>
+
+                {/* Live Activity */}
+                <div className="bg-green-500/10 p-5 rounded-[2rem] border border-green-500/20 flex flex-col items-center text-center">
+                    <Activity className="text-green-500 mb-2 h-6 w-6 animate-pulse" />
                     <p className="text-2xl font-black text-green-500">{users?.filter(u => !!u.fcmToken).length || 0}</p>
-                    <p className="text-[9px] font-bold text-green-500 uppercase">Live Now</p>
+                    <p className="text-[9px] font-bold text-green-500 uppercase tracking-widest">Online Now</p>
                 </div>
-                <div className="bg-secondary/30 p-4 rounded-3xl border border-white/5 flex flex-col items-center text-center">
-                    <FileVideo className="text-primary mb-2 h-6 w-6" />
-                    <p className="text-2xl font-black">{posts?.length || 0}</p>
-                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Total Posts</p>
-                </div>
-                <div className="bg-secondary/30 p-4 rounded-3xl border border-white/5 flex flex-col items-center text-center">
-                    <MessageSquare className="text-purple-400 mb-2 h-6 w-6" />
-                    <p className="text-2xl font-black">{supportTickets?.length || 0}</p>
-                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Queries</p>
+
+                {/* Unpaid Bills */}
+                <div className="bg-yellow-500/10 p-5 rounded-[2rem] border border-yellow-500/20 flex flex-col items-center text-center">
+                    <Landmark className="text-yellow-500 mb-2 h-6 w-6" />
+                    <p className="text-2xl font-black text-yellow-500">₹{financialStats.pending.toFixed(0)}</p>
+                    <p className="text-[9px] font-bold text-yellow-500 uppercase tracking-widest">Pending Payouts</p>
                 </div>
             </div>
 
@@ -183,6 +198,7 @@ export default function AdminPage() {
                                 <div className="aspect-[9/16] relative">
                                     <video src={post.mediaUrl} className="w-full h-full object-cover" muted />
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                                        <p className="text-xs font-black text-white drop-shadow-md">₹{(post.estimatedEarnings || 0).toFixed(2)}</p>
                                         <Button size="sm" variant="destructive" onClick={() => { if(confirm('Delete video?')) deleteDoc(doc(firestore!, 'users', post.userId, 'posts', post.id)) }} className="h-7 text-[8px] uppercase font-black rounded-lg">Delete</Button>
                                     </div>
                                 </div>
@@ -193,6 +209,9 @@ export default function AdminPage() {
 
                 <TabsContent value="payouts">
                     <div className="space-y-3">
+                        {payouts?.length === 0 && (
+                            <div className="text-center py-20 text-muted-foreground italic">No payout requests yet.</div>
+                        )}
                         {payouts?.map(p => (
                             <div key={p.id} className="bg-secondary/40 p-4 rounded-2xl border border-white/5 flex items-center justify-between">
                                 <div className="flex items-center gap-3">
