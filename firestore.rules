@@ -52,14 +52,16 @@ service cloud.firestore {
       allow write, create: if isAuthenticated();
     }
 
+    // Secure Messages: Only sender or recipient can read
     match /{path=**}/messages/{messageId} {
       allow read: if isAdmin() || (isAuthenticated() && (
         request.auth.uid == resource.data.recipientId || 
-        request.auth.uid == request.auth.uid
+        request.auth.uid == resource.data.senderId
       ));
       allow write, create: if isAuthenticated();
     }
 
+    // Secure Chats: Only participants can read
     match /chats/{chatId} {
       allow read, write: if isAuthenticated() && (request.auth.uid in chatId.split('_') || isAdmin());
     }
