@@ -79,6 +79,8 @@ export function ProfileShareSheet({ targetUserId, targetUsername, targetProfileI
 
   const handleExternalShare = async () => {
     const shareUrl = window.location.origin + `/profile/${targetUserId}`;
+    const shareText = `Check out @${targetUsername} on A.snap! 🎬\n\n${shareUrl}`;
+    
     const shareData = {
       title: `A.snap - @${targetUsername}`,
       text: `Check out @${targetUsername} on A.snap! 🎬`,
@@ -86,19 +88,18 @@ export function ProfileShareSheet({ targetUserId, targetUsername, targetProfileI
     };
 
     try {
-      // Check if navigator.share is available AND not blocked by iframe/security
       if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare && navigator.canShare(shareData)) {
         await navigator.share(shareData);
       } else {
-        throw new Error('Native share not supported or blocked');
+        throw new Error('Native share not supported');
       }
     } catch (err) {
       console.warn("Native share failed, falling back to clipboard:", err);
       try {
-        await navigator.clipboard.writeText(shareUrl);
-        toast({ title: "Link Copied! 🔗", description: "Paste it on WhatsApp or Instagram." });
+        await navigator.clipboard.writeText(shareText);
+        toast({ title: "Profile Message Copied! 🔗", description: "Now paste it on WhatsApp or Instagram." });
       } catch (clipErr) {
-        toast({ variant: "destructive", title: "Share Failed", description: "Could not copy link." });
+        toast({ variant: "destructive", title: "Share Failed", description: "Could not copy message." });
       }
     }
   };
@@ -123,7 +124,7 @@ export function ProfileShareSheet({ targetUserId, targetUsername, targetProfileI
 
         <Button 
             onClick={handleExternalShare}
-            className="w-full h-14 bg-primary/10 text-primary font-black uppercase rounded-2xl flex items-center justify-center gap-3 border border-primary/20 hover:bg-primary/20 transition-all"
+            className="w-full h-14 bg-primary text-white font-black uppercase rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
         >
             <Copy size={20} /> Copy Profile Link
         </Button>
