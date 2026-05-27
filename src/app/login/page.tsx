@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,7 @@ import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useFirebase, useUser } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Loader2, ShieldCheck, AlertCircle } from "lucide-react";
 
 /**
  * Premium Logo for A.snap login page.
@@ -68,7 +67,6 @@ function LoginForm() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       
-      // Check if user profile exists, if not create it
       const userDocRef = doc(firestore, "users", user.uid);
       const userDoc = await getDoc(userDocRef);
       
@@ -90,7 +88,11 @@ function LoginForm() {
       router.push('/');
     } catch (error: any) {
       console.error("Google login error:", error);
-      toast({ title: "Google Login Failed", description: error.message, variant: "destructive" });
+      let errorMsg = error.message;
+      if (error.code === 'auth/operation-not-allowed') {
+        errorMsg = "Google Sign-in is not enabled in Firebase Console. Please enable it in Authentication > Sign-in method.";
+      }
+      toast({ title: "Google Login Failed", description: errorMsg, variant: "destructive" });
     } finally {
       setIsGoogleLoading(false);
     }

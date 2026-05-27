@@ -1,4 +1,3 @@
-
 'use client';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { doc, serverTimestamp, setDoc, getDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword, UserCredential, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { Camera, Loader2 } from "lucide-react";
+import { Camera, Loader2, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, ChangeEvent } from "react";
@@ -64,7 +63,11 @@ export default function SignupPage() {
       router.push('/');
     } catch (error: any) {
       console.error("Google signup error:", error);
-      toast({ title: "Google Signup Failed", description: error.message, variant: "destructive" });
+      let errorMsg = error.message;
+      if (error.code === 'auth/operation-not-allowed') {
+        errorMsg = "Google Sign-in is not enabled in Firebase Console. Please enable it in Authentication > Sign-in method.";
+      }
+      toast({ title: "Google Signup Failed", description: errorMsg, variant: "destructive" });
     } finally {
       setIsGoogleLoading(false);
     }
@@ -217,7 +220,7 @@ export default function SignupPage() {
                         </AvatarFallback>
                     </Avatar>
                 </label>
-                <Input id="photo-upload" type="file" className="hidden" accept="image/*" onChange={handleFileChange} disabled={isLoading}/>
+                <input id="photo-upload" type="file" className="hidden" accept="image/*" onChange={handleFileChange} disabled={isLoading}/>
             </div>
         </div>
         
