@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, addDoc, where } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck, Wallet, Eye, Zap, TrendingUp, Calendar, X, CreditCard, DollarSign, History, AlertCircle, CheckCircle2, Lock, Sparkles, Target, Youtube, Instagram, HelpCircle } from "lucide-react";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck, Wallet, Eye, Zap, TrendingUp, Calendar, X, CreditCard, DollarSign, History, AlertCircle, CheckCircle2, Lock, Sparkles, Target, Youtube, Instagram, HelpCircle, Share2 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -26,6 +25,8 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
 import { SupportChat } from "@/components/support-chat";
+import { ProfileShareSheet } from "@/components/profile-share-sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
@@ -45,6 +46,7 @@ export default function ProfilePage() {
     const [isMonetizationOpen, setIsMonetizationOpen] = useState(false);
     const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
     const [isSupportOpen, setIsSupportOpen] = useState(false);
+    const [isShareSheetOpen, setIsShareSheetOpen] = useState(false);
     const [withdrawAmount, setWithdrawAmount] = useState('');
     const [withdrawMethod, setWithdrawMethod] = useState<'bank' | 'paypal'>('bank');
     const [payoutDetails, setPayoutDetails] = useState({ accountNo: '', ifsc: '', holderName: '', paypalEmail: '' });
@@ -117,7 +119,7 @@ export default function ProfilePage() {
 
     useEffect(() => {
         forceUnlockUI();
-    }, [isEarningsOpen, isWithdrawOpen, isDeleteDialogOpen, selectedPost, isEditSheetOpen, isMonetizationOpen, isSupportOpen]);
+    }, [isEarningsOpen, isWithdrawOpen, isDeleteDialogOpen, selectedPost, isEditSheetOpen, isMonetizationOpen, isSupportOpen, isShareSheetOpen]);
 
     const handleWithdrawRequest = async () => {
         if (!firestore || !user || !isOwnProfile) return;
@@ -188,33 +190,40 @@ export default function ProfilePage() {
                     <h1 className="text-xl font-bold">{userProfile?.username}</h1>
                     {isProfileAdmin && <BadgeCheck className="h-5 w-5 text-blue-400 fill-blue-400/20" />}
                 </div>
-                {isOwnProfile && (
+                <div className="flex items-center gap-2">
                     <DropdownMenu onOpenChange={() => forceUnlockUI()}>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="rounded-full"><MoreVertical /></Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[220px] p-2 shadow-2xl z-[100]">
+                            <DropdownMenuItem onSelect={() => { forceUnlockUI(); setTimeout(() => setIsShareSheetOpen(true), 200); }} className="font-black p-4 rounded-xl text-white focus:bg-white/10 cursor-pointer">
+                                <Share2 className="mr-3 h-5 w-5 text-primary" /> Share Profile
+                            </DropdownMenuItem>
                             <DropdownMenuItem onSelect={() => { forceUnlockUI(); setTimeout(() => setIsSupportOpen(true), 200); }} className="font-black p-4 rounded-xl text-primary focus:bg-primary/10 cursor-pointer">
                                 <HelpCircle className="mr-3 h-5 w-5" /> Help & Support
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => { forceUnlockUI(); setTimeout(() => setIsEarningsOpen(true), 200); }} className="font-black p-4 rounded-xl text-green-400 focus:bg-green-400/10 cursor-pointer">
-                                <Zap className="mr-3 h-5 w-5 fill-green-400" /> Creator Studio
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => { forceUnlockUI(); setTimeout(() => setIsMonetizationOpen(true), 200); }} className="font-black p-4 rounded-xl text-blue-400 focus:bg-blue-400/10 cursor-pointer">
-                                <Target className="mr-3 h-5 w-5 fill-blue-400" /> Monetization
-                            </DropdownMenuItem>
-                            {isCurrentUserAdmin && (
-                                <DropdownMenuItem onSelect={() => { forceUnlockUI(); setTimeout(() => router.push('/admin'), 150); }} className="font-black p-4 rounded-xl text-white focus:bg-white/10 cursor-pointer">
-                                    <ShieldCheck className="mr-3 h-5 w-5" /> Master Panel
-                                </DropdownMenuItem>
+                            {isOwnProfile && (
+                                <>
+                                    <DropdownMenuItem onSelect={() => { forceUnlockUI(); setTimeout(() => setIsEarningsOpen(true), 200); }} className="font-black p-4 rounded-xl text-green-400 focus:bg-green-400/10 cursor-pointer">
+                                        <Zap className="mr-3 h-5 w-5 fill-green-400" /> Creator Studio
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => { forceUnlockUI(); setTimeout(() => setIsMonetizationOpen(true), 200); }} className="font-black p-4 rounded-xl text-blue-400 focus:bg-blue-400/10 cursor-pointer">
+                                        <Target className="mr-3 h-5 w-5 fill-blue-400" /> Monetization
+                                    </DropdownMenuItem>
+                                    {isCurrentUserAdmin && (
+                                        <DropdownMenuItem onSelect={() => { forceUnlockUI(); setTimeout(() => router.push('/admin'), 150); }} className="font-black p-4 rounded-xl text-white focus:bg-white/10 cursor-pointer">
+                                            <ShieldCheck className="mr-3 h-5 w-5" /> Master Panel
+                                        </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuSeparator className="bg-white/5 my-2" />
+                                    <DropdownMenuItem onSelect={handleLogout} className="text-destructive font-black p-4 rounded-xl focus:bg-destructive/10 cursor-pointer">
+                                        <LogOut className="mr-3 h-5 w-5" /> Logout
+                                    </DropdownMenuItem>
+                                </>
                             )}
-                            <DropdownMenuSeparator className="bg-white/5 my-2" />
-                            <DropdownMenuItem onSelect={handleLogout} className="text-destructive font-black p-4 rounded-xl focus:bg-destructive/10 cursor-pointer">
-                                <LogOut className="mr-3 h-5 w-5" /> Logout
-                            </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
-                )}
+                </div>
             </header>
 
             <div className="px-4 mt-4">
@@ -243,7 +252,7 @@ export default function ProfilePage() {
                 {isOwnProfile ? (
                     <div className="flex gap-2 mt-6">
                         <Button className="flex-1 h-12 rounded-2xl bg-secondary/80 font-bold uppercase text-xs" onClick={() => setIsEditSheetOpen(true)}>Edit Profile</Button>
-                        <Button className="h-12 w-12 rounded-2xl bg-primary/10 text-primary" onClick={() => { setIsSupportOpen(true); forceUnlockUI(); }}><HelpCircle className="h-5 w-5" /></Button>
+                        <Button className="h-12 w-12 rounded-2xl bg-primary/10 text-primary" onClick={() => { setIsShareSheetOpen(true); forceUnlockUI(); }}><Share2 className="h-5 w-5" /></Button>
                     </div>
                 ) : user && (
                     <div className="flex gap-2 mt-6">
@@ -271,6 +280,21 @@ export default function ProfilePage() {
                     </div>
                 </TabsContent>
             </Tabs>
+
+            {/* Share Profile Sheet */}
+            <Sheet open={isShareSheetOpen} onOpenChange={(open) => { setIsShareSheetOpen(open); forceUnlockUI(); }}>
+                <SheetContent side="bottom" className="h-[80vh] p-0 rounded-t-[3rem] overflow-hidden bg-background border-t-0 shadow-2xl z-[150]">
+                    <SheetHeader className="sr-only"><SheetTitle>Share Profile</SheetTitle></SheetHeader>
+                    {userProfile && (
+                        <ProfileShareSheet 
+                            targetUserId={userProfile.id} 
+                            targetUsername={userProfile.username} 
+                            targetProfileImage={userProfile.profileImageUrl} 
+                            onClose={() => setIsShareSheetOpen(false)} 
+                        />
+                    )}
+                </SheetContent>
+            </Sheet>
 
             {/* Support Dialog */}
             <Dialog open={isSupportOpen} onOpenChange={(open) => { setIsSupportOpen(open); forceUnlockUI(); }}>

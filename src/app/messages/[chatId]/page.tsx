@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -11,7 +10,7 @@ import type { UserProfile } from '@/models/user';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Send, BadgeCheck, Loader2, Play, MoreVertical, Trash2, Reply, Smile, X } from 'lucide-react';
+import { ArrowLeft, Send, BadgeCheck, Loader2, Play, MoreVertical, Trash2, Reply, Smile, X, User } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -105,8 +104,6 @@ export default function ChatPage() {
         replyToText: currentReply?.text || null,
         replyToSenderName: currentReply?.senderId === user.uid ? 'You' : otherUser?.username || 'User',
       });
-
-      // Note: Real push notification requires a Cloud Function to send to otherUser?.fcmToken
     } catch (err) {
       console.error("Error sending message:", err);
     }
@@ -201,6 +198,23 @@ export default function ChatPage() {
                   </div>
                 </div>
               )}
+              {msg.sharedProfileId && (
+                  <div 
+                    className="p-4 bg-black/20 w-48 cursor-pointer hover:bg-black/30 transition-colors"
+                    onClick={() => router.push(`/profile/${msg.sharedProfileId}`)}
+                  >
+                      <div className="flex flex-col items-center gap-2 text-center">
+                          <Avatar className="h-16 w-16 border-2 border-primary">
+                              <AvatarImage src={msg.sharedProfileImage} className="object-cover" />
+                              <AvatarFallback><User /></AvatarFallback>
+                          </Avatar>
+                          <div className="space-y-1">
+                              <p className="font-black text-xs italic uppercase tracking-tighter">@{msg.sharedProfileName}</p>
+                              <p className="text-[8px] uppercase font-bold text-muted-foreground">View Profile</p>
+                          </div>
+                      </div>
+                  </div>
+              )}
               {msg.text && <div className="px-4 py-2 text-sm whitespace-pre-wrap">{msg.text}</div>}
             </div>
 
@@ -251,7 +265,7 @@ export default function ChatPage() {
             <div className="w-1 bg-primary h-8 rounded-full" />
             <div className="flex flex-col">
               <span className="text-[10px] font-black uppercase text-primary">Replying to {replyingTo.senderId === user.uid ? 'yourself' : otherUser?.username}</span>
-              <span className="text-xs text-muted-foreground truncate max-w-[250px]">{replyingTo.text || 'Reel'}</span>
+              <span className="text-xs text-muted-foreground truncate max-w-[250px]">{replyingTo.text || 'Reel/Profile'}</span>
             </div>
           </div>
           <Button variant="ghost" size="icon" onClick={() => setReplyingTo(null)} className="rounded-full"><X size={16} /></Button>

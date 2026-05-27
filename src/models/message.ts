@@ -9,6 +9,9 @@ export interface Message {
   sharedPostId?: string;
   sharedPostMediaUrl?: string;
   sharedPostOwnerId?: string;
+  sharedProfileId?: string; // New: To share a user profile
+  sharedProfileName?: string;
+  sharedProfileImage?: string;
   read?: boolean;
   // Instagram Style Features
   replyToId?: string;
