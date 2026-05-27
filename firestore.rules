@@ -27,6 +27,13 @@ service cloud.firestore {
       allow update: if isAdmin();
     }
 
+    // Support Tickets
+    match /support_tickets/{ticketId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated();
+      allow update: if isAdmin();
+    }
+
     // Posts are Public (World-readable for Guest Mode)
     match /{path=**}/posts/{postId} {
       allow read, list: if true;
