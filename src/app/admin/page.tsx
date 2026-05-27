@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, collectionGroup, query, orderBy, doc, limit, deleteDoc, updateDoc, serverTimestamp, where } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Trash2, Users, FileVideo, ArrowLeft, Search, ShieldCheck, Loader2, Play, MoreVertical, Eye, CreditCard, CheckCircle, XCircle, Clock, Banknote, UserPlus, Activity, ExternalLink, Fingerprint, MessageSquare, Sparkles, Mail, Landmark, TrendingUp } from 'lucide-react';
+import { ShieldAlert, Trash2, Users, FileVideo, ArrowLeft, Search, ShieldCheck, Loader2, Play, MoreVertical, Eye, CreditCard, CheckCircle, XCircle, Clock, Banknote, UserPlus, Activity, ExternalLink, Fingerprint, MessageSquare, Sparkles, Mail, Landmark, TrendingUp, Info, BarChart3, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -24,12 +24,15 @@ import Link from 'next/link';
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
 export default function AdminPage() {
-    const { user, isUserLoading } = user ? useUser() : { user: null, isUserLoading: false }; // Simplified for safety
+    const { user, isUserLoading } = useUser();
     const { firestore } = useFirebase();
     const { toast } = useToast();
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('');
     const [isActionLoading, setIsActionLoading] = useState<string | null>(null);
+    const [hasMounted, setHasMounted] = useState(false);
+
+    useEffect(() => { setHasMounted(true); }, []);
 
     const isAdmin = useMemo(() => {
         if (!user?.email) return false;
@@ -86,14 +89,13 @@ export default function AdminPage() {
             await deleteDoc(userDocRef);
             toast({ title: "सफलता ✅", description: "यूजर डिलीट हो गया।" });
         } catch (error: any) {
-            const permissionError = new FirestorePermissionError({ path: userDocRef.path, operation: 'delete' });
-            errorEmitter.emit('permission-error', permissionError);
+            toast({ variant: 'destructive', title: "Error", description: "Delete karne me dikkat hui." });
         } finally {
             setIsActionLoading(null);
         }
     };
 
-    if (isUserLoading) return <div className="flex h-screen items-center justify-center bg-background"><Loader2 className="animate-spin text-primary" /></div>;
+    if (isUserLoading || !hasMounted) return <div className="flex h-screen items-center justify-center bg-background"><Loader2 className="animate-spin text-primary" /></div>;
 
     if (!user || !isAdmin) {
         return (
@@ -113,7 +115,7 @@ export default function AdminPage() {
                     <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-xl"><ArrowLeft /></Button>
                     <div>
                         <h1 className="text-2xl font-black flex items-center gap-2 text-primary uppercase italic"><ShieldCheck /> Master Panel</h1>
-                        <p className="text-[10px] text-green-500 font-bold mt-1">Admin Mode Active</p>
+                        <p className="text-[10px] text-green-500 font-bold mt-1 uppercase tracking-widest">Admin Mode: Active & Secure</p>
                     </div>
                 </div>
                 <div className="relative w-full md:w-72">
@@ -123,28 +125,24 @@ export default function AdminPage() {
             </header>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                {/* Users Count */}
                 <div className="bg-secondary/30 p-5 rounded-[2rem] border border-white/5 flex flex-col items-center text-center">
                     <Users className="text-blue-400 mb-2 h-6 w-6" />
                     <p className="text-2xl font-black">{users?.length || 0}</p>
                     <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Total Users</p>
                 </div>
 
-                {/* Total Revenue - Answer to "Kitna Bill/Money" */}
                 <div className="bg-primary/10 p-5 rounded-[2rem] border border-primary/20 flex flex-col items-center text-center shadow-[0_0_20px_rgba(255,51,102,0.1)]">
                     <TrendingUp className="text-primary mb-2 h-6 w-6" />
                     <p className="text-2xl font-black text-primary">₹{financialStats.totalRevenue.toFixed(0)}</p>
-                    <p className="text-[9px] font-bold text-primary uppercase tracking-widest">Total Bill/Revenue</p>
+                    <p className="text-[9px] font-bold text-primary uppercase tracking-widest">Platform Revenue</p>
                 </div>
 
-                {/* Live Activity */}
                 <div className="bg-green-500/10 p-5 rounded-[2rem] border border-green-500/20 flex flex-col items-center text-center">
                     <Activity className="text-green-500 mb-2 h-6 w-6 animate-pulse" />
                     <p className="text-2xl font-black text-green-500">{users?.filter(u => !!u.fcmToken).length || 0}</p>
-                    <p className="text-[9px] font-bold text-green-500 uppercase tracking-widest">Online Now</p>
+                    <p className="text-[9px] font-bold text-green-500 uppercase tracking-widest">Active Devices</p>
                 </div>
 
-                {/* Unpaid Bills */}
                 <div className="bg-yellow-500/10 p-5 rounded-[2rem] border border-yellow-500/20 flex flex-col items-center text-center">
                     <Landmark className="text-yellow-500 mb-2 h-6 w-6" />
                     <p className="text-2xl font-black text-yellow-500">₹{financialStats.pending.toFixed(0)}</p>
@@ -153,11 +151,12 @@ export default function AdminPage() {
             </div>
 
             <Tabs defaultValue="users" className="w-full">
-                <TabsList className="grid w-full grid-cols-4 bg-secondary/50 p-1 rounded-2xl mb-8 border border-white/5 h-14">
+                <TabsList className="grid w-full grid-cols-5 bg-secondary/50 p-1 rounded-2xl mb-8 border border-white/5 h-14 overflow-x-auto">
                     <TabsTrigger value="users" className="rounded-xl data-[state=active]:bg-primary font-bold text-[10px] uppercase">Users</TabsTrigger>
                     <TabsTrigger value="posts" className="rounded-xl data-[state=active]:bg-primary font-bold text-[10px] uppercase">Videos</TabsTrigger>
                     <TabsTrigger value="payouts" className="rounded-xl data-[state=active]:bg-primary font-bold text-[10px] uppercase">Payouts</TabsTrigger>
                     <TabsTrigger value="support" className="rounded-xl data-[state=active]:bg-primary font-bold text-[10px] uppercase">Support</TabsTrigger>
+                    <TabsTrigger value="billing" className="rounded-xl data-[state=active]:bg-primary font-bold text-[10px] uppercase">Billing</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="users">
@@ -274,6 +273,45 @@ export default function AdminPage() {
                                 </div>
                             </div>
                         ))}
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="billing">
+                    <div className="space-y-6">
+                        <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-[2rem] flex items-start gap-4">
+                            <Info className="text-red-500 shrink-0" />
+                            <div>
+                                <h3 className="font-black text-sm uppercase mb-2">Google Bill & API Usage</h3>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    भाई, गूगल का असली बिल (Gemini/Firebase cost) आप केवल अपने गूगल अकाउंट में देख सकते हैं। सुरक्षा के लिए हमने ऐप से API Key हटा दी है ताकि कोई गलत इस्तेमाल न कर सके।
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <a href="https://console.firebase.google.com/" target="_blank" className="bg-secondary/40 p-6 rounded-[2rem] border border-white/5 hover:bg-secondary/60 transition-all flex flex-col items-center text-center gap-3">
+                                <div className="p-3 bg-yellow-500/20 rounded-2xl text-yellow-500"><BarChart3 /></div>
+                                <p className="font-black text-xs uppercase tracking-widest">Firebase Console</p>
+                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Check Data & Storage Bill</p>
+                                <ExternalLink size={14} className="opacity-30" />
+                            </a>
+
+                            <a href="https://aistudio.google.com/app/plan" target="_blank" className="bg-secondary/40 p-6 rounded-[2rem] border border-white/5 hover:bg-secondary/60 transition-all flex flex-col items-center text-center gap-3">
+                                <div className="p-3 bg-blue-500/20 rounded-2xl text-blue-500"><Settings /></div>
+                                <p className="font-black text-xs uppercase tracking-widest">Google AI Studio</p>
+                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Check AI/Gemini API Bill</p>
+                                <ExternalLink size={14} className="opacity-30" />
+                            </a>
+                        </div>
+
+                        <div className="bg-secondary/20 p-6 rounded-[2rem] border border-white/5 space-y-4">
+                            <h4 className="text-[10px] font-black uppercase text-primary tracking-widest">Quick Billing Help</h4>
+                            <ul className="space-y-2 text-[11px] text-muted-foreground font-bold uppercase">
+                                <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 bg-primary rounded-full" /> Gemini API: 1500 RPM (Free Tier available)</li>
+                                <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 bg-primary rounded-full" /> Firestore: 50,000 Reads/Day (Free Tier)</li>
+                                <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 bg-primary rounded-full" /> Cloudinary: Video storage is separate.</li>
+                            </ul>
+                        </div>
                     </div>
                 </TabsContent>
             </Tabs>
