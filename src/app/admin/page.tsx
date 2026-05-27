@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, collectionGroup, query, orderBy, doc, limit, deleteDoc, updateDoc, serverTimestamp, where } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Trash2, Users, FileVideo, ArrowLeft, Search, ShieldCheck, Loader2, Play, MoreVertical, Eye, CreditCard, CheckCircle, XCircle, Clock, Banknote, UserPlus, Activity, ExternalLink, Fingerprint, MessageSquare, Sparkles } from 'lucide-react';
+import { ShieldAlert, Trash2, Users, FileVideo, ArrowLeft, Search, ShieldCheck, Loader2, Play, MoreVertical, Eye, CreditCard, CheckCircle, XCircle, Clock, Banknote, UserPlus, Activity, ExternalLink, Fingerprint, MessageSquare, Sparkles, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -216,30 +215,47 @@ export default function AdminPage() {
 
                 <TabsContent value="support">
                     <div className="space-y-4">
+                        {supportTickets?.length === 0 && (
+                            <div className="text-center py-20 text-muted-foreground">
+                                <MessageSquare className="mx-auto mb-4 opacity-20 h-12 w-12" />
+                                <p className="font-bold uppercase text-[10px]">No support tickets found</p>
+                            </div>
+                        )}
                         {supportTickets?.map(ticket => (
                             <div key={ticket.id} className="bg-secondary/30 p-6 rounded-[2rem] border border-white/5 space-y-4">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <Avatar className="h-10 w-10"><AvatarFallback>{ticket.userName[0]}</AvatarFallback></Avatar>
+                                        <Avatar className="h-10 w-10"><AvatarFallback>{ticket.userName?.[0] || 'U'}</AvatarFallback></Avatar>
                                         <div>
                                             <p className="font-black text-sm">@{ticket.userName}</p>
-                                            <p className="text-[9px] text-muted-foreground uppercase font-bold">{ticket.createdAt ? format(ticket.createdAt.toDate(), 'PPp') : ''}</p>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <Mail size={10} className="text-muted-foreground" />
+                                                <p className="text-[8px] text-muted-foreground font-bold uppercase">{ticket.userEmail}</p>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="px-3 py-1 bg-purple-500/10 text-purple-400 rounded-full text-[8px] font-black uppercase">User Concern</div>
+                                    <div className="px-3 py-1 bg-purple-500/10 text-purple-400 rounded-full text-[8px] font-black uppercase">
+                                        {ticket.createdAt ? format(ticket.createdAt.toDate(), 'HH:mm dd MMM') : 'Just now'}
+                                    </div>
                                 </div>
                                 <div className="p-4 bg-black/40 rounded-2xl border border-white/5">
-                                    <p className="text-[10px] font-black text-primary uppercase mb-2">Question:</p>
+                                    <p className="text-[10px] font-black text-primary uppercase mb-2">User Question:</p>
                                     <p className="text-sm font-medium">{ticket.query}</p>
                                 </div>
-                                <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
-                                    <p className="text-[10px] font-black text-green-500 uppercase mb-2 flex items-center gap-2"><Sparkles size={12}/> AI Answer:</p>
-                                    <p className="text-xs italic text-muted-foreground leading-relaxed">{ticket.aiResponse}</p>
+                                <div className={cn(
+                                    "p-4 rounded-2xl border",
+                                    ticket.aiResponse.includes("Error") ? "bg-destructive/5 border-destructive/10" : "bg-primary/5 border-primary/10"
+                                )}>
+                                    <p className="text-[10px] font-black text-green-500 uppercase mb-2 flex items-center gap-2">
+                                        <Sparkles size={12}/> AI Response:
+                                    </p>
+                                    <p className="text-xs italic text-muted-foreground leading-relaxed whitespace-pre-wrap">{ticket.aiResponse}</p>
                                 </div>
-                                <div className="flex items-center gap-4 text-[9px] font-bold text-muted-foreground uppercase">
-                                    <span>Followers: {ticket.statsAtTime.followers}</span>
-                                    <span>Posts: {ticket.statsAtTime.posts}</span>
-                                    <span>Views: {ticket.statsAtTime.views}</span>
+                                <div className="flex flex-wrap items-center gap-4 text-[9px] font-bold text-muted-foreground uppercase pt-2 border-t border-white/5">
+                                    <span className="flex items-center gap-1"><Users size={10} /> {ticket.statsAtTime?.followers || 0} Followers</span>
+                                    <span className="flex items-center gap-1"><FileVideo size={10} /> {ticket.statsAtTime?.posts || 0} Posts</span>
+                                    <span className="flex items-center gap-1"><Eye size={10} /> {ticket.statsAtTime?.views || 0} Views</span>
+                                    <span className="flex items-center gap-1 text-green-500"><Banknote size={10} /> ₹{ticket.statsAtTime?.earnings || 0}</span>
                                 </div>
                             </div>
                         ))}

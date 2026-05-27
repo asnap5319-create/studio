@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -26,55 +25,53 @@ const SupportOutputSchema = z.object({
   suggestions: z.array(z.string()).describe('Specific improvement suggestions for the channel.'),
 });
 
-export async function getAiSupport(input: z.infer<typeof SupportInputSchema>) {
-  const supportFlow = ai.defineFlow(
-    {
-      name: 'supportFlow',
-      inputSchema: SupportInputSchema,
-      outputSchema: SupportOutputSchema,
-    },
-    async (input) => {
-      try {
-        const { output } = await ai.generate({
-          // Backup के तौर पर 1.5-flash का इस्तेमाल ताकि 503 एरर कम आए
-          model: googleAI.model('gemini-1.5-flash'),
-          prompt: `You are the A.snap AI Support Assistant. Your goal is to help users succeed on the platform.
-        
-          User: ${input.userName}
-          Stats:
-          - Followers: ${input.stats.followers}
-          - Posts: ${input.stats.posts}
-          - Total Views: ${input.stats.views}
-          - Current Earnings: ₹${input.stats.earnings}
+// Define the flow at the top level for stability
+const supportFlow = ai.defineFlow(
+  {
+    name: 'supportFlow',
+    inputSchema: SupportInputSchema,
+    outputSchema: SupportOutputSchema,
+  },
+  async (input) => {
+    try {
+      const { output } = await ai.generate({
+        // Using 1.5-flash for better stability during high traffic
+        model: googleAI.model('gemini-1.5-flash'),
+        prompt: `You are the A.snap AI Support Assistant. Your goal is to help users succeed on the platform.
+      
+        User: ${input.userName}
+        Stats:
+        - Followers: ${input.stats.followers}
+        - Posts: ${input.stats.posts}
+        - Total Views: ${input.stats.views}
+        - Current Earnings: ₹${input.stats.earnings}
 
-          Platform Rules:
-          - Monetization unlocks at 50 followers, 2000 views, and ₹100 earnings.
-          - High quality reels with captions perform better.
+        Platform Rules:
+        - Monetization unlocks at 50 followers, 2000 views, and ₹100 earnings.
+        - High quality reels with captions perform better.
 
-          Instruction: 
-          1. Greet the user warmly in Hindi/Hinglish.
-          2. Address their specific query: "${input.query}"
-          3. Analyze their stats and tell them what's missing (kami) in their channel to reach monetization.
-          4. Provide 3 actionable suggestions in Hinglish.
-        
-          Keep it professional, encouraging, and concise.`,
-          output: { schema: SupportOutputSchema }
-        });
+        Instruction: 
+        1. Greet the user warmly in Hindi/Hinglish.
+        2. Address their specific query: "${input.query}"
+        3. Analyze their stats and tell them what's missing (kami) in their channel to reach monetization.
+        4. Provide 3 actionable suggestions in Hinglish.
+      
+        Keep it professional, encouraging, and concise.`,
+        output: { schema: SupportOutputSchema }
+      });
 
-        if (!output) {
-          throw new Error('AI failed to generate a response.');
-        }
-
-        return output;
-      } catch (error: any) {
-        console.error("Flow execution error:", error);
-        return {
-          response: "माफी चाहता हूँ, अभी मेरे सर्वर पर बहुत लोड है। कृपया कुछ देर बाद फिर से प्रयास करें।",
-          suggestions: ["इंटरनेट कनेक्शन चेक करें", "कुछ देर इंतज़ार करें"]
-        };
+      if (!output) {
+        throw new Error('AI failed to generate a response.');
       }
-    }
-  );
 
+      return output;
+    } catch (error: any) {
+      console.error("Flow execution error:", error);
+      throw error; // Rethrow to handle in the component
+    }
+  }
+);
+
+export async function getAiSupport(input: z.infer<typeof SupportInputSchema>) {
   return supportFlow(input);
 }
