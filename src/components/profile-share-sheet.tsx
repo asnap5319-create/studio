@@ -6,7 +6,7 @@ import { collection, query, where, limit, doc, serverTimestamp, setDoc, addDoc }
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search, Send, Check, Share2 } from 'lucide-react';
+import { Search, Send, Check, Share2, Copy } from 'lucide-react';
 import type { UserProfile } from '@/models/user';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -86,7 +86,8 @@ export function ProfileShareSheet({ targetUserId, targetUsername, targetProfileI
     };
 
     try {
-      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      // Check if navigator.share is available AND not blocked by iframe/security
+      if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare && navigator.canShare(shareData)) {
         await navigator.share(shareData);
       } else {
         throw new Error('Native share not supported or blocked');
@@ -95,7 +96,7 @@ export function ProfileShareSheet({ targetUserId, targetUsername, targetProfileI
       console.warn("Native share failed, falling back to clipboard:", err);
       try {
         await navigator.clipboard.writeText(shareUrl);
-        toast({ title: "Link Copied! 🔗", description: "Now you can paste it on WhatsApp or Instagram." });
+        toast({ title: "Link Copied! 🔗", description: "Paste it on WhatsApp or Instagram." });
       } catch (clipErr) {
         toast({ variant: "destructive", title: "Share Failed", description: "Could not copy link." });
       }
@@ -122,9 +123,9 @@ export function ProfileShareSheet({ targetUserId, targetUsername, targetProfileI
 
         <Button 
             onClick={handleExternalShare}
-            className="w-full h-12 bg-primary/10 text-primary font-bold uppercase rounded-2xl flex items-center justify-center gap-2 border border-primary/20"
+            className="w-full h-14 bg-primary/10 text-primary font-black uppercase rounded-2xl flex items-center justify-center gap-3 border border-primary/20 hover:bg-primary/20 transition-all"
         >
-            <Share2 size={18} /> Share to Apps (WhatsApp/Insta)
+            <Copy size={20} /> Copy Profile Link
         </Button>
       </div>
 
