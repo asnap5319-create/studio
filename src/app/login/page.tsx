@@ -9,7 +9,7 @@ import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useFirebase, useUser } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ShieldCheck, AlertCircle } from "lucide-react";
+import { Loader2, ShieldCheck } from "lucide-react";
 
 /**
  * Premium Logo for A.snap login page.
@@ -129,7 +129,7 @@ function LoginForm() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-black p-4">
-      <div className="w-full max-sm space-y-8 text-center">
+      <div className="w-full max-w-sm space-y-8 text-center">
         <div className="flex flex-col items-center gap-4">
             <BrandLogo />
             <div className="space-y-1">

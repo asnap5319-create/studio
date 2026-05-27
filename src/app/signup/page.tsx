@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { doc, serverTimestamp, setDoc, getDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword, UserCredential, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { Camera, Loader2, AlertCircle } from "lucide-react";
+import { Camera, Loader2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, ChangeEvent } from "react";
