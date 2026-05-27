@@ -3,16 +3,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { useUser, useFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { getAiSupport } from '@/ai/flows/support-flow';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Send, Sparkles, Info, RefreshCw, User } from 'lucide-react';
+import { Loader2, Send, Info, Clock, User, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 interface Message {
-  role: 'user' | 'ai' | 'error';
+  role: 'user' | 'system' | 'status';
   text: string;
 }
 
@@ -31,10 +30,11 @@ export function SupportChat({ userProfile, stats }: SupportChatProps) {
   const { firestore } = useFirebase();
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'ai', text: `नमस्ते ${userProfile?.name || 'दोस्त'}! A.snap Help Center में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? आप अपनी प्रोफाइल या अर्निंग के बारे में कुछ भी पूछ सकते हैं।` }
+    { role: 'system', text: `नमस्ते ${userProfile?.name || 'दोस्त'}! A.snap Help Center में आपका स्वागत है। आपको क्या दिक्कत आ रही है? यहाँ लिखें, हम आपकी मदद करेंगे।` }
   ]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSent, setIsSent] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,59 +46,45 @@ export function SupportChat({ userProfile, stats }: SupportChatProps) {
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!inputText.trim() || !user || isLoading) return;
+    if (!inputText.trim() || !user || isLoading || isSent) return;
 
     const userQuery = inputText.trim();
     setInputText('');
     setMessages(prev => [...prev, { role: 'user', text: userQuery }]);
     setIsLoading(true);
 
-    let aiResponseText = "";
-
     try {
-      // 1. Call AI Support Flow
-      const aiResult = await getAiSupport({
-        query: userQuery,
-        userName: userProfile?.name || 'User',
-        stats: stats
-      });
-
-      aiResponseText = aiResult.response + "\n\n" + (aiResult.suggestions?.map(s => `• ${s}`).join('\n') || "");
-      setMessages(prev => [...prev, { role: 'ai', text: aiResponseText }]);
-
-    } catch (error: any) {
-      console.error("AI Support Error:", error);
-      aiResponseText = "ओह! गूगल के सर्वर अभी बहुत बिजी हैं (503 Error)। लेकिन घबराइए मत, आपकी रिक्वेस्ट एडमिन के पास पहुँच गई है। आप चाहें तो 1-2 मिनट बाद दोबारा 'Retry' कर सकते हैं।";
-      
-      setMessages(prev => [...prev, { 
-        role: 'error', 
-        text: aiResponseText
-      }]);
-      
-      toast({ variant: 'destructive', title: "Server Busy", description: "Google AI is overloaded. Admin notified." });
-    } finally {
-      // 2. ALWAYS log to Admin support collection, even if AI failed
+      // Log to Admin support collection
       if (firestore) {
-        try {
-          await addDoc(collection(firestore, 'support_tickets'), {
-            userId: user.uid,
-            userName: userProfile?.username || user.displayName || 'user',
-            userEmail: user.email || '',
-            query: userQuery,
-            aiResponse: aiResponseText || "AI Failed to respond (Server Busy)",
-            status: 'pending',
-            createdAt: serverTimestamp(),
-            statsAtTime: {
-              followers: stats.followers,
-              posts: stats.posts,
-              views: stats.views,
-              earnings: stats.earnings
-            }
-          });
-        } catch (dbError) {
-          console.error("Failed to log support ticket:", dbError);
-        }
+        await addDoc(collection(firestore, 'support_tickets'), {
+          userId: user.uid,
+          userName: userProfile?.username || user.displayName || 'user',
+          userEmail: user.email || '',
+          query: userQuery,
+          aiResponse: "Waiting for Admin response...",
+          status: 'pending',
+          createdAt: serverTimestamp(),
+          statsAtTime: {
+            followers: stats.followers,
+            posts: stats.posts,
+            views: stats.views,
+            earnings: stats.earnings
+          }
+        });
+
+        // Custom Waiting Message as requested
+        setTimeout(() => {
+            setMessages(prev => [...prev, { 
+                role: 'status', 
+                text: "Wait karo Aap message A.snap ke paas ja rha hai bhai 5 se 6 khnte lag sakte hai. Admin aapki help jald hi karenge. ✅" 
+            }]);
+            setIsSent(true);
+            setIsLoading(false);
+        }, 1000);
       }
+    } catch (dbError) {
+      console.error("Failed to log support ticket:", dbError);
+      toast({ variant: 'destructive', title: "Error", description: "Message bhejne me dikkat hui. Phir koshish karein." });
       setIsLoading(false);
     }
   };
@@ -108,18 +94,16 @@ export function SupportChat({ userProfile, stats }: SupportChatProps) {
       <div className="p-4 border-b border-white/5 bg-secondary/20 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-primary/20 rounded-xl text-primary">
-            <Sparkles size={18} />
+            <User size={18} />
           </div>
           <div>
-            <h3 className="text-sm font-black uppercase italic">AI Assistant</h3>
-            <p className="text-[9px] text-green-500 font-bold uppercase tracking-widest">Online & Admin Notified</p>
+            <h3 className="text-sm font-black uppercase italic">Admin Support</h3>
+            <p className="text-[9px] text-green-500 font-bold uppercase tracking-widest">Active & Secure</p>
           </div>
         </div>
-        <div className="flex gap-2">
-            <div className="px-2 py-1 bg-white/5 rounded-lg border border-white/10 flex items-center gap-1">
-                <Info size={10} className="text-muted-foreground" />
-                <span className="text-[8px] font-bold text-muted-foreground uppercase">24/7 Support</span>
-            </div>
+        <div className="px-2 py-1 bg-white/5 rounded-lg border border-white/10 flex items-center gap-1">
+            <Clock size={10} className="text-muted-foreground" />
+            <span className="text-[8px] font-bold text-muted-foreground uppercase">Response in 5-6h</span>
         </div>
       </div>
 
@@ -130,32 +114,17 @@ export function SupportChat({ userProfile, stats }: SupportChatProps) {
               "max-w-[85%] p-4 rounded-[20px] text-sm leading-relaxed shadow-sm animate-in fade-in slide-in-from-bottom-2",
               m.role === 'user' 
                 ? "ml-auto bg-primary text-white rounded-tr-none" 
-                : m.role === 'error'
-                ? "mr-auto bg-destructive/10 text-destructive border border-destructive/20 rounded-tl-none"
+                : m.role === 'status'
+                ? "mr-auto bg-green-500/10 text-green-400 border border-green-500/20 rounded-tl-none font-bold"
                 : "mr-auto bg-secondary/50 text-white rounded-tl-none border border-white/5"
             )}>
-              {m.text.split('\n').map((line, li) => (
-                <p key={li} className={line.startsWith('•') ? "ml-2" : ""}>{line}</p>
-              ))}
-              {m.role === 'error' && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => {
-                        setInputText(messages[messages.length - 2].text);
-                        handleSendMessage();
-                    }} 
-                    className="mt-2 h-7 text-[10px] uppercase font-bold text-destructive hover:bg-destructive/10"
-                  >
-                    <RefreshCw size={10} className="mr-1" /> Retry AI response
-                  </Button>
-              )}
+              {m.text}
             </div>
           ))}
           {isLoading && (
             <div className="mr-auto bg-secondary/30 p-4 rounded-[20px] rounded-tl-none flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              <span className="text-[10px] font-bold text-muted-foreground uppercase">AI is checking your stats & notifying Admin...</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase">Sending message to A.snap...</span>
             </div>
           )}
           <div ref={scrollRef} />
@@ -165,20 +134,25 @@ export function SupportChat({ userProfile, stats }: SupportChatProps) {
       <form onSubmit={handleSendMessage} className="p-4 border-t border-white/5 bg-background/80 backdrop-blur-md">
         <div className="flex gap-2">
           <Input 
-            placeholder="Ask anything..." 
+            placeholder={isSent ? "Message Sent! ✅" : "Apni problem yahan likhein..."} 
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            disabled={isLoading}
+            disabled={isLoading || isSent}
             className="flex-1 h-12 bg-secondary/50 border-none rounded-2xl px-6 focus-visible:ring-primary"
           />
           <Button 
             type="submit" 
-            disabled={!inputText.trim() || isLoading}
+            disabled={!inputText.trim() || isLoading || isSent}
             className="h-12 w-12 rounded-2xl bg-primary shadow-lg shadow-primary/20 hover:scale-105 active:scale-90 transition-all"
           >
-            <Send size={18} />
+            {isSent ? <CheckCircle2 size={18} /> : <Send size={18} />}
           </Button>
         </div>
+        {isSent && (
+            <p className="text-[8px] text-center text-muted-foreground uppercase font-black tracking-widest mt-2">
+                Aapka ticket admin panel me save ho gaya hai.
+            </p>
+        )}
       </form>
     </div>
   );

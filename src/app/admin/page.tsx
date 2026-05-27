@@ -242,20 +242,16 @@ export default function AdminPage() {
                                     <p className="text-[10px] font-black text-primary uppercase mb-2">User Question:</p>
                                     <p className="text-sm font-medium">{ticket.query}</p>
                                 </div>
-                                <div className={cn(
-                                    "p-4 rounded-2xl border",
-                                    ticket.aiResponse.includes("Error") ? "bg-destructive/5 border-destructive/10" : "bg-primary/5 border-primary/10"
-                                )}>
-                                    <p className="text-[10px] font-black text-green-500 uppercase mb-2 flex items-center gap-2">
-                                        <Sparkles size={12}/> AI Response:
-                                    </p>
-                                    <p className="text-xs italic text-muted-foreground leading-relaxed whitespace-pre-wrap">{ticket.aiResponse}</p>
-                                </div>
                                 <div className="flex flex-wrap items-center gap-4 text-[9px] font-bold text-muted-foreground uppercase pt-2 border-t border-white/5">
                                     <span className="flex items-center gap-1"><Users size={10} /> {ticket.statsAtTime?.followers || 0} Followers</span>
                                     <span className="flex items-center gap-1"><FileVideo size={10} /> {ticket.statsAtTime?.posts || 0} Posts</span>
                                     <span className="flex items-center gap-1"><Eye size={10} /> {ticket.statsAtTime?.views || 0} Views</span>
                                     <span className="flex items-center gap-1 text-green-500"><Banknote size={10} /> ₹{ticket.statsAtTime?.earnings || 0}</span>
+                                </div>
+                                <div className="pt-2">
+                                    <Link href={`/messages/${[user!.uid, ticket.userId].sort().join('_')}`}>
+                                        <Button className="w-full h-10 bg-primary font-black uppercase text-[10px] rounded-xl">Reply in Chat</Button>
+                                    </Link>
                                 </div>
                             </div>
                         ))}
