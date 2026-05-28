@@ -24,9 +24,15 @@ export default function ForgotPasswordPage() {
 
     setIsLoading(true);
     try {
-      await sendPasswordResetEmail(auth, email.trim());
+      // Professional apps use actionCodeSettings to redirect users back to the app
+      const actionCodeSettings = {
+        url: `${window.location.origin}/reset-password`,
+        handleCodeInApp: true,
+      };
+
+      await sendPasswordResetEmail(auth, email.trim(), actionCodeSettings);
       setIsSent(true);
-      toast({ title: "Email Sent! 📧", description: "Check your inbox for the reset link." });
+      toast({ title: "Secure Link Sent! 📧", description: "Check your inbox and click the link to set a new password." });
     } catch (error: any) {
       console.error("Reset error:", error);
       toast({ 
@@ -88,8 +94,8 @@ export default function ForgotPasswordPage() {
               disabled={isLoading}
             >
               {isLoading ? (
-                <span className="flex items-center gap-2"><Loader2 className="animate-spin h-5 w-5" /> Verifying...</span>
-              ) : "Send Reset Link"}
+                <span className="flex items-center gap-2"><Loader2 className="animate-spin h-5 w-5" /> Sending...</span>
+              ) : "Send Recovery Link"}
             </Button>
           </form>
         ) : (
@@ -98,18 +104,12 @@ export default function ForgotPasswordPage() {
                 <Sparkles className="text-green-500 h-8 w-8" />
              </div>
              <div className="space-y-2">
-                <p className="font-bold text-sm">Check Your Email</p>
+                <p className="font-bold text-sm">Link Sent to Email</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Bhai, humne reset link bhej diya hai. Email check karo aur apna password badal lo.
+                  Bhai, humne recovery link bhej diya hai. Link par click karte hi naya password dalne ka option aa jayega.
                 </p>
              </div>
-             <Button 
-               variant="outline" 
-               className="w-full h-12 rounded-xl border-white/10 bg-white/5 font-black uppercase text-[10px]"
-               onClick={() => router.push('/login?auth=true')}
-             >
-               Return to Login
-             </Button>
+             <p className="text-[9px] text-muted-foreground font-bold uppercase">Check your Spam folder too!</p>
           </div>
         )}
 
