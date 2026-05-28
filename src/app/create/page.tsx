@@ -12,7 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { 
   UploadCloud, Loader2, Type, Palette, 
   ChevronLeft, Volume2, VolumeX, 
-  SendHorizonal, ArrowRight
+  SendHorizonal
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -40,7 +40,7 @@ export default function CreatePostPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
 
   // UI State
-  const [isPreviewMuted, setIsPreviewMuted] = useState(false); // Default to unmuted (sound on)
+  const [isPreviewMuted, setIsPreviewMuted] = useState(false); // Default to FALSE (Sound ON) as requested
   const [showTextSettings, setShowTextSettings] = useState(false);
 
   // Text Overlay State
@@ -59,7 +59,7 @@ export default function CreatePostPage() {
       setMediaFile(file);
       setMediaPreview(URL.createObjectURL(file));
       setMediaType(file.type.startsWith('image/') ? 'image' : 'video');
-      setIsPreviewMuted(false); // Sound on for preview
+      setIsPreviewMuted(false); // Sound ON for new video preview
     }
   };
 
@@ -160,7 +160,7 @@ export default function CreatePostPage() {
                     </div>
                 )}
 
-                {/* Top Left Back Button */}
+                {/* Back Button (Top Left) */}
                 <button 
                   onClick={() => mediaFile ? setMediaFile(null) : router.back()} 
                   className="absolute top-10 left-6 z-50 p-3 bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:bg-black/60 transition-colors"
@@ -198,7 +198,7 @@ export default function CreatePostPage() {
                     </div>
                 </div>
 
-                {/* Bottom Controls Bar */}
+                {/* Upload Button (Bottom Right) */}
                 <div className="absolute bottom-8 left-0 right-0 px-6 flex items-center justify-end z-50 pointer-events-auto">
                     <button 
                         onClick={handlePost}
