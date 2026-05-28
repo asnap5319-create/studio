@@ -29,7 +29,7 @@ function ResetPasswordForm() {
   useEffect(() => {
     if (!auth || !oobCode) {
       setIsVerifying(false);
-      setError("Link me koi security code nahi mila. Email link se hi aao bhai.");
+      setError("लिंक में सिक्योरिटी कोड नहीं मिला। ईमेल वाले लिंक से ही क्लिक करके आएं भाई।");
       return;
     }
 
@@ -40,7 +40,7 @@ function ResetPasswordForm() {
       .catch((err) => {
         console.error("Verification error:", err);
         setIsVerifying(false);
-        setError("Bhai, link purana ho gaya hai ya invalid hai. Dobara link mangbao.");
+        setError("भाई, लिंक पुराना हो गया है या इनवैलिड है। दोबारा लिंक मँगवाओ।");
       });
   }, [auth, oobCode]);
 
@@ -49,12 +49,12 @@ function ResetPasswordForm() {
     if (!auth || !oobCode) return;
 
     if (newPassword.length < 6) {
-      toast({ variant: 'destructive', title: "Error", description: "Password kam se kam 6 digits ka rakho." });
+      toast({ variant: 'destructive', title: "Error", description: "पासवर्ड कम से कम 6 अक्षर का रखो।" });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      toast({ variant: 'destructive', title: "Error", description: "Dono password match nahi kar rahe." });
+      toast({ variant: 'destructive', title: "Error", description: "दोनों पासवर्ड मैच नहीं कर रहे।" });
       return;
     }
 
@@ -62,13 +62,13 @@ function ResetPasswordForm() {
     try {
       await confirmPasswordReset(auth, oobCode, newPassword);
       setIsSuccess(true);
-      toast({ title: "Success! ✅", description: "Password badal gaya hai bhai!" });
+      toast({ title: "Success! ✅", description: "पासवर्ड बदल गया है भाई! अब लॉगिन करो।" });
     } catch (error: any) {
       console.error("Reset error:", error);
       toast({ 
           variant: 'destructive', 
           title: "Error ❌", 
-          description: "Password reset nahi ho paya. Dobara try karo." 
+          description: "पासवर्ड रिसेट नहीं हो पाया। दोबारा ट्राई करो।" 
       });
     } finally {
       setIsLoading(false);
@@ -160,7 +160,7 @@ function ResetPasswordForm() {
              <div className="space-y-2">
                 <p className="font-bold text-sm">Password Updated!</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Bhai, tera password badal gaya hai. Ab login kar sakte ho.
+                  भाई, तेरा पासवर्ड बदल गया है। अब लॉगिन कर सकते हो।
                 </p>
              </div>
              <Button 
