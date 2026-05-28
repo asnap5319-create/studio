@@ -25,11 +25,11 @@ function ResetPasswordForm() {
   
   const oobCode = searchParams.get('oobCode');
 
-  // अभिषेक भाई, यहाँ हम पहले कोड को वेरीफाई करेंगे कि वो सही है या नहीं
+  // अभिषेक भाई, यहाँ हम कोड को वेरीफाई करेंगे जो ईमेल से आया है
   useEffect(() => {
     if (!auth || !oobCode) {
       setIsVerifying(false);
-      setError("No security code found.");
+      setError("No security code found in link.");
       return;
     }
 
@@ -40,7 +40,7 @@ function ResetPasswordForm() {
       .catch((err) => {
         console.error("Verification error:", err);
         setIsVerifying(false);
-        setError("Bhai, link purana ho gaya hai ya invalid hai.");
+        setError("Bhai, link purana ho gaya hai ya invalid hai. Dobara link mangbao.");
       });
   }, [auth, oobCode]);
 
@@ -79,7 +79,7 @@ function ResetPasswordForm() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-black text-white">
           <Loader2 className="animate-spin text-primary h-12 w-12" />
-          <p className="mt-4 font-bold uppercase text-[10px] tracking-widest animate-pulse">Verifying Security Code...</p>
+          <p className="mt-4 font-bold uppercase text-[10px] tracking-widest animate-pulse">Verifying Link...</p>
       </div>
     );
   }
@@ -91,7 +91,7 @@ function ResetPasswordForm() {
                 <AlertTriangle className="text-red-500 h-10 w-10" />
             </div>
             <div className="space-y-2">
-                <h1 className="text-xl font-black uppercase italic">Link Expired</h1>
+                <h1 className="text-xl font-black uppercase italic">Link Error</h1>
                 <p className="text-sm text-muted-foreground max-w-xs mx-auto">
                     {error}
                 </p>

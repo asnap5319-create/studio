@@ -25,9 +25,9 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
     try {
       // अभिषेक भाई, ये सेटिंग्स गूगल को बोलेंगी कि लिंक सीधे हमारे ऐप पर भेजे
+      // हमने वही URL दिया है जो आपने Firebase Console में डाला है
       const actionCodeSettings = {
-        // हम चाहते हैं कि लिंक क्लिक होते ही यूजर इस पेज पर वापस आए
-        url: `${window.location.origin}/reset-password`,
+        url: `https://asnap.vercel.app/reset-password`,
         handleCodeInApp: true,
       };
 
