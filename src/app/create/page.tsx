@@ -6,7 +6,6 @@ import { useFirebase, useUser } from '@/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Progress } from '@/components/ui/progress';
@@ -14,7 +13,7 @@ import {
   UploadCloud, Loader2, X, Type, Palette, 
   ChevronLeft, Check, Move, 
   Volume2, VolumeX, 
-  ArrowRight, Star, UserCircle2 
+  ArrowRight, Star, UserCircle2, SendHorizonal 
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -165,10 +164,10 @@ export default function CreatePostPage() {
                     </div>
                 )}
 
-                {/* Top Left Back Button */}
+                {/* Top Left Back Button (To Cancel/Go Back) */}
                 <button 
                   onClick={() => mediaFile ? setMediaFile(null) : router.back()} 
-                  className="absolute top-10 left-6 z-50 p-3 bg-black/20 backdrop-blur-md rounded-full border border-white/10"
+                  className="absolute top-10 left-6 z-50 p-3 bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:bg-black/60 transition-colors"
                 >
                   <ChevronLeft className="h-6 w-6" />
                 </button>
@@ -177,55 +176,50 @@ export default function CreatePostPage() {
                 <div className="absolute top-10 right-6 flex flex-col gap-4 z-50">
                     <button 
                       onClick={() => setShowTextSettings(!showTextSettings)}
-                      className={cn("p-2.5 rounded-full transition-all bg-black/30 backdrop-blur-md border border-white/10", showTextSettings && "bg-white text-black")}
+                      className={cn("p-3 rounded-full transition-all bg-black/30 backdrop-blur-md border border-white/10", showTextSettings && "bg-white text-black")}
                     >
-                        <span className="text-sm font-black italic">Aa</span>
+                        <span className="text-lg font-black italic">Aa</span>
                     </button>
                     
                     <button 
                       onClick={() => setIsPreviewMuted(!isPreviewMuted)}
-                      className="p-2.5 rounded-full bg-black/30 backdrop-blur-md border border-white/10"
+                      className="p-3 rounded-full bg-black/30 backdrop-blur-md border border-white/10"
                     >
                         {isPreviewMuted ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
                     </button>
                 </div>
 
-                {/* Bottom Overlay Area */}
-                <div className="absolute bottom-0 left-0 right-0 p-6 pb-24 bg-gradient-to-t from-black/80 to-transparent pointer-events-none">
+                {/* Bottom Overlay Area (Caption) */}
+                <div className="absolute bottom-0 left-0 right-0 p-6 pb-32 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none">
                     <div className="pointer-events-auto">
                         <Input 
                             value={caption}
                             onChange={(e) => setCaption(e.target.value)}
                             placeholder="Add a caption..."
-                            className="bg-transparent border-none text-white placeholder:text-white/60 p-0 h-10 text-base focus-visible:ring-0"
+                            className="bg-transparent border-none text-white placeholder:text-white/60 p-0 h-12 text-lg font-medium focus-visible:ring-0"
                             disabled={isUploading}
                         />
                     </div>
                 </div>
 
-                {/* Bottom Controls Bar */}
-                <div className="absolute bottom-8 left-0 right-0 px-6 flex items-center justify-between z-50 pointer-events-auto">
-                    <button className="flex items-center gap-2 bg-black/60 backdrop-blur-xl px-4 py-3 rounded-full border border-white/10 min-w-[120px]">
-                        <Avatar className="h-6 w-6 border border-white/20">
-                            <AvatarImage src={user?.photoURL || ''} />
-                            <AvatarFallback><UserCircle2 className="h-4 w-4" /></AvatarFallback>
-                        </Avatar>
-                        <span className="text-[10px] font-bold uppercase tracking-widest">Your stories</span>
-                    </button>
-                    
-                    <button className="flex items-center gap-2 bg-black/60 backdrop-blur-xl px-4 py-3 rounded-full border border-white/10 min-w-[120px]">
-                        <div className="h-5 w-5 bg-green-500 rounded-full flex items-center justify-center">
-                            <Star className="h-3 w-3 text-white fill-white" />
-                        </div>
-                        <span className="text-[10px] font-bold uppercase tracking-widest">Close Friends</span>
-                    </button>
-
+                {/* Bottom Controls Bar (Simplified) */}
+                <div className="absolute bottom-8 left-0 right-0 px-6 flex items-center justify-end z-50 pointer-events-auto">
                     <button 
                         onClick={handlePost}
                         disabled={isUploading}
-                        className="h-14 w-14 bg-indigo-600 rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-transform"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 h-14 rounded-full flex items-center gap-3 shadow-2xl active:scale-95 transition-all font-black uppercase tracking-widest text-sm"
                     >
-                        {isUploading ? <Loader2 className="animate-spin h-6 w-6" /> : <ArrowRight className="h-6 w-6" />}
+                        {isUploading ? (
+                          <>
+                            <Loader2 className="animate-spin h-5 w-5" />
+                            <span>Uploading...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Upload</span>
+                            <SendHorizonal className="h-5 w-5" />
+                          </>
+                        )}
                     </button>
                 </div>
             </div>
@@ -243,7 +237,7 @@ export default function CreatePostPage() {
         )}
       </div>
 
-      {/* Advanced Text Settings Overlay (Only visible when "Aa" is active) */}
+      {/* Advanced Text Settings Overlay */}
       {showTextSettings && mediaPreview && (
           <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 z-[100] p-6 bg-black/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 animate-in zoom-in duration-300">
                 <div className="flex items-center justify-between mb-6">
