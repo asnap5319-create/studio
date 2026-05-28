@@ -3,10 +3,10 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirebase } from '@/firebase';
-import { verifyPasswordResetCode, confirmPasswordReset } from 'firebase/auth';
+import { confirmPasswordReset } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Lock, ShieldCheck, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Loader2, Lock, CheckCircle2, ArrowRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/pwa-install-prompt';
 
@@ -20,40 +20,23 @@ function ResetPasswordForm() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [email, setEmail] = useState('');
   
   const oobCode = searchParams.get('oobCode');
 
-  useEffect(() => {
-    if (!auth || !oobCode) return;
-
-    // Verify the reset code and get user email
-    verifyPasswordResetCode(auth, oobCode)
-      .then((userEmail) => {
-        setEmail(userEmail);
-      })
-      .catch((error) => {
-        console.error("Invalid code:", error);
-        toast({ 
-          variant: 'destructive', 
-          title: "Invalid Link ❌", 
-          description: "यह लिंक पुराना हो गया है या गलत है।" 
-        });
-        router.push('/forgot-password');
-      });
-  }, [auth, oobCode, router, toast]);
-
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth || !oobCode) return;
+    if (!auth || !oobCode) {
+        toast({ variant: 'destructive', title: "Error", description: "Invalid link ya expired code." });
+        return;
+    }
 
     if (newPassword.length < 6) {
-      toast({ variant: 'destructive', title: "Error", description: "Password कम से कम 6 अक्षर का होना चाहिए।" });
+      toast({ variant: 'destructive', title: "Error", description: "Password kam se kam 6 char ka hona chahiye." });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      toast({ variant: 'destructive', title: "Error", description: "Passwords मैच नहीं कर रहे हैं।" });
+      toast({ variant: 'destructive', title: "Error", description: "Passwords match nahi kar rahe." });
       return;
     }
 
@@ -61,10 +44,14 @@ function ResetPasswordForm() {
     try {
       await confirmPasswordReset(auth, oobCode, newPassword);
       setIsSuccess(true);
-      toast({ title: "Success! ✅", description: "आपका पासवर्ड बदल गया है।" });
+      toast({ title: "Success! ✅", description: "Password badal gaya hai bhai!" });
     } catch (error: any) {
       console.error("Reset error:", error);
-      toast({ variant: 'destructive', title: "Error ❌", description: "पासवर्ड बदलने में दिक्कत हुई।" });
+      toast({ 
+          variant: 'destructive', 
+          title: "Error ❌", 
+          description: "Link purana ho gaya hai ya galat hai. Dobara try karo." 
+      });
     } finally {
       setIsLoading(false);
     }
@@ -72,8 +59,9 @@ function ResetPasswordForm() {
 
   if (!oobCode) {
     return (
-        <div className="flex min-h-screen items-center justify-center bg-black p-4 text-white">
-            <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">No action code found.</p>
+        <div className="flex min-h-screen flex-col items-center justify-center bg-black p-4 text-white text-center space-y-4">
+            <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">No security code found in URL.</p>
+            <Button onClick={() => router.push('/forgot-password')}>Get New Link</Button>
         </div>
     );
   }
@@ -89,8 +77,8 @@ function ResetPasswordForm() {
               </div>
            </div>
            <div className="space-y-1">
-             <h1 className="text-3xl font-black italic tracking-tighter uppercase">New Password</h1>
-             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em]">Resetting for: {email}</p>
+             <h1 className="text-3xl font-black italic tracking-tighter uppercase">Set New Password</h1>
+             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em]">Enter your new secure password</p>
            </div>
         </div>
 
@@ -133,7 +121,7 @@ function ResetPasswordForm() {
              <div className="space-y-2">
                 <p className="font-bold text-sm">Password Updated!</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Bhai, tera password badal gaya hai. Ab naye password se login kar le.
+                  Bhai, tera password badal gaya hai. Ab login kar sakte ho.
                 </p>
              </div>
              <Button 
@@ -147,7 +135,7 @@ function ResetPasswordForm() {
 
         <div className="flex items-center justify-center gap-2 pt-8 opacity-30">
            <Logo className="w-4 h-4" />
-           <span className="text-[8px] font-black uppercase tracking-[0.3em]">A.snap Security Protocol</span>
+           <span className="text-[8px] font-black uppercase tracking-[0.3em]">A.snap Secure Protocol</span>
         </div>
       </div>
     </div>

@@ -24,21 +24,22 @@ export default function ForgotPasswordPage() {
 
     setIsLoading(true);
     try {
-      // Professional apps use actionCodeSettings to redirect users back to the app
+      // actionCodeSettings helps redirect the user back to your app
       const actionCodeSettings = {
+        // This is the URL we want to redirect back to.
         url: `${window.location.origin}/reset-password`,
         handleCodeInApp: true,
       };
 
       await sendPasswordResetEmail(auth, email.trim(), actionCodeSettings);
       setIsSent(true);
-      toast({ title: "Secure Link Sent! 📧", description: "Check your inbox and click the link to set a new password." });
+      toast({ title: "Link Sent! 📧", description: "Email check karo, link bhej diya hai." });
     } catch (error: any) {
       console.error("Reset error:", error);
       toast({ 
         variant: 'destructive', 
         title: "Error ❌", 
-        description: error.code === 'auth/user-not-found' ? "User not found with this email." : "Failed to send reset email." 
+        description: "Email bhejne me dikat hui." 
       });
     } finally {
       setIsLoading(false);
@@ -49,7 +50,7 @@ export default function ForgotPasswordPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-black p-4 text-white">
       <div className="w-full max-w-sm space-y-8">
         <button 
-          onClick={() => router.back()} 
+          onClick={() => router.push('/login?auth=true')} 
           className="flex items-center gap-2 text-muted-foreground hover:text-white transition-colors group"
         >
           <div className="p-2 bg-white/5 rounded-full group-hover:bg-white/10">
@@ -67,7 +68,7 @@ export default function ForgotPasswordPage() {
            </div>
            <div className="space-y-1">
              <h1 className="text-3xl font-black italic tracking-tighter uppercase">Recover Account</h1>
-             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em]">Enter email to get reset link</p>
+             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em]">Enter email for reset link</p>
            </div>
         </div>
 
@@ -90,12 +91,12 @@ export default function ForgotPasswordPage() {
 
             <Button 
               type="submit" 
-              className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-2xl shadow-lg shadow-primary/20 transition-all active:scale-95"
+              className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-2xl shadow-lg transition-all active:scale-95"
               disabled={isLoading}
             >
               {isLoading ? (
                 <span className="flex items-center gap-2"><Loader2 className="animate-spin h-5 w-5" /> Sending...</span>
-              ) : "Send Recovery Link"}
+              ) : "Get Reset Link"}
             </Button>
           </form>
         ) : (
@@ -106,16 +107,16 @@ export default function ForgotPasswordPage() {
              <div className="space-y-2">
                 <p className="font-bold text-sm">Link Sent to Email</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Bhai, humne recovery link bhej diya hai. Link par click karte hi naya password dalne ka option aa jayega.
+                  Bhai, link bhej diya hai. Email me ja kar link par click karo aur naya password set karo.
                 </p>
              </div>
-             <p className="text-[9px] text-muted-foreground font-bold uppercase">Check your Spam folder too!</p>
+             <p className="text-[9px] text-muted-foreground font-bold uppercase">Spam folder bhi check kar lena!</p>
           </div>
         )}
 
         <div className="flex items-center justify-center gap-2 pt-8 opacity-30">
            <Logo className="w-4 h-4" />
-           <span className="text-[8px] font-black uppercase tracking-[0.3em]">A.snap Security Protocol</span>
+           <span className="text-[8px] font-black uppercase tracking-[0.3em]">A.snap Security</span>
         </div>
       </div>
     </div>
