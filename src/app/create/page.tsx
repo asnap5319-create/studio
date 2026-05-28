@@ -10,14 +10,12 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Progress } from '@/components/ui/progress';
 import { 
-  UploadCloud, Loader2, X, Type, Palette, 
-  ChevronLeft, Check, Move, 
-  Volume2, VolumeX, 
-  ArrowRight, Star, UserCircle2, SendHorizonal 
+  UploadCloud, Loader2, Type, Palette, 
+  ChevronLeft, Volume2, VolumeX, 
+  SendHorizonal, ArrowRight
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const COLORS = [
     { name: 'White', value: '#ffffff' },
@@ -42,7 +40,7 @@ export default function CreatePostPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
 
   // UI State
-  const [isPreviewMuted, setIsPreviewMuted] = useState(false); // Default to unmuted (sound on) as requested
+  const [isPreviewMuted, setIsPreviewMuted] = useState(false); // Default to unmuted (sound on)
   const [showTextSettings, setShowTextSettings] = useState(false);
 
   // Text Overlay State
@@ -50,8 +48,6 @@ export default function CreatePostPage() {
   const [overlayColor, setOverlayColor] = useState('#ffffff');
   const [overlayY, setOverlayY] = useState(50);
   const [overlayX, setOverlayX] = useState(50);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -63,8 +59,7 @@ export default function CreatePostPage() {
       setMediaFile(file);
       setMediaPreview(URL.createObjectURL(file));
       setMediaType(file.type.startsWith('image/') ? 'image' : 'video');
-      // Ensure sound is on for the new video
-      setIsPreviewMuted(false);
+      setIsPreviewMuted(false); // Sound on for preview
     }
   };
 
@@ -131,7 +126,6 @@ export default function CreatePostPage() {
 
   return (
     <div className="flex h-screen flex-col bg-black text-white overflow-hidden select-none">
-      {/* Background / Main Content Area */}
       <div className="relative flex-1 bg-black overflow-hidden flex items-center justify-center">
         {mediaPreview ? (
             <div className="relative w-full h-full">
@@ -166,7 +160,7 @@ export default function CreatePostPage() {
                     </div>
                 )}
 
-                {/* Top Left Back Button (To Cancel/Go Back) */}
+                {/* Top Left Back Button */}
                 <button 
                   onClick={() => mediaFile ? setMediaFile(null) : router.back()} 
                   className="absolute top-10 left-6 z-50 p-3 bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:bg-black/60 transition-colors"
@@ -174,13 +168,13 @@ export default function CreatePostPage() {
                   <ChevronLeft className="h-6 w-6" />
                 </button>
 
-                {/* Right Side Vertical Toolbar - Simplified as requested */}
+                {/* Right Side Vertical Toolbar */}
                 <div className="absolute top-10 right-6 flex flex-col gap-4 z-50">
                     <button 
                       onClick={() => setShowTextSettings(!showTextSettings)}
                       className={cn("p-3 rounded-full transition-all bg-black/30 backdrop-blur-md border border-white/10", showTextSettings && "bg-white text-black")}
                     >
-                        <span className="text-lg font-black italic">Aa</span>
+                        <Type className="h-6 w-6" />
                     </button>
                     
                     <button 
@@ -204,12 +198,12 @@ export default function CreatePostPage() {
                     </div>
                 </div>
 
-                {/* Bottom Controls Bar (Simplified Upload Button) */}
+                {/* Bottom Controls Bar */}
                 <div className="absolute bottom-8 left-0 right-0 px-6 flex items-center justify-end z-50 pointer-events-auto">
                     <button 
                         onClick={handlePost}
                         disabled={isUploading}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-10 h-14 rounded-full flex items-center gap-3 shadow-2xl active:scale-95 transition-all font-black uppercase tracking-widest text-sm"
+                        className="bg-primary hover:bg-primary/90 text-white px-10 h-14 rounded-full flex items-center gap-3 shadow-2xl active:scale-95 transition-all font-black uppercase tracking-widest text-sm"
                     >
                         {isUploading ? (
                           <>
@@ -301,7 +295,7 @@ export default function CreatePostPage() {
           </div>
       )}
 
-      {/* Progress Bar (Visible during upload) */}
+      {/* Progress Bar */}
       {isUploading && (
           <div className="absolute top-0 left-0 right-0 z-[200]">
               <Progress value={uploadProgress} className="h-1 bg-white/10" />
