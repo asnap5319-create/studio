@@ -32,10 +32,10 @@ export default function ForgotPasswordPage() {
 
       await sendPasswordResetEmail(auth, email.trim(), actionCodeSettings);
       setIsSent(true);
-      toast({ title: "Link Sent! 📧", description: "ईमेल चेक करो भाई, लिंक भेज दिया है।" });
+      toast({ title: "Link Sent! 📧", description: "भाई, नया लिंक भेज दिया है। ईमेल चेक करो!" });
     } catch (error: any) {
       console.error("Reset error:", error);
-      let msg = "ईमेल भेजने में दिक्कत हुई। सही ईमेल डालो और चेक करो कि Domain authorized है या नहीं।";
+      let msg = "ईमेल भेजने में दिक्कत हुई। चेक करो कि Domain authorized है या नहीं।";
       if (error.code === 'auth/unauthorized-continue-uri') {
         msg = "भाई, Firebase Console में asnap.vercel.app को Authorized Domains में ऐड करो।";
       }
@@ -110,7 +110,7 @@ export default function ForgotPasswordPage() {
              <div className="space-y-2">
                 <p className="font-bold text-sm">Link Sent to Email</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  भाई, लिंक भेज दिया है। ईमेल में जा कर लिंक पर क्लिक करो और नया पासवर्ड सेट करो।
+                  भाई, एकदम नया लिंक भेज दिया है। ईमेल में जाकर उस पर क्लिक करो और नया पासवर्ड सेट करो।
                 </p>
              </div>
              <p className="text-[9px] text-muted-foreground font-bold uppercase">Spam folder भी चेक कर लेना!</p>

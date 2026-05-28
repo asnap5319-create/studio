@@ -40,7 +40,7 @@ function ResetPasswordForm() {
       .catch((err) => {
         console.error("Verification error:", err);
         setIsVerifying(false);
-        setError("भाई, लिंक पुराना हो गया है या इनवैलिड है। दोबारा लिंक मँगवाओ।");
+        setError("भाई, यह लिंक पुराना हो गया है या एक्सपायर हो चुका है। नया लिंक मँगवाओ।");
       });
   }, [auth, oobCode]);
 
@@ -68,7 +68,7 @@ function ResetPasswordForm() {
       toast({ 
           variant: 'destructive', 
           title: "Error ❌", 
-          description: "पासवर्ड रिसेट नहीं हो पाया। दोबारा ट्राई करो।" 
+          description: "पासवर्ड रिसेट नहीं हो पाया। दोबारा नया लिंक मँगवाओ।" 
       });
     } finally {
       setIsLoading(false);
