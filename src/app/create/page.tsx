@@ -40,7 +40,7 @@ export default function CreatePostPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
 
   // UI State
-  const [isPreviewMuted, setIsPreviewMuted] = useState(false); // Default to FALSE (Sound ON) as requested
+  const [isPreviewMuted, setIsPreviewMuted] = useState(false); // Sound ON by default
   const [showTextSettings, setShowTextSettings] = useState(false);
 
   // Text Overlay State
@@ -59,7 +59,7 @@ export default function CreatePostPage() {
       setMediaFile(file);
       setMediaPreview(URL.createObjectURL(file));
       setMediaType(file.type.startsWith('image/') ? 'image' : 'video');
-      setIsPreviewMuted(false); // Sound ON for new video preview
+      setIsPreviewMuted(false); 
     }
   };
 
@@ -142,7 +142,6 @@ export default function CreatePostPage() {
                     <Image src={mediaPreview} alt="Preview" fill className="object-cover" />
                 )}
 
-                {/* Real-time Overlay Preview */}
                 {overlayText && (
                     <div 
                         className="absolute px-4 text-center pointer-events-none z-20"
@@ -160,15 +159,15 @@ export default function CreatePostPage() {
                     </div>
                 )}
 
-                {/* Back Button (Top Left) */}
+                {/* Back Button */}
                 <button 
                   onClick={() => mediaFile ? setMediaFile(null) : router.back()} 
-                  className="absolute top-10 left-6 z-50 p-3 bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:bg-black/60 transition-colors"
+                  className="absolute top-10 left-6 z-50 p-3 bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:bg-black/60 transition-colors flex items-center gap-2"
                 >
                   <ChevronLeft className="h-6 w-6" />
+                  <span className="text-[10px] font-bold uppercase pr-2">Back</span>
                 </button>
 
-                {/* Right Side Vertical Toolbar */}
                 <div className="absolute top-10 right-6 flex flex-col gap-4 z-50">
                     <button 
                       onClick={() => setShowTextSettings(!showTextSettings)}
@@ -185,7 +184,6 @@ export default function CreatePostPage() {
                     </button>
                 </div>
 
-                {/* Bottom Overlay Area (Caption) */}
                 <div className="absolute bottom-0 left-0 right-0 p-6 pb-32 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none">
                     <div className="pointer-events-auto">
                         <Input 
@@ -198,7 +196,7 @@ export default function CreatePostPage() {
                     </div>
                 </div>
 
-                {/* Upload Button (Bottom Right) */}
+                {/* Upload Button */}
                 <div className="absolute bottom-8 left-0 right-0 px-6 flex items-center justify-end z-50 pointer-events-auto">
                     <button 
                         onClick={handlePost}
@@ -233,7 +231,6 @@ export default function CreatePostPage() {
         )}
       </div>
 
-      {/* Advanced Text Settings Overlay */}
       {showTextSettings && mediaPreview && (
           <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 z-[100] p-6 bg-black/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 animate-in zoom-in duration-300">
                 <div className="flex items-center justify-between mb-6">
@@ -295,7 +292,6 @@ export default function CreatePostPage() {
           </div>
       )}
 
-      {/* Progress Bar */}
       {isUploading && (
           <div className="absolute top-0 left-0 right-0 z-[200]">
               <Progress value={uploadProgress} className="h-1 bg-white/10" />
