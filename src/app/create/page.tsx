@@ -10,9 +10,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Progress } from '@/components/ui/progress';
-import { UploadCloud, Loader2, X, Type, Palette, ChevronLeft, Check, Sparkles, Move } from 'lucide-react';
+import { 
+  UploadCloud, Loader2, X, Type, Palette, 
+  ChevronLeft, Check, Sparkles, Move, 
+  Smile, Music, Volume2, VolumeX, ChevronDown, 
+  ArrowRight, Star, UserCircle2 
+} from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const COLORS = [
     { name: 'White', value: '#ffffff' },
@@ -36,12 +42,15 @@ export default function CreatePostPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
+  // UI State
+  const [isPreviewMuted, setIsPreviewMuted] = useState(false);
+  const [showTextSettings, setShowTextSettings] = useState(false);
+
   // Text Overlay State
   const [overlayText, setOverlayText] = useState('');
   const [overlayColor, setOverlayColor] = useState('#ffffff');
   const [overlayY, setOverlayY] = useState(50);
   const [overlayX, setOverlayX] = useState(50);
-  const [showTextSettings, setShowTextSettings] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -71,7 +80,6 @@ export default function CreatePostPage() {
         
         const resourceType = mediaFile.type.startsWith('video') ? 'video' : 'image';
         
-        // Simulate progress for better UX
         const progressInterval = setInterval(() => {
             setUploadProgress(prev => prev < 80 ? prev + 5 : prev);
         }, 300);
@@ -121,126 +129,152 @@ export default function CreatePostPage() {
   if (isUserLoading) return <div className="flex h-screen items-center justify-center bg-black"><Loader2 className="animate-spin text-primary h-10 w-10" /></div>
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-white max-w-lg mx-auto overflow-hidden">
-      {/* Top Navigation */}
-      <header className="flex items-center justify-between p-4 border-b border-white/5 sticky top-0 bg-background/95 backdrop-blur-md z-50">
-          <button onClick={() => router.back()} className="p-2 hover:bg-secondary rounded-full transition-colors">
-            <X className="h-6 w-6" />
-          </button>
-          <h1 className="text-sm font-black uppercase tracking-[0.2em] italic text-primary">New Reel</h1>
-          <Button 
-            onClick={handlePost} 
-            disabled={isUploading || !mediaFile} 
-            variant="ghost" 
-            className="text-primary font-black uppercase text-sm hover:bg-transparent"
-          >
-            {isUploading ? <Loader2 className="animate-spin h-4 w-4" /> : 'Share'}
-          </Button>
-      </header>
-      
-      {isUploading && <Progress value={uploadProgress} className="h-1 rounded-none bg-secondary" />}
+    <div className="flex h-screen flex-col bg-black text-white overflow-hidden select-none">
+      {/* Background / Main Content Area */}
+      <div className="relative flex-1 bg-black overflow-hidden flex items-center justify-center">
+        {mediaPreview ? (
+            <div className="relative w-full h-full">
+                {mediaType === 'video' ? (
+                    <video 
+                      src={mediaPreview} 
+                      className="w-full h-full object-cover" 
+                      autoPlay 
+                      loop 
+                      muted={isPreviewMuted} 
+                      playsInline
+                    />
+                ) : (
+                    <Image src={mediaPreview} alt="Preview" fill className="object-cover" />
+                )}
 
-      <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-6 pb-12">
-        {/* Media Preview Area - Instagram Inspired */}
-        <div className="relative aspect-[9/16] w-full max-h-[60vh] bg-secondary/20 rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/5">
-            {mediaPreview ? (
-                <>
-                    {mediaType === 'video' ? (
-                        <video src={mediaPreview} className="object-cover w-full h-full" autoPlay loop muted />
-                    ) : (
-                        <Image src={mediaPreview} alt="Preview" fill className="object-cover" />
-                    )}
+                {/* Real-time Overlay Preview */}
+                {overlayText && (
+                    <div 
+                        className="absolute px-4 text-center pointer-events-none z-20"
+                        style={{ 
+                            top: `${overlayY}%`, 
+                            left: `${overlayX}%`,
+                            transform: 'translate(-50%, -50%)',
+                            color: overlayColor,
+                            textShadow: '0 2px 10px rgba(0,0,0,0.8)'
+                        }}
+                    >
+                        <p className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter leading-tight drop-shadow-2xl">
+                            {overlayText}
+                        </p>
+                    </div>
+                )}
+
+                {/* Top Left Back Button */}
+                <button 
+                  onClick={() => mediaFile ? setMediaFile(null) : router.back()} 
+                  className="absolute top-10 left-6 z-50 p-3 bg-black/20 backdrop-blur-md rounded-full border border-white/10"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
+
+                {/* Right Side Vertical Toolbar (Instagram Style) */}
+                <div className="absolute top-10 right-6 flex flex-col gap-4 z-50">
+                    <button 
+                      onClick={() => setShowTextSettings(!showTextSettings)}
+                      className={cn("p-2.5 rounded-full transition-all bg-black/30 backdrop-blur-md border border-white/10", showTextSettings && "bg-white text-black")}
+                    >
+                        <span className="text-sm font-black italic">Aa</span>
+                    </button>
+                    <button className="p-2.5 rounded-full bg-black/30 backdrop-blur-md border border-white/10">
+                        <Smile className="h-6 w-6" />
+                    </button>
+                    <button className="p-2.5 rounded-full bg-black/30 backdrop-blur-md border border-white/10">
+                        <Music className="h-6 w-6" />
+                    </button>
+                    <button className="p-2.5 rounded-full bg-black/30 backdrop-blur-md border border-white/10">
+                        <Sparkles className="h-6 w-6" />
+                    </button>
+                    <button 
+                      onClick={() => setIsPreviewMuted(!isPreviewMuted)}
+                      className="p-2.5 rounded-full bg-black/30 backdrop-blur-md border border-white/10"
+                    >
+                        {isPreviewMuted ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
+                    </button>
+                    <button className="p-2.5 rounded-full bg-black/30 backdrop-blur-md border border-white/10">
+                        <ChevronDown className="h-6 w-6" />
+                    </button>
+                </div>
+
+                {/* Bottom Overlay Area */}
+                <div className="absolute bottom-0 left-0 right-0 p-6 pb-24 bg-gradient-to-t from-black/80 to-transparent pointer-events-none">
+                    <div className="pointer-events-auto">
+                        <Input 
+                            value={caption}
+                            onChange={(e) => setCaption(e.target.value)}
+                            placeholder="Add a caption..."
+                            className="bg-transparent border-none text-white placeholder:text-white/60 p-0 h-10 text-base focus-visible:ring-0"
+                            disabled={isUploading}
+                        />
+                    </div>
+                </div>
+
+                {/* Bottom Controls Bar */}
+                <div className="absolute bottom-8 left-0 right-0 px-6 flex items-center justify-between z-50 pointer-events-auto">
+                    <button className="flex items-center gap-2 bg-black/60 backdrop-blur-xl px-4 py-3 rounded-full border border-white/10 min-w-[120px]">
+                        <Avatar className="h-6 w-6 border border-white/20">
+                            <AvatarImage src={user?.photoURL || ''} />
+                            <AvatarFallback><UserCircle2 className="h-4 w-4" /></AvatarFallback>
+                        </Avatar>
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Your stories</span>
+                    </button>
                     
-                    {/* Real-time Overlay Preview */}
-                    {overlayText && (
-                        <div 
-                            className="absolute px-4 text-center pointer-events-none z-10"
-                            style={{ 
-                                top: `${overlayY}%`, 
-                                left: `${overlayX}%`,
-                                transform: 'translate(-50%, -50%)',
-                                color: overlayColor,
-                                textShadow: '0 2px 10px rgba(0,0,0,0.8)'
-                            }}
-                        >
-                            <p className="text-xl md:text-2xl font-black italic uppercase tracking-tighter leading-tight drop-shadow-2xl">
-                                {overlayText}
-                            </p>
+                    <button className="flex items-center gap-2 bg-black/60 backdrop-blur-xl px-4 py-3 rounded-full border border-white/10 min-w-[120px]">
+                        <div className="h-5 w-5 bg-green-500 rounded-full flex items-center justify-center">
+                            <Star className="h-3 w-3 text-white fill-white" />
                         </div>
-                    )}
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Close Friends</span>
+                    </button>
 
-                    <div className="absolute top-4 right-4 flex flex-col gap-2">
-                        <button 
-                            onClick={() => { setMediaFile(null); setMediaPreview(null); setShowTextSettings(false); }}
-                            className="p-3 bg-black/60 backdrop-blur-md rounded-full text-white border border-white/10 hover:bg-black/80 transition-colors"
-                        >
-                            <X size={18} />
-                        </button>
-                        <button 
-                            onClick={() => setShowTextSettings(!showTextSettings)}
-                            className={cn(
-                                "p-3 backdrop-blur-md rounded-full text-white border border-white/10 transition-all",
-                                showTextSettings ? "bg-primary text-white scale-110" : "bg-black/60"
-                            )}
-                        >
-                            <Type size={18} />
-                        </button>
-                    </div>
-                </>
-            ) : (
-                <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer group bg-gradient-to-br from-secondary/10 to-background">
-                    <div className="text-center group-hover:scale-110 transition-transform duration-500">
-                        <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mb-4 mx-auto border border-primary/30">
-                            <UploadCloud className="w-10 h-10 text-primary animate-pulse" />
-                        </div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground">Select Reel</p>
-                        <p className="text-[8px] text-muted-foreground mt-2 uppercase opacity-50">Image or Video</p>
-                    </div>
-                    <input type="file" className="hidden" accept="video/*,image/*" onChange={handleFileChange} disabled={isUploading} />
-                </label>
-            )}
-        </div>
-
-        {/* Caption Area */}
-        <div className="space-y-4">
-            <div className="flex items-start gap-3 bg-secondary/30 p-4 rounded-3xl border border-white/5">
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                    <Sparkles className="h-5 w-5 text-primary" />
+                    <button 
+                        onClick={handlePost}
+                        disabled={isUploading}
+                        className="h-14 w-14 bg-indigo-600 rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-transform"
+                    >
+                        {isUploading ? <Loader2 className="animate-spin h-6 w-6" /> : <ArrowRight className="h-6 w-6" />}
+                    </button>
                 </div>
-                <Textarea
-                    value={caption}
-                    onChange={(e) => setCaption(e.target.value)}
-                    placeholder="Write a caption... #trending #reels"
-                    className="flex-1 bg-transparent border-none p-0 focus-visible:ring-0 resize-none text-sm min-h-[80px]"
-                    disabled={isUploading}
-                />
             </div>
-        </div>
-
-        {/* Advanced Text Settings Overlay - Animated */}
-        {showTextSettings && mediaPreview && (
-            <div className="space-y-6 p-6 bg-secondary/40 rounded-[2.5rem] border border-white/10 animate-in fade-in slide-in-from-bottom-8">
-                <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                        <Type className="h-4 w-4 text-primary" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em]">Edit Text</span>
+        ) : (
+            <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer group bg-gradient-to-br from-neutral-900 to-black">
+                <div className="text-center group-hover:scale-110 transition-transform duration-500">
+                    <div className="w-24 h-24 bg-primary/20 rounded-[2rem] flex items-center justify-center mb-6 mx-auto border border-primary/30">
+                        <UploadCloud className="w-12 h-12 text-primary animate-pulse" />
                     </div>
-                    <button onClick={() => setShowTextSettings(false)} className="text-[10px] font-bold text-primary uppercase">Done</button>
+                    <h2 className="text-xl font-black uppercase tracking-[0.2em] italic text-primary">New Reel</h2>
+                    <p className="text-[10px] text-muted-foreground mt-4 uppercase tracking-[0.4em] opacity-50">Choose Video or Image</p>
                 </div>
-                
+                <input type="file" className="hidden" accept="video/*,image/*" onChange={handleFileChange} disabled={isUploading} />
+            </label>
+        )}
+      </div>
+
+      {/* Advanced Text Settings Overlay (Only visible when "Aa" is active) */}
+      {showTextSettings && mediaPreview && (
+          <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 z-[100] p-6 bg-black/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 animate-in zoom-in duration-300">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Text Overlay</h3>
+                    <button onClick={() => setShowTextSettings(false)} className="text-[10px] font-bold uppercase text-white/50">Done</button>
+                </div>
+
                 <Input 
                     placeholder="Type something cool..."
                     value={overlayText}
                     onChange={(e) => setOverlayText(e.target.value)}
-                    className="h-14 bg-black/40 border-white/10 rounded-2xl text-center font-bold"
+                    className="h-14 bg-white/5 border-white/10 rounded-2xl text-center font-bold text-lg"
                     maxLength={100}
                 />
 
                 {overlayText && (
-                    <div className="space-y-6">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-3">
-                                <span className="text-[9px] font-bold uppercase text-muted-foreground ml-1">Vertical</span>
+                    <div className="mt-8 space-y-8">
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <span className="text-[9px] font-bold uppercase text-white/40 ml-1">Vertical Pos</span>
                                 <Slider 
                                     value={[overlayY]} 
                                     onValueChange={(v) => setOverlayY(v[0])} 
@@ -248,8 +282,8 @@ export default function CreatePostPage() {
                                     step={1} 
                                 />
                             </div>
-                            <div className="space-y-3">
-                                <span className="text-[9px] font-bold uppercase text-muted-foreground ml-1">Horizontal</span>
+                            <div className="space-y-4">
+                                <span className="text-[9px] font-bold uppercase text-white/40 ml-1">Horizontal Pos</span>
                                 <Slider 
                                     value={[overlayX]} 
                                     onValueChange={(v) => setOverlayX(v[0])} 
@@ -259,18 +293,18 @@ export default function CreatePostPage() {
                             </div>
                         </div>
 
-                        <div className="space-y-3">
-                            <span className="text-[9px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                                <Palette className="h-3 w-3" /> Pick Color
+                        <div className="space-y-4">
+                            <span className="text-[9px] font-bold uppercase text-white/40 ml-1 flex items-center gap-1.5">
+                                <Palette className="h-3 w-3" /> Color Palette
                             </span>
-                            <div className="flex justify-between bg-black/20 p-3 rounded-2xl">
+                            <div className="flex justify-between bg-white/5 p-4 rounded-3xl border border-white/5">
                                 {COLORS.map((c) => (
                                     <button 
                                         key={c.name}
                                         onClick={() => setOverlayColor(c.value)}
                                         className={cn(
-                                            "w-8 h-8 rounded-full border-2 transition-all transform active:scale-90",
-                                            overlayColor === c.value ? "border-white scale-125 shadow-lg shadow-white/20" : "border-transparent opacity-60"
+                                            "w-9 h-9 rounded-full border-2 transition-all transform active:scale-90",
+                                            overlayColor === c.value ? "border-white scale-110 shadow-lg" : "border-transparent opacity-60"
                                         )}
                                         style={{ backgroundColor: c.value === 'hsl(var(--primary))' ? '#ff3366' : c.value }}
                                     />
@@ -279,29 +313,15 @@ export default function CreatePostPage() {
                         </div>
                     </div>
                 )}
-            </div>
-        )}
+          </div>
+      )}
 
-        {!showTextSettings && mediaFile && (
-            <Button 
-                onClick={handlePost} 
-                disabled={isUploading} 
-                className="w-full h-16 text-lg font-black uppercase rounded-3xl bg-primary shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all mt-4"
-            >
-                {isUploading ? (
-                    <div className="flex items-center gap-3">
-                        <Loader2 className="animate-spin h-5 w-5" />
-                        <span>Uploading Reel... {uploadProgress}%</span>
-                    </div>
-                ) : (
-                    <div className="flex items-center gap-3">
-                        <Check className="h-5 w-5" />
-                        <span>Share to Feed</span>
-                    </div>
-                )}
-            </Button>
-        )}
-      </div>
+      {/* Progress Bar (Visible during upload) */}
+      {isUploading && (
+          <div className="absolute top-0 left-0 right-0 z-[200]">
+              <Progress value={uploadProgress} className="h-1 bg-white/10" />
+          </div>
+      )}
     </div>
   );
 }
