@@ -267,7 +267,7 @@ export default function SignupPage() {
         </form>
 
         <p className="px-8 text-center text-[10px] text-muted-foreground uppercase font-bold tracking-widest leading-relaxed">
-            By signing up, you agree to our Terms, Privacy Policy and Cookies Policy.
+            By signing up, you agree to our <Link href="/terms" className="text-white underline">Terms</Link>, <Link href="/privacy" className="text-white underline">Privacy Policy</Link> and Cookies Policy.
         </p>
 
         <div className="border-t border-white/10 mt-4 pt-4">
