@@ -193,15 +193,22 @@ function LoginForm() {
               required
               disabled={isLoggingIn || isGoogleLoading}
             />
-            <Input 
-              type="password" 
-              placeholder="Password" 
-              className="h-14 text-base bg-secondary/30 border-white/5 rounded-2xl text-white focus:ring-primary focus:border-primary" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={isLoggingIn || isGoogleLoading}
-            />
+            <div className="space-y-2">
+              <Input 
+                type="password" 
+                placeholder="Password" 
+                className="h-14 text-base bg-secondary/30 border-white/5 rounded-2xl text-white focus:ring-primary focus:border-primary" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={isLoggingIn || isGoogleLoading}
+              />
+              <div className="text-right px-2">
+                <Link href="/forgot-password" className="text-[10px] font-black uppercase text-muted-foreground hover:text-primary transition-colors">
+                  Forgot Password?
+                </Link>
+              </div>
+            </div>
             <Button type="submit" className="w-full h-14 text-lg font-black uppercase rounded-2xl bg-[#ff3366] shadow-lg shadow-[#ff3366]/20 hover:scale-[1.02] active:scale-95 transition-all" disabled={isLoggingIn || isGoogleLoading}>
               {isLoggingIn ? (
                   <span className="flex items-center gap-2"><Loader2 className="animate-spin h-5 w-5" /> Authenticating...</span>
