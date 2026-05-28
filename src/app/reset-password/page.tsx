@@ -29,7 +29,7 @@ function ResetPasswordForm() {
   useEffect(() => {
     if (!auth || !oobCode) {
       setIsVerifying(false);
-      setError("No security code found in link.");
+      setError("Link me koi security code nahi mila. Email link se hi aao bhai.");
       return;
     }
 

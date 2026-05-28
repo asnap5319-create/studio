@@ -25,7 +25,6 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
     try {
       // अभिषेक भाई, ये सेटिंग्स गूगल को बोलेंगी कि लिंक सीधे हमारे ऐप पर भेजे
-      // हमने वही URL दिया है जो आपने Firebase Console में डाला है
       const actionCodeSettings = {
         url: `https://asnap.vercel.app/reset-password`,
         handleCodeInApp: true,
@@ -36,10 +35,14 @@ export default function ForgotPasswordPage() {
       toast({ title: "Link Sent! 📧", description: "Email check karo bhai, link bhej diya hai." });
     } catch (error: any) {
       console.error("Reset error:", error);
+      let msg = "Email bhejne me dikat hui. Sahi email dalo.";
+      if (error.code === 'auth/unauthorized-continue-uri') {
+        msg = "Bhai, Firebase Console me domain authorized nahi hai. Check Settings.";
+      }
       toast({ 
         variant: 'destructive', 
         title: "Error ❌", 
-        description: "Email bhejne me dikat hui. Sahi email dalo." 
+        description: msg 
       });
     } finally {
       setIsLoading(false);
