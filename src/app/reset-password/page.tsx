@@ -3,10 +3,10 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirebase } from '@/firebase';
-import { confirmPasswordReset } from 'firebase/auth';
+import { confirmPasswordReset, verifyPasswordResetCode } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Lock, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Loader2, Lock, CheckCircle2, ArrowRight, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/pwa-install-prompt';
 
@@ -20,23 +20,41 @@ function ResetPasswordForm() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   const oobCode = searchParams.get('oobCode');
 
-  const handleReset = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // अभिषेक भाई, यहाँ हम पहले कोड को वेरीफाई करेंगे कि वो सही है या नहीं
+  useEffect(() => {
     if (!auth || !oobCode) {
-        toast({ variant: 'destructive', title: "Error", description: "Invalid link ya expired code." });
-        return;
+      setIsVerifying(false);
+      setError("No security code found.");
+      return;
     }
 
+    verifyPasswordResetCode(auth, oobCode)
+      .then(() => {
+        setIsVerifying(false);
+      })
+      .catch((err) => {
+        console.error("Verification error:", err);
+        setIsVerifying(false);
+        setError("Bhai, link purana ho gaya hai ya invalid hai.");
+      });
+  }, [auth, oobCode]);
+
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!auth || !oobCode) return;
+
     if (newPassword.length < 6) {
-      toast({ variant: 'destructive', title: "Error", description: "Password kam se kam 6 char ka hona chahiye." });
+      toast({ variant: 'destructive', title: "Error", description: "Password kam se kam 6 digits ka rakho." });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      toast({ variant: 'destructive', title: "Error", description: "Passwords match nahi kar rahe." });
+      toast({ variant: 'destructive', title: "Error", description: "Dono password match nahi kar rahe." });
       return;
     }
 
@@ -50,18 +68,37 @@ function ResetPasswordForm() {
       toast({ 
           variant: 'destructive', 
           title: "Error ❌", 
-          description: "Link purana ho gaya hai ya galat hai. Dobara try karo." 
+          description: "Password reset nahi ho paya. Dobara try karo." 
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (!oobCode) {
+  if (isVerifying) {
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-black p-4 text-white text-center space-y-4">
-            <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">No security code found in URL.</p>
-            <Button onClick={() => router.push('/forgot-password')}>Get New Link</Button>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-black text-white">
+          <Loader2 className="animate-spin text-primary h-12 w-12" />
+          <p className="mt-4 font-bold uppercase text-[10px] tracking-widest animate-pulse">Verifying Security Code...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+        <div className="flex min-h-screen flex-col items-center justify-center bg-black p-4 text-white text-center space-y-6">
+            <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center border border-red-500/20">
+                <AlertTriangle className="text-red-500 h-10 w-10" />
+            </div>
+            <div className="space-y-2">
+                <h1 className="text-xl font-black uppercase italic">Link Expired</h1>
+                <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                    {error}
+                </p>
+            </div>
+            <Button onClick={() => router.push('/forgot-password')} className="bg-primary text-white font-black uppercase px-10 h-14 rounded-2xl">
+                Get New Link
+            </Button>
         </div>
     );
   }
@@ -84,24 +121,26 @@ function ResetPasswordForm() {
 
         {!isSuccess ? (
           <form onSubmit={handleReset} className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <Input 
-              type="password" 
-              placeholder="New Password" 
-              className="h-14 bg-secondary/30 border-white/5 rounded-2xl focus:ring-primary"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              required
-              disabled={isLoading}
-            />
-            <Input 
-              type="password" 
-              placeholder="Confirm New Password" 
-              className="h-14 bg-secondary/30 border-white/5 rounded-2xl focus:ring-primary"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              disabled={isLoading}
-            />
+            <div className="space-y-4">
+                <Input 
+                  type="password" 
+                  placeholder="New Password" 
+                  className="h-14 bg-secondary/30 border-white/5 rounded-2xl focus:ring-primary"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  disabled={isLoading}
+                />
+                <Input 
+                  type="password" 
+                  placeholder="Confirm New Password" 
+                  className="h-14 bg-secondary/30 border-white/5 rounded-2xl focus:ring-primary"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  disabled={isLoading}
+                />
+            </div>
 
             <Button 
               type="submit" 
@@ -125,7 +164,7 @@ function ResetPasswordForm() {
                 </p>
              </div>
              <Button 
-               className="w-full h-14 rounded-2xl bg-white text-black font-black uppercase text-xs flex items-center justify-center gap-2"
+               className="w-full h-14 rounded-2xl bg-white text-black font-black uppercase text-xs flex items-center justify-center gap-2 shadow-2xl"
                onClick={() => router.push('/login?auth=true')}
              >
                Go to Login <ArrowRight size={16} />

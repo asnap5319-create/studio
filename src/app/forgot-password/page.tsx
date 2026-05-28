@@ -24,22 +24,22 @@ export default function ForgotPasswordPage() {
 
     setIsLoading(true);
     try {
-      // actionCodeSettings helps redirect the user back to your app
+      // अभिषेक भाई, ये सेटिंग्स गूगल को बोलेंगी कि लिंक सीधे हमारे ऐप पर भेजे
       const actionCodeSettings = {
-        // This is the URL we want to redirect back to.
+        // हम चाहते हैं कि लिंक क्लिक होते ही यूजर इस पेज पर वापस आए
         url: `${window.location.origin}/reset-password`,
         handleCodeInApp: true,
       };
 
       await sendPasswordResetEmail(auth, email.trim(), actionCodeSettings);
       setIsSent(true);
-      toast({ title: "Link Sent! 📧", description: "Email check karo, link bhej diya hai." });
+      toast({ title: "Link Sent! 📧", description: "Email check karo bhai, link bhej diya hai." });
     } catch (error: any) {
       console.error("Reset error:", error);
       toast({ 
         variant: 'destructive', 
         title: "Error ❌", 
-        description: "Email bhejne me dikat hui." 
+        description: "Email bhejne me dikat hui. Sahi email dalo." 
       });
     } finally {
       setIsLoading(false);
