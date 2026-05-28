@@ -42,7 +42,7 @@ export default function CreatePostPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
 
   // UI State
-  const [isPreviewMuted, setIsPreviewMuted] = useState(false);
+  const [isPreviewMuted, setIsPreviewMuted] = useState(false); // Default to unmuted (sound on) as requested
   const [showTextSettings, setShowTextSettings] = useState(false);
 
   // Text Overlay State
@@ -63,6 +63,8 @@ export default function CreatePostPage() {
       setMediaFile(file);
       setMediaPreview(URL.createObjectURL(file));
       setMediaType(file.type.startsWith('image/') ? 'image' : 'video');
+      // Ensure sound is on for the new video
+      setIsPreviewMuted(false);
     }
   };
 
@@ -172,7 +174,7 @@ export default function CreatePostPage() {
                   <ChevronLeft className="h-6 w-6" />
                 </button>
 
-                {/* Right Side Vertical Toolbar */}
+                {/* Right Side Vertical Toolbar - Simplified as requested */}
                 <div className="absolute top-10 right-6 flex flex-col gap-4 z-50">
                     <button 
                       onClick={() => setShowTextSettings(!showTextSettings)}
@@ -202,12 +204,12 @@ export default function CreatePostPage() {
                     </div>
                 </div>
 
-                {/* Bottom Controls Bar (Simplified) */}
+                {/* Bottom Controls Bar (Simplified Upload Button) */}
                 <div className="absolute bottom-8 left-0 right-0 px-6 flex items-center justify-end z-50 pointer-events-auto">
                     <button 
                         onClick={handlePost}
                         disabled={isUploading}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 h-14 rounded-full flex items-center gap-3 shadow-2xl active:scale-95 transition-all font-black uppercase tracking-widest text-sm"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-10 h-14 rounded-full flex items-center gap-3 shadow-2xl active:scale-95 transition-all font-black uppercase tracking-widest text-sm"
                     >
                         {isUploading ? (
                           <>
