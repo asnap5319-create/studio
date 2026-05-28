@@ -12,8 +12,8 @@ import { Slider } from '@/components/ui/slider';
 import { Progress } from '@/components/ui/progress';
 import { 
   UploadCloud, Loader2, X, Type, Palette, 
-  ChevronLeft, Check, Sparkles, Move, 
-  Smile, Music, Volume2, VolumeX, ChevronDown, 
+  ChevronLeft, Check, Move, 
+  Volume2, VolumeX, 
   ArrowRight, Star, UserCircle2 
 } from 'lucide-react';
 import Image from 'next/image';
@@ -173,7 +173,7 @@ export default function CreatePostPage() {
                   <ChevronLeft className="h-6 w-6" />
                 </button>
 
-                {/* Right Side Vertical Toolbar (Instagram Style) */}
+                {/* Right Side Vertical Toolbar */}
                 <div className="absolute top-10 right-6 flex flex-col gap-4 z-50">
                     <button 
                       onClick={() => setShowTextSettings(!showTextSettings)}
@@ -181,23 +181,12 @@ export default function CreatePostPage() {
                     >
                         <span className="text-sm font-black italic">Aa</span>
                     </button>
-                    <button className="p-2.5 rounded-full bg-black/30 backdrop-blur-md border border-white/10">
-                        <Smile className="h-6 w-6" />
-                    </button>
-                    <button className="p-2.5 rounded-full bg-black/30 backdrop-blur-md border border-white/10">
-                        <Music className="h-6 w-6" />
-                    </button>
-                    <button className="p-2.5 rounded-full bg-black/30 backdrop-blur-md border border-white/10">
-                        <Sparkles className="h-6 w-6" />
-                    </button>
+                    
                     <button 
                       onClick={() => setIsPreviewMuted(!isPreviewMuted)}
                       className="p-2.5 rounded-full bg-black/30 backdrop-blur-md border border-white/10"
                     >
                         {isPreviewMuted ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
-                    </button>
-                    <button className="p-2.5 rounded-full bg-black/30 backdrop-blur-md border border-white/10">
-                        <ChevronDown className="h-6 w-6" />
                     </button>
                 </div>
 
