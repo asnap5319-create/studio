@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
-import { Heart, MessageCircle, BadgeCheck, Loader2, MoreVertical, Trash2, Volume2, VolumeX } from 'lucide-react';
+import { Heart, MessageCircle, BadgeCheck, Loader2, MoreVertical, Trash2, Volume2, VolumeX, Flag, Ban, Info, Link2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -102,7 +102,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const { data: followData } = useDoc(followCheckRef);
   const isFollowing = !!followData;
 
-  // Follow Back Logic: Does the post author follow the current user?
   const followedByThemCheckRef = useMemoFirebase(() => {
     if (!firestore || !user?.uid || !post.userId) return null;
     return doc(firestore, 'user_followers', user.uid, 'followers', post.userId);
@@ -257,6 +256,12 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     }
   };
 
+  const handleCopyLink = () => {
+    const shareUrl = `https://asnap.vercel.app/?postId=${post.id}`;
+    navigator.clipboard.writeText(shareUrl);
+    toast({ title: "Link Copied! 🔗" });
+  };
+
   return (
     <div ref={cardRef} className="relative w-full h-full bg-black overflow-hidden flex flex-col justify-center select-none" 
       onClick={(e) => {
@@ -348,18 +353,18 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         <p className="text-sm line-clamp-2 font-medium drop-shadow-md leading-relaxed pr-4 pointer-events-auto">{post.caption}</p>
       </div>
 
-      <div className="absolute right-4 bottom-28 flex flex-col gap-8 z-30" onClick={(e) => e.stopPropagation()}>
+      <div className="absolute right-4 bottom-28 flex flex-col gap-7 z-30" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center group">
                 <button className="text-white transition-all active:scale-150 group-hover:scale-110" onClick={handleLikeToggle}>
-                    <Heart className={cn("h-9 w-9 drop-shadow-2xl transition-all", isLiked ? "fill-primary text-primary scale-110" : "text-white")} />
+                    <Heart className={cn("h-8 w-8 drop-shadow-2xl transition-all", isLiked ? "fill-primary text-primary scale-110" : "text-white")} />
                 </button>
-                <span className="text-[10px] font-black mt-1.5 drop-shadow-md">{localLikeCount}</span>
+                <span className="text-[10px] font-black mt-1 drop-shadow-md">{localLikeCount}</span>
             </div>
             <div className="flex flex-col items-center group">
                 <Sheet open={isCommentSheetOpen} onOpenChange={(open) => { if (open && !user) { router.push('/login?auth=true'); return; } setIsCommentSheetOpen(open); forceUnlockUI(); }}>
                   <SheetTrigger asChild>
                       <button className="text-white active:scale-125 transition-all group-hover:scale-110">
-                          <MessageCircle className="h-9 w-9 drop-shadow-2xl" />
+                          <MessageCircle className="h-8 w-8 drop-shadow-2xl" />
                       </button>
                   </SheetTrigger>
                   <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[3rem] overflow-hidden bg-background border-t-0 shadow-2xl z-[100]">
@@ -367,13 +372,13 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                       <CommentSection postId={post.id} postOwnerId={post.userId} />
                   </SheetContent>
                 </Sheet>
-                <span className="text-[10px] font-black mt-1.5 drop-shadow-md">{post.commentCount}</span>
+                <span className="text-[10px] font-black mt-1 drop-shadow-md">{post.commentCount}</span>
             </div>
             <div className="flex flex-col items-center group">
                 <Sheet open={isShareSheetOpen} onOpenChange={(open) => { if (open && !user) { router.push('/login?auth=true'); return; } setIsShareSheetOpen(open); forceUnlockUI(); }}>
                   <SheetTrigger asChild>
                       <button className="text-white active:scale-125 transition-all group-hover:scale-110">
-                          <CustomShareIcon className="h-9 w-9 drop-shadow-2xl" />
+                          <CustomShareIcon className="h-8 w-8 drop-shadow-2xl" />
                       </button>
                   </SheetTrigger>
                   <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[3rem] overflow-hidden bg-background border-t-0 shadow-2xl z-[100]">
@@ -382,24 +387,41 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                   </SheetContent>
                 </Sheet>
             </div>
-      </div>
 
-      {(isOwnPost || isCurrentUserAdmin) && (
-        <div className="absolute top-10 right-6 z-50" onClick={(e) => e.stopPropagation()}>
-            <DropdownMenu onOpenChange={() => forceUnlockUI()}>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-black/40 border border-white/5 text-white backdrop-blur-md">
-                        <MoreVertical className="h-6 w-6" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl p-2 min-w-[180px]">
-                    <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive font-black p-3 rounded-xl cursor-pointer">
-                        <Trash2 className="h-4 w-4 mr-3" /> Delete Post
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-        </div>
-      )}
+            {/* Three Dots Menu Button BELOW Share */}
+            <div className="flex flex-col items-center">
+                <DropdownMenu onOpenChange={() => forceUnlockUI()}>
+                    <DropdownMenuTrigger asChild>
+                        <button className="text-white active:scale-125 transition-all group-hover:scale-110">
+                            <MoreVertical className="h-8 w-8 drop-shadow-2xl" />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl p-2 min-w-[200px] shadow-2xl z-[100]">
+                        <DropdownMenuItem onClick={() => toast({ title: "Noted! 🤝", description: "We'll show you fewer reels like this." })} className="font-bold p-4 rounded-xl cursor-pointer">
+                            <Ban className="h-4 w-4 mr-3 text-muted-foreground" /> Not Interested
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleCopyLink} className="font-bold p-4 rounded-xl cursor-pointer">
+                            <Link2 className="h-4 w-4 mr-3 text-muted-foreground" /> Copy Link
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => toast({ title: "Reported! 🚨", description: "Our team will review this reel." })} className="font-bold p-4 rounded-xl cursor-pointer text-orange-500">
+                            <Flag className="h-4 w-4 mr-3" /> Report
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => author && router.push(`/profile/${author.id}`)} className="font-bold p-4 rounded-xl cursor-pointer">
+                            <Info className="h-4 w-4 mr-3 text-muted-foreground" /> About this account
+                        </DropdownMenuItem>
+                        
+                        {(isOwnPost || isCurrentUserAdmin) && (
+                            <>
+                                <div className="h-px bg-white/5 my-1" />
+                                <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive font-black p-4 rounded-xl cursor-pointer">
+                                    <Trash2 className="h-4 w-4 mr-3" /> Delete Post
+                                </DropdownMenuItem>
+                            </>
+                        )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+      </div>
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={(open) => { setIsDeleteDialogOpen(open); forceUnlockUI(); }}>
         <AlertDialogContent className="bg-[#121212] text-white rounded-[2.5rem] border-white/10 z-[300]">
