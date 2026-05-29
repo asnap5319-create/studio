@@ -10,15 +10,14 @@ import type { UserProfile } from '@/models/user';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Send, BadgeCheck, Loader2, Play, MoreVertical, Trash2, Reply, Smile, X, User } from 'lucide-react';
+import { ArrowLeft, Send, BadgeCheck, Loader2, Play, Trash2, Reply, X, User, Smile } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
-const REACTIONS = ["❤️", "😂", "😮", "😡", "👍"];
+const REACTIONS = ["❤️", "😂", "😮", "😢", "😡", "👍"];
 
 export default function ChatPage() {
   const { chatId } = useParams();
@@ -28,7 +27,7 @@ export default function ChatPage() {
   const [inputText, setInputText] = useState('');
   const [hasMounted, setHasMounted] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
-  const [messageToDelete, setMessageToDelete] = useState<Message | null>(null);
+  const [messageActionMenu, setMessageActionMenu] = useState<Message | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -113,7 +112,7 @@ export default function ChatPage() {
     if (!firestore || !chatId || msg.senderId !== user?.uid) return;
     try {
       await deleteDoc(doc(firestore, 'chats', chatId as string, 'messages', msg.id));
-      setMessageToDelete(null);
+      setMessageActionMenu(null);
     } catch (err) {
       console.error("Error unsending message:", err);
     }
@@ -129,6 +128,7 @@ export default function ChatPage() {
     }
     try {
       await updateDoc(doc(firestore, 'chats', chatId as string, 'messages', msg.id), { reactions });
+      setMessageActionMenu(null);
     } catch (err) {
       console.error("Error reacting:", err);
     }
@@ -166,10 +166,11 @@ export default function ChatPage() {
             key={msg.id} 
             className={cn("flex flex-col max-w-[85%] relative group", msg.senderId === user.uid ? "ml-auto items-end" : "mr-auto items-start")}
             onContextMenu={(e) => {
-              if (msg.senderId === user.uid) {
                 e.preventDefault();
-                setMessageToDelete(msg);
-              }
+                setMessageActionMenu(msg);
+            }}
+            onClick={() => {
+                // For mobile, we trigger on context menu mostly, but can add short tap logic if needed
             }}
           >
             {/* Reply Info */}
@@ -218,7 +219,7 @@ export default function ChatPage() {
               {msg.text && <div className="px-4 py-2 text-sm whitespace-pre-wrap">{msg.text}</div>}
             </div>
 
-            {/* Reactions */}
+            {/* Reactions Display */}
             {msg.reactions && Object.keys(msg.reactions).length > 0 && (
               <div className="flex -mt-2 mb-1 gap-1">
                 {Object.entries(msg.reactions).map(([uid, emoji]) => (
@@ -228,27 +229,6 @@ export default function ChatPage() {
                 ))}
               </div>
             )}
-
-            {/* Actions (Reply/React) - Visible on Hover */}
-            <div className={cn(
-              "absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all flex gap-1",
-              msg.senderId === user.uid ? "right-full mr-2 flex-row-reverse" : "left-full ml-2"
-            )}>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-secondary/50" onClick={() => setReplyingTo(msg)}><Reply size={14} /></Button>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-secondary/50"><Smile size={14} /></Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-1 bg-secondary border-white/10 rounded-full flex gap-1">
-                  {REACTIONS.map(emoji => (
-                    <button key={emoji} onClick={() => handleReaction(msg, emoji)} className="hover:scale-125 transition-transform p-1 text-lg">{emoji}</button>
-                  ))}
-                </PopoverContent>
-              </Popover>
-              {msg.senderId === user.uid && (
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-secondary/50 text-destructive" onClick={() => setMessageToDelete(msg)}><Trash2 size={14} /></Button>
-              )}
-            </div>
 
             <span className="text-[8px] text-muted-foreground mt-1 px-1">
               {msg.createdAt ? format(msg.createdAt.toDate(), 'HH:mm') : ''}
@@ -288,13 +268,50 @@ export default function ChatPage() {
         </Button>
       </form>
 
-      {/* Delete Dialog */}
-      <Dialog open={!!messageToDelete} onOpenChange={(open) => !open && setMessageToDelete(null)}>
-        <DialogContent className="max-w-xs bg-secondary rounded-[30px] border-white/10">
-          <DialogHeader><DialogTitle className="text-center font-black uppercase italic text-sm">Unsend message?</DialogTitle></DialogHeader>
-          <div className="flex flex-col gap-2 mt-4">
-            <Button variant="destructive" className="rounded-2xl h-12 font-bold" onClick={() => messageToDelete && handleUnsend(messageToDelete)}>Unsend</Button>
-            <Button variant="ghost" className="rounded-2xl h-12" onClick={() => setMessageToDelete(null)}>Cancel</Button>
+      {/* Insta-style Action Menu Dialog */}
+      <Dialog open={!!messageActionMenu} onOpenChange={(open) => !open && setMessageActionMenu(null)}>
+        <DialogContent className="max-w-[300px] bg-[#1a1a1a] rounded-[30px] border-white/10 p-0 overflow-hidden shadow-2xl">
+          <DialogHeader className="sr-only"><DialogTitle>Message Actions</DialogTitle></DialogHeader>
+          
+          {/* Reaction Bar */}
+          <div className="p-4 bg-[#262626] border-b border-white/5 flex justify-between items-center gap-2">
+            {REACTIONS.map(emoji => (
+              <button 
+                key={emoji} 
+                onClick={() => messageActionMenu && handleReaction(messageActionMenu, emoji)}
+                className="text-2xl hover:scale-125 active:scale-150 transition-transform duration-200"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+
+          {/* Action List */}
+          <div className="flex flex-col">
+            <button 
+                onClick={() => { setReplyingTo(messageActionMenu); setMessageActionMenu(null); }}
+                className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors border-b border-white/5"
+            >
+                <span className="font-bold text-sm">Reply</span>
+                <Reply size={18} className="text-muted-foreground" />
+            </button>
+
+            {messageActionMenu?.senderId === user.uid && (
+                <button 
+                    onClick={() => messageActionMenu && handleUnsend(messageActionMenu)}
+                    className="flex items-center justify-between p-4 hover:bg-red-500/10 transition-colors text-red-500"
+                >
+                    <span className="font-bold text-sm">Unsend</span>
+                    <Trash2 size={18} />
+                </button>
+            )}
+
+            <button 
+                onClick={() => setMessageActionMenu(null)}
+                className="p-4 text-center text-xs font-bold text-muted-foreground hover:bg-white/5"
+            >
+                Cancel
+            </button>
           </div>
         </DialogContent>
       </Dialog>
