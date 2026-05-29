@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -62,10 +61,12 @@ export function PwaInstallPrompt() {
   return (
     <div className="fixed bottom-24 left-4 right-4 z-[100] animate-in slide-in-from-bottom-10 duration-700 max-w-lg mx-auto">
       <div className="bg-gradient-to-r from-[#0a0a0a] to-[#1a1a1a] border border-white/10 p-5 rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.9)] flex items-center justify-between gap-4 backdrop-blur-2xl relative overflow-hidden">
+        {/* Subtle background money pattern for the whole banner */}
         <div className="absolute inset-0 bg-money-pattern opacity-10 pointer-events-none" />
         
         <div className="flex items-center gap-4 relative z-10">
-          <div className="relative w-14 h-14 bg-[#16a34a] rounded-2xl flex items-center justify-center border border-white/10 shrink-0 shadow-2xl overflow-hidden">
+          {/* Updated Logo container with the money pattern */}
+          <div className="relative w-14 h-14 bg-[#16a34a] bg-money-pattern rounded-2xl flex items-center justify-center border border-white/10 shrink-0 shadow-2xl overflow-hidden">
              <Logo className="w-10 h-10 drop-shadow-sm" />
           </div>
           <div className="min-w-0">
