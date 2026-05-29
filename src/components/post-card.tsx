@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -10,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
-import { Heart, MessageCircle, Share2, BadgeCheck, Loader2, MoreVertical, Trash2, Volume2, VolumeX } from 'lucide-react';
+import { Heart, MessageCircle, BadgeCheck, Loader2, MoreVertical, Trash2, Volume2, VolumeX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -27,6 +26,24 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle 
 } from '@/components/ui/alert-dialog';
+
+// Custom Instagram-style Share Icon
+function CustomShareIcon({ className }: { className?: string }) {
+  return (
+    <svg 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2.2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        className={className}
+    >
+      <path d="M22 2L11 13" />
+      <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+    </svg>
+  );
+}
 
 interface PostCardProps {
   post: Post;
@@ -84,6 +101,14 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   }, [firestore, user?.uid, post.userId]);
   const { data: followData } = useDoc(followCheckRef);
   const isFollowing = !!followData;
+
+  // Follow Back Logic: Does the post author follow the current user?
+  const followedByThemCheckRef = useMemoFirebase(() => {
+    if (!firestore || !user?.uid || !post.userId) return null;
+    return doc(firestore, 'user_followers', user.uid, 'followers', post.userId);
+  }, [firestore, user?.uid, post.userId]);
+  const { data: followedByThemData } = useDoc(followedByThemCheckRef);
+  const doesAuthorFollowMe = !!followedByThemData;
 
   useEffect(() => {
     setLocalLikeCount(post.likeCount || 0);
@@ -180,7 +205,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
 
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => { 
-        // INCREASED THRESHOLD TO PREVENT CLASHING
         setIsInView(entry.isIntersecting && entry.intersectionRatio >= 0.8); 
     }, { 
       threshold: [0, 0.8, 1.0],
@@ -221,10 +245,9 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         }).catch(() => {});
       }
     } else {
-      // HARD PAUSE AND MUTE WHEN OUT OF FOCUS
       video.pause();
       video.muted = true;
-      video.currentTime = 0; // Reset to start if wanted, or just pause
+      video.currentTime = 0; 
     }
   }, [isInView, firestore, post.id, post.userId]);
 
@@ -318,7 +341,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
           )}
           {author && !isOwnPost && (
             <Button onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"} className={cn("h-7 px-4 text-[10px] font-black uppercase rounded-full border border-white/10", !isFollowing && "bg-primary text-white border-none")}>
-              {isFollowing ? 'Following' : 'Follow'}
+              {isFollowing ? 'Following' : (doesAuthorFollowMe ? 'Follow Back' : 'Follow')}
             </Button>
           )}
         </div>
@@ -350,7 +373,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                 <Sheet open={isShareSheetOpen} onOpenChange={(open) => { if (open && !user) { router.push('/login?auth=true'); return; } setIsShareSheetOpen(open); forceUnlockUI(); }}>
                   <SheetTrigger asChild>
                       <button className="text-white active:scale-125 transition-all group-hover:scale-110">
-                          <Share2 className="h-9 w-9 drop-shadow-2xl" />
+                          <CustomShareIcon className="h-9 w-9 drop-shadow-2xl" />
                       </button>
                   </SheetTrigger>
                   <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[3rem] overflow-hidden bg-background border-t-0 shadow-2xl z-[100]">

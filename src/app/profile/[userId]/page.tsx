@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, addDoc, where } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck, Wallet, Eye, Zap, TrendingUp, Calendar, X, CreditCard, DollarSign, History, AlertCircle, CheckCircle2, Lock, Sparkles, Target, Youtube, Instagram, HelpCircle, Share2 } from "lucide-react";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck, Wallet, Eye, Zap, TrendingUp, Calendar, X, CreditCard, DollarSign, History, AlertCircle, CheckCircle2, Lock, Sparkles, Target, Youtube, Instagram, HelpCircle } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -20,13 +20,28 @@ import { useToast } from "@/hooks/use-toast";
 import { BottomNav } from "@/components/bottom-nav";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
 import { SupportChat } from "@/components/support-chat";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ProfileShareSheet } from "@/components/profile-share-sheet";
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+
+// Custom Instagram-style Share Icon
+function CustomShareIcon({ className }: { className?: string }) {
+  return (
+    <svg 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2.2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        className={className}
+    >
+      <path d="M22 2L11 13" />
+      <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+    </svg>
+  );
+}
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
@@ -90,9 +105,16 @@ export default function ProfilePage() {
     const { data: followData } = useDoc(followCheckRef);
     const isFollowing = !!followData;
 
+    // Follow Back Logic
+    const followedByThemCheckRef = useMemoFirebase(() => {
+        if (!firestore || !user?.uid || !userId || isOwnProfile) return null;
+        return doc(firestore, 'user_followers', user.uid, 'followers', userId);
+    }, [firestore, user?.uid, userId, isOwnProfile]);
+    const { data: followedByThemData } = useDoc(followedByThemCheckRef);
+    const doesAuthorFollowMe = !!followedByThemData;
+
     const earningsStats = useMemo(() => {
         if (!posts) return { total: 0, impressions: 0, today: 0, totalViews: 0, withdrawn: 0, available: 0 };
-        const now = new Date();
         const withdrawnTotal = userPayouts?.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0) || 0;
 
         const stats = posts.reduce((acc, post) => {
@@ -197,7 +219,7 @@ export default function ProfilePage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-2xl min-w-[220px] p-2 shadow-2xl z-[100]">
                             <DropdownMenuItem onSelect={() => { forceUnlockUI(); setTimeout(() => setIsShareSheetOpen(true), 200); }} className="font-black p-4 rounded-xl text-white focus:bg-white/10 cursor-pointer">
-                                <Share2 className="mr-3 h-5 w-5 text-primary" /> Share Profile
+                                <CustomShareIcon className="mr-3 h-5 w-5 text-primary" /> Share Profile
                             </DropdownMenuItem>
                             <DropdownMenuItem onSelect={() => { forceUnlockUI(); setTimeout(() => setIsSupportOpen(true), 200); }} className="font-black p-4 rounded-xl text-primary focus:bg-primary/10 cursor-pointer">
                                 <HelpCircle className="mr-3 h-5 w-5" /> Help & Support
@@ -252,11 +274,13 @@ export default function ProfilePage() {
                 {isOwnProfile ? (
                     <div className="flex gap-2 mt-6">
                         <Button className="flex-1 h-12 rounded-2xl bg-secondary/80 font-bold uppercase text-xs" onClick={() => setIsEditSheetOpen(true)}>Edit Profile</Button>
-                        <Button className="h-12 w-12 rounded-2xl bg-primary/10 text-primary" onClick={() => { setIsShareSheetOpen(true); forceUnlockUI(); }}><Share2 className="h-5 w-5" /></Button>
+                        <Button className="h-12 w-12 rounded-2xl bg-primary/10 text-primary" onClick={() => { setIsShareSheetOpen(true); forceUnlockUI(); }}><CustomShareIcon className="h-5 w-5" /></Button>
                     </div>
                 ) : user && (
                     <div className="flex gap-2 mt-6">
-                        <Button className={cn("flex-1 h-12 rounded-2xl font-bold uppercase text-xs", isFollowing ? "bg-secondary/50" : "bg-primary")} onClick={handleFollowToggle}>{isFollowing ? 'Following' : 'Follow'}</Button>
+                        <Button className={cn("flex-1 h-12 rounded-2xl font-bold uppercase text-xs", isFollowing ? "bg-secondary/50" : "bg-primary")} onClick={handleFollowToggle}>
+                            {isFollowing ? 'Following' : (doesAuthorFollowMe ? 'Follow Back' : 'Follow')}
+                        </Button>
                         <Button variant="outline" className="flex-1 h-12 rounded-2xl font-bold uppercase text-xs border-white/10" onClick={() => router.push(`/messages/${[user.uid, userId].sort().join('_')}`)}>Message</Button>
                     </div>
                 )}
@@ -281,7 +305,6 @@ export default function ProfilePage() {
                 </TabsContent>
             </Tabs>
 
-            {/* Share Profile Sheet */}
             <Sheet open={isShareSheetOpen} onOpenChange={(open) => { setIsShareSheetOpen(open); forceUnlockUI(); }}>
                 <SheetContent side="bottom" className="h-[80vh] p-0 rounded-t-[3rem] overflow-hidden bg-background border-t-0 shadow-2xl z-[150]">
                     <SheetHeader className="sr-only"><SheetTitle>Share Profile</SheetTitle></SheetHeader>
@@ -296,7 +319,6 @@ export default function ProfilePage() {
                 </SheetContent>
             </Sheet>
 
-            {/* Support Dialog */}
             <Dialog open={isSupportOpen} onOpenChange={(open) => { setIsSupportOpen(open); forceUnlockUI(); }}>
                 <DialogContent className="bg-background border-white/10 p-0 rounded-[2.5rem] max-w-lg w-[95%] h-[85vh] overflow-hidden z-[300]">
                     <DialogHeader className="sr-only"><DialogTitle>AI Support</DialogTitle></DialogHeader>
