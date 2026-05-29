@@ -297,7 +297,27 @@ export default function ProfilePage() {
                             <div key={post.id} className="aspect-square bg-secondary/30 relative cursor-pointer overflow-hidden group" onClick={() => setSelectedPost(post)}>
                                 <video src={post.mediaUrl} className="w-full h-full object-cover" muted />
                                 {isOwnProfile && (
-                                    <button onClick={(e) => handleDeleteClickFromGrid(e, post)} className="absolute top-2 right-2 p-2 bg-black/60 rounded-full text-red-500 z-10"><Trash2 size={14} /></button>
+                                    <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
+                                        <DropdownMenu onOpenChange={() => forceUnlockUI()}>
+                                            <DropdownMenuTrigger asChild>
+                                                <button className="p-1.5 bg-black/40 backdrop-blur-md rounded-full text-white hover:bg-black/60 transition-colors shadow-lg border border-white/5">
+                                                    <MoreVertical size={14} />
+                                                </button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="bg-[#1a1a1a] text-white border-white/10 rounded-xl min-w-[120px] p-1 shadow-2xl z-[150]">
+                                                <DropdownMenuItem 
+                                                    onSelect={(e) => { 
+                                                        forceUnlockUI(); 
+                                                        setPostToDelete(post); 
+                                                        setIsDeleteDialogOpen(true); 
+                                                    }} 
+                                                    className="text-destructive font-black p-3 rounded-lg focus:bg-destructive/10 cursor-pointer text-xs flex items-center gap-2"
+                                                >
+                                                    <Trash2 size={14} /> Delete Post
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
                                 )}
                                 <div className="absolute bottom-2 left-2 flex items-center gap-1 text-white text-[10px] font-bold"><Play className="h-3 w-3 fill-white" /> {post.viewCount || 0}</div>
                             </div>
