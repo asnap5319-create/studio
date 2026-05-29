@@ -7,4 +7,5 @@ export interface Chat {
   lastMessage?: string;
   lastMessageAt?: Timestamp;
   updatedAt: Timestamp;
+  blockedParticipants?: string[]; // Array of user IDs who are blocked in this chat
 }

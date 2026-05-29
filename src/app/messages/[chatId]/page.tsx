@@ -1,20 +1,23 @@
+
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, orderBy, serverTimestamp, doc, addDoc, setDoc, writeBatch, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, query, orderBy, serverTimestamp, doc, addDoc, setDoc, writeBatch, deleteDoc, updateDoc, getDocs, arrayUnion, arrayRemove } from 'firebase/firestore';
 import type { Message } from '@/models/message';
 import type { Chat } from '@/models/chat';
 import type { UserProfile } from '@/models/user';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Send, BadgeCheck, Loader2, Play, Trash2, Reply, X, User, Smile } from 'lucide-react';
+import { ArrowLeft, Send, BadgeCheck, Loader2, Play, Trash2, Reply, X, User, Smile, MoreVertical, Ban, Eraser, Unlock } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useToast } from '@/hooks/use-toast';
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 const REACTIONS = ["❤️", "😂", "😮", "😢", "😡", "👍"];
@@ -23,6 +26,7 @@ export default function ChatPage() {
   const { chatId } = useParams();
   const { user, isUserLoading } = useUser();
   const { firestore } = useFirebase();
+  const { toast } = useToast();
   const router = useRouter();
   const [inputText, setInputText] = useState('');
   const [hasMounted, setHasMounted] = useState(false);
@@ -49,12 +53,25 @@ export default function ChatPage() {
   const { data: otherUser } = useDoc<UserProfile>(useMemoFirebase(() => 
     (firestore && otherUserId) ? doc(firestore, 'users', otherUserId) : null, [firestore, otherUserId]));
 
+  const { data: chatData } = useDoc<Chat>(useMemoFirebase(() => 
+    (firestore && chatId) ? doc(firestore, 'chats', chatId as string) : null, [firestore, chatId]));
+
   const messagesQuery = useMemoFirebase(() => {
     if (!firestore || !chatId || !isUserParticipant) return null;
     return query(collection(firestore, 'chats', chatId as string, 'messages'), orderBy('createdAt', 'asc'));
   }, [firestore, chatId, isUserParticipant]);
 
   const { data: messages } = useCollection<Message>(messagesQuery);
+
+  const isBlocked = useMemo(() => {
+    if (!chatData?.blockedParticipants || !otherUserId) return false;
+    return chatData.blockedParticipants.includes(otherUserId);
+  }, [chatData, otherUserId]);
+
+  const amIBlocked = useMemo(() => {
+    if (!chatData?.blockedParticipants || !user) return false;
+    return chatData.blockedParticipants.includes(user.uid);
+  }, [chatData, user]);
 
   useEffect(() => {
     if (!firestore || !user || !chatId || !messages || !isUserParticipant) return;
@@ -75,7 +92,7 @@ export default function ChatPage() {
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!user || !firestore || !inputText.trim() || !otherUserId || !isUserParticipant) return;
+    if (!user || !firestore || !inputText.trim() || !otherUserId || !isUserParticipant || isBlocked || amIBlocked) return;
     const text = inputText.trim();
     setInputText('');
     const currentReply = replyingTo;
@@ -134,6 +151,44 @@ export default function ChatPage() {
     }
   };
 
+  const handleClearChat = async () => {
+    if (!firestore || !chatId || !confirm("क्या आप वाकई पूरी चैट डिलीट करना चाहते हैं?")) return;
+    try {
+      const messagesRef = collection(firestore, 'chats', chatId as string, 'messages');
+      const snapshot = await getDocs(messagesRef);
+      const batch = writeBatch(firestore);
+      snapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+      toast({ title: "Chat Cleared! 🧹" });
+    } catch (err) {
+      console.error("Error clearing chat:", err);
+      toast({ variant: 'destructive', title: "Failed to clear chat" });
+    }
+  };
+
+  const handleToggleBlock = async () => {
+    if (!firestore || !chatId || !otherUserId) return;
+    const chatRef = doc(firestore, 'chats', chatId as string);
+    try {
+      if (isBlocked) {
+        await updateDoc(chatRef, {
+          blockedParticipants: arrayRemove(otherUserId)
+        });
+        toast({ title: "User Unblocked! ✅" });
+      } else {
+        if (!confirm(`क्या आप ${otherUser?.username || 'इस यूजर'} को ब्लॉक करना चाहते हैं?`)) return;
+        await updateDoc(chatRef, {
+          blockedParticipants: arrayUnion(otherUserId)
+        });
+        toast({ title: "User Blocked! 🚫" });
+      }
+    } catch (err) {
+      console.error("Error toggling block:", err);
+    }
+  };
+
   if (isUserLoading || !hasMounted) return <div className="flex h-screen items-center justify-center bg-black"><Loader2 className="animate-spin text-primary" /></div>;
   if (!user || !isUserParticipant) return null;
 
@@ -141,23 +196,47 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen flex-col text-white bg-background max-w-lg mx-auto border-x border-border">
-      <header className="flex items-center gap-3 p-4 border-b border-border sticky top-0 bg-background/80 backdrop-blur-md z-10">
-        <button onClick={() => router.back()} className="p-2 -ml-2"><ArrowLeft /></button>
-        {otherUser && (
-          <Link href={`/profile/${otherUser.id}`} className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={otherUser.profileImageUrl} className="object-cover" />
-              <AvatarFallback>{otherUser.username?.[0]}</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-sm">{otherUser.username}</span>
-                {isOtherAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />}
+      <header className="flex items-center justify-between p-4 border-b border-border sticky top-0 bg-background/80 backdrop-blur-md z-10">
+        <div className="flex items-center gap-3">
+          <button onClick={() => router.back()} className="p-2 -ml-2"><ArrowLeft /></button>
+          {otherUser && (
+            <Link href={`/profile/${otherUser.id}`} className="flex items-center gap-3">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={otherUser.profileImageUrl} className="object-cover" />
+                <AvatarFallback>{otherUser.username?.[0]}</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold text-sm">{otherUser.username}</span>
+                  {isOtherAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />}
+                </div>
+                <span className="text-[10px] text-green-500 font-bold uppercase tracking-widest">
+                  {amIBlocked ? 'Unavailable' : 'Active Now'}
+                </span>
               </div>
-              <span className="text-[10px] text-green-500 font-bold uppercase tracking-widest">Active Now</span>
-            </div>
-          </Link>
-        )}
+            </Link>
+          )}
+        </div>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="rounded-full">
+              <MoreVertical size={20} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-[#1a1a1a] border-white/10 rounded-2xl p-2 min-w-[180px] shadow-2xl z-[50]">
+            <DropdownMenuItem onClick={handleClearChat} className="p-3 rounded-xl focus:bg-white/5 cursor-pointer font-bold text-sm gap-3">
+              <Eraser size={18} className="text-muted-foreground" /> Clear Chat
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleToggleBlock} className={cn(
+              "p-3 rounded-xl focus:bg-white/5 cursor-pointer font-bold text-sm gap-3",
+              isBlocked ? "text-green-500" : "text-destructive"
+            )}>
+              {isBlocked ? <Unlock size={18} /> : <Ban size={18} />}
+              {isBlocked ? 'Unblock User' : 'Block User'}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </header>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
@@ -168,9 +247,6 @@ export default function ChatPage() {
             onContextMenu={(e) => {
                 e.preventDefault();
                 setMessageActionMenu(msg);
-            }}
-            onClick={() => {
-                // For mobile, we trigger on context menu mostly, but can add short tap logic if needed
             }}
           >
             {/* Reply Info */}
@@ -238,8 +314,22 @@ export default function ChatPage() {
         ))}
       </div>
 
+      {/* Block Status Banner */}
+      {(isBlocked || amIBlocked) && (
+        <div className="p-4 bg-secondary/20 text-center border-t border-white/5">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+            {isBlocked ? "You have blocked this user" : "You cannot message this user"}
+          </p>
+          {isBlocked && (
+            <button onClick={handleToggleBlock} className="text-[10px] text-primary font-black uppercase mt-2 hover:underline">
+              Unblock now
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Reply Banner */}
-      {replyingTo && (
+      {replyingTo && !isBlocked && !amIBlocked && (
         <div className="bg-secondary/50 p-3 flex items-center justify-between animate-in slide-in-from-bottom-2">
           <div className="flex items-center gap-3">
             <div className="w-1 bg-primary h-8 rounded-full" />
@@ -252,23 +342,25 @@ export default function ChatPage() {
         </div>
       )}
 
-      <form onSubmit={handleSendMessage} className="p-4 border-t border-border flex gap-2 items-center bg-background">
-        <Input 
-          value={inputText} 
-          onChange={(e) => setInputText(e.target.value)} 
-          placeholder="Message..." 
-          className="flex-1 bg-secondary border-none rounded-full h-12 px-6 focus-visible:ring-primary" 
-        />
-        <Button 
-          type="submit" 
-          disabled={!inputText.trim()}
-          className="bg-primary text-white h-12 w-12 rounded-full shadow-lg shadow-primary/20 hover:scale-105 active:scale-90 transition-all"
-        >
-          <Send size={18} />
-        </Button>
-      </form>
+      {!isBlocked && !amIBlocked && (
+        <form onSubmit={handleSendMessage} className="p-4 border-t border-border flex gap-2 items-center bg-background">
+          <Input 
+            value={inputText} 
+            onChange={(e) => setInputText(e.target.value)} 
+            placeholder="Message..." 
+            className="flex-1 bg-secondary border-none rounded-full h-12 px-6 focus-visible:ring-primary" 
+          />
+          <Button 
+            type="submit" 
+            disabled={!inputText.trim()}
+            className="bg-primary text-white h-12 w-12 rounded-full shadow-lg shadow-primary/20 hover:scale-105 active:scale-90 transition-all"
+          >
+            <Send size={18} />
+          </Button>
+        </form>
+      )}
 
-      {/* Insta-style Action Menu Dialog */}
+      {/* Action Menu Dialog */}
       <Dialog open={!!messageActionMenu} onOpenChange={(open) => !open && setMessageActionMenu(null)}>
         <DialogContent className="max-w-[300px] bg-[#1a1a1a] rounded-[30px] border-white/10 p-0 overflow-hidden shadow-2xl">
           <DialogHeader className="sr-only"><DialogTitle>Message Actions</DialogTitle></DialogHeader>
