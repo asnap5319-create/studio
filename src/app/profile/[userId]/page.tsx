@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, addDoc, where } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck, Wallet, Eye, Zap, TrendingUp, Calendar, X, CreditCard, DollarSign, History, AlertCircle, CheckCircle2, Lock, Sparkles, Target, Youtube, Instagram, HelpCircle } from "lucide-react";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck, Wallet, Eye, Zap, TrendingUp, Calendar, X, CreditCard, DollarSign, History, AlertCircle, CheckCircle2, Lock, Sparkles, Target, Youtube, Instagram, HelpCircle, Users2, BarChart3, ArrowRight } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -105,7 +105,6 @@ export default function ProfilePage() {
     const { data: followData } = useDoc(followCheckRef);
     const isFollowing = !!followData;
 
-    // Follow Back Logic
     const followedByThemCheckRef = useMemoFirebase(() => {
         if (!firestore || !user?.uid || !userId || isOwnProfile) return null;
         return doc(firestore, 'user_followers', user.uid, 'followers', userId);
@@ -127,6 +126,7 @@ export default function ProfilePage() {
         return { ...stats, withdrawn: withdrawnTotal, available: Math.max(0, stats.total - withdrawnTotal) };
     }, [posts, userPayouts]);
 
+    // Monetization Requirements
     const reqFollowers = 50;
     const reqViews = 2000;
     const reqEarnings = 100;
@@ -146,8 +146,8 @@ export default function ProfilePage() {
     const handleWithdrawRequest = async () => {
         if (!firestore || !user || !isOwnProfile) return;
         const amount = parseFloat(withdrawAmount);
-        if (isNaN(amount) || amount <= 0 || amount > earningsStats.available) {
-            toast({ variant: 'destructive', title: "Invalid Request" });
+        if (isNaN(amount) || amount < 10 || amount > earningsStats.available) {
+            toast({ variant: 'destructive', title: "Invalid Request", description: "Minimum withdrawal is ₹10." });
             return;
         }
         setIsSubmitting(true);
@@ -162,8 +162,9 @@ export default function ProfilePage() {
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp()
             });
-            toast({ title: "Request Sent! ⏳" });
+            toast({ title: "Request Sent! ⏳", description: "Payment will be processed in 24-48 hours." });
             setIsWithdrawOpen(false);
+            setWithdrawAmount('');
         } catch (e) {
             toast({ variant: 'destructive', title: "Failed" });
         } finally {
@@ -335,57 +336,252 @@ export default function ProfilePage() {
             </Dialog>
 
             <Dialog open={isMonetizationOpen} onOpenChange={(open) => { setIsMonetizationOpen(open); forceUnlockUI(); }}>
-                <DialogContent className="bg-[#080808] border-white/10 p-0 rounded-[2.5rem] max-w-lg w-[95%] overflow-hidden h-[90vh] flex flex-col z-[200]">
-                    <DialogHeader className="p-8 border-b border-white/5 flex flex-row items-center justify-between">
-                         <div className="flex items-center gap-4 text-left">
-                            <div className="p-3 bg-blue-600 rounded-2xl shadow-lg shadow-blue-500/20"><Target size={24} className="text-white fill-white" /></div>
-                            <div>
-                                <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter text-white">Monetization</DialogTitle>
-                                <p className="text-[10px] text-blue-400 font-bold uppercase tracking-[0.2em] mt-1">Status: {isMonetizationUnlocked ? "Eligible" : "Pending"}</p>
+                <DialogContent className="bg-[#050505] border-white/10 p-0 rounded-[2.5rem] max-w-lg w-[95%] overflow-hidden h-[90vh] flex flex-col z-[200]">
+                    <DialogHeader className="p-8 border-b border-white/5 bg-gradient-to-br from-blue-600/10 to-transparent">
+                         <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-blue-600 rounded-2xl shadow-[0_0_20px_rgba(37,99,235,0.3)]">
+                                    <Target size={28} className="text-white fill-white" />
+                                </div>
+                                <div>
+                                    <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter text-white">Monetization</DialogTitle>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <div className={cn("h-1.5 w-1.5 rounded-full", isMonetizationUnlocked ? "bg-green-500 animate-pulse" : "bg-yellow-500")} />
+                                        <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em]">
+                                            Status: {isMonetizationUnlocked ? "Eligible" : "Learning Phase"}
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
+                            <Button variant="ghost" size="icon" onClick={() => { setIsMonetizationOpen(false); forceUnlockUI(); }} className="rounded-full bg-white/5"><X className="h-5 w-5" /></Button>
                          </div>
-                         <Button variant="ghost" size="icon" onClick={() => { setIsMonetizationOpen(false); forceUnlockUI(); }} className="rounded-full"><X className="h-6 w-6" /></Button>
                     </DialogHeader>
+                    
                     <div className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-hide pb-32">
+                        <div className="bg-secondary/20 p-6 rounded-[2rem] border border-white/5">
+                            <h4 className="text-xs font-black uppercase italic text-white mb-2">Program Overview</h4>
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                                Join the A.snap Partner Program to earn money from your reels. Complete the milestones below to unlock payouts.
+                            </p>
+                        </div>
+
                         <div className="space-y-6">
                             {[
-                                { label: "Followers", current: followers?.length || 0, target: reqFollowers, icon: BadgeCheck, color: "blue", isDone: (followers?.length || 0) >= reqFollowers },
-                                { label: "Reel Views", current: earningsStats.totalViews, target: reqViews, icon: Eye, color: "primary", isDone: earningsStats.totalViews >= reqViews },
-                                { label: "Earnings", current: earningsStats.total, target: reqEarnings, icon: Wallet, color: "green", isDone: earningsStats.total >= reqEarnings, isCurrency: true }
+                                { 
+                                    label: "Followers", 
+                                    current: followers?.length || 0, 
+                                    target: reqFollowers, 
+                                    icon: Users2, 
+                                    color: "blue", 
+                                    isDone: (followers?.length || 0) >= reqFollowers 
+                                },
+                                { 
+                                    label: "Public Views", 
+                                    current: earningsStats.totalViews, 
+                                    target: reqViews, 
+                                    icon: Eye, 
+                                    color: "pink", 
+                                    isDone: earningsStats.totalViews >= reqViews 
+                                },
+                                { 
+                                    label: "Earned Milestone", 
+                                    current: earningsStats.total, 
+                                    target: reqEarnings, 
+                                    icon: Wallet, 
+                                    color: "green", 
+                                    isDone: earningsStats.total >= reqEarnings, 
+                                    isCurrency: true 
+                                }
                             ].map((req, i) => (
-                                <div key={i} className={cn("p-6 rounded-[2rem] border", req.isDone ? "bg-green-500/10 border-green-500/30" : "bg-secondary/20 border-white/5")}>
-                                    <div className="flex items-center justify-between mb-4">
+                                <div key={i} className={cn(
+                                    "p-6 rounded-[2.5rem] border transition-all duration-500", 
+                                    req.isDone ? "bg-green-500/10 border-green-500/30" : "bg-white/[0.02] border-white/5"
+                                )}>
+                                    <div className="flex items-center justify-between mb-5">
                                         <div className="flex items-center gap-3">
-                                            <div className={cn("p-2 rounded-xl", req.isDone ? "bg-green-500" : "bg-white/5")}>
-                                                <req.icon size={18} />
+                                            <div className={cn("p-2.5 rounded-xl", req.isDone ? "bg-green-500 text-white" : "bg-secondary text-muted-foreground")}>
+                                                <req.icon size={20} />
                                             </div>
-                                            <span className="text-sm font-black uppercase italic">{req.label}</span>
+                                            <div>
+                                                <span className="text-sm font-black uppercase italic block">{req.label}</span>
+                                                <span className="text-[10px] text-muted-foreground font-bold">{req.isCurrency ? '₹' : ''}{req.current} / {req.isCurrency ? '₹' : ''}{req.target}</span>
+                                            </div>
                                         </div>
-                                        {req.isDone && <CheckCircle2 size={18} className="text-green-500" />}
+                                        {req.isDone && (
+                                            <div className="h-8 w-8 bg-green-500 rounded-full flex items-center justify-center animate-in zoom-in">
+                                                <CheckCircle2 size={16} className="text-white" />
+                                            </div>
+                                        )}
                                     </div>
-                                    <Progress value={(req.current / req.target) * 100} className="h-2" />
+                                    <Progress value={Math.min(100, (req.current / req.target) * 100)} className="h-2.5 bg-white/5" />
                                 </div>
                             ))}
                         </div>
+
+                        {isMonetizationUnlocked ? (
+                            <div className="p-8 bg-gradient-to-br from-green-600 to-green-400 rounded-[2.5rem] text-center shadow-2xl shadow-green-500/20 animate-in fade-in slide-in-from-bottom-4">
+                                <Sparkles className="h-10 w-10 text-white mx-auto mb-4" />
+                                <h3 className="text-xl font-black italic uppercase text-white mb-2">Congratulations!</h3>
+                                <p className="text-sm text-white/90 font-medium mb-6">You are now a verified A.snap partner. Start uploading and keep earning!</p>
+                                <Button className="w-full h-14 bg-white text-green-600 font-black uppercase rounded-2xl hover:scale-105 transition-transform" onClick={() => { setIsMonetizationOpen(false); setIsEarningsOpen(true); }}>Enter Creator Studio</Button>
+                            </div>
+                        ) : (
+                            <div className="p-6 bg-secondary/30 rounded-[2.5rem] flex items-center gap-4 border border-white/5">
+                                <Lock className="text-muted-foreground shrink-0" size={24} />
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed tracking-wider">
+                                    Finish all goals to unlock the withdrawal system.
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </DialogContent>
             </Dialog>
 
             <Dialog open={isEarningsOpen} onOpenChange={(open) => { setIsEarningsOpen(open); forceUnlockUI(); }}>
-                <DialogContent className="bg-[#0a0a0a] border-white/10 p-0 rounded-[2.5rem] max-w-lg w-[95%] overflow-hidden h-[90vh] flex flex-col z-[200]">
-                    <DialogHeader className="p-6 border-b border-white/5 flex flex-row items-center justify-between">
+                <DialogContent className="bg-[#080808] border-white/10 p-0 rounded-[2.5rem] max-w-lg w-[95%] overflow-hidden h-[90vh] flex flex-col z-[200]">
+                    <DialogHeader className="p-6 border-b border-white/5 bg-secondary/10 flex flex-row items-center justify-between">
                          <div className="flex items-center gap-3 text-left">
-                            <div className="p-2 bg-green-500 rounded-xl"><Zap size={20} className="text-white fill-white" /></div>
-                            <DialogTitle className="text-xl font-black italic uppercase text-white">Creator Studio</DialogTitle>
+                            <div className="p-2.5 bg-green-500 rounded-xl shadow-[0_0_15px_rgba(34,197,94,0.3)]">
+                                <Zap size={22} className="text-white fill-white" />
+                            </div>
+                            <div>
+                                <DialogTitle className="text-xl font-black italic uppercase text-white tracking-tighter">Creator Studio</DialogTitle>
+                                <p className="text-[9px] text-green-500 font-bold uppercase tracking-widest">Dashboard Active</p>
+                            </div>
                          </div>
-                         <Button variant="ghost" size="icon" onClick={() => { setIsEarningsOpen(false); forceUnlockUI(); }}><X className="h-6 w-6" /></Button>
+                         <Button variant="ghost" size="icon" onClick={() => { setIsEarningsOpen(false); forceUnlockUI(); }} className="rounded-full bg-white/5"><X className="h-5 w-5" /></Button>
                     </DialogHeader>
-                    <div className="flex-1 overflow-y-auto p-6 space-y-6 pb-32">
-                        <div className="bg-gradient-to-br from-green-600 to-green-900 p-8 rounded-[2.5rem] shadow-2xl">
-                            <p className="text-[10px] font-black uppercase text-white/70 mb-2">Available Balance</p>
-                            <h2 className="text-5xl font-black italic text-white tracking-tighter">₹{earningsStats.available.toFixed(2)}</h2>
-                            <Button onClick={() => { setIsWithdrawOpen(true); forceUnlockUI(); }} className="w-full mt-6 h-12 bg-white text-black font-black uppercase rounded-2xl" disabled={!isMonetizationUnlocked || earningsStats.available < 1}>Withdraw</Button>
+
+                    <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-32 scrollbar-hide">
+                        {/* Digital Wallet Card */}
+                        <div className="relative group">
+                            <div className="absolute inset-0 bg-green-500 blur-[60px] opacity-20 group-hover:opacity-30 transition-opacity" />
+                            <div className="relative bg-gradient-to-br from-green-600 via-green-700 to-green-900 p-8 rounded-[3rem] shadow-2xl overflow-hidden border border-white/20">
+                                <div className="absolute top-0 right-0 p-8 opacity-10">
+                                    <Wallet size={120} />
+                                </div>
+                                <div className="space-y-1 mb-8">
+                                    <p className="text-[10px] font-black uppercase text-white/60 tracking-[0.3em]">Total Available</p>
+                                    <div className="flex items-baseline gap-2">
+                                        <span className="text-3xl font-black text-white/80">₹</span>
+                                        <h2 className="text-6xl font-black italic text-white tracking-tighter">
+                                            {earningsStats.available.toFixed(2)}
+                                        </h2>
+                                    </div>
+                                </div>
+                                
+                                <Button 
+                                    onClick={() => { setIsWithdrawOpen(true); forceUnlockUI(); }} 
+                                    className="w-full h-16 bg-white text-black font-black uppercase rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all text-sm tracking-widest disabled:opacity-50"
+                                    disabled={!isMonetizationUnlocked || earningsStats.available < 10}
+                                >
+                                    {isMonetizationUnlocked ? "Request Payout" : "Locked for Review"}
+                                </Button>
+                                {!isMonetizationUnlocked && (
+                                    <p className="text-[8px] text-white/50 text-center mt-3 uppercase font-black tracking-widest">
+                                        Payouts unlock after eligibility check
+                                    </p>
+                                )}
+                            </div>
                         </div>
+
+                        {/* Quick Stats Grid */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-white/[0.03] border border-white/5 p-5 rounded-[2rem] flex flex-col gap-1">
+                                <div className="flex items-center gap-2 mb-2 text-muted-foreground">
+                                    <BarChart3 size={14} />
+                                    <span className="text-[9px] font-black uppercase tracking-widest">Total Impressions</span>
+                                </div>
+                                <p className="text-2xl font-black italic">{earningsStats.impressions}</p>
+                                <p className="text-[8px] text-green-500 font-bold uppercase mt-1">+12% this week</p>
+                            </div>
+                            <div className="bg-white/[0.03] border border-white/5 p-5 rounded-[2rem] flex flex-col gap-1">
+                                <div className="flex items-center gap-2 mb-2 text-muted-foreground">
+                                    <History size={14} />
+                                    <span className="text-[9px] font-black uppercase tracking-widest">Paid Out</span>
+                                </div>
+                                <p className="text-2xl font-black italic text-primary">₹{earningsStats.withdrawn}</p>
+                                <p className="text-[8px] text-muted-foreground font-bold uppercase mt-1">Verified secure</p>
+                            </div>
+                        </div>
+
+                        {/* Payout History Placeholder */}
+                        <div className="space-y-4">
+                            <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.3em] ml-2">Recent Transactions</h4>
+                            {userPayouts && userPayouts.length > 0 ? (
+                                <div className="space-y-2">
+                                    {userPayouts.map(p => (
+                                        <div key={p.id} className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className={cn("p-2 rounded-lg", p.status === 'paid' ? "bg-green-500/20 text-green-500" : "bg-yellow-500/20 text-yellow-500")}>
+                                                    {p.status === 'paid' ? <CheckCircle2 size={14} /> : <Clock size={14} />}
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-black uppercase">₹{p.amount}</p>
+                                                    <p className="text-[8px] text-muted-foreground font-bold uppercase">{p.createdAt ? new Date(p.createdAt.toDate()).toLocaleDateString() : 'Pending'}</p>
+                                                </div>
+                                            </div>
+                                            <span className={cn("text-[8px] font-black uppercase px-2 py-1 rounded-full", p.status === 'paid' ? "bg-green-500/10 text-green-500" : "bg-yellow-500/10 text-yellow-500")}>{p.status}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="bg-white/[0.02] border border-dashed border-white/10 p-8 rounded-[2rem] text-center">
+                                    <p className="text-[10px] font-black text-muted-foreground uppercase italic tracking-widest">No previous payouts found</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Withdrawal Dialog */}
+            <Dialog open={isWithdrawOpen} onOpenChange={(open) => { setIsWithdrawOpen(open); forceUnlockUI(); }}>
+                <DialogContent className="bg-[#121212] border-white/10 p-8 rounded-[3rem] max-w-sm w-[90%] z-[300]">
+                    <DialogHeader className="text-center space-y-4 mb-6">
+                        <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto border border-green-500/20">
+                            <CreditCard className="text-green-500" />
+                        </div>
+                        <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">Enter Details</DialogTitle>
+                    </DialogHeader>
+                    
+                    <div className="space-y-5">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Amount (Min. ₹10)</label>
+                            <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 font-black">₹</span>
+                                <input 
+                                    type="number"
+                                    value={withdrawAmount}
+                                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                                    className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-8 text-lg font-black focus:ring-2 ring-green-500 transition-all"
+                                    placeholder="0.00"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 p-1 bg-white/5 rounded-2xl border border-white/5">
+                            <button onClick={() => setWithdrawMethod('bank')} className={cn("h-11 rounded-xl text-[10px] font-black uppercase transition-all", withdrawMethod === 'bank' ? "bg-white text-black shadow-lg" : "text-muted-foreground")}>Bank Transfer</button>
+                            <button onClick={() => setWithdrawMethod('paypal')} className={cn("h-11 rounded-xl text-[10px] font-black uppercase transition-all", withdrawMethod === 'paypal' ? "bg-white text-black shadow-lg" : "text-muted-foreground")}>UPI / PayPal</button>
+                        </div>
+
+                        {withdrawMethod === 'bank' ? (
+                            <div className="space-y-3 animate-in fade-in zoom-in duration-300">
+                                <input placeholder="Account Holder Name" value={payoutDetails.holderName} onChange={(e) => setPayoutDetails({...payoutDetails, holderName: e.target.value})} className="w-full h-12 bg-white/5 border border-white/5 rounded-xl px-4 text-xs font-bold" />
+                                <input placeholder="Bank Account Number" value={payoutDetails.accountNo} onChange={(e) => setPayoutDetails({...payoutDetails, accountNo: e.target.value})} className="w-full h-12 bg-white/5 border border-white/5 rounded-xl px-4 text-xs font-bold" />
+                                <input placeholder="IFSC Code" value={payoutDetails.ifsc} onChange={(e) => setPayoutDetails({...payoutDetails, ifsc: e.target.value})} className="w-full h-12 bg-white/5 border border-white/5 rounded-xl px-4 text-xs font-bold" />
+                            </div>
+                        ) : (
+                            <input placeholder="PayPal Email or UPI ID" value={payoutDetails.paypalEmail} onChange={(e) => setPayoutDetails({...payoutDetails, paypalEmail: e.target.value})} className="w-full h-12 bg-white/5 border border-white/5 rounded-xl px-4 text-xs font-bold animate-in fade-in zoom-in duration-300" />
+                        )}
+
+                        <Button 
+                            onClick={handleWithdrawRequest} 
+                            className="w-full h-16 bg-green-600 text-white font-black uppercase rounded-2xl shadow-xl hover:bg-green-500 transition-all mt-4"
+                            disabled={isSubmitting || !withdrawAmount}
+                        >
+                            {isSubmitting ? <Loader2 className="animate-spin" /> : "Confirm & Send"}
+                        </Button>
                     </div>
                 </DialogContent>
             </Dialog>
