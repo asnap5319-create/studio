@@ -33,14 +33,14 @@ export default function RootLayout({
         <meta property="og:url" content="https://asnap.vercel.app/" />
         <meta property="og:title" content="A.snap | Premium Visual Sharing" />
         <meta property="og:description" content="Join the next generation of visual storytelling. Watch amazing reels and connect with friends." />
-        <meta property="og:image" content="/logo.svg?v=3" />
+        <meta property="og:image" content="/logo.svg?v=5" />
 
         {/* Twitter */}
         <meta property="twitter:card" content="summary_large_image" />
         <meta property="twitter:url" content="https://asnap.vercel.app/" />
         <meta property="twitter:title" content="A.snap | Premium Visual Sharing" />
         <meta property="twitter:description" content="Watch, share, and chat in real-time on A.snap." />
-        <meta property="twitter:image" content="/logo.svg?v=3" />
+        <meta property="twitter:image" content="/logo.svg?v=5" />
 
         <meta name="application-name" content="A.snap" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -52,10 +52,10 @@ export default function RootLayout({
         <meta name="msapplication-tap-highlight" content="no" />
         <meta name="theme-color" content="#16a34a" />
         
-        <link rel="manifest" href="/manifest.webmanifest?v=3" />
-        <link rel="apple-touch-icon" href="/logo.svg?v=3" />
-        <link rel="icon" type="image/svg+xml" href="/logo.svg?v=3" />
-        <link rel="shortcut icon" href="/logo.svg?v=3" />
+        <link rel="manifest" href="/manifest.webmanifest?v=5" />
+        <link rel="apple-touch-icon" href="/logo.svg?v=5" />
+        <link rel="icon" type="image/svg+xml" href="/logo.svg?v=5" />
+        <link rel="shortcut icon" href="/logo.svg?v=5" />
         
         {/* Adsterra Social Bar Script */}
         <Script
