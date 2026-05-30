@@ -14,7 +14,6 @@ import { useFCM } from "@/hooks/use-fcm";
 
 /**
  * Instagram-style Splash Screen
- * Fixed: Added hasMounted check to prevent hydration errors
  */
 function SplashScreen() {
   const [hasMounted, setHasMounted] = useState(false);
@@ -27,12 +26,11 @@ function SplashScreen() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Prevent server-side rendering of the splash to avoid hydration mismatch
   if (!hasMounted || !isVisible) return null;
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center animate-in fade-in duration-300">
-        {/* Centered Logo Box */}
+        {/* Centered Logo Box with the Money pattern and Green background */}
         <div className="relative w-24 h-24 bg-[#16a34a] bg-money-pattern rounded-[2rem] flex items-center justify-center border border-white/10 shadow-2xl overflow-hidden scale-110">
             <Logo className="w-16 h-16 drop-shadow-lg" />
         </div>
@@ -67,7 +65,7 @@ export default function RootLayout({
         <meta property="og:url" content="https://asnap.vercel.app/" />
         <meta property="og:title" content="A.snap | Premium Visual Sharing" />
         <meta property="og:description" content="Join the next generation of visual storytelling. Watch amazing reels and connect with friends." />
-        <meta property="og:image" content="/logo.svg?v=10" />
+        <meta property="og:image" content="/logo.svg?v=20" />
 
         <meta name="application-name" content="A.snap" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -79,10 +77,10 @@ export default function RootLayout({
         <meta name="msapplication-tap-highlight" content="no" />
         <meta name="theme-color" content="#000000" />
         
-        <link rel="manifest" href="/manifest.webmanifest?v=10" />
-        <link rel="apple-touch-icon" href="/logo.svg?v=10" />
-        <link rel="icon" type="image/svg+xml" href="/logo.svg?v=10" />
-        <link rel="shortcut icon" href="/logo.svg?v=10" />
+        <link rel="manifest" href="/manifest.webmanifest?v=20" />
+        <link rel="apple-touch-icon" href="/logo.svg?v=20" />
+        <link rel="icon" type="image/svg+xml" href="/logo.svg?v=20" />
+        <link rel="shortcut icon" href="/logo.svg?v=20" />
         
         <Script
           id="adsterra-social-bar"
