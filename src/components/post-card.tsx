@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import type { Post } from '@/models/post';
 import type { UserProfile } from '@/models/user';
 import { useDoc, useFirebase, useMemoFirebase, useUser } from '@/firebase';
@@ -75,6 +75,14 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
   const [localLikeCount, setLocalLikeCount] = useState(post.likeCount || 0);
+
+  // Speed Hack: Optimized Cloudinary URL for 4G
+  const optimizedMediaUrl = useMemo(() => {
+    if (post.mediaUrl.includes('res.cloudinary.com')) {
+      return post.mediaUrl.replace('/upload/', '/upload/q_auto,f_auto,w_720/');
+    }
+    return post.mediaUrl;
+  }, [post.mediaUrl]);
 
   const isOwnPost = user?.uid === post.userId;
   const isCurrentUserAdmin = user?.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -202,12 +210,13 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     } catch (error) {}
   };
 
+  // Speed Fix: More aggressive intersection observer for low-end phones
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => { 
-        setIsInView(entry.isIntersecting && entry.intersectionRatio >= 0.8); 
+        setIsInView(entry.isIntersecting && entry.intersectionRatio >= 0.7); 
     }, { 
-      threshold: [0, 0.8, 1.0],
-      rootMargin: "0px" 
+      threshold: [0, 0.7, 1.0],
+      rootMargin: "50px 0px" // Start pre-loading slightly before entering view
     });
     
     if (cardRef.current) observer.observe(cardRef.current);
@@ -245,8 +254,9 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
       }
     } else {
       video.pause();
+      // Crucial: Clear source on hidden videos to free up RAM on 4G phones
+      // But only if we want maximum speed. Metadata is safer for scroll feel.
       video.muted = true;
-      video.currentTime = 0; 
     }
   }, [isInView, firestore, post.id, post.userId]);
 
@@ -285,7 +295,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   };
 
   return (
-    <div ref={cardRef} className="relative w-full h-full bg-black overflow-hidden flex flex-col justify-center select-none" 
+    <div ref={cardRef} className="relative w-full h-full bg-black overflow-hidden flex flex-col justify-center select-none will-change-transform" 
       onClick={(e) => {
         if (tapTimerRef.current) {
           clearTimeout(tapTimerRef.current);
@@ -301,12 +311,12 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     >
       <video 
         ref={videoRef} 
-        src={post.mediaUrl} 
-        className="object-contain w-full h-full max-h-screen" 
+        src={optimizedMediaUrl} 
+        className="object-contain w-full h-full max-h-screen translate-z-0" 
         loop 
         playsInline 
         muted={isMuted} 
-        preload="auto"
+        preload={isInView ? "auto" : "metadata"}
         onWaiting={() => setIsBuffering(true)} 
         onPlaying={() => setIsBuffering(false)}
         onLoadedData={() => setIsBuffering(false)}

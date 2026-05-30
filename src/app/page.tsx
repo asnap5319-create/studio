@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
@@ -31,9 +30,10 @@ function HomeContent() {
 
   useEffect(() => { setHasMounted(true); }, []);
 
+  // Speed Fix: Limit initial fetch to 30 posts for 4G speed
   const postsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'), limit(100));
+    return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'), limit(30));
   }, [firestore]);
 
   const { data: posts, isLoading } = useCollection<Post>(postsQuery);
@@ -150,20 +150,19 @@ function HomeContent() {
       </header>
 
       {isLoading && displayItems.length === 0 ? (
-        /* अभिषेक भाई, लोडिंग वाला लोगो हटा दिया है ताकि स्प्लैश स्क्रीन के बाद सीधे वीडियो आएं */
         <div className="flex h-screen items-center justify-center bg-black" />
       ) : displayItems.length > 0 ? (
         displayItems.map((item) => {
           if ('type' in item && item.type === 'ad') {
             return (
-              <div key={item.id} className="h-screen w-full snap-start snap-always overflow-hidden flex flex-col shrink-0">
+              <div key={item.id} className="h-screen w-full snap-start snap-always overflow-hidden flex flex-col shrink-0 will-change-transform">
                 <NativeAdCard />
               </div>
             );
           }
           const post = item as Post;
           return (
-            <div key={post.id} className="h-screen w-full snap-start snap-always overflow-hidden flex flex-col shrink-0">
+            <div key={post.id} className="h-screen w-full snap-start snap-always overflow-hidden flex flex-col shrink-0 will-change-transform">
               <MemoizedPostCard post={post} />
             </div>
           );
