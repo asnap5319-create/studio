@@ -14,17 +14,21 @@ import { useFCM } from "@/hooks/use-fcm";
 
 /**
  * Instagram-style Splash Screen
+ * Fixed: Added hasMounted check to prevent hydration errors
  */
 function SplashScreen() {
+  const [hasMounted, setHasMounted] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
+    setHasMounted(true);
     // Show splash for 2.5 seconds
     const timer = setTimeout(() => setIsVisible(false), 2500);
     return () => clearTimeout(timer);
   }, []);
 
-  if (!isVisible) return null;
+  // Prevent server-side rendering of the splash to avoid hydration mismatch
+  if (!hasMounted || !isVisible) return null;
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center animate-in fade-in duration-300">
