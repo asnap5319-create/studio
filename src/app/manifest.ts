@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Share your world through premium short videos and real-time visual chat.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#16a34a',
-    theme_color: '#16a34a',
+    background_color: '#000000',
+    theme_color: '#000000',
     categories: ['social', 'entertainment', 'video'],
     orientation: 'portrait',
     icons: [
