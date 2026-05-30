@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, collectionGroup, query, orderBy, doc, limit, deleteDoc, updateDoc, serverTimestamp, where } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Trash2, Users, FileVideo, ArrowLeft, Search, ShieldCheck, Loader2, Play, MoreVertical, Eye, CreditCard, CheckCircle, XCircle, Clock, Banknote, UserPlus, Activity, ExternalLink, Fingerprint, MessageSquare, Sparkles, Mail, Landmark, TrendingUp, Info, BarChart3, Settings } from 'lucide-react';
+import { ShieldAlert, Trash2, Users, FileVideo, ArrowLeft, Search, ShieldCheck, Loader2, Play, MoreVertical, Eye, CreditCard, CheckCircle, XCircle, Clock, Banknote, UserPlus, Activity, ExternalLink, Fingerprint, MessageSquare, Sparkles, Mail, Landmark, TrendingUp, Info, BarChart3, Settings, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,14 +14,24 @@ import type { UserProfile } from '@/models/user';
 import type { Post } from '@/models/post';
 import type { PayoutRequest } from '@/models/payout';
 import type { SupportTicket } from '@/models/support';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { BottomNav } from "@/components/bottom-nav";
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import Link from 'next/link';
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
+
+interface Report {
+    id: string;
+    postId: string;
+    postOwnerId: string;
+    reportedBy: string;
+    reportedByEmail: string;
+    mediaUrl: string;
+    caption: string;
+    createdAt: any;
+    status: 'pending' | 'resolved';
+}
 
 export default function AdminPage() {
     const { user, isUserLoading } = useUser();
@@ -59,10 +69,16 @@ export default function AdminPage() {
         return query(collection(firestore, 'support_tickets'), orderBy('createdAt', 'desc'), limit(50));
     }, [firestore]);
 
+    const reportsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(collection(firestore, 'reports'), orderBy('createdAt', 'desc'), limit(50));
+    }, [firestore]);
+
     const { data: users, isLoading: isUsersLoading } = useCollection<UserProfile>(usersQuery);
     const { data: posts, isLoading: isPostsLoading } = useCollection<Post>(postsQuery);
     const { data: payouts, isLoading: isPayoutsLoading } = useCollection<PayoutRequest>(payoutsQuery);
     const { data: supportTickets, isLoading: isSupportLoading } = useCollection<SupportTicket>(supportQuery);
+    const { data: reports, isLoading: isReportsLoading } = useCollection<Report>(reportsQuery);
 
     const financialStats = useMemo(() => {
         if (!posts || !payouts) return { totalRevenue: 0, paidOut: 0, pending: 0 };
@@ -92,6 +108,19 @@ export default function AdminPage() {
             toast({ variant: 'destructive', title: "Error", description: "Delete karne me dikkat hui." });
         } finally {
             setIsActionLoading(null);
+        }
+    };
+
+    const handleDeleteReportedPost = async (report: Report) => {
+        if (!firestore || !isAdmin) return;
+        if (!confirm("क्या आप इस रिपोर्टेड रील को डिलीट करना चाहते हैं?")) return;
+
+        try {
+            await deleteDoc(doc(firestore, 'users', report.postOwnerId, 'posts', report.postId));
+            await updateDoc(doc(firestore, 'reports', report.id), { status: 'resolved' });
+            toast({ title: "Deleted! ✅", description: "Reported content removed." });
+        } catch (e) {
+            toast({ variant: 'destructive', title: "Error deleting post." });
         }
     };
 
@@ -137,10 +166,10 @@ export default function AdminPage() {
                     <p className="text-[9px] font-bold text-primary uppercase tracking-widest">Platform Revenue</p>
                 </div>
 
-                <div className="bg-green-500/10 p-5 rounded-[2rem] border border-green-500/20 flex flex-col items-center text-center">
-                    <Activity className="text-green-500 mb-2 h-6 w-6 animate-pulse" />
-                    <p className="text-2xl font-black text-green-500">{users?.filter(u => !!u.fcmToken).length || 0}</p>
-                    <p className="text-[9px] font-bold text-green-500 uppercase tracking-widest">Active Devices</p>
+                <div className="bg-red-500/10 p-5 rounded-[2rem] border border-red-500/20 flex flex-col items-center text-center">
+                    <Flag className="text-red-500 mb-2 h-6 w-6 animate-pulse" />
+                    <p className="text-2xl font-black text-red-500">{reports?.filter(r => r.status === 'pending').length || 0}</p>
+                    <p className="text-[9px] font-bold text-red-500 uppercase tracking-widest">Open Reports</p>
                 </div>
 
                 <div className="bg-yellow-500/10 p-5 rounded-[2rem] border border-yellow-500/20 flex flex-col items-center text-center">
@@ -151,12 +180,13 @@ export default function AdminPage() {
             </div>
 
             <Tabs defaultValue="users" className="w-full">
-                <TabsList className="grid w-full grid-cols-5 bg-secondary/50 p-1 rounded-2xl mb-8 border border-white/5 h-14 overflow-x-auto">
-                    <TabsTrigger value="users" className="rounded-xl data-[state=active]:bg-primary font-bold text-[10px] uppercase">Users</TabsTrigger>
-                    <TabsTrigger value="posts" className="rounded-xl data-[state=active]:bg-primary font-bold text-[10px] uppercase">Videos</TabsTrigger>
-                    <TabsTrigger value="payouts" className="rounded-xl data-[state=active]:bg-primary font-bold text-[10px] uppercase">Payouts</TabsTrigger>
-                    <TabsTrigger value="support" className="rounded-xl data-[state=active]:bg-primary font-bold text-[10px] uppercase">Support</TabsTrigger>
-                    <TabsTrigger value="billing" className="rounded-xl data-[state=active]:bg-primary font-bold text-[10px] uppercase">Billing</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-6 bg-secondary/50 p-1 rounded-2xl mb-8 border border-white/5 h-14 overflow-x-auto scrollbar-hide">
+                    <TabsTrigger value="users" className="rounded-xl data-[state=active]:bg-primary font-bold text-[9px] uppercase">Users</TabsTrigger>
+                    <TabsTrigger value="posts" className="rounded-xl data-[state=active]:bg-primary font-bold text-[9px] uppercase">Videos</TabsTrigger>
+                    <TabsTrigger value="payouts" className="rounded-xl data-[state=active]:bg-primary font-bold text-[9px] uppercase">Payouts</TabsTrigger>
+                    <TabsTrigger value="reports" className="rounded-xl data-[state=active]:bg-red-600 font-bold text-[9px] uppercase">Reports</TabsTrigger>
+                    <TabsTrigger value="support" className="rounded-xl data-[state=active]:bg-primary font-bold text-[9px] uppercase">Support</TabsTrigger>
+                    <TabsTrigger value="billing" className="rounded-xl data-[state=active]:bg-primary font-bold text-[9px] uppercase">Billing</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="users">
@@ -200,6 +230,39 @@ export default function AdminPage() {
                                         <p className="text-xs font-black text-white drop-shadow-md">₹{(post.estimatedEarnings || 0).toFixed(2)}</p>
                                         <Button size="sm" variant="destructive" onClick={() => { if(confirm('Delete video?')) deleteDoc(doc(firestore!, 'users', post.userId, 'posts', post.id)) }} className="h-7 text-[8px] uppercase font-black rounded-lg">Delete</Button>
                                     </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="reports">
+                    <div className="space-y-4">
+                        {reports?.length === 0 && (
+                            <div className="text-center py-20 text-muted-foreground italic">No active reports.</div>
+                        )}
+                        {reports?.map(report => (
+                            <div key={report.id} className={cn(
+                                "bg-secondary/40 p-5 rounded-[2rem] border flex items-center justify-between gap-4",
+                                report.status === 'resolved' ? "opacity-40 border-white/5" : "border-red-500/20 bg-red-500/5"
+                            )}>
+                                <div className="flex items-center gap-4 flex-1">
+                                    <div className="h-20 w-12 bg-black rounded-lg overflow-hidden shrink-0 relative">
+                                        <video src={report.mediaUrl} className="w-full h-full object-cover" muted />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-xs font-black text-white truncate">{report.caption || 'No Caption'}</p>
+                                        <p className="text-[9px] text-muted-foreground mt-1 uppercase font-bold">Reported By: {report.reportedByEmail}</p>
+                                        <p className="text-[8px] text-red-400 font-black uppercase mt-1 tracking-widest">{report.status}</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    {report.status === 'pending' && (
+                                        <>
+                                            <Button size="sm" variant="destructive" onClick={() => handleDeleteReportedPost(report)} className="h-9 px-4 font-black uppercase text-[10px] rounded-xl">Delete Reel</Button>
+                                            <Button size="sm" variant="outline" onClick={() => updateDoc(doc(firestore!, 'reports', report.id), { status: 'resolved' })} className="h-9 px-4 font-black uppercase text-[10px] rounded-xl border-white/10">Dismiss</Button>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         ))}

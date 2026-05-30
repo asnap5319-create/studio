@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import type { Post } from '@/models/post';
 import type { UserProfile } from '@/models/user';
 import { useDoc, useFirebase, useMemoFirebase, useUser } from '@/firebase';
-import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection, deleteDoc } from 'firebase/firestore';
+import { doc, updateDoc, increment, writeBatch, serverTimestamp, collection, deleteDoc, addDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
@@ -262,6 +262,28 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     toast({ title: "Link Copied! 🔗" });
   };
 
+  const handleReport = async () => {
+    if (!user || !firestore) {
+        router.push('/login?auth=true');
+        return;
+    }
+    try {
+        await addDoc(collection(firestore, 'reports'), {
+            postId: post.id,
+            postOwnerId: post.userId,
+            reportedBy: user.uid,
+            reportedByEmail: user.email,
+            mediaUrl: post.mediaUrl,
+            caption: post.caption,
+            createdAt: serverTimestamp(),
+            status: 'pending'
+        });
+        toast({ title: "Reported! 🚨", description: "Our team will review this reel." });
+    } catch (e) {
+        toast({ variant: 'destructive', title: "Error reporting." });
+    }
+  };
+
   return (
     <div ref={cardRef} className="relative w-full h-full bg-black overflow-hidden flex flex-col justify-center select-none" 
       onClick={(e) => {
@@ -403,7 +425,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                         <DropdownMenuItem onClick={handleCopyLink} className="font-bold p-4 rounded-xl cursor-pointer">
                             <Link2 className="h-4 w-4 mr-3 text-muted-foreground" /> Copy Link
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => toast({ title: "Reported! 🚨", description: "Our team will review this reel." })} className="font-bold p-4 rounded-xl cursor-pointer text-orange-500">
+                        <DropdownMenuItem onClick={handleReport} className="font-bold p-4 rounded-xl cursor-pointer text-orange-500">
                             <Flag className="h-4 w-4 mr-3" /> Report
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => author && router.push(`/profile/${author.id}`)} className="font-bold p-4 rounded-xl cursor-pointer">
