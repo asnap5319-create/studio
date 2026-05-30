@@ -273,9 +273,31 @@ export default function ProfilePage() {
                 </div>
                 
                 {isOwnProfile ? (
-                    <div className="flex gap-2 mt-6">
-                        <Button className="flex-1 h-12 rounded-2xl bg-secondary/80 font-bold uppercase text-xs" onClick={() => setIsEditSheetOpen(true)}>Edit Profile</Button>
-                        <Button className="h-12 w-12 rounded-2xl bg-primary/10 text-primary" onClick={() => { setIsShareSheetOpen(true); forceUnlockUI(); }}><CustomShareIcon className="h-5 w-5" /></Button>
+                    <div className="mt-6 space-y-2">
+                        {/* Professional Dashboard Card */}
+                        <div 
+                          className="bg-secondary/40 p-4 rounded-xl cursor-pointer hover:bg-secondary/60 transition-all active:scale-[0.99]"
+                          onClick={() => { setIsMonetizationOpen(true); forceUnlockUI(); }}
+                        >
+                            <p className="font-bold text-[13px] tracking-tight">Professional dashboard</p>
+                            <p className="text-[11px] text-muted-foreground font-medium">{earningsStats.totalViews} views in the last 30 days.</p>
+                        </div>
+                        
+                        {/* Buttons Row */}
+                        <div className="flex gap-2">
+                            <Button 
+                                className="flex-1 h-10 rounded-xl bg-secondary/40 hover:bg-secondary/60 text-white font-bold text-[13px] border-none" 
+                                onClick={() => setIsEditSheetOpen(true)}
+                            >
+                                Edit profile
+                            </Button>
+                            <Button 
+                                className="flex-1 h-10 rounded-xl bg-secondary/40 hover:bg-secondary/60 text-white font-bold text-[13px] border-none" 
+                                onClick={() => { setIsShareSheetOpen(true); forceUnlockUI(); }}
+                            >
+                                Share profile
+                            </Button>
+                        </div>
                     </div>
                 ) : user && (
                     <div className="flex gap-2 mt-6">
