@@ -150,17 +150,8 @@ function HomeContent() {
       </header>
 
       {isLoading && displayItems.length === 0 ? (
-        <div className="flex h-screen items-center justify-center bg-black">
-          <div className="flex flex-col items-center gap-4">
-             <div className="relative">
-                <div className="absolute inset-0 blur-3xl bg-green-500/20 animate-pulse rounded-full"></div>
-                <div className="w-20 h-20 bg-money-pattern rounded-2xl flex items-center justify-center relative z-10 shadow-2xl overflow-hidden">
-                  <Logo className="w-14 h-14" />
-                </div>
-             </div>
-             <p className="text-[10px] font-black uppercase tracking-[0.5em] text-primary/80 animate-pulse mt-4">Loading Reels...</p>
-          </div>
-        </div>
+        /* अभिषेक भाई, लोडिंग वाला लोगो हटा दिया है ताकि स्प्लैश स्क्रीन के बाद सीधे वीडियो आएं */
+        <div className="flex h-screen items-center justify-center bg-black" />
       ) : displayItems.length > 0 ? (
         displayItems.map((item) => {
           if ('type' in item && item.type === 'ad') {
