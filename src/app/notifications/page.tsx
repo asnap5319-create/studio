@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
@@ -47,10 +48,10 @@ export default function NotificationsPage() {
     );
 
     return (
-        <div className="flex min-h-screen flex-col text-white bg-background pb-16">
+        <div className="flex min-h-screen flex-col text-foreground bg-background pb-16">
              <header className="flex items-center p-4 border-b border-border sticky top-0 bg-background z-10">
                 <Link href="/" className='p-2 -ml-2'>
-                    <ArrowLeft />
+                    <ArrowLeft className="text-foreground" />
                 </Link>
                 <h1 className="text-xl font-bold mx-auto pr-8">Notifications</h1>
             </header>

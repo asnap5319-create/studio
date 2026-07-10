@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -43,8 +44,8 @@ export default function SearchPage() {
   const { data: searchResults, isLoading: isSearching } = useCollection<UserProfile>(usersQuery);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-white overflow-hidden pb-16">
-      <div className="p-4 bg-background/80 backdrop-blur-md sticky top-0 z-20 border-b border-white/5">
+    <div className="flex min-h-screen flex-col bg-background text-foreground overflow-hidden pb-16">
+      <div className="p-4 bg-background/80 backdrop-blur-md sticky top-0 z-20 border-b border-border">
         <div className="relative">
           <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -97,11 +98,11 @@ export default function SearchPage() {
       </div>
 
       <Dialog open={!!selectedPost} onOpenChange={(isOpen) => !isOpen && setSelectedPost(null)}>
-        <DialogContent className="p-0 border-0 bg-black/90 w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center">
+        <DialogContent className="p-0 border-0 bg-black w-full max-w-lg h-screen sm:h-[90vh] flex items-center justify-center">
             {selectedPost && (
               <>
                 <DialogTitle className="sr-only">Post Preview</DialogTitle>
-                <PostCard post={selectedPost} />
+                <PostCard post={selectedPost} isFocused />
               </>
             )}
         </DialogContent>

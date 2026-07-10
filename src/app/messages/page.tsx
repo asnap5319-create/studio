@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -40,7 +41,7 @@ function ChatItem({ chat, currentUserId, hasMounted }: { chat: Chat; currentUser
     <Link 
       href={`/messages/${chat.id}`}
       className={cn(
-        "flex items-center gap-4 p-4 hover:bg-secondary/30 transition-all border-b border-white/5",
+        "flex items-center gap-4 p-4 hover:bg-secondary/30 transition-all border-b border-border",
         isUnread && "bg-primary/5"
       )}
     >
@@ -58,7 +59,7 @@ function ChatItem({ chat, currentUserId, hasMounted }: { chat: Chat; currentUser
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-center mb-1">
           <div className="flex items-center gap-1.5 truncate">
-            <span className={cn("text-sm truncate font-bold", isUnread ? "text-white" : "text-muted-foreground")}>
+            <span className={cn("text-sm truncate font-bold", isUnread ? "text-foreground" : "text-muted-foreground")}>
               {otherUser.username}
             </span>
             {otherUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && <BadgeCheck className="h-3 w-3 text-blue-400" />}
@@ -70,7 +71,7 @@ function ChatItem({ chat, currentUserId, hasMounted }: { chat: Chat; currentUser
           )}
         </div>
         <div className="flex items-center justify-between">
-            <p className={cn("text-xs truncate max-w-[200px]", isUnread ? "text-white font-black" : "text-muted-foreground")}>
+            <p className={cn("text-xs truncate max-w-[200px]", isUnread ? "text-foreground font-black" : "text-muted-foreground")}>
                 {chat.lastMessage || 'Sent a reel'}
             </p>
             {isUnread && <div className="h-2.5 w-2.5 bg-primary rounded-full" />}
@@ -100,12 +101,12 @@ export default function InboxPage() {
 
   const { data: chats, isLoading } = useCollection<Chat>(chatsQuery);
 
-  if (!hasMounted || isUserLoading) return <div className="flex h-screen items-center justify-center bg-black"><Loader2 className="animate-spin text-primary" /></div>;
+  if (!hasMounted || isUserLoading) return <div className="flex h-screen items-center justify-center bg-background"><Loader2 className="animate-spin text-primary" /></div>;
 
   return (
-    <div className="flex min-h-screen flex-col text-white bg-background max-w-lg mx-auto border-x border-border pb-16">
+    <div className="flex min-h-screen flex-col text-foreground bg-background max-w-lg mx-auto border-x border-border pb-16">
       <header className="flex items-center p-4 border-b border-border sticky top-0 bg-background/80 backdrop-blur-md z-10">
-        <Link href="/" className="p-2 -ml-2"><ArrowLeft /></Link>
+        <Link href="/" className="p-2 -ml-2"><ArrowLeft className="text-foreground" /></Link>
         <h1 className="text-xl font-black ml-4 uppercase italic tracking-tighter">Direct</h1>
       </header>
 
@@ -120,17 +121,17 @@ export default function InboxPage() {
              ))}
           </div>
         ) : chats && chats.length > 0 ? (
-          <div className="divide-y divide-white/5">
+          <div className="divide-y divide-border/50">
             {chats.map(chat => (
               <ChatItem key={chat.id} chat={chat} currentUserId={user?.uid || ''} hasMounted={hasMounted} />
             ))}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-[70vh] text-center p-10">
-            <div className="w-24 h-24 bg-secondary/50 rounded-full flex items-center justify-center mb-6 shadow-2xl border border-white/5">
+            <div className="w-24 h-24 bg-secondary/50 rounded-full flex items-center justify-center mb-6 shadow-xl border border-border">
                 <Send className="h-12 w-12 text-primary -rotate-12" />
             </div>
-            <h2 className="text-2xl font-black italic uppercase text-white mb-2">Message Friends</h2>
+            <h2 className="text-2xl font-black italic uppercase text-foreground mb-2">Message Friends</h2>
             <p className="text-muted-foreground text-sm font-medium">Send photos and videos to a friend.</p>
           </div>
         )}
