@@ -171,9 +171,9 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-black p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm space-y-4 text-center">
-        <h1 className="text-5xl font-black italic text-primary [filter:drop-shadow(0_0_8px_hsl(var(--primary)))]">
+        <h1 className="text-5xl font-black italic text-primary [filter:drop-shadow(0_0_4px_rgba(255,51,102,0.2))]">
           Join A.snap
         </h1>
         <p className="text-muted-foreground font-medium uppercase text-[10px] tracking-[0.3em]">Premium Visual Sharing</p>
@@ -181,7 +181,7 @@ export default function SignupPage() {
         <div className="pt-4 space-y-4">
           <Button 
             variant="outline" 
-            className="w-full h-14 text-base font-bold rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 transition-all flex items-center justify-center gap-3"
+            className="w-full h-14 text-base font-bold rounded-2xl border-border bg-secondary/20 hover:bg-secondary/40 transition-all flex items-center justify-center gap-3"
             onClick={handleGoogleSignup}
             disabled={isGoogleLoading || isLoading}
           >
@@ -202,10 +202,10 @@ export default function SignupPage() {
 
           <div className="relative py-2">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-white/10"></span>
+              <span className="w-full border-t border-border"></span>
             </div>
             <div className="relative flex justify-center text-[10px] uppercase">
-              <span className="bg-black px-4 text-muted-foreground font-bold tracking-widest">or email signup</span>
+              <span className="bg-background px-4 text-muted-foreground font-bold tracking-widest">or email signup</span>
             </div>
           </div>
         </div>
@@ -228,7 +228,7 @@ export default function SignupPage() {
           <Input 
             type="email" 
             placeholder="Email" 
-            className="h-12 bg-secondary/30 border-white/5 rounded-xl" 
+            className="h-12 bg-secondary/10 border-border rounded-xl" 
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -237,7 +237,7 @@ export default function SignupPage() {
           <Input 
             type="password" 
             placeholder="Password (min. 6 characters)" 
-            className="h-12 bg-secondary/30 border-white/5 rounded-xl" 
+            className="h-12 bg-secondary/10 border-border rounded-xl" 
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -246,7 +246,7 @@ export default function SignupPage() {
           <Input 
             type="text" 
             placeholder="Full Name" 
-            className="h-12 bg-secondary/30 border-white/5 rounded-xl" 
+            className="h-12 bg-secondary/10 border-border rounded-xl" 
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
@@ -255,22 +255,22 @@ export default function SignupPage() {
           <Input 
             type="text" 
             placeholder="Username" 
-            className="h-12 bg-secondary/30 border-white/5 rounded-xl" 
+            className="h-12 bg-secondary/10 border-border rounded-xl" 
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
             disabled={isLoading || isGoogleLoading}
           />
-          <Button type="submit" className="w-full h-14 text-lg font-black uppercase rounded-2xl bg-primary shadow-lg shadow-primary/20" disabled={isLoading || isGoogleLoading}>
+          <Button type="submit" className="w-full h-14 text-lg font-black uppercase rounded-2xl bg-primary text-white shadow-lg shadow-primary/20" disabled={isLoading || isGoogleLoading}>
             {isLoading ? <Loader2 className="animate-spin" /> : statusMessage}
           </Button>
         </form>
 
         <p className="px-8 text-center text-[10px] text-muted-foreground uppercase font-bold tracking-widest leading-relaxed">
-            By signing up, you agree to our <Link href="/terms" className="text-white underline">Terms</Link>, <Link href="/privacy" className="text-white underline">Privacy Policy</Link> and Cookies Policy.
+            By signing up, you agree to our <Link href="/terms" className="text-foreground underline">Terms</Link>, <Link href="/privacy" className="text-foreground underline">Privacy Policy</Link> and Cookies Policy.
         </p>
 
-        <div className="border-t border-white/10 mt-4 pt-4">
+        <div className="border-t border-border mt-4 pt-4">
           <p className="text-sm text-muted-foreground font-medium">
             Already have an account?{' '}
             <Link href="/login" className="font-black text-primary hover:underline underline-offset-4">

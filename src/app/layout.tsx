@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from "react";
@@ -29,16 +28,16 @@ function SplashScreen() {
   if (!hasMounted || !isVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[9999] bg-white flex flex-col items-center justify-center animate-in fade-in duration-300">
         {/* Centered Logo Box with the Money pattern and Green background */}
-        <div className="relative w-24 h-24 bg-[#16a34a] bg-money-pattern rounded-[2rem] flex items-center justify-center border border-white/10 shadow-2xl overflow-hidden scale-110">
+        <div className="relative w-24 h-24 bg-[#16a34a] bg-money-pattern rounded-[2rem] flex items-center justify-center border border-black/5 shadow-2xl overflow-hidden scale-110">
             <Logo className="w-16 h-16 drop-shadow-lg" />
         </div>
         
         {/* Bottom Footer like "from Meta" */}
         <div className="absolute bottom-16 flex flex-col items-center gap-1.5">
-             <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/30">from</p>
-             <h2 className="text-xl font-black italic tracking-tighter text-white drop-shadow-md">A.S</h2>
+             <p className="text-[10px] font-black uppercase tracking-[0.5em] text-black/30">from</p>
+             <h2 className="text-xl font-black italic tracking-tighter text-black drop-shadow-md">A.S</h2>
         </div>
     </div>
   );
@@ -55,7 +54,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
         <title>A.snap | Premium Visual Sharing</title>
         <meta name="description" content="A.snap - The premium short video sharing platform. Watch, share, and chat in real-time." />
@@ -69,13 +68,13 @@ export default function RootLayout({
 
         <meta name="application-name" content="A.snap" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="A.snap" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="msapplication-TileColor" content="#000000" />
+        <meta name="msapplication-TileColor" content="#ffffff" />
         <meta name="msapplication-tap-highlight" content="no" />
-        <meta name="theme-color" content="#000000" />
+        <meta name="theme-color" content="#ffffff" />
         
         <link rel="manifest" href="/manifest.webmanifest?v=20" />
         <link rel="apple-touch-icon" href="/logo.svg?v=20" />

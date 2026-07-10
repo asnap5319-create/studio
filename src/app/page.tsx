@@ -111,46 +111,46 @@ function HomeContent() {
     }, 600);
   }, [posts, buildItems, toast]);
 
-  if (!hasMounted) return <div className="h-screen bg-black" />;
+  if (!hasMounted) return <div className="h-screen bg-background" />;
 
   return (
-    <div className="h-screen bg-black overflow-y-scroll snap-y snap-mandatory scrollbar-hide relative overflow-x-hidden">
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
+    <div className="h-screen bg-background overflow-y-scroll snap-y snap-mandatory scrollbar-hide relative overflow-x-hidden">
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-background/90 to-transparent pointer-events-none">
         <div className="flex items-center gap-3 pointer-events-auto">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-money-pattern rounded-xl flex items-center justify-center border border-white/10 shadow-lg overflow-hidden">
+            <div className="w-10 h-10 bg-money-pattern rounded-xl flex items-center justify-center border border-black/5 shadow-lg overflow-hidden">
               <Logo className="w-7 h-7" />
             </div>
-            <h1 className="text-2xl font-black text-primary italic tracking-tighter drop-shadow-lg">
+            <h1 className="text-2xl font-black text-primary italic tracking-tighter drop-shadow-sm">
               A.snap
             </h1>
           </div>
           <button 
             onClick={handleRefresh} 
-            className={`p-2.5 bg-white/5 backdrop-blur-md rounded-full border border-white/10 active:scale-90 transition-all ${isRefreshing ? 'animate-spin' : ''}`}
+            className={`p-2.5 bg-secondary/50 backdrop-blur-md rounded-full border border-border active:scale-90 transition-all ${isRefreshing ? 'animate-spin' : ''}`}
           >
-            <RefreshCw className="w-4 h-4 text-white" />
+            <RefreshCw className="w-4 h-4 text-foreground" />
           </button>
         </div>
         
         <div className="flex items-center gap-3 pointer-events-auto">
-          <Link href={user ? "/notifications" : "/login?auth=true"} className="relative p-2.5 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 shadow-lg">
-            <Bell className="w-5 h-5 text-white" />
+          <Link href={user ? "/notifications" : "/login?auth=true"} className="relative p-2.5 bg-background/80 backdrop-blur-2xl rounded-full border border-border shadow-lg">
+            <Bell className="w-5 h-5 text-foreground" />
             {hasUnreadNotifications && (
-              <span className="absolute top-2 right-2 h-2.5 w-2.5 bg-red-600 rounded-full border border-black animate-pulse" />
+              <span className="absolute top-2 right-2 h-2.5 w-2.5 bg-red-600 rounded-full border border-background animate-pulse" />
             )}
           </Link>
-          <Link href={user ? "/messages" : "/login?auth=true"} className="relative p-2.5 bg-black/40 backdrop-blur-2xl rounded-full border border-white/10 shadow-lg">
-            <MessageCircle className="w-5 h-5 text-white" />
+          <Link href={user ? "/messages" : "/login?auth=true"} className="relative p-2.5 bg-background/80 backdrop-blur-2xl rounded-full border border-border shadow-lg">
+            <MessageCircle className="w-5 h-5 text-foreground" />
             {hasUnreadMessages && (
-              <span className="absolute top-2 right-2 h-2.5 w-2.5 bg-red-600 rounded-full border border-black animate-pulse" />
+              <span className="absolute top-2 right-2 h-2.5 w-2.5 bg-red-600 rounded-full border border-background animate-pulse" />
             )}
           </Link>
         </div>
       </header>
 
       {isLoading && displayItems.length === 0 ? (
-        <div className="flex h-screen items-center justify-center bg-black" />
+        <div className="flex h-screen items-center justify-center bg-background" />
       ) : displayItems.length > 0 ? (
         displayItems.map((item) => {
           if ('type' in item && item.type === 'ad') {
@@ -168,7 +168,7 @@ function HomeContent() {
           );
         })
       ) : !isLoading && (
-        <div className="flex h-full items-center justify-center text-white p-10 text-center">
+        <div className="flex h-full items-center justify-center text-foreground p-10 text-center">
             <div className="flex flex-col gap-6 items-center">
               <div className="w-24 h-24 bg-money-pattern rounded-3xl flex items-center justify-center border border-green-600/30 overflow-hidden">
                 <Logo className="w-16 h-16 opacity-40" />
@@ -188,7 +188,7 @@ function HomeContent() {
 
 export default function HomePage() {
   return (
-    <Suspense fallback={<div className="h-screen bg-black flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>}>
+    <Suspense fallback={<div className="h-screen bg-background flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>}>
       <HomeContent />
     </Suspense>
   );
