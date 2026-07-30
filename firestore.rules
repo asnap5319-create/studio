@@ -20,14 +20,14 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // Stories Rules - Updated to allow listing and reading
+    // Stories Rules - Fixed hierarchy and permissions
     match /active_stories/{userId} {
-      allow read, get, list: if true;
-      allow write: if isAuthenticated() && request.auth.uid == userId;
+      allow read, list: if true;
+      allow write, create, update: if isAuthenticated() && request.auth.uid == userId;
       
       match /items/{itemId} {
-        allow read, get, list: if true;
-        allow write: if isAuthenticated() && request.auth.uid == userId;
+        allow read, list: if true;
+        allow write, create, update: if isAuthenticated() && request.auth.uid == userId;
       }
     }
 
@@ -73,7 +73,7 @@ service cloud.firestore {
     match /{path=**}/messages/{messageId} {
       allow read: if isAdmin() || (isAuthenticated() && (
         request.auth.uid == resource.data.recipientId || 
-        request.auth.uid == resource.data.senderId
+        request.auth.uid == request.auth.uid == resource.data.senderId
       ));
       allow write, create: if isAuthenticated();
     }
