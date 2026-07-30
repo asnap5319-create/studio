@@ -3,7 +3,7 @@
 import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
 import { collectionGroup, query, orderBy, limit, where, doc, setDoc, serverTimestamp, collection, updateDoc, increment, writeBatch, deleteDoc } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Plus, BadgeCheck, X, Play, Eye, ChevronLeft, ChevronRight, Heart, Users, MessageCircle, Share2 } from 'lucide-react';
+import { Plus, BadgeCheck, X, Play, Heart, MessageCircle, Share2, Users } from 'lucide-react';
 import Link from 'next/link';
 import type { Post } from '@/models/post';
 import type { UserProfile } from '@/models/user';
@@ -11,7 +11,6 @@ import { useDoc } from '@/firebase';
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogHeader } from './ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { CommentSection } from './comment-section';
@@ -19,15 +18,15 @@ import { CommentSection } from './comment-section';
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 const REVENUE_PER_VIEW = 0.008;
 
-// --- Activity List Sub-component ---
-function ActivityList({ postId, postOwnerId, type }: { postId: string, postOwnerId: string, type: 'likes' | 'views' }) {
+// --- Activity List for Likes Only ---
+function LikesList({ postId, postOwnerId }: { postId: string, postOwnerId: string }) {
     const { firestore } = useFirebase();
-    const activityQuery = useMemoFirebase(() => {
+    const likesQuery = useMemoFirebase(() => {
         if (!firestore) return null;
-        return query(collection(firestore, 'users', postOwnerId, 'posts', postId, type), orderBy('createdAt', 'desc'));
-    }, [firestore, postId, postOwnerId, type]);
+        return query(collection(firestore, 'users', postOwnerId, 'posts', postId, 'likes'), orderBy('createdAt', 'desc'));
+    }, [firestore, postId, postOwnerId]);
 
-    const { data: items, isLoading } = useCollection<any>(activityQuery);
+    const { data: items, isLoading } = useCollection<any>(likesQuery);
 
     if (isLoading) return <div className="flex justify-center p-8"><Play className="animate-spin text-primary h-6 w-6" /></div>;
 
@@ -37,7 +36,7 @@ function ActivityList({ postId, postOwnerId, type }: { postId: string, postOwner
                 <UserRow key={item.id} userId={item.userId || item.id} timestamp={item.createdAt} />
             ))}
             {(!items || items.length === 0) && (
-                <div className="text-center py-10 opacity-40 italic text-sm">No {type} yet</div>
+                <div className="text-center py-10 opacity-40 italic text-sm">No likes yet</div>
             )}
         </div>
     );
@@ -85,7 +84,7 @@ function StoryViewer({
 }) {
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
     const [progress, setProgress] = useState(0);
-    const [showActivity, setShowActivity] = useState(false);
+    const [isLikesOpen, setIsLikesOpen] = useState(false);
     const [isCommentOpen, setIsCommentOpen] = useState(false);
     const [isLiking, setIsLiking] = useState(false);
     
@@ -108,7 +107,7 @@ function StoryViewer({
     useEffect(() => {
         setProgress(0);
         const interval = setInterval(() => {
-            if (!showActivity && !isCommentOpen) {
+            if (!isLikesOpen && !isCommentOpen) {
                 setProgress((prev) => {
                     if (prev >= 100) {
                         handleNext();
@@ -117,23 +116,15 @@ function StoryViewer({
                     return prev + 1;
                 });
             }
-        }, 50); // 5 seconds total (approx)
+        }, 50); 
         return () => clearInterval(interval);
-    }, [currentIndex, showActivity, isCommentOpen]);
+    }, [currentIndex, isLikesOpen, isCommentOpen]);
 
-    // Record individual view and increment counter
+    // Record view and increment counter (Background)
     useEffect(() => {
         if (firestore && user && user.uid !== post.userId && viewLoggedRef.current !== post.id) {
             viewLoggedRef.current = post.id;
-            
             const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
-            const viewRef = doc(firestore, 'users', post.userId, 'posts', post.id, 'views', user.uid);
-            
-            setDoc(viewRef, {
-                userId: user.uid,
-                createdAt: serverTimestamp()
-            }, { merge: true }).catch(() => {});
-
             updateDoc(postRef, {
                 viewCount: increment(1),
                 adImpressions: increment(1),
@@ -212,7 +203,7 @@ function StoryViewer({
                         <p className="text-white text-xs font-black uppercase italic drop-shadow-md">
                             {author?.username}
                         </p>
-                        <p className="text-[8px] text-white/60 font-bold uppercase tracking-widest">A.snap Story</p>
+                        <p className="text-[8px] text-white/60 font-bold uppercase tracking-widest">A.snap Reel</p>
                     </div>
                 </div>
                 <button onClick={onClose} className="p-2 bg-black/20 backdrop-blur-md rounded-full text-white hover:bg-black/40">
@@ -237,7 +228,7 @@ function StoryViewer({
                 )}
 
                 {/* Navigation Taps */}
-                {!showActivity && !isCommentOpen && (
+                {!isLikesOpen && !isCommentOpen && (
                     <div className="absolute inset-0 flex z-50">
                         <div className="w-[30%] h-full" onClick={handlePrev} />
                         <div className="w-[70%] h-full" onClick={handleNext} />
@@ -245,75 +236,60 @@ function StoryViewer({
                 )}
             </div>
 
-            {/* Bottom UI - Instagram Style Actions */}
-            <div className="absolute bottom-6 inset-x-0 z-[70] flex flex-col items-center gap-4 px-6">
-                {/* Interactions Row */}
-                <div className="w-full flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        {/* Like Button */}
-                        <button 
-                            onClick={handleLikeToggle}
-                            className="flex flex-col items-center gap-1 active:scale-150 transition-all"
-                        >
-                            <Heart className={cn("h-7 w-7 drop-shadow-lg", isLiked ? "fill-primary text-primary" : "text-white")} />
-                            <span className="text-[10px] font-black text-white drop-shadow-md">{post.likeCount || 0}</span>
-                        </button>
-
-                        {/* Comment Button */}
-                        <Sheet open={isCommentOpen} onOpenChange={setIsCommentOpen}>
+            {/* Bottom Actions - Insta Style Side/Bottom Layout */}
+            <div className="absolute bottom-6 inset-x-0 z-[70] flex items-end justify-between px-6 pb-2">
+                {/* Left Side: Show Likes list if owner */}
+                <div className="flex-1">
+                    {isMyStory && (
+                        <Sheet open={isLikesOpen} onOpenChange={setIsLikesOpen}>
                             <SheetTrigger asChild>
-                                <button className="flex flex-col items-center gap-1 active:scale-125 transition-all">
-                                    <MessageCircle className="h-7 w-7 text-white drop-shadow-lg" />
-                                    <span className="text-[10px] font-black text-white drop-shadow-md">{post.commentCount || 0}</span>
+                                <button className="bg-white/10 backdrop-blur-2xl py-2.5 px-4 rounded-2xl border border-white/10 flex items-center gap-2 shadow-2xl active:scale-95 transition-all">
+                                    <Heart size={16} className="text-white fill-white" />
+                                    <span className="text-[11px] font-black uppercase text-white tracking-widest">Liked by</span>
                                 </button>
                             </SheetTrigger>
-                            <SheetContent side="bottom" className="h-[70vh] p-0 rounded-t-[3rem] bg-background border-none z-[1200]">
-                                <CommentSection postId={post.id} postOwnerId={post.userId} />
-                            </SheetContent>
-                        </Sheet>
-                    </div>
-
-                    {/* Owner Only: Activity & View Count */}
-                    {isMyStory ? (
-                        <Sheet open={showActivity} onOpenChange={setShowActivity}>
-                            <SheetTrigger asChild>
-                                <button className="bg-white/10 backdrop-blur-2xl py-2 px-4 rounded-2xl border border-white/10 flex items-center gap-2 shadow-2xl active:scale-95 transition-all">
-                                    <Eye size={16} className="text-white" />
-                                    <span className="text-[11px] font-black uppercase text-white tracking-widest">{post.viewCount || 0} Viewers</span>
-                                </button>
-                            </SheetTrigger>
-                            <SheetContent side="bottom" className="h-[70vh] p-0 rounded-t-[3rem] bg-background border-none shadow-[0_-10px_50px_rgba(0,0,0,0.5)] z-[1100]">
+                            <SheetContent side="bottom" className="h-[60vh] p-0 rounded-t-[3rem] bg-background border-none z-[1100]">
                                 <SheetHeader className="p-6 border-b border-border/50">
-                                    <SheetTitle className="text-center font-black uppercase italic tracking-tighter text-xl">Story Activity</SheetTitle>
+                                    <SheetTitle className="text-center font-black uppercase italic tracking-tighter text-xl">Likes</SheetTitle>
                                 </SheetHeader>
-                                <Tabs defaultValue="views" className="w-full h-full flex flex-col">
-                                    <TabsList className="grid w-full grid-cols-2 bg-secondary/50 rounded-none h-14">
-                                        <TabsTrigger value="views" className="font-black uppercase text-[10px] tracking-widest gap-2">
-                                            <Eye size={14} /> Viewers ({post.viewCount || 0})
-                                        </TabsTrigger>
-                                        <TabsTrigger value="likes" className="font-black uppercase text-[10px] tracking-widest gap-2">
-                                            <Heart size={14} className="fill-current" /> Likers ({post.likeCount || 0})
-                                        </TabsTrigger>
-                                    </TabsList>
-                                    <div className="flex-1 overflow-y-auto px-4 pb-20 scrollbar-hide">
-                                        <TabsContent value="views" className="mt-0">
-                                            <ActivityList postId={post.id} postOwnerId={post.userId} type="views" />
-                                        </TabsContent>
-                                        <TabsContent value="likes" className="mt-0">
-                                            <ActivityList postId={post.id} postOwnerId={post.userId} type="likes" />
-                                        </TabsContent>
-                                    </div>
-                                </Tabs>
+                                <div className="flex-1 overflow-y-auto px-4 pb-20 scrollbar-hide">
+                                    <LikesList postId={post.id} postOwnerId={post.userId} />
+                                </div>
                             </SheetContent>
                         </Sheet>
-                    ) : (
-                        // If not owner, just show caption if any
-                        post.caption && (
-                            <p className="text-white text-[11px] font-medium drop-shadow-md line-clamp-1 opacity-80 max-w-[150px]">{post.caption}</p>
-                        )
                     )}
                 </div>
+
+                {/* Right Side: Interaction Buttons (Like & Comment) */}
+                <div className="flex items-center gap-5">
+                    {/* Like Button */}
+                    <button 
+                        onClick={handleLikeToggle}
+                        className="flex flex-col items-center gap-1 active:scale-150 transition-all"
+                    >
+                        <Heart className={cn("h-8 w-8 drop-shadow-xl", isLiked ? "fill-primary text-primary" : "text-white")} />
+                    </button>
+
+                    {/* Comment Button */}
+                    <Sheet open={isCommentOpen} onOpenChange={setIsCommentOpen}>
+                        <SheetTrigger asChild>
+                            <button className="flex flex-col items-center gap-1 active:scale-125 transition-all">
+                                <MessageCircle className="h-8 w-8 text-white drop-shadow-xl" />
+                            </button>
+                        </SheetTrigger>
+                        <SheetContent side="bottom" className="h-[75vh] p-0 rounded-t-[3rem] bg-background border-none z-[1200]">
+                            <CommentSection postId={post.id} postOwnerId={post.userId} />
+                        </SheetContent>
+                    </Sheet>
+                </div>
             </div>
+            
+            {/* Caption (Subtle overlay) */}
+            {post.caption && !isLikesOpen && !isCommentOpen && (
+                <div className="absolute bottom-24 left-6 right-6 pointer-events-none">
+                    <p className="text-white text-xs font-medium drop-shadow-md line-clamp-2 opacity-80">{post.caption}</p>
+                </div>
+            )}
         </div>
     );
 }
@@ -431,7 +407,6 @@ export function StoryBar() {
                 )}
             </div>
 
-            {/* Full Screen Instagram-style Story Viewer */}
             <Dialog open={selectedStoryIndex !== null} onOpenChange={() => setSelectedStoryIndex(null)}>
                 <DialogContent className="p-0 border-0 bg-black w-full max-w-lg h-screen sm:h-[98vh] flex items-center justify-center overflow-hidden z-[1000]">
                     <DialogHeader className="sr-only"><DialogTitle>Story Preview</DialogTitle></DialogHeader>
