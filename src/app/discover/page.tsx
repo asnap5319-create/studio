@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -84,15 +83,20 @@ export default function SearchPage() {
 
         <div className="px-0.5 pb-20">
           <div className="grid grid-cols-3 gap-0.5">
-            {posts?.map((post) => (
-              <div key={post.id} className="aspect-[9/16] relative bg-secondary cursor-pointer" onClick={() => setSelectedPost(post)}>
-                 {post.mediaUrl.includes('video') || post.mediaUrl.includes('.mp4') ? (
-                  <video src={post.mediaUrl} className="w-full h-full object-cover" muted loop playsInline />
-                ) : (
-                  <Image src={post.mediaUrl} alt="" fill className="object-cover" />
-                )}
-              </div>
-            ))}
+            {posts?.map((post) => {
+              const isVideo = post.mediaType === 'video' || post.mediaUrl.includes('/video/upload/') || post.mediaUrl.match(/\.(mp4|mov|webm|ogg)$/i) !== null;
+              
+              return (
+                <div key={post.id} className="aspect-[9/16] relative bg-secondary cursor-pointer" onClick={() => setSelectedPost(post)}>
+                   {isVideo ? (
+                    <video src={post.mediaUrl} className="w-full h-full object-cover" muted loop playsInline />
+                  ) : (
+                    <Image src={post.mediaUrl} alt="" fill className="object-cover" unoptimized />
+                  )}
+                  {isVideo && <div className="absolute top-2 right-2"><Play className="w-3 h-3 text-white fill-white" /></div>}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

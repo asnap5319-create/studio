@@ -69,10 +69,18 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
 
   const optimizedMediaUrl = useMemo(() => {
     if (post.mediaUrl.includes('res.cloudinary.com')) {
-      return post.mediaUrl.replace('/upload/', '/upload/q_auto,f_auto,w_720/');
+      return post.mediaUrl.replace('/upload/', '/upload/q_auto,f_auto,w_1080/');
     }
     return post.mediaUrl;
   }, [post.mediaUrl]);
+
+  // Determine if it's a video or image
+  const isVideo = useMemo(() => {
+    if (post.mediaType === 'video') return true;
+    if (post.mediaType === 'image') return false;
+    // Fallback if mediaType is missing
+    return post.mediaUrl.includes('/video/upload/') || post.mediaUrl.match(/\.(mp4|mov|webm|ogg)$/i) !== null;
+  }, [post.mediaType, post.mediaUrl]);
 
   const isOwnPost = user?.uid === post.userId;
   const authorRef = useMemoFirebase(() => (firestore) ? doc(firestore, 'users', post.userId) : null, [firestore, post.userId]);
@@ -90,6 +98,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   useEffect(() => { setLocalLikeCount(post.likeCount || 0); }, [post.likeCount]);
 
   const toggleMute = useCallback(() => {
+    if (!isVideo) return;
     const video = videoRef.current;
     if (!video) return;
     const newMuteState = !isMuted;
@@ -98,7 +107,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     setIsMuted(newMuteState);
     setShowMuteIndicator(true);
     setTimeout(() => setShowMuteIndicator(false), 1000);
-  }, [isMuted]);
+  }, [isMuted, isVideo]);
 
   const handleLikeToggle = async () => {
     if (!user) { router.push('/login?auth=true'); return; }
@@ -135,6 +144,18 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   }, []);
 
   useEffect(() => {
+    if (!isVideo) {
+        if (isInView && firestore && !viewCounted.current) {
+            viewCounted.current = true;
+            updateDoc(doc(firestore, 'users', post.userId, 'posts', post.id), { 
+                viewCount: increment(1),
+                adImpressions: increment(1),
+                estimatedEarnings: Number(((post.viewCount || 0 + 1) * REVENUE_PER_VIEW).toFixed(4))
+            }).catch(() => {});
+        }
+        return;
+    }
+
     const video = videoRef.current;
     if (!video) return;
     if (isInView) {
@@ -154,25 +175,37 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     } else {
       video.pause();
     }
-  }, [isInView, firestore, post]);
+  }, [isInView, firestore, post, isVideo]);
 
   return (
     <div ref={cardRef} className="relative w-full h-full bg-black overflow-hidden flex flex-col justify-center select-none" 
       onClick={() => {
         if (tapTimerRef.current) { clearTimeout(tapTimerRef.current); tapTimerRef.current = null; handleLikeToggle(); }
-        else { tapTimerRef.current = setTimeout(() => { toggleMute(); tapTimerRef.current = null; }, 250); }
+        else { tapTimerRef.current = setTimeout(() => { if(isVideo) toggleMute(); tapTimerRef.current = null; }, 250); }
       }}
     >
-      <video 
-        ref={videoRef} 
-        src={optimizedMediaUrl} 
-        className="object-contain w-full h-full" 
-        loop playsInline muted={isMuted} preload="auto"
-        onWaiting={() => setIsBuffering(true)} 
-        onPlaying={() => setIsBuffering(false)}
-        onLoadedData={() => setIsBuffering(false)}
-        onError={() => setIsBuffering(false)}
-      />
+      {isVideo ? (
+          <video 
+            ref={videoRef} 
+            src={optimizedMediaUrl} 
+            className="object-contain w-full h-full" 
+            loop playsInline muted={isMuted} preload="auto"
+            onWaiting={() => setIsBuffering(true)} 
+            onPlaying={() => setIsBuffering(false)}
+            onLoadedData={() => setIsBuffering(false)}
+            onError={() => setIsBuffering(false)}
+          />
+      ) : (
+          <div className="relative w-full h-full flex items-center justify-center bg-black">
+              <img 
+                src={optimizedMediaUrl} 
+                alt={post.caption}
+                className="max-w-full max-h-full object-contain"
+                onLoad={() => setIsBuffering(false)}
+                onError={() => setIsBuffering(false)}
+              />
+          </div>
+      )}
       
       {post.overlayText && (
           <div className="absolute px-8 text-center pointer-events-none z-20" style={{ top: `${post.overlayPosition ?? 50}%`, left: `${post.overlayX ?? 50}%`, transform: 'translate(-50%, -50%)', color: post.overlayColor || '#ffffff', textShadow: '0 2px 20px rgba(0,0,0,0.9)' }}>
@@ -192,7 +225,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         </div>
       )}
 
-      {showMuteIndicator && (
+      {showMuteIndicator && isVideo && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
           <div className="bg-black/50 backdrop-blur-md p-5 rounded-full">
             {isMuted ? <VolumeX className="w-10 h-10 text-white" /> : <Volume2 className="w-10 h-10 text-white" />}
