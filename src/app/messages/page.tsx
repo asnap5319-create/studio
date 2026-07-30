@@ -12,7 +12,6 @@ import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { BottomNav } from "@/components/bottom-nav";
 import { useState, useEffect } from 'react';
-import { StoryBar } from "@/components/story-bar";
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
@@ -111,9 +110,6 @@ export default function InboxPage() {
       </header>
 
       <div className="flex-1 overflow-y-auto scrollbar-hide">
-        {/* Story Bar Added at the top of Direct Messages */}
-        <StoryBar />
-
         {isLoading ? (
           <div className="p-4 space-y-4">
              {[1,2,3,4,5].map(i => (

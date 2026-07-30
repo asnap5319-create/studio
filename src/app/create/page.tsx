@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useState, ChangeEvent, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useFirebase, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { addDoc, collection, serverTimestamp, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -32,11 +31,6 @@ function CreatePostContent() {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  
-  // अभिषेक भाई, 'mode' से पता चलेगा कि रील है या स्टोरी, पर तरीका एक ही रहेगा
-  const mode = searchParams.get('mode'); 
-  const isStoryMode = mode === 'story';
 
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
@@ -90,10 +84,7 @@ function CreatePostContent() {
         if (!response.ok) throw new Error(data.error?.message || 'Upload failed.');
 
         const mediaUrl = data.secure_url;
-        
-        // अभिषेक भाई, रील हो या स्टोरी, अब दोनों एक ही Broad Rule के अंदर आते हैं
-        const targetCollection = isStoryMode ? 'stories' : 'posts';
-        const collectionRef = collection(firestore, 'users', user.uid, targetCollection);
+        const collectionRef = collection(firestore, 'users', user.uid, 'posts');
 
         await addDoc(collectionRef, {
             userId: user.uid,
@@ -101,11 +92,9 @@ function CreatePostContent() {
             profileImageUrl: userProfile?.profileImageUrl || '',
             mediaUrl,
             mediaType: resourceType,
-            caption: isStoryMode ? '' : caption,
+            caption: caption,
             hashtags: caption.match(/#\w+/g) || [],
             createdAt: serverTimestamp(),
-            // स्टोरी 48 घंटे बाद अपने आप हट जाएगी (लॉजिक के हिसाब से)
-            expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), 
             likeCount: 0,
             commentCount: 0,
             viewCount: 0,
@@ -115,8 +104,8 @@ function CreatePostContent() {
             overlayX
         });
 
-        toast({ title: isStoryMode ? "Story Live! ✨" : "Reel Live! 🎬" });
-        router.push(isStoryMode ? '/messages' : '/');
+        toast({ title: "Reel Live! 🎬" });
+        router.push('/');
 
     } catch (e: any) {
         console.error("Upload Error:", e);
@@ -157,17 +146,15 @@ function CreatePostContent() {
                     <button onClick={() => setIsPreviewMuted(!isPreviewMuted)} className="p-3 rounded-full bg-black/30 backdrop-blur-md border border-white/10">{isPreviewMuted ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}</button>
                 </div>
 
-                {!isStoryMode && (
-                  <div className="absolute bottom-0 left-0 right-0 p-6 pb-32 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none">
-                      <div className="pointer-events-auto">
-                          <Input value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Write a reel caption..." className="bg-transparent border-none text-white placeholder:text-white/60 p-0 h-12 text-lg font-medium focus-visible:ring-0" disabled={isUploading} />
-                      </div>
-                  </div>
-                )}
+                <div className="absolute bottom-0 left-0 right-0 p-6 pb-32 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none">
+                    <div className="pointer-events-auto">
+                        <Input value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Write a reel caption..." className="bg-transparent border-none text-white placeholder:text-white/60 p-0 h-12 text-lg font-medium focus-visible:ring-0" disabled={isUploading} />
+                    </div>
+                </div>
 
                 <div className="absolute bottom-8 left-0 right-0 px-6 flex items-center justify-end z-50 pointer-events-auto">
                     <button onClick={handlePost} disabled={isUploading} className="bg-primary hover:bg-primary/90 text-white px-10 h-14 rounded-full flex items-center gap-3 shadow-2xl active:scale-95 transition-all font-black uppercase tracking-widest text-sm">
-                        {isUploading ? <Loader2 className="animate-spin h-5 w-5" /> : <span>{isStoryMode ? 'Share Story' : 'Share Reel'}</span>}
+                        {isUploading ? <Loader2 className="animate-spin h-5 w-5" /> : <span>Share Reel</span>}
                     </button>
                 </div>
             </div>
@@ -177,7 +164,7 @@ function CreatePostContent() {
                     <div className="w-24 h-24 bg-primary/20 rounded-[2rem] flex items-center justify-center mb-6 mx-auto border border-primary/30">
                         <UploadCloud className="w-12 h-12 text-primary animate-pulse" />
                     </div>
-                    <h2 className="text-xl font-black uppercase tracking-[0.2em] italic text-primary">{isStoryMode ? 'Add Story' : 'New Reel'}</h2>
+                    <h2 className="text-xl font-black uppercase tracking-[0.2em] italic text-primary">New Reel</h2>
                     <p className="text-[10px] text-muted-foreground mt-4 uppercase tracking-[0.4em] opacity-50">Upload from Gallery</p>
                 </div>
                 <input type="file" className="hidden" accept="video/*,image/*" onChange={handleFileChange} disabled={isUploading} />
