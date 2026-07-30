@@ -3,7 +3,7 @@
 import { useState, ChangeEvent, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFirebase, useUser, useDoc, useMemoFirebase } from '@/firebase';
-import { addDoc, collection, serverTimestamp, doc } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, doc, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -81,10 +81,16 @@ function CreatePostContent() {
         });
 
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error?.message || 'Upload failed.');
+        if (!response.ok) throw new Error(data.error?.message || 'Cloudinary upload failed.');
+
+        setUploadProgress(60);
 
         const mediaUrl = data.secure_url;
         const collectionRef = collection(firestore, 'users', user.uid, 'posts');
+
+        // Set expiry for 10 years to keep it on Home feed permanently
+        const expiryDate = new Date();
+        expiryDate.setFullYear(expiryDate.getFullYear() + 10);
 
         await addDoc(collectionRef, {
             userId: user.uid,
@@ -92,24 +98,28 @@ function CreatePostContent() {
             profileImageUrl: userProfile?.profileImageUrl || '',
             mediaUrl,
             mediaType: resourceType,
-            caption: caption,
+            caption: caption.trim() || 'No caption',
             hashtags: caption.match(/#\w+/g) || [],
             createdAt: serverTimestamp(),
+            expiresAt: Timestamp.fromDate(expiryDate),
             likeCount: 0,
             commentCount: 0,
             viewCount: 0,
+            adImpressions: 0,
+            estimatedEarnings: 0,
             overlayText: overlayText.trim() || null,
             overlayColor,
             overlayPosition: overlayY,
             overlayX
         });
 
-        toast({ title: "Reel Live! 🎬" });
+        setUploadProgress(100);
+        toast({ title: "Reel Live! 🎬", description: "Your reel is now visible to everyone." });
         router.push('/');
 
     } catch (e: any) {
         console.error("Upload Error:", e);
-        toast({ variant: 'destructive', title: 'Failed ❌', description: e.message });
+        toast({ variant: 'destructive', title: 'Upload Failed ❌', description: e.message || "Please check your internet connection." });
     } finally {
         setIsUploading(false);
     }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
-import { collectionGroup, query, orderBy, limit, where, Timestamp } from 'firebase/firestore';
+import { collectionGroup, query, orderBy, limit } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Plus, BadgeCheck } from 'lucide-react';
 import Link from 'next/link';
@@ -9,6 +9,7 @@ import type { Post } from '@/models/post';
 import type { UserProfile } from '@/models/user';
 import { useDoc } from '@/firebase';
 import { doc } from 'firebase/firestore';
+import { useMemo } from 'react';
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
@@ -54,37 +55,40 @@ export function StoryBar() {
     const { firestore } = useFirebase();
     const { user } = useUser();
 
-    // Calculate the timestamp for 24 hours ago
-    const twentyFourHoursAgo = useMemoFirebase(() => {
-        const date = new Date();
-        date.setHours(date.getHours() - 24);
-        return Timestamp.fromDate(date);
-    }, []);
-
-    // Fetch posts from the last 24 hours ONLY for the story bar
+    // Fetch recent posts without complex where filter to avoid "Missing Index" errors
     const recentPostsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
         return query(
             collectionGroup(firestore, 'posts'), 
-            where('createdAt', '>=', twentyFourHoursAgo),
             orderBy('createdAt', 'desc'), 
-            limit(40)
+            limit(50)
         );
-    }, [firestore, twentyFourHoursAgo]);
+    }, [firestore]);
 
     const { data: posts, isLoading } = useCollection<Post>(recentPostsQuery);
 
-    // Filter posts to show one per unique user
-    const uniqueUserPosts = posts?.reduce((acc: Post[], current) => {
-        const x = acc.find(item => item.userId === current.userId);
-        if (!x) return acc.concat([current]);
-        return acc;
-    }, []) || [];
+    // Filter for 24 hours client-side to be safe and efficient
+    const uniqueUserPosts = useMemo(() => {
+        if (!posts) return [];
+        const now = Date.now();
+        const twentyFourHours = 24 * 60 * 60 * 1000;
+        
+        return posts.reduce((acc: Post[], current) => {
+            const postTime = current.createdAt?.toMillis() || 0;
+            // Only include posts from last 24 hours
+            if (now - postTime < twentyFourHours) {
+                const alreadyAdded = acc.find(item => item.userId === current.userId);
+                if (!alreadyAdded) {
+                    return acc.concat([current]);
+                }
+            }
+            return acc;
+        }, []);
+    }, [posts]);
 
     return (
         <div className="w-full bg-background/50 border-b border-border/40 py-4 overflow-hidden">
             <div className="flex items-center gap-4 px-4 overflow-x-auto scrollbar-hide">
-                {/* Add Reel button for current user if they don't have a recent reel */}
                 {user && !uniqueUserPosts.find(p => p.userId === user.uid) && (
                     <Link href="/create" className="flex flex-col items-center gap-1.5 shrink-0">
                         <div className="relative h-[68px] w-[68px] rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center bg-secondary/30">
@@ -94,7 +98,6 @@ export function StoryBar() {
                     </Link>
                 )}
 
-                {/* Show User's own recent reel first if exists */}
                 {user && uniqueUserPosts.find(p => p.userId === user.uid) && (
                     <StoryItem 
                         userId={user.uid} 
@@ -103,7 +106,6 @@ export function StoryBar() {
                     />
                 )}
 
-                {/* Other users' recent reels */}
                 {uniqueUserPosts.filter(p => p.userId !== user?.uid).map((post) => (
                     <StoryItem 
                         key={post.id} 
