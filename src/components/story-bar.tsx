@@ -1,16 +1,13 @@
-
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, orderBy, limit, doc, setDoc, serverTimestamp, addDoc, where, Timestamp, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, doc, where, Timestamp, getDocs } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Plus, Loader2, X, ChevronLeft, ChevronRight, Type, Palette, SendHorizontal, Check, Play } from 'lucide-react';
+import { Plus, Loader2, X, Play } from 'lucide-react';
 import type { UserProfile } from '@/models/user';
-import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Slider } from '@/components/ui/slider';
-import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 interface StoryItem {
@@ -21,7 +18,7 @@ interface StoryItem {
   createdAt: any;
   overlayText?: string;
   overlayColor?: string;
-  overlayY?: number;
+  overlayPosition?: number;
   overlayX?: number;
 }
 
@@ -33,39 +30,15 @@ interface ActiveUserStory {
   updatedAt: any;
 }
 
-const COLORS = [
-    { name: 'White', value: '#ffffff' },
-    { name: 'Pink', value: '#ff3366' },
-    { name: 'Yellow', value: '#fbbf24' },
-    { name: 'Cyan', value: '#22d3ee' },
-    { name: 'Green', value: '#4ade80' },
-    { name: 'Orange', value: '#f97316' }
-];
-
 export function StoryBar() {
   const { user } = useUser();
   const { firestore } = useFirebase();
-  const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
   
-  const [isUploading, setIsUploading] = useState(false);
   const [selectedStoryUser, setSelectedStoryUser] = useState<ActiveUserStory | null>(null);
   const [viewingItems, setViewingItems] = useState<StoryItem[]>([]);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
-
-  // Editor State
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [editorMedia, setEditorMedia] = useState<File | null>(null);
-  const [editorPreview, setEditorPreview] = useState<string | null>(null);
-  const [editorMediaType, setEditorMediaType] = useState<'image' | 'video' | null>(null);
-  
-  // Editor Text State
-  const [overlayText, setOverlayText] = useState('');
-  const [overlayColor, setOverlayColor] = useState('#ffffff');
-  const [overlayY, setOverlayY] = useState(50);
-  const [overlayX, setOverlayX] = useState(50);
-  const [showTextTools, setShowTextTools] = useState(false);
 
   // Fetch active stories (updated within last 24h)
   const storiesQuery = useMemoFirebase(() => {
@@ -83,78 +56,9 @@ export function StoryBar() {
   const { data: currentUserProfile } = useDoc<UserProfile>(useMemoFirebase(() => 
     (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]));
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setEditorMedia(file);
-    setEditorPreview(URL.createObjectURL(file));
-    setEditorMediaType(file.type.startsWith('video/') ? 'video' : 'image');
-    
-    setOverlayText('');
-    setOverlayColor('#ffffff');
-    setOverlayY(50);
-    setOverlayX(50);
-    setShowTextTools(false);
-    
-    setIsEditorOpen(true);
-  };
-
-  const handleUploadStory = async () => {
-    if (!editorMedia || !user || !firestore) return;
-
-    setIsUploading(true);
-    const cloudName = "dipz5jsls";
-    const uploadPreset = "video_upload";
-    const resourceType = editorMediaType === 'video' ? 'video' : 'image';
-
-    try {
-        const formData = new FormData();
-        formData.append('file', editorMedia);
-        formData.append('upload_preset', uploadPreset);
-
-        // Same robust upload logic as Reels
-        const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`, {
-            method: 'POST',
-            body: formData
-        });
-
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error?.message || 'Cloudinary failed');
-
-        const mediaUrl = data.secure_url;
-        const storyRef = doc(firestore, 'active_stories', user.uid);
-        
-        // Use user.uid strictly for permissions
-        await setDoc(storyRef, {
-            id: user.uid,
-            userId: user.uid,
-            username: currentUserProfile?.username || 'user',
-            profileImageUrl: currentUserProfile?.profileImageUrl || `https://picsum.photos/seed/${user.uid}/400/400`,
-            updatedAt: serverTimestamp(),
-        }, { merge: true });
-
-        await addDoc(collection(firestore, 'active_stories', user.uid, 'items'), {
-            userId: user.uid,
-            mediaUrl,
-            mediaType: resourceType,
-            createdAt: serverTimestamp(),
-            overlayText: overlayText.trim() || null,
-            overlayColor,
-            overlayY,
-            overlayX
-        });
-
-        toast({ title: "Story Live! ✨" });
-        setIsEditorOpen(false);
-        setEditorMedia(null);
-    } catch (err: any) {
-        console.error("Story Save Error:", err);
-        toast({ variant: 'destructive', title: "Error", description: err.message || "Failed to save story." });
-    } finally {
-        setIsUploading(false);
-        if(fileInputRef.current) fileInputRef.current.value = '';
-    }
+  const handleAddStory = () => {
+    // Redirect to unified uploader with mode=story
+    router.push('/create?mode=story');
   };
 
   const handleViewStory = async (storyUser: ActiveUserStory) => {
@@ -184,9 +88,9 @@ export function StoryBar() {
   return (
     <div className="w-full bg-background border-b border-border/50 py-4">
       <div className="flex items-center gap-4 px-4 overflow-x-auto scrollbar-hide">
-        {/* Your Story Button */}
+        {/* Your Story Button - Now links to unified uploader */}
         <div className="flex flex-col items-center gap-1 shrink-0">
-          <div className="relative" onClick={() => fileInputRef.current?.click()}>
+          <div className="relative" onClick={handleAddStory}>
             <button className="w-16 h-16 rounded-full p-[2px] bg-secondary border border-border overflow-hidden active:scale-95 transition-transform">
               <Avatar className="w-full h-full border-2 border-background">
                 <AvatarImage src={currentUserProfile?.profileImageUrl} className="object-cover" />
@@ -198,7 +102,6 @@ export function StoryBar() {
             </div>
           </div>
           <span className="text-[10px] font-medium text-muted-foreground">Your story</span>
-          <input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept="image/*,video/*" />
         </div>
 
         {/* Other Users' Stories */}
@@ -217,79 +120,7 @@ export function StoryBar() {
         ))}
       </div>
 
-      {/* Story Editor Dialog */}
-      <Dialog open={isEditorOpen} onOpenChange={(open) => !isUploading && setIsEditorOpen(open)}>
-        <DialogContent className="p-0 border-0 bg-black w-full max-w-lg h-screen flex flex-col items-center justify-center overflow-hidden z-[1000]">
-            <DialogHeader className="sr-only"><DialogTitle>Story Editor</DialogTitle></DialogHeader>
-            <div className="relative w-full h-full flex flex-col bg-black">
-                <div className="flex-1 relative bg-black flex items-center justify-center overflow-hidden">
-                    {editorMediaType === 'video' ? (
-                        <video src={editorPreview!} className="w-full h-full object-contain" autoPlay loop muted playsInline />
-                    ) : (
-                        <img src={editorPreview!} className="w-full h-full object-contain" alt="Editor Preview" />
-                    )}
-
-                    {overlayText && (
-                        <div 
-                            className="absolute px-4 text-center pointer-events-none z-[60]"
-                            style={{ top: `${overlayY}%`, left: `${overlayX}%`, transform: 'translate(-50%, -50%)', color: overlayColor, textShadow: '0 2px 12px rgba(0,0,0,0.8)' }}
-                        >
-                            <p className="text-3xl md:text-4xl font-black italic uppercase tracking-tighter leading-tight drop-shadow-2xl">{overlayText}</p>
-                        </div>
-                    )}
-
-                    <div className="absolute top-12 right-6 flex flex-col gap-5 z-[70]">
-                        <button onClick={() => setShowTextTools(true)} className="p-4 rounded-full bg-white/20 backdrop-blur-xl border border-white/20 text-white shadow-2xl transition-all active:scale-90">
-                            <Type className="h-6 w-6" />
-                        </button>
-                    </div>
-
-                    <button onClick={() => setIsEditorOpen(false)} className="absolute top-12 left-6 p-4 bg-white/10 backdrop-blur-xl rounded-full border border-white/20 text-white z-[70] shadow-2xl">
-                        <X size={24} />
-                    </button>
-                </div>
-
-                <div className="p-6 pb-12 flex items-center justify-between z-[80] bg-gradient-to-t from-black to-transparent">
-                    <div className="bg-white/10 backdrop-blur-2xl px-5 py-3 rounded-full border border-white/10 flex items-center gap-3">
-                        <Avatar className="h-8 w-8 border border-primary"><AvatarImage src={currentUserProfile?.profileImageUrl} /></Avatar>
-                        <span className="text-xs font-black uppercase text-white tracking-widest">Your Story</span>
-                    </div>
-
-                    <button onClick={handleUploadStory} disabled={isUploading} className="h-14 px-10 bg-primary text-white font-black uppercase text-xs rounded-full flex items-center gap-3 shadow-[0_10px_30px_rgba(255,51,102,0.4)] active:scale-95 transition-all">
-                        {isUploading ? <Loader2 className="animate-spin h-5 w-5" /> : <>Post <SendHorizontal size={18} /></>}
-                    </button>
-                </div>
-
-                {showTextTools && (
-                    <div className="absolute inset-0 z-[150] bg-black/90 backdrop-blur-3xl flex flex-col p-8 animate-in fade-in zoom-in-95 duration-300">
-                        <div className="flex items-center justify-between mb-12">
-                            <h3 className="text-primary font-black uppercase text-sm tracking-[0.2em] italic flex items-center gap-2"><Type size={16} /> Write</h3>
-                            <button onClick={() => setShowTextTools(false)} className="bg-white text-black px-6 py-2 rounded-full font-black uppercase text-[10px]">Done</button>
-                        </div>
-                        <div className="space-y-10 flex-1 flex flex-col justify-center">
-                            <Input placeholder="Type here..." value={overlayText} onChange={(e) => setOverlayText(e.target.value)} className="h-20 bg-white/5 border-white/10 rounded-[2rem] text-center text-2xl font-black text-white focus-visible:ring-primary" autoFocus maxLength={100} />
-                            {overlayText && (
-                                <div className="space-y-12">
-                                    <div className="space-y-4">
-                                        <Slider value={[overlayY]} onValueChange={(v) => setOverlayY(v[0])} max={100} />
-                                    </div>
-                                    <div className="space-y-4">
-                                        <div className="flex justify-between bg-white/5 p-5 rounded-[2.5rem] border border-white/5">
-                                            {COLORS.map((c) => (
-                                                <button key={c.name} onClick={() => setOverlayColor(c.value)} className={cn("w-10 h-10 rounded-full border-2 transition-all transform active:scale-75", overlayColor === c.value ? "border-white scale-125" : "border-transparent opacity-50")} style={{ backgroundColor: c.value }} />
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-            </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Story Viewer Dialog (Mimics Reels Player) */}
+      {/* Story Viewer Dialog (Mimics Reels Player as requested) */}
       <Dialog open={isViewerOpen} onOpenChange={setIsViewerOpen}>
         <DialogContent className="p-0 border-0 bg-black w-full max-w-lg h-screen flex items-center justify-center overflow-hidden z-[2000]">
             <DialogHeader className="sr-only"><DialogTitle>Story Viewer</DialogTitle></DialogHeader>
@@ -320,19 +151,18 @@ export function StoryBar() {
                             <img src={viewingItems[0].mediaUrl} className="w-full h-full object-contain" alt="story" />
                         )}
 
-                        {/* Loading Spinner for 4G */}
                         {isBuffering && (
                             <div className="absolute inset-0 flex items-center justify-center z-[110]">
                                 <Loader2 className="w-10 h-10 text-primary animate-spin opacity-50" />
                             </div>
                         )}
 
-                        {/* Reels Style Overlay Text */}
+                        {/* Reels Style Overlay Text from Post Database */}
                         {viewingItems[0].overlayText && (
                             <div 
                               className="absolute px-6 text-center pointer-events-none z-20 w-full" 
                               style={{ 
-                                top: `${viewingItems[0].overlayY ?? 50}%`, 
+                                top: `${viewingItems[0].overlayPosition ?? 50}%`, 
                                 left: `${viewingItems[0].overlayX ?? 50}%`, 
                                 transform: 'translate(-50%, -50%)', 
                                 color: viewingItems[0].overlayColor || '#ffffff', 
