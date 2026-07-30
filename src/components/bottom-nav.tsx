@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Home, PlusSquare, Search, CircleUser, MessageCircle } from "lucide-react";
@@ -12,9 +11,9 @@ import type { UserProfile } from "@/models/user";
 
 const navItems = [
   { href: "/", label: "Home", icon: Home },
+  { href: "/messages", label: "Direct", icon: MessageCircle },
   { href: "/discover", label: "Search", icon: Search },
   { href: "/create", label: "Upload", icon: PlusSquare },
-  { href: "/messages", label: "Direct", icon: MessageCircle },
   { href: "/profile", label: "Profile", icon: CircleUser },
 ];
 
