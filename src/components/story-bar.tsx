@@ -1,7 +1,7 @@
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
-import { collectionGroup, query, orderBy, limit, where, doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
+import { collectionGroup, query, orderBy, limit, where, doc, setDoc, serverTimestamp, collection, updateDoc, increment } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Plus, BadgeCheck, X, Play, Eye, ChevronLeft, ChevronRight, Heart, Users } from 'lucide-react';
 import Link from 'next/link';
@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
+const REVENUE_PER_VIEW = 0.008;
 
 // --- Activity List Sub-component ---
 function ActivityList({ postId, postOwnerId, type }: { postId: string, postOwnerId: string, type: 'likes' | 'views' }) {
@@ -90,6 +91,7 @@ function StoryViewer({
     const { user } = useUser();
     
     const isMyStory = user?.uid === post.userId;
+    const viewLoggedRef = useRef<string | null>(null);
 
     const userRef = useMemoFirebase(() => firestore ? doc(firestore, 'users', post.userId) : null, [firestore, post.userId]);
     const { data: author } = useDoc<UserProfile>(userRef);
@@ -111,14 +113,26 @@ function StoryViewer({
         return () => clearInterval(interval);
     }, [currentIndex, showActivity]);
 
-    // Record individual view
+    // Record individual view and increment counter
     useEffect(() => {
-        if (firestore && user && user.uid !== post.userId) {
+        if (firestore && user && user.uid !== post.userId && viewLoggedRef.current !== post.id) {
+            viewLoggedRef.current = post.id;
+            
+            const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
             const viewRef = doc(firestore, 'users', post.userId, 'posts', post.id, 'views', user.uid);
+            
+            // 1. Record individual person in subcollection
             setDoc(viewRef, {
                 userId: user.uid,
                 createdAt: serverTimestamp()
             }, { merge: true }).catch(() => {});
+
+            // 2. Increment global counters correctly
+            updateDoc(postRef, {
+                viewCount: increment(1),
+                adImpressions: increment(1),
+                estimatedEarnings: increment(REVENUE_PER_VIEW)
+            }).catch(() => {});
         }
     }, [currentIndex, firestore, user, post]);
 

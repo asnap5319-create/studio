@@ -74,11 +74,9 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
     return post.mediaUrl;
   }, [post.mediaUrl]);
 
-  // Determine if it's a video or image
   const isVideo = useMemo(() => {
     if (post.mediaType === 'video') return true;
     if (post.mediaType === 'image') return false;
-    // Fallback if mediaType is missing
     return post.mediaUrl.includes('/video/upload/') || post.mediaUrl.match(/\.(mp4|mov|webm|ogg)$/i) !== null;
   }, [post.mediaType, post.mediaUrl]);
 
@@ -90,10 +88,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   const likeRef = useMemoFirebase(() => (firestore && user?.uid) ? doc(firestore, 'users', post.userId, 'posts', post.id, 'likes', user.uid) : null, [firestore, user, post]);
   const { data: likeData } = useDoc(likeRef);
   const isLiked = !!likeData;
-
-  const followCheckRef = useMemoFirebase(() => (firestore && user?.uid) ? doc(firestore, 'user_followers', post.userId, 'followers', user.uid) : null, [firestore, user, post]);
-  const { data: followData } = useDoc(followCheckRef);
-  const isFollowing = !!followData;
 
   useEffect(() => { setLocalLikeCount(post.likeCount || 0); }, [post.likeCount]);
 
@@ -144,36 +138,30 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   }, []);
 
   useEffect(() => {
-    if (!isVideo) {
-        if (isInView && firestore && !viewCounted.current) {
-            viewCounted.current = true;
-            updateDoc(doc(firestore, 'users', post.userId, 'posts', post.id), { 
-                viewCount: increment(1),
-                adImpressions: increment(1),
-                estimatedEarnings: Number(((post.viewCount || 0 + 1) * REVENUE_PER_VIEW).toFixed(4))
-            }).catch(() => {});
-        }
-        return;
-    }
+    if (!isInView || !firestore || viewCounted.current) return;
 
-    const video = videoRef.current;
-    if (!video) return;
-    if (isInView) {
-      video.muted = globalMuted;
-      setIsMuted(globalMuted);
-      video.play().catch(() => { video.muted = true; video.play().catch(() => {}); });
-      if (firestore && !viewCounted.current) {
+    const recordView = async () => {
         viewCounted.current = true;
         const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
-        const newViewCount = (post.viewCount || 0) + 1;
-        updateDoc(postRef, { 
-          viewCount: increment(1),
-          adImpressions: increment(1),
-          estimatedEarnings: Number((newViewCount * REVENUE_PER_VIEW).toFixed(4))
-        }).catch(() => {});
-      }
+        try {
+            await updateDoc(postRef, { 
+                viewCount: increment(1),
+                adImpressions: increment(1),
+                estimatedEarnings: increment(REVENUE_PER_VIEW)
+            });
+        } catch (e) {
+            console.error("View increment failed:", e);
+        }
+    };
+
+    if (isVideo) {
+        const video = videoRef.current;
+        if (!video) return;
+        video.muted = globalMuted;
+        setIsMuted(globalMuted);
+        video.play().then(() => recordView()).catch(() => { video.muted = true; video.play().catch(() => {}); });
     } else {
-      video.pause();
+        recordView();
     }
   }, [isInView, firestore, post, isVideo]);
 
