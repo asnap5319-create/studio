@@ -1,7 +1,7 @@
 
 "use client";
 
-import { Home, PlusSquare, Search, CircleUser } from "lucide-react";
+import { Home, PlusSquare, Search, CircleUser, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ const navItems = [
   { href: "/", label: "Home", icon: Home },
   { href: "/discover", label: "Search", icon: Search },
   { href: "/create", label: "Upload", icon: PlusSquare },
+  { href: "/messages", label: "Direct", icon: MessageCircle },
   { href: "/profile", label: "Profile", icon: CircleUser },
 ];
 
@@ -32,7 +33,7 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 z-50 w-full border-t bg-background">
-      <div className="grid h-16 grid-cols-4 max-w-lg mx-auto">
+      <div className="grid h-16 grid-cols-5 max-w-lg mx-auto">
         {navItems.map((item) => {
           // Home is active only on exact root path, others use startWith
           const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
@@ -42,7 +43,7 @@ export function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className="inline-flex flex-col items-center justify-center px-5 hover:bg-secondary group"
+              className="inline-flex flex-col items-center justify-center px-2 hover:bg-secondary group"
             >
               {isProfile && user && userProfile?.profileImageUrl ? (
                 /* Display user's profile picture if logged in, same as Instagram */
