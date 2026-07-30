@@ -9,9 +9,11 @@ export interface Message {
   sharedPostId?: string;
   sharedPostMediaUrl?: string;
   sharedPostOwnerId?: string;
-  sharedProfileId?: string; // New: To share a user profile
+  sharedProfileId?: string;
   sharedProfileName?: string;
   sharedProfileImage?: string;
+  mediaUrl?: string; // Generic media for direct chat sends
+  mediaType?: 'image' | 'video';
   read?: boolean;
   // Instagram Style Features
   replyToId?: string;

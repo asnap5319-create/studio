@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, ChangeEvent } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, serverTimestamp, doc, addDoc, setDoc, writeBatch, deleteDoc, updateDoc, getDocs, arrayUnion, arrayRemove } from 'firebase/firestore';
@@ -11,13 +10,14 @@ import type { UserProfile } from '@/models/user';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Send, BadgeCheck, Loader2, Play, Trash2, Reply, X, User, Smile, MoreVertical, Ban, Eraser, Unlock } from 'lucide-react';
+import { ArrowLeft, Send, BadgeCheck, Loader2, Play, Trash2, Reply, X, User, Smile, MoreVertical, Ban, Eraser, Unlock, Image as ImageIcon, Camera } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 const REACTIONS = ["❤️", "😂", "😮", "😢", "😡", "👍"];
@@ -32,7 +32,9 @@ export default function ChatPage() {
   const [hasMounted, setHasMounted] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [messageActionMenu, setMessageActionMenu] = useState<Message | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setHasMounted(true);
@@ -125,6 +127,61 @@ export default function ChatPage() {
     }
   };
 
+  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user || !firestore || !otherUserId || isBlocked || amIBlocked) return;
+
+    if (!file.type.startsWith('image/')) {
+        toast({ variant: 'destructive', title: 'Invalid File', description: 'Please select an image.' });
+        return;
+    }
+
+    setIsUploading(true);
+    const cloudName = "dipz5jsls";
+    const uploadPreset = "video_upload";
+
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', uploadPreset);
+
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error?.message || 'Upload failed');
+
+        const mediaUrl = data.secure_url;
+        const participants = [user.uid, otherUserId].sort();
+        const chatRef = doc(firestore, 'chats', chatId as string);
+        
+        await setDoc(chatRef, {
+            id: chatId,
+            participants,
+            lastMessage: 'Shared a photo 📷',
+            lastMessageAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        }, { merge: true });
+
+        await addDoc(collection(firestore, 'chats', chatId as string, 'messages'), {
+            senderId: user.uid,
+            recipientId: otherUserId,
+            text: '',
+            mediaUrl,
+            mediaType: 'image',
+            createdAt: serverTimestamp(),
+            read: false,
+        });
+
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Photo bhejte waqt dikkat hui.' });
+    } finally {
+        setIsUploading(false);
+    }
+  };
+
   const handleUnsend = async (msg: Message) => {
     if (!firestore || !chatId || msg.senderId !== user?.uid) return;
     try {
@@ -189,13 +246,13 @@ export default function ChatPage() {
     }
   };
 
-  if (isUserLoading || !hasMounted) return <div className="flex h-screen items-center justify-center bg-black"><Loader2 className="animate-spin text-primary" /></div>;
+  if (isUserLoading || !hasMounted) return <div className="flex h-screen items-center justify-center bg-background"><Loader2 className="animate-spin text-primary" /></div>;
   if (!user || !isUserParticipant) return null;
 
   const isOtherAdmin = otherUser?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   return (
-    <div className="flex h-screen flex-col text-white bg-background max-w-lg mx-auto border-x border-border">
+    <div className="flex h-screen flex-col text-foreground bg-background max-w-lg mx-auto border-x border-border">
       <header className="flex items-center justify-between p-4 border-b border-border sticky top-0 bg-background/80 backdrop-blur-md z-10">
         <div className="flex items-center gap-3">
           <button onClick={() => router.back()} className="p-2 -ml-2"><ArrowLeft /></button>
@@ -224,12 +281,12 @@ export default function ChatPage() {
               <MoreVertical size={20} />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-[#1a1a1a] border-white/10 rounded-2xl p-2 min-w-[180px] shadow-2xl z-[50]">
-            <DropdownMenuItem onClick={handleClearChat} className="p-3 rounded-xl focus:bg-white/5 cursor-pointer font-bold text-sm gap-3">
+          <DropdownMenuContent align="end" className="bg-popover border-border rounded-2xl p-2 min-w-[180px] shadow-2xl z-[50]">
+            <DropdownMenuItem onClick={handleClearChat} className="p-3 rounded-xl focus:bg-accent cursor-pointer font-bold text-sm gap-3">
               <Eraser size={18} className="text-muted-foreground" /> Clear Chat
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleToggleBlock} className={cn(
-              "p-3 rounded-xl focus:bg-white/5 cursor-pointer font-bold text-sm gap-3",
+              "p-3 rounded-xl focus:bg-accent cursor-pointer font-bold text-sm gap-3",
               isBlocked ? "text-green-500" : "text-destructive"
             )}>
               {isBlocked ? <Unlock size={18} /> : <Ban size={18} />}
@@ -261,8 +318,8 @@ export default function ChatPage() {
 
             {/* Bubble */}
             <div className={cn(
-              "rounded-[20px] overflow-hidden shadow-lg transition-all active:scale-95", 
-              msg.senderId === user.uid ? "bg-primary text-white rounded-tr-none" : "bg-secondary text-white rounded-tl-none"
+              "rounded-[20px] overflow-hidden shadow-sm transition-all active:scale-95 border border-border/10", 
+              msg.senderId === user.uid ? "bg-primary text-white rounded-tr-none" : "bg-secondary text-foreground rounded-tl-none"
             )}>
               {msg.sharedPostMediaUrl && (
                 <div 
@@ -275,9 +332,14 @@ export default function ChatPage() {
                   </div>
                 </div>
               )}
+              {msg.mediaUrl && msg.mediaType === 'image' && (
+                <div className="w-56 aspect-square relative bg-secondary">
+                    <Image src={msg.mediaUrl} alt="Shared photo" fill className="object-cover" />
+                </div>
+              )}
               {msg.sharedProfileId && (
                   <div 
-                    className="p-4 bg-black/20 w-48 cursor-pointer hover:bg-black/30 transition-colors"
+                    className="p-4 bg-black/5 w-48 cursor-pointer hover:bg-black/10 transition-colors"
                     onClick={() => router.push(`/profile/${msg.sharedProfileId}`)}
                   >
                       <div className="flex flex-col items-center gap-2 text-center">
@@ -286,8 +348,8 @@ export default function ChatPage() {
                               <AvatarFallback><User /></AvatarFallback>
                           </Avatar>
                           <div className="space-y-1">
-                              <p className="font-black text-xs italic uppercase tracking-tighter">@{msg.sharedProfileName}</p>
-                              <p className="text-[8px] uppercase font-bold text-muted-foreground">View Profile</p>
+                              <p className={cn("font-black text-xs italic uppercase tracking-tighter", msg.senderId === user.uid ? "text-white" : "text-foreground")}>@{msg.sharedProfileName}</p>
+                              <p className="text-[8px] uppercase font-bold opacity-60">View Profile</p>
                           </div>
                       </div>
                   </div>
@@ -299,7 +361,7 @@ export default function ChatPage() {
             {msg.reactions && Object.keys(msg.reactions).length > 0 && (
               <div className="flex -mt-2 mb-1 gap-1">
                 {Object.entries(msg.reactions).map(([uid, emoji]) => (
-                  <div key={uid} className="bg-secondary/80 backdrop-blur-md rounded-full px-1.5 py-0.5 text-[10px] border border-white/10 shadow-sm">
+                  <div key={uid} className="bg-secondary/80 backdrop-blur-md rounded-full px-1.5 py-0.5 text-[10px] border border-border shadow-sm">
                     {emoji}
                   </div>
                 ))}
@@ -312,11 +374,19 @@ export default function ChatPage() {
             </span>
           </div>
         ))}
+        {isUploading && (
+            <div className="flex flex-col items-end max-w-[85%] ml-auto animate-pulse">
+                <div className="w-56 aspect-square bg-secondary rounded-2xl flex items-center justify-center">
+                    <Loader2 className="animate-spin text-primary" />
+                </div>
+                <span className="text-[8px] text-muted-foreground mt-1 px-1 uppercase font-bold">Sending...</span>
+            </div>
+        )}
       </div>
 
       {/* Block Status Banner */}
       {(isBlocked || amIBlocked) && (
-        <div className="p-4 bg-secondary/20 text-center border-t border-white/5">
+        <div className="p-4 bg-secondary/20 text-center border-t border-border">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
             {isBlocked ? "You have blocked this user" : "You cannot message this user"}
           </p>
@@ -344,16 +414,36 @@ export default function ChatPage() {
 
       {!isBlocked && !amIBlocked && (
         <form onSubmit={handleSendMessage} className="p-4 border-t border-border flex gap-2 items-center bg-background">
+          <input 
+            type="file" 
+            className="hidden" 
+            ref={fileInputRef} 
+            onChange={handleImageUpload} 
+            accept="image/*"
+            disabled={isUploading}
+          />
+          <Button 
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => fileInputRef.current?.click()}
+            className="rounded-full shrink-0 text-foreground hover:bg-secondary"
+            disabled={isUploading}
+          >
+            <Camera size={24} />
+          </Button>
+          
           <Input 
             value={inputText} 
             onChange={(e) => setInputText(e.target.value)} 
             placeholder="Message..." 
             className="flex-1 bg-secondary border-none rounded-full h-12 px-6 focus-visible:ring-primary" 
           />
+          
           <Button 
             type="submit" 
-            disabled={!inputText.trim()}
-            className="bg-primary text-white h-12 w-12 rounded-full shadow-lg shadow-primary/20 hover:scale-105 active:scale-90 transition-all"
+            disabled={!inputText.trim() || isUploading}
+            className="bg-primary text-white h-12 w-12 rounded-full shadow-lg shadow-primary/20 hover:scale-105 active:scale-90 transition-all shrink-0"
           >
             <Send size={18} />
           </Button>
@@ -362,11 +452,11 @@ export default function ChatPage() {
 
       {/* Action Menu Dialog */}
       <Dialog open={!!messageActionMenu} onOpenChange={(open) => !open && setMessageActionMenu(null)}>
-        <DialogContent className="max-w-[300px] bg-[#1a1a1a] rounded-[30px] border-white/10 p-0 overflow-hidden shadow-2xl">
+        <DialogContent className="max-w-[300px] bg-popover rounded-[30px] border-border p-0 overflow-hidden shadow-2xl">
           <DialogHeader className="sr-only"><DialogTitle>Message Actions</DialogTitle></DialogHeader>
           
           {/* Reaction Bar */}
-          <div className="p-4 bg-[#262626] border-b border-white/5 flex justify-between items-center gap-2">
+          <div className="p-4 bg-secondary/20 border-b border-border flex justify-between items-center gap-2">
             {REACTIONS.map(emoji => (
               <button 
                 key={emoji} 
@@ -382,7 +472,7 @@ export default function ChatPage() {
           <div className="flex flex-col">
             <button 
                 onClick={() => { setReplyingTo(messageActionMenu); setMessageActionMenu(null); }}
-                className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors border-b border-white/5"
+                className="flex items-center justify-between p-4 hover:bg-accent transition-colors border-b border-border"
             >
                 <span className="font-bold text-sm">Reply</span>
                 <Reply size={18} className="text-muted-foreground" />
@@ -391,7 +481,7 @@ export default function ChatPage() {
             {messageActionMenu?.senderId === user.uid && (
                 <button 
                     onClick={() => messageActionMenu && handleUnsend(messageActionMenu)}
-                    className="flex items-center justify-between p-4 hover:bg-red-500/10 transition-colors text-red-500"
+                    className="flex items-center justify-between p-4 hover:bg-destructive/10 transition-colors text-destructive"
                 >
                     <span className="font-bold text-sm">Unsend</span>
                     <Trash2 size={18} />
@@ -400,7 +490,7 @@ export default function ChatPage() {
 
             <button 
                 onClick={() => setMessageActionMenu(null)}
-                className="p-4 text-center text-xs font-bold text-muted-foreground hover:bg-white/5"
+                className="p-4 text-center text-xs font-bold text-muted-foreground hover:bg-accent"
             >
                 Cancel
             </button>
