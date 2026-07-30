@@ -17,7 +17,6 @@ import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from '@/hooks/use-toast';
-import Image from 'next/image';
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 const REACTIONS = ["❤️", "😂", "😮", "😢", "😡", "👍"];
@@ -176,6 +175,7 @@ export default function ChatPage() {
         });
 
     } catch (error: any) {
+        console.error("Image upload error:", error);
         toast({ variant: 'destructive', title: 'Error', description: 'Photo bhejte waqt dikkat hui.' });
     } finally {
         setIsUploading(false);
@@ -332,11 +332,19 @@ export default function ChatPage() {
                   </div>
                 </div>
               )}
+              
+              {/* Photo Message Fix */}
               {msg.mediaUrl && msg.mediaType === 'image' && (
-                <div className="w-56 aspect-square relative bg-secondary">
-                    <Image src={msg.mediaUrl} alt="Shared photo" fill className="object-cover" />
+                <div className="w-64 max-w-full overflow-hidden">
+                    <img 
+                      src={msg.mediaUrl} 
+                      alt="Shared photo" 
+                      className="w-full h-auto object-contain block" 
+                      loading="lazy"
+                    />
                 </div>
               )}
+
               {msg.sharedProfileId && (
                   <div 
                     className="p-4 bg-black/5 w-48 cursor-pointer hover:bg-black/10 transition-colors"
@@ -376,7 +384,7 @@ export default function ChatPage() {
         ))}
         {isUploading && (
             <div className="flex flex-col items-end max-w-[85%] ml-auto animate-pulse">
-                <div className="w-56 aspect-square bg-secondary rounded-2xl flex items-center justify-center">
+                <div className="w-56 aspect-square bg-secondary rounded-2xl flex items-center justify-center border border-border/10">
                     <Loader2 className="animate-spin text-primary" />
                 </div>
                 <span className="text-[8px] text-muted-foreground mt-1 px-1 uppercase font-bold">Sending...</span>
