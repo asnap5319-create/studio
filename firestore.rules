@@ -20,13 +20,13 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // Stories Rules
+    // Stories Rules - Updated to allow listing and reading
     match /active_stories/{userId} {
-      allow read: if true;
+      allow read, get, list: if true;
       allow write: if isAuthenticated() && request.auth.uid == userId;
       
       match /items/{itemId} {
-        allow read: if true;
+        allow read, get, list: if true;
         allow write: if isAuthenticated() && request.auth.uid == userId;
       }
     }
@@ -51,14 +51,14 @@ service cloud.firestore {
       allow update: if isAdmin();
     }
 
-    // Posts are Public (World-readable for Guest Mode)
+    // Posts are Public
     match /{path=**}/posts/{postId} {
       allow read, list: if true;
       allow write: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
       allow create: if isAuthenticated();
     }
 
-    // Users profiles are Public (needed for Guest Mode)
+    // Users profiles are Public
     match /users/{userId} {
       allow read, get: if true;
       allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
@@ -69,7 +69,7 @@ service cloud.firestore {
       allow write, create: if isAuthenticated();
     }
 
-    // Secure Messages: Only sender or recipient can read
+    // Secure Messages
     match /{path=**}/messages/{messageId} {
       allow read: if isAdmin() || (isAuthenticated() && (
         request.auth.uid == resource.data.recipientId || 
@@ -78,7 +78,7 @@ service cloud.firestore {
       allow write, create: if isAuthenticated();
     }
 
-    // Secure Chats: Only participants can read
+    // Secure Chats
     match /chats/{chatId} {
       allow read, write: if isAuthenticated() && (request.auth.uid in chatId.split('_') || isAdmin());
     }
