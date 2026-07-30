@@ -369,7 +369,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
               </Avatar>
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
-                    <p className="font-black text-sm drop-shadow-md">{author.username}</p>
+                    <p className="font-black text-sm drop-shadow-md text-white">{author.username}</p>
                     {isProfileAdmin && <BadgeCheck className="h-4 w-4 text-blue-400 fill-blue-400/20" />}
                 </div>
                 <span className="text-[9px] text-primary/80 font-black uppercase tracking-widest">Premium Creator</span>
@@ -382,7 +382,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
             </Button>
           )}
         </div>
-        <p className="text-sm line-clamp-2 font-medium drop-shadow-md leading-relaxed pr-4 pointer-events-auto">{post.caption}</p>
+        <p className="text-sm line-clamp-2 font-medium drop-shadow-md leading-relaxed pr-4 pointer-events-auto text-white">{post.caption}</p>
       </div>
 
       <div className="absolute right-4 bottom-28 flex flex-col gap-7 z-30" onClick={(e) => e.stopPropagation()}>
@@ -390,7 +390,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                 <button className="text-white transition-all active:scale-150 group-hover:scale-110" onClick={handleLikeToggle}>
                     <Heart className={cn("h-8 w-8 drop-shadow-2xl transition-all", isLiked ? "fill-primary text-primary scale-110" : "text-white")} />
                 </button>
-                <span className="text-[10px] font-black mt-1 drop-shadow-md">{localLikeCount}</span>
+                <span className="text-[10px] font-black mt-1 drop-shadow-md text-white">{localLikeCount}</span>
             </div>
             <div className="flex flex-col items-center group">
                 <Sheet open={isCommentSheetOpen} onOpenChange={(open) => { if (open && !user) { router.push('/login?auth=true'); return; } setIsCommentSheetOpen(open); forceUnlockUI(); }}>
@@ -404,7 +404,7 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                       <CommentSection postId={post.id} postOwnerId={post.userId} />
                   </SheetContent>
                 </Sheet>
-                <span className="text-[10px] font-black mt-1 drop-shadow-md">{post.commentCount}</span>
+                <span className="text-[10px] font-black mt-1 drop-shadow-md text-white">{post.commentCount}</span>
             </div>
             <div className="flex flex-col items-center group">
                 <Sheet open={isShareSheetOpen} onOpenChange={(open) => { if (open && !user) { router.push('/login?auth=true'); return; } setIsShareSheetOpen(open); forceUnlockUI(); }}>
