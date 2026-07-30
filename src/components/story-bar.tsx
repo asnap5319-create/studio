@@ -1,15 +1,14 @@
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
-import { collectionGroup, query, orderBy, limit } from 'firebase/firestore';
+import { collectionGroup, query, orderBy, limit, where, Timestamp } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Loader2, Plus, BadgeCheck } from 'lucide-react';
+import { Plus, BadgeCheck } from 'lucide-react';
 import Link from 'next/link';
 import type { Post } from '@/models/post';
 import type { UserProfile } from '@/models/user';
 import { useDoc } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { cn } from '@/lib/utils';
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
@@ -55,11 +54,23 @@ export function StoryBar() {
     const { firestore } = useFirebase();
     const { user } = useUser();
 
-    // Fetch latest posts to show as "Stories"
+    // Calculate the timestamp for 24 hours ago
+    const twentyFourHoursAgo = useMemoFirebase(() => {
+        const date = new Date();
+        date.setHours(date.getHours() - 24);
+        return Timestamp.fromDate(date);
+    }, []);
+
+    // Fetch posts from the last 24 hours ONLY for the story bar
     const recentPostsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
-        return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'), limit(40));
-    }, [firestore]);
+        return query(
+            collectionGroup(firestore, 'posts'), 
+            where('createdAt', '>=', twentyFourHoursAgo),
+            orderBy('createdAt', 'desc'), 
+            limit(40)
+        );
+    }, [firestore, twentyFourHoursAgo]);
 
     const { data: posts, isLoading } = useCollection<Post>(recentPostsQuery);
 
@@ -73,14 +84,8 @@ export function StoryBar() {
     return (
         <div className="w-full bg-background/50 border-b border-border/40 py-4 overflow-hidden">
             <div className="flex items-center gap-4 px-4 overflow-x-auto scrollbar-hide">
-                {/* Always show Current User first if they have a reel */}
-                {user && uniqueUserPosts.find(p => p.userId === user.uid) ? (
-                    <StoryItem 
-                        userId={user.uid} 
-                        latestPostId={uniqueUserPosts.find(p => p.userId === user.uid)!.id} 
-                        isMe 
-                    />
-                ) : user && (
+                {/* Add Reel button for current user if they don't have a recent reel */}
+                {user && !uniqueUserPosts.find(p => p.userId === user.uid) && (
                     <Link href="/create" className="flex flex-col items-center gap-1.5 shrink-0">
                         <div className="relative h-[68px] w-[68px] rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center bg-secondary/30">
                             <Plus className="text-muted-foreground" />
@@ -89,6 +94,16 @@ export function StoryBar() {
                     </Link>
                 )}
 
+                {/* Show User's own recent reel first if exists */}
+                {user && uniqueUserPosts.find(p => p.userId === user.uid) && (
+                    <StoryItem 
+                        userId={user.uid} 
+                        latestPostId={uniqueUserPosts.find(p => p.userId === user.uid)!.id} 
+                        isMe 
+                    />
+                )}
+
+                {/* Other users' recent reels */}
                 {uniqueUserPosts.filter(p => p.userId !== user?.uid).map((post) => (
                     <StoryItem 
                         key={post.id} 
