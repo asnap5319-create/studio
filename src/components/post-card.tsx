@@ -130,38 +130,51 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   };
 
   useEffect(() => {
+    // Increased threshold to 0.8 to ensure only one reel is active
     const observer = new IntersectionObserver(([entry]) => { 
-        setIsInView(entry.isIntersecting && entry.intersectionRatio >= 0.6); 
-    }, { threshold: [0, 0.6, 1.0] });
+        setIsInView(entry.isIntersecting && entry.intersectionRatio >= 0.8); 
+    }, { threshold: [0, 0.8, 1.0] });
     if (cardRef.current) observer.observe(cardRef.current);
     return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
-    if (!isInView || !firestore || viewCounted.current) return;
-
-    const recordView = async () => {
-        viewCounted.current = true;
-        const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
-        try {
-            await updateDoc(postRef, { 
-                viewCount: increment(1),
-                adImpressions: increment(1),
-                estimatedEarnings: increment(REVENUE_PER_VIEW)
-            });
-        } catch (e) {
-            console.error("View increment failed:", e);
-        }
-    };
+    if (!firestore || !post) return;
 
     if (isVideo) {
         const video = videoRef.current;
         if (!video) return;
-        video.muted = globalMuted;
-        setIsMuted(globalMuted);
-        video.play().then(() => recordView()).catch(() => { video.muted = true; video.play().catch(() => {}); });
-    } else {
-        recordView();
+
+        if (isInView) {
+            // Unmute based on global setting and play
+            video.muted = globalMuted;
+            setIsMuted(globalMuted);
+            video.play().then(() => {
+                if (!viewCounted.current) {
+                    viewCounted.current = true;
+                    updateDoc(doc(firestore, 'users', post.userId, 'posts', post.id), { 
+                        viewCount: increment(1),
+                        adImpressions: increment(1),
+                        estimatedEarnings: increment(REVENUE_PER_VIEW)
+                    }).catch(console.error);
+                }
+            }).catch(() => {
+                video.muted = true;
+                video.play().catch(() => {});
+            });
+        } else {
+            // Strictly pause and mute when not in view
+            video.pause();
+            video.muted = true;
+        }
+    } else if (isInView && !viewCounted.current) {
+        // Handle image views
+        viewCounted.current = true;
+        updateDoc(doc(firestore, 'users', post.userId, 'posts', post.id), { 
+            viewCount: increment(1),
+            adImpressions: increment(1),
+            estimatedEarnings: increment(REVENUE_PER_VIEW)
+        }).catch(console.error);
     }
   }, [isInView, firestore, post, isVideo]);
 
