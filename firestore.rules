@@ -20,77 +20,44 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // Stories Rules - Fixed hierarchy and permissions
-    match /active_stories/{userId} {
-      allow read, list: if true;
-      allow write, create, update: if isAuthenticated() && request.auth.uid == userId;
-      
-      match /items/{itemId} {
-        allow read, list: if true;
-        allow write, create, update: if isAuthenticated() && request.auth.uid == userId;
-      }
-    }
-
-    // Reports
-    match /reports/{reportId} {
-      allow create: if isAuthenticated();
-      allow read: if isAdmin();
-    }
-
-    // Payout Requests
-    match /payout_requests/{requestId} {
-      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
-      allow create: if isAuthenticated();
-      allow update: if isAdmin();
-    }
-
-    // Support Tickets
-    match /support_tickets/{ticketId} {
-      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
-      allow create: if isAuthenticated();
-      allow update: if isAdmin();
-    }
-
-    // Posts are Public
-    match /{path=**}/posts/{postId} {
-      allow read, list: if true;
-      allow write: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
-      allow create: if isAuthenticated();
-    }
-
-    // Users profiles are Public
+    // Unified Rule for Users and their subcollections (Posts, Stories, Notifications)
+    // अभिषेक भाई, ये एक नियम अब रील और स्टोरी दोनों के लिए काम करेगा
     match /users/{userId} {
       allow read, get: if true;
       allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+
+      match /{collectionName}/{docId} {
+        allow read, list: if true;
+        allow write, create, delete: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      }
     }
 
+    // Broad rules for collection groups (needed for Feed and Story Bar)
+    match /{path=**}/posts/{postId} {
+      allow read, list: if true;
+    }
+    match /{path=**}/stories/{storyId} {
+      allow read, list: if true;
+    }
     match /{path=**}/notifications/{notificationId} {
-      allow read: if isAdmin() || (isAuthenticated() && request.auth.uid == resource.data.recipientId);
-      allow write, create: if isAuthenticated();
+      allow read: if isAuthenticated() && request.auth.uid == resource.data.recipientId;
     }
-
-    // Secure Messages
     match /{path=**}/messages/{messageId} {
-      allow read: if isAdmin() || (isAuthenticated() && (
-        request.auth.uid == resource.data.recipientId || 
-        request.auth.uid == request.auth.uid == resource.data.senderId
-      ));
-      allow write, create: if isAuthenticated();
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.recipientId || request.auth.uid == resource.data.senderId);
     }
 
-    // Secure Chats
+    // Reports & Payouts
+    match /reports/{reportId} { allow create: if isAuthenticated(); allow read: if isAdmin(); }
+    match /payout_requests/{requestId} { allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid); allow create: if isAuthenticated(); }
+    match /support_tickets/{ticketId} { allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid); allow create: if isAuthenticated(); }
+    
+    // Chats
     match /chats/{chatId} {
       allow read, write: if isAuthenticated() && (request.auth.uid in chatId.split('_') || isAdmin());
     }
 
-    match /user_followers/{userId}/followers/{followerId} {
-      allow read: if true;
-      allow write: if isAuthenticated();
-    }
-
-    match /user_following/{userId}/following/{followedId} {
-      allow read: if true;
-      allow write: if isAuthenticated();
-    }
+    // Social
+    match /user_followers/{userId}/followers/{followerId} { allow read: if true; allow write: if isAuthenticated(); }
+    match /user_following/{userId}/following/{followedId} { allow read: if true; allow write: if isAuthenticated(); }
   }
 }

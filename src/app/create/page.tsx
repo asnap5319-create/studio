@@ -1,9 +1,10 @@
+
 'use client';
 
-import { useState, ChangeEvent, useMemo, Suspense } from 'react';
+import { useState, ChangeEvent, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useFirebase, useUser, useDoc, useMemoFirebase } from '@/firebase';
-import { addDoc, collection, serverTimestamp, doc, setDoc } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,8 +12,7 @@ import { Slider } from '@/components/ui/slider';
 import { Progress } from '@/components/ui/progress';
 import { 
   UploadCloud, Loader2, Type, Palette, 
-  ChevronLeft, Volume2, VolumeX, 
-  SendHorizonal
+  ChevronLeft, Volume2, VolumeX
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -34,7 +34,7 @@ function CreatePostContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // Detect if we are in Story mode or Reel mode
+  // अभिषेक भाई, 'mode' से पता चलेगा कि रील है या स्टोरी, पर तरीका एक ही रहेगा
   const mode = searchParams.get('mode'); 
   const isStoryMode = mode === 'story';
 
@@ -45,7 +45,6 @@ function CreatePostContent() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  // Text Overlay State (Same for Stories and Reels)
   const [overlayText, setOverlayText] = useState('');
   const [overlayColor, setOverlayColor] = useState('#ffffff');
   const [overlayY, setOverlayY] = useState(50);
@@ -92,54 +91,35 @@ function CreatePostContent() {
 
         const mediaUrl = data.secure_url;
         
-        if (isStoryMode) {
-            // Save as Story
-            const storyRef = doc(firestore, 'active_stories', user.uid);
-            await setDoc(storyRef, {
-                id: user.uid,
-                userId: user.uid,
-                username: userProfile?.username || 'user',
-                profileImageUrl: userProfile?.profileImageUrl || '',
-                updatedAt: serverTimestamp(),
-            }, { merge: true });
+        // अभिषेक भाई, रील हो या स्टोरी, अब दोनों एक ही Broad Rule के अंदर आते हैं
+        const targetCollection = isStoryMode ? 'stories' : 'posts';
+        const collectionRef = collection(firestore, 'users', user.uid, targetCollection);
 
-            await addDoc(collection(firestore, 'active_stories', user.uid, 'items'), {
-                userId: user.uid,
-                mediaUrl,
-                mediaType: resourceType,
-                createdAt: serverTimestamp(),
-                overlayText: overlayText.trim() || null,
-                overlayColor,
-                overlayPosition: overlayY,
-                overlayX
-            });
+        await addDoc(collectionRef, {
+            userId: user.uid,
+            username: userProfile?.username || 'user',
+            profileImageUrl: userProfile?.profileImageUrl || '',
+            mediaUrl,
+            mediaType: resourceType,
+            caption: isStoryMode ? '' : caption,
+            hashtags: caption.match(/#\w+/g) || [],
+            createdAt: serverTimestamp(),
+            // स्टोरी 48 घंटे बाद अपने आप हट जाएगी (लॉजिक के हिसाब से)
+            expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), 
+            likeCount: 0,
+            commentCount: 0,
+            viewCount: 0,
+            overlayText: overlayText.trim() || null,
+            overlayColor,
+            overlayPosition: overlayY,
+            overlayX
+        });
 
-            toast({ title: "Story Live! ✨" });
-            router.push('/messages'); // Back to Inbox after story upload
-        } else {
-            // Save as Reel
-            const postCollectionRef = collection(firestore, 'users', user.uid, 'posts');
-            await addDoc(postCollectionRef, {
-                userId: user.uid,
-                mediaUrl,
-                caption,
-                hashtags: caption.match(/#\w+/g) || [],
-                createdAt: serverTimestamp(),
-                expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), 
-                likeCount: 0,
-                commentCount: 0,
-                viewCount: 0,
-                overlayText: overlayText.trim() || null,
-                overlayColor,
-                overlayPosition: overlayY,
-                overlayX
-            });
-
-            toast({ title: "Reel Live! 🎬" });
-            router.push('/'); // Back to Feed after Reel upload
-        }
+        toast({ title: isStoryMode ? "Story Live! ✨" : "Reel Live! 🎬" });
+        router.push(isStoryMode ? '/messages' : '/');
 
     } catch (e: any) {
+        console.error("Upload Error:", e);
         toast({ variant: 'destructive', title: 'Failed ❌', description: e.message });
     } finally {
         setIsUploading(false);
@@ -177,11 +157,13 @@ function CreatePostContent() {
                     <button onClick={() => setIsPreviewMuted(!isPreviewMuted)} className="p-3 rounded-full bg-black/30 backdrop-blur-md border border-white/10">{isPreviewMuted ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}</button>
                 </div>
 
-                <div className="absolute bottom-0 left-0 right-0 p-6 pb-32 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none">
-                    <div className="pointer-events-auto">
-                        <Input value={caption} onChange={(e) => setCaption(e.target.value)} placeholder={isStoryMode ? "Add a story caption..." : "Write a reel caption..."} className="bg-transparent border-none text-white placeholder:text-white/60 p-0 h-12 text-lg font-medium focus-visible:ring-0" disabled={isUploading} />
-                    </div>
-                </div>
+                {!isStoryMode && (
+                  <div className="absolute bottom-0 left-0 right-0 p-6 pb-32 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none">
+                      <div className="pointer-events-auto">
+                          <Input value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Write a reel caption..." className="bg-transparent border-none text-white placeholder:text-white/60 p-0 h-12 text-lg font-medium focus-visible:ring-0" disabled={isUploading} />
+                      </div>
+                  </div>
+                )}
 
                 <div className="absolute bottom-8 left-0 right-0 px-6 flex items-center justify-end z-50 pointer-events-auto">
                     <button onClick={handlePost} disabled={isUploading} className="bg-primary hover:bg-primary/90 text-white px-10 h-14 rounded-full flex items-center gap-3 shadow-2xl active:scale-95 transition-all font-black uppercase tracking-widest text-sm">
