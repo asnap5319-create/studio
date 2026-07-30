@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, limit, doc, setDoc, serverTimestamp, addDoc, where, Timestamp, getDocs } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Plus, Loader2, X, ChevronLeft, ChevronRight, Type, Palette, SendHorizontal, Check, Smile } from 'lucide-react';
+import { Plus, Loader2, X, ChevronLeft, ChevronRight, Type, Palette, SendHorizontal, Check, Play } from 'lucide-react';
 import type { UserProfile } from '@/models/user';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -52,6 +52,7 @@ export function StoryBar() {
   const [selectedStoryUser, setSelectedStoryUser] = useState<ActiveUserStory | null>(null);
   const [viewingItems, setViewingItems] = useState<StoryItem[]>([]);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
 
   // Editor State
   const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -112,6 +113,7 @@ export function StoryBar() {
         formData.append('file', editorMedia);
         formData.append('upload_preset', uploadPreset);
 
+        // Same robust upload logic as Reels
         const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`, {
             method: 'POST',
             body: formData
@@ -123,16 +125,15 @@ export function StoryBar() {
         const mediaUrl = data.secure_url;
         const storyRef = doc(firestore, 'active_stories', user.uid);
         
-        // 1. Update the parent "Active Story" record for the user
+        // Use user.uid strictly for permissions
         await setDoc(storyRef, {
             id: user.uid,
             userId: user.uid,
-            username: currentUserProfile?.username || user.email?.split('@')[0] || 'User',
+            username: currentUserProfile?.username || 'user',
             profileImageUrl: currentUserProfile?.profileImageUrl || `https://picsum.photos/seed/${user.uid}/400/400`,
             updatedAt: serverTimestamp(),
         }, { merge: true });
 
-        // 2. Add the actual story item to the subcollection
         await addDoc(collection(firestore, 'active_stories', user.uid, 'items'), {
             userId: user.uid,
             mediaUrl,
@@ -183,6 +184,7 @@ export function StoryBar() {
   return (
     <div className="w-full bg-background border-b border-border/50 py-4">
       <div className="flex items-center gap-4 px-4 overflow-x-auto scrollbar-hide">
+        {/* Your Story Button */}
         <div className="flex flex-col items-center gap-1 shrink-0">
           <div className="relative" onClick={() => fileInputRef.current?.click()}>
             <button className="w-16 h-16 rounded-full p-[2px] bg-secondary border border-border overflow-hidden active:scale-95 transition-transform">
@@ -199,6 +201,7 @@ export function StoryBar() {
           <input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept="image/*,video/*" />
         </div>
 
+        {/* Other Users' Stories */}
         {!isLoading && activeStories?.filter(s => s.userId !== user.uid).map((s) => (
             <div key={s.id} onClick={() => handleViewStory(s)} className="flex flex-col items-center gap-1 shrink-0 cursor-pointer active:scale-95 transition-transform">
               <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600">
@@ -214,6 +217,7 @@ export function StoryBar() {
         ))}
       </div>
 
+      {/* Story Editor Dialog */}
       <Dialog open={isEditorOpen} onOpenChange={(open) => !isUploading && setIsEditorOpen(open)}>
         <DialogContent className="p-0 border-0 bg-black w-full max-w-lg h-screen flex flex-col items-center justify-center overflow-hidden z-[1000]">
             <DialogHeader className="sr-only"><DialogTitle>Story Editor</DialogTitle></DialogHeader>
@@ -285,32 +289,79 @@ export function StoryBar() {
         </DialogContent>
       </Dialog>
 
+      {/* Story Viewer Dialog (Mimics Reels Player) */}
       <Dialog open={isViewerOpen} onOpenChange={setIsViewerOpen}>
         <DialogContent className="p-0 border-0 bg-black w-full max-w-lg h-screen flex items-center justify-center overflow-hidden z-[2000]">
             <DialogHeader className="sr-only"><DialogTitle>Story Viewer</DialogTitle></DialogHeader>
             {selectedStoryUser && viewingItems.length > 0 && (
                 <div className="relative w-full h-full flex flex-col bg-black">
+                    {/* Progress Bar Top */}
+                    <div className="absolute top-10 left-0 right-0 px-2 flex gap-1 z-[100]">
+                        {viewingItems.map((_, i) => (
+                            <div key={i} className="h-1 flex-1 bg-white/20 rounded-full overflow-hidden">
+                                <div className={cn("h-full bg-white transition-all duration-[5000ms] ease-linear", i === 0 ? "w-full" : "w-0")} />
+                            </div>
+                        ))}
+                    </div>
+
                     <div className="flex-1 w-full h-full flex items-center justify-center relative bg-black">
                         {viewingItems[0].mediaType === 'video' ? (
-                            <video src={viewingItems[0].mediaUrl} className="w-full h-full object-contain" autoPlay playsInline muted loop />
+                            <video 
+                              src={viewingItems[0].mediaUrl} 
+                              className="w-full h-full object-contain" 
+                              autoPlay 
+                              playsInline 
+                              muted={false} 
+                              loop
+                              onWaiting={() => setIsBuffering(true)}
+                              onPlaying={() => setIsBuffering(false)}
+                            />
                         ) : (
                             <img src={viewingItems[0].mediaUrl} className="w-full h-full object-contain" alt="story" />
                         )}
+
+                        {/* Loading Spinner for 4G */}
+                        {isBuffering && (
+                            <div className="absolute inset-0 flex items-center justify-center z-[110]">
+                                <Loader2 className="w-10 h-10 text-primary animate-spin opacity-50" />
+                            </div>
+                        )}
+
+                        {/* Reels Style Overlay Text */}
                         {viewingItems[0].overlayText && (
-                            <div className="absolute px-4 text-center pointer-events-none z-20 w-full" style={{ top: `${viewingItems[0].overlayY ?? 50}%`, left: `${viewingItems[0].overlayX ?? 50}%`, transform: 'translate(-50%, -50%)', color: viewingItems[0].overlayColor || '#ffffff', textShadow: '0 2px 20px rgba(0,0,0,0.9)' }}>
-                                <p className="text-3xl md:text-4xl font-black italic uppercase tracking-tighter leading-tight drop-shadow-2xl">{viewingItems[0].overlayText}</p>
+                            <div 
+                              className="absolute px-6 text-center pointer-events-none z-20 w-full" 
+                              style={{ 
+                                top: `${viewingItems[0].overlayY ?? 50}%`, 
+                                left: `${viewingItems[0].overlayX ?? 50}%`, 
+                                transform: 'translate(-50%, -50%)', 
+                                color: viewingItems[0].overlayColor || '#ffffff', 
+                                textShadow: '0 2px 25px rgba(0,0,0,0.9)' 
+                              }}
+                            >
+                                <p className="text-3xl md:text-4xl font-black italic uppercase tracking-tighter leading-tight drop-shadow-2xl">
+                                    {viewingItems[0].overlayText}
+                                </p>
                             </div>
                         )}
                     </div>
-                    <div className="absolute top-0 left-0 right-0 p-6 z-50 bg-gradient-to-b from-black/80 to-transparent pt-12">
+
+                    {/* Reels Style Profile Header */}
+                    <div className="absolute top-0 left-0 right-0 p-6 z-[150] bg-gradient-to-b from-black/80 via-black/20 to-transparent pt-14">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <Avatar className="h-10 w-10 border-2 border-white/20"><AvatarImage src={selectedStoryUser.profileImageUrl} /></Avatar>
+                                <Avatar className="h-10 w-10 border-2 border-white/20 shadow-xl">
+                                    <AvatarImage src={selectedStoryUser.profileImageUrl} className="object-cover" />
+                                    <AvatarFallback>{selectedStoryUser.username?.[0]}</AvatarFallback>
+                                </Avatar>
                                 <div className="flex flex-col">
-                                    <span className="text-white font-black text-sm">@{selectedStoryUser.username}</span>
+                                    <span className="text-white font-black text-sm drop-shadow-md">@{selectedStoryUser.username}</span>
+                                    <span className="text-[8px] text-white/60 font-bold uppercase tracking-widest">A.snap Story</span>
                                 </div>
                             </div>
-                            <button onClick={() => setIsViewerOpen(false)} className="text-white bg-black/20 p-2 rounded-full"><X size={20} /></button>
+                            <button onClick={() => setIsViewerOpen(false)} className="text-white bg-black/20 backdrop-blur-md p-2 rounded-full border border-white/10">
+                                <X size={20} />
+                            </button>
                         </div>
                     </div>
                 </div>
