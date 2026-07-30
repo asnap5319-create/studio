@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -13,6 +12,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { BottomNav } from "@/components/bottom-nav";
 import { useState, useEffect } from 'react';
+import { StoryBar } from "@/components/story-bar";
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
@@ -111,6 +111,9 @@ export default function InboxPage() {
       </header>
 
       <div className="flex-1 overflow-y-auto scrollbar-hide">
+        {/* Story Bar Added at the top of Direct Messages */}
+        <StoryBar />
+
         {isLoading ? (
           <div className="p-4 space-y-4">
              {[1,2,3,4,5].map(i => (
@@ -127,7 +130,7 @@ export default function InboxPage() {
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-[70vh] text-center p-10">
+          <div className="flex flex-col items-center justify-center h-[50vh] text-center p-10">
             <div className="w-24 h-24 bg-secondary/50 rounded-full flex items-center justify-center mb-6 shadow-xl border border-border">
                 <Send className="h-12 w-12 text-primary -rotate-12" />
             </div>
