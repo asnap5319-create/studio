@@ -84,7 +84,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     }
   };
 
-  // REAL-TIME SYNCED TIMER & PERIOD (Jalwa Game Format)
+  // REAL-TIME SYNCED TIMER & PERIOD (Jalwa Game Format + 1 Round Ahead)
   useEffect(() => {
     const updateTimer = () => {
       const now = new Date();
@@ -94,8 +94,9 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
       const datePart = format(now, 'yyyyMMdd');
       const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
-      // Round index: 1 to 2880 for a 30s game in 24h
-      const roundIndexInDay = (utcMinutes * 2 + Math.floor(seconds / 30)) + 1;
+      
+      // अभिषेक भाई, यहाँ हमने +2 कर दिया है ताकि आप Jalwa से हमेशा 1 बेट आगे रहें
+      const roundIndexInDay = (utcMinutes * 2 + Math.floor(seconds / 30)) + 2;
       
       // Jalwa Style: YYYYMMDD + 10001 + 0780 (4-digit round)
       const periodId = `${datePart}10001${roundIndexInDay.toString().padStart(4, '0')}`;
