@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useFirebase, useUser, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit, doc, updateDoc, increment, addDoc, serverTimestamp, where } from 'firebase/firestore';
-import { Timer, History, Trophy, Coins, CheckCircle2, AlertCircle, TrendingUp, User, Info } from 'lucide-react';
+import { collection, query, orderBy, limit, doc, updateDoc, increment, addDoc, serverTimestamp, getDocs, where, writeBatch } from 'firebase/firestore';
+import { Timer, History, Trophy, Coins, CheckCircle2, AlertCircle, TrendingUp, Info, Zap, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -38,6 +39,8 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
   const [timeLeft, setTimeLeft] = useState(30);
   const [currentPeriod, setCurrentPeriod] = useState('');
+  const [isBetPanelOpen, setIsBetPanelOpen] = useState(false);
+  const [selectedOption, setSelectedOption] = useState<string | number | null>(null);
   const [betAmount, setBetAmount] = useState('10');
   const [isBetting, setIsBetting] = useState(false);
 
@@ -49,7 +52,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       const remaining = 30 - (seconds % 30);
       setTimeLeft(remaining);
 
-      // Generate Period: YYYYMMDDHHmm + RoundIndex
       const datePart = format(now, 'yyyyMMdd');
       const minutePart = now.getHours() * 60 + now.getMinutes();
       const roundPart = Math.floor(seconds / 30);
@@ -62,7 +64,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     return () => clearInterval(interval);
   }, []);
 
-  // --- Auto Generate Results (Simulated Server) ---
+  // --- Auto Generate Results (Prototype Server) ---
   useEffect(() => {
     if (timeLeft === 1 && firestore) {
       const timeout = setTimeout(async () => {
@@ -100,28 +102,75 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   const { data: results } = useCollection<GameResult>(resultsQuery);
 
   const myBetsQuery = useMemoFirebase(() => 
-    (firestore && user) ? query(collection(firestore, 'users', user.uid, 'game_bets'), orderBy('createdAt', 'desc'), limit(10)) : null, 
+    (firestore && user) ? query(collection(firestore, 'users', user.uid, 'game_bets'), orderBy('createdAt', 'desc'), limit(15)) : null, 
     [firestore, user]
   );
   const { data: myBets } = useCollection<Bet>(myBetsQuery);
 
-  // --- Betting Logic ---
-  const handlePlaceBet = async (selection: string | number) => {
-    if (!user || !firestore || isBetting) return;
+  // --- Process Results for User (Simulating backend) ---
+  useEffect(() => {
+    if (!firestore || !user || !results || results.length === 0 || !myBets) return;
+
+    const latestResult = results[0];
+    const pendingBets = myBets.filter(b => b.status === 'pending' && b.period === latestResult.period);
+
+    if (pendingBets.length > 0) {
+        const batch = writeBatch(firestore);
+        let totalWin = 0;
+
+        pendingBets.forEach(bet => {
+            let isWin = false;
+            let multiplier = 2; // Colors & Size
+
+            if (typeof bet.selection === 'number') {
+                isWin = bet.selection === latestResult.number;
+                multiplier = 9;
+            } else if (bet.selection === 'big' || bet.selection === 'small') {
+                isWin = bet.selection === latestResult.size;
+            } else {
+                isWin = latestResult.color.includes(bet.selection as string);
+            }
+
+            const betRef = doc(firestore, 'users', user.uid, 'game_bets', bet.id);
+            if (isWin) {
+                const winAmt = bet.amount * multiplier;
+                totalWin += winAmt;
+                batch.update(betRef, { status: 'win', winAmount: winAmt });
+            } else {
+                batch.update(betRef, { status: 'loss' });
+            }
+        });
+
+        if (totalWin > 0) {
+            batch.update(doc(firestore, 'users', user.uid), {
+                virtualBalance: increment(totalWin)
+            });
+            toast({ title: "You Won! 🎉", description: `Round ${latestResult.period.slice(-4)} result: Number ${latestResult.number}. Aapne ₹${totalWin} coins jeete!` });
+        }
+        batch.commit().catch(console.error);
+    }
+  }, [results, myBets, firestore, user, toast]);
+
+  const handleOpenBetPanel = (option: string | number) => {
+    if (timeLeft < 5) {
+        toast({ variant: 'destructive', title: "Round Locked", description: "Round close ho gaya hai, please wait." });
+        return;
+    }
+    setSelectedOption(option);
+    setIsBetPanelOpen(true);
+  };
+
+  const handlePlaceBet = async () => {
+    if (!user || !firestore || isBetting || selectedOption === null) return;
     const amount = parseInt(betAmount);
 
-    if (isNaN(amount) || amount < 2) {
-      toast({ variant: 'destructive', title: "Invalid Amount", description: "Minimum bet is ₹2 coins." });
+    if (isNaN(amount) || amount < 1) {
+      toast({ variant: 'destructive', title: "Invalid Amount", description: "Minimum bet is 1 coin." });
       return;
     }
 
     if (amount > (userProfile?.virtualBalance || 0)) {
       toast({ variant: 'destructive', title: "Low Balance", description: "You don't have enough virtual coins." });
-      return;
-    }
-
-    if (timeLeft < 5) {
-      toast({ variant: 'destructive', title: "Round Locked", description: "Round close ho gaya hai bhai, next round ka wait karo." });
       return;
     }
 
@@ -134,40 +183,35 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       await addDoc(collection(firestore, 'users', user.uid, 'game_bets'), {
         userId: user.uid,
         period: currentPeriod,
-        selection,
+        selection: selectedOption,
         amount,
         status: 'pending',
         createdAt: serverTimestamp()
       });
 
-      toast({ title: "Bet Success! 🚀", description: `Aapne ₹${amount} coins ${selection} par laga diye hain.` });
+      toast({ title: "Bet Confirmed! 🚀", description: `Round ${currentPeriod.slice(-4)}: ₹${amount} on ${selectedOption}` });
+      setIsBetPanelOpen(false);
     } catch (e) {
       console.error(e);
-      toast({ variant: 'destructive', title: "Bet Failed", description: "Something went wrong." });
+      toast({ variant: 'destructive', title: "Error", description: "Database error." });
     } finally {
       setIsBetting(false);
     }
   };
 
-  const getColorName = (color: string) => {
-    if (color === 'red-violet') return 'Red + Violet';
-    if (color === 'green-violet') return 'Green + Violet';
-    return color.charAt(0).toUpperCase() + color.slice(1);
-  };
-
   return (
-    <div className="space-y-6 select-none">
-      {/* Timer & Period Display */}
+    <div className="space-y-6 select-none pb-10">
+      {/* Timer Display */}
       <div className="bg-secondary/40 border border-border p-6 rounded-[2.5rem] flex items-center justify-between relative overflow-hidden shadow-sm">
         <div className="absolute top-0 left-0 w-1.5 h-full bg-primary" />
         <div className="space-y-1">
           <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] flex items-center gap-1.5">
-            <History size={12} className="text-primary" /> Current Period
+            <History size={12} className="text-primary" /> Period
           </p>
           <h3 className="text-2xl font-black italic tracking-tighter text-foreground">{currentPeriod || 'Loading...'}</h3>
         </div>
         <div className="text-right">
-          <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Time Remaining</p>
+          <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Time Left</p>
           <div className="flex items-center gap-2 justify-end">
             <Timer className={cn("h-6 w-6", timeLeft <= 5 ? "text-destructive animate-pulse" : "text-primary")} />
             <h2 className={cn("text-3xl font-black tabular-nums", timeLeft <= 5 ? "text-destructive" : "text-foreground")}>
@@ -177,27 +221,26 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </div>
       </div>
 
-      {/* Betting Controls */}
+      {/* Main Betting Area */}
       <div className="space-y-4">
         <div className="grid grid-cols-3 gap-3">
-          <Button onClick={() => handlePlaceBet('green')} className="bg-prediction-green hover:bg-green-600 h-16 rounded-2xl font-black uppercase shadow-lg shadow-green-500/20 text-white border-b-4 border-green-700 active:border-b-0 active:translate-y-1 transition-all">Green</Button>
-          <Button onClick={() => handlePlaceBet('violet')} className="bg-prediction-violet hover:bg-violet-600 h-16 rounded-2xl font-black uppercase shadow-lg shadow-violet-500/20 text-white border-b-4 border-violet-700 active:border-b-0 active:translate-y-1 transition-all">Violet</Button>
-          <Button onClick={() => handlePlaceBet('red')} className="bg-prediction-red hover:bg-red-600 h-16 rounded-2xl font-black uppercase shadow-lg shadow-red-500/20 text-white border-b-4 border-red-700 active:border-b-0 active:translate-y-1 transition-all">Red</Button>
+          <Button onClick={() => handleOpenBetPanel('green')} className="bg-prediction-green hover:bg-green-600 h-16 rounded-2xl font-black uppercase shadow-lg shadow-green-500/20 text-white border-b-4 border-green-700 active:border-b-0 active:translate-y-1 transition-all">Green</Button>
+          <Button onClick={() => handleOpenBetPanel('violet')} className="bg-prediction-violet hover:bg-violet-600 h-16 rounded-2xl font-black uppercase shadow-lg shadow-violet-500/20 text-white border-b-4 border-violet-700 active:border-b-0 active:translate-y-1 transition-all">Violet</Button>
+          <Button onClick={() => handleOpenBetPanel('red')} className="bg-prediction-red hover:bg-red-600 h-16 rounded-2xl font-black uppercase shadow-lg shadow-red-500/20 text-white border-b-4 border-red-700 active:border-b-0 active:translate-y-1 transition-all">Red</Button>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <Button onClick={() => handlePlaceBet('big')} className="bg-prediction-big hover:bg-amber-500 h-14 rounded-2xl font-black uppercase text-black shadow-lg border-b-4 border-amber-600 active:border-b-0 active:translate-y-1 transition-all">Big</Button>
-          <Button onClick={() => handlePlaceBet('small')} className="bg-prediction-small hover:bg-blue-500 h-14 rounded-2xl font-black uppercase shadow-lg text-white border-b-4 border-blue-600 active:border-b-0 active:translate-y-1 transition-all">Small</Button>
+          <Button onClick={() => handleOpenBetPanel('big')} className="bg-prediction-big hover:bg-amber-500 h-14 rounded-2xl font-black uppercase text-black shadow-lg border-b-4 border-amber-600 active:border-b-0 active:translate-y-1 transition-all">Big</Button>
+          <Button onClick={() => handleOpenBetPanel('small')} className="bg-prediction-small hover:bg-blue-500 h-14 rounded-2xl font-black uppercase shadow-lg text-white border-b-4 border-blue-600 active:border-b-0 active:translate-y-1 transition-all">Small</Button>
         </div>
 
-        {/* Number Grid */}
         <div className="bg-secondary/20 p-4 rounded-[2rem] border border-border">
-          <p className="text-[10px] font-black uppercase text-muted-foreground text-center mb-4 tracking-widest">Select Lucky Number (9X Win)</p>
+          <p className="text-[10px] font-black uppercase text-muted-foreground text-center mb-4 tracking-widest">Lucky Number (9X Win)</p>
           <div className="grid grid-cols-5 gap-3">
             {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
               <button
                 key={num}
-                onClick={() => handlePlaceBet(num)}
+                onClick={() => handleOpenBetPanel(num)}
                 className={cn(
                   "h-12 rounded-xl font-black text-lg border transition-all active:scale-90 shadow-sm",
                   num === 0 || num === 5 ? "bg-prediction-violet text-white border-violet-400" :
@@ -206,35 +249,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                 )}
               >
                 {num}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Amount Input */}
-        <div className="flex items-center gap-3 bg-secondary/30 p-5 rounded-[2rem] border border-border shadow-inner">
-          <div className="p-2 bg-primary/10 rounded-xl text-primary"><Coins size={24} /></div>
-          <div className="flex-1">
-             <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Betting Amount</p>
-             <Input 
-                type="number" 
-                value={betAmount} 
-                onChange={(e) => setBetAmount(e.target.value)}
-                className="bg-transparent border-none font-black text-2xl focus-visible:ring-0 h-8 p-0 text-foreground"
-                placeholder="0"
-              />
-          </div>
-          <div className="flex gap-2">
-            {['10', '100', '500', '1000'].map(val => (
-              <button 
-                key={val} 
-                onClick={() => setBetAmount(val)} 
-                className={cn(
-                  "text-[10px] font-black uppercase px-3 py-2 rounded-xl border transition-all",
-                  betAmount === val ? "bg-primary text-white border-primary shadow-lg" : "bg-background text-foreground border-border"
-                )}
-              >
-                ₹{val}
               </button>
             ))}
           </div>
@@ -253,50 +267,42 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
               <table className="w-full">
                  <thead className="bg-secondary/40 border-b border-border">
                     <tr className="text-[10px] font-black uppercase text-muted-foreground">
-                       <th className="p-4 text-left tracking-widest">Period</th>
-                       <th className="p-4 text-center tracking-widest">Lucky N.</th>
-                       <th className="p-4 text-center tracking-widest">Size</th>
-                       <th className="p-4 text-right tracking-widest pr-6">Color Win</th>
+                       <th className="p-4 text-left">Period</th>
+                       <th className="p-4 text-center">Lucky</th>
+                       <th className="p-4 text-center">Size</th>
+                       <th className="p-4 text-right pr-6">Color</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-border">
                     {results?.map(res => (
-                      <tr key={res.id} className="text-sm hover:bg-secondary/10 transition-colors">
+                      <tr key={res.id} className="text-sm hover:bg-secondary/5">
                         <td className="p-4 font-bold text-muted-foreground">{res.period.slice(-4)}</td>
                         <td className="p-4 text-center">
-                          <div className="flex justify-center">
                             <span className={cn(
-                              "inline-flex w-8 h-8 items-center justify-center rounded-full font-black text-white shadow-md border-2 border-white/20",
+                              "inline-flex w-8 h-8 items-center justify-center rounded-full font-black text-white shadow-sm border-2 border-white/20",
                               [1,3,7,9].includes(res.number) ? "bg-prediction-green" : 
                               res.number === 0 || res.number === 5 ? "bg-prediction-violet" : "bg-prediction-red"
                             )}>
                               {res.number}
                             </span>
-                          </div>
                         </td>
                         <td className="p-4 text-center">
                            <span className={cn(
-                             "text-[10px] font-black uppercase px-3 py-1 rounded-full shadow-sm", 
-                             res.size === 'big' ? "bg-prediction-big/20 text-amber-700 border border-amber-200" : "bg-prediction-small/20 text-blue-700 border border-blue-200"
+                             "text-[9px] font-black uppercase px-2 py-0.5 rounded-full border", 
+                             res.size === 'big' ? "bg-prediction-big/10 text-amber-700 border-amber-200" : "bg-prediction-small/10 text-blue-700 border-blue-200"
                            )}>
                               {res.size}
                            </span>
                         </td>
                         <td className="p-4 text-right pr-6">
-                           <div className="flex items-center justify-end gap-2">
-                              <span className="text-[10px] font-bold text-muted-foreground uppercase">{getColorName(res.color)}</span>
-                              <div className="flex gap-0.5">
-                                {res.color.includes('green') && <div className="w-3 h-3 rounded-full bg-prediction-green shadow-sm" />}
-                                {res.color.includes('red') && <div className="w-3 h-3 rounded-full bg-prediction-red shadow-sm" />}
-                                {res.color.includes('violet') && <div className="w-3 h-3 rounded-full bg-prediction-violet shadow-sm" />}
-                              </div>
-                           </div>
+                            <div className="flex gap-1 justify-end">
+                                {res.color.includes('green') && <div className="w-3 h-3 rounded-full bg-prediction-green" />}
+                                {res.color.includes('red') && <div className="w-3 h-3 rounded-full bg-prediction-red" />}
+                                {res.color.includes('violet') && <div className="w-3 h-3 rounded-full bg-prediction-violet" />}
+                            </div>
                         </td>
                       </tr>
                     ))}
-                    {(!results || results.length === 0) && (
-                      <tr><td colSpan={4} className="p-10 text-center text-muted-foreground italic text-xs uppercase tracking-widest">Waiting for first result...</td></tr>
-                    )}
                  </tbody>
               </table>
            </div>
@@ -308,48 +314,101 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                 <div key={bet.id} className="bg-secondary/20 p-5 rounded-[2rem] border border-border flex items-center justify-between shadow-sm">
                    <div className="flex items-center gap-4">
                       <div className={cn(
-                        "p-3 rounded-2xl shadow-sm", 
-                        bet.status === 'win' ? "bg-green-500/10 text-green-600 border border-green-200" : 
-                        bet.status === 'loss' ? "bg-red-500/10 text-red-600 border border-red-200" : 
-                        "bg-primary/10 text-primary border border-primary/20"
+                        "p-3 rounded-2xl", 
+                        bet.status === 'win' ? "bg-green-500/10 text-green-600" : 
+                        bet.status === 'loss' ? "bg-red-500/10 text-red-600" : 
+                        "bg-primary/10 text-primary"
                       )}>
                          {bet.status === 'win' ? <Trophy size={20} /> : <Coins size={20} />}
                       </div>
                       <div>
-                         <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Round: {bet.period.slice(-4)}</p>
-                         <p className="font-bold text-sm">Bet on: <span className="uppercase text-primary">{bet.selection}</span></p>
+                         <p className="text-[10px] font-black text-muted-foreground uppercase">Round: {bet.period.slice(-4)}</p>
+                         <p className="font-bold text-sm">Bet: <span className="uppercase text-primary">{bet.selection}</span></p>
                          <p className="text-[10px] font-bold text-muted-foreground">Amount: ₹{bet.amount}</p>
                       </div>
                    </div>
                    <div className="text-right">
-                      <p className={cn("font-black text-xl italic", bet.status === 'win' ? "text-green-500 drop-shadow-sm" : bet.status === 'loss' ? "text-red-500/60" : "text-primary animate-pulse")}>
+                      <p className={cn("font-black text-lg", bet.status === 'win' ? "text-green-600" : bet.status === 'loss' ? "text-red-500" : "text-primary animate-pulse")}>
                          {bet.status === 'win' ? `+₹${bet.winAmount}` : bet.status === 'loss' ? `-₹${bet.amount}` : 'Pending...'}
                       </p>
-                      <p className="text-[9px] font-black text-muted-foreground uppercase mt-1">
-                        {bet.createdAt ? format(bet.createdAt.toDate(), 'HH:mm:ss') : 'Just now'}
-                      </p>
+                      <p className="text-[8px] font-bold text-muted-foreground uppercase">{bet.createdAt ? format(bet.createdAt.toDate(), 'HH:mm:ss') : ''}</p>
                    </div>
                 </div>
               ))}
-              {(!myBets || myBets.length === 0) && (
-                <div className="flex flex-col items-center justify-center py-16 opacity-30 gap-3">
-                  <Info size={40} />
-                  <p className="font-black uppercase text-xs tracking-widest">No bets placed yet</p>
-                </div>
-              )}
            </div>
         </TabsContent>
       </Tabs>
 
-      {/* Virtual Coins Notice */}
-      <div className="p-5 bg-primary/5 rounded-[2rem] border border-primary/10 flex items-start gap-4 shadow-sm">
-         <AlertCircle className="text-primary shrink-0 mt-0.5" size={20} />
-         <div>
-            <h4 className="text-[11px] font-black uppercase tracking-widest text-primary mb-1">Game Information</h4>
-            <p className="text-[10px] text-muted-foreground leading-relaxed font-medium">
-               भाई, यह गेम सिर्फ मनोरंजन के लिए है। ये ₹ सिक्के पूरी तरह वर्चुअल (नकली) हैं। असली पैसा न तो जमा किया जा सकता है और न ही निकाला जा सकता है। बस खेलें और मज़े करें! ✅
-            </p>
-         </div>
+      {/* Betting Dialog (Popup) */}
+      <Dialog open={isBetPanelOpen} onOpenChange={setIsBetPanelOpen}>
+        <DialogContent className="max-w-[400px] bg-background border-border rounded-[2.5rem] p-0 overflow-hidden z-[1000]">
+           <DialogHeader className="p-6 pb-0">
+              <div className="flex items-center justify-between">
+                <DialogTitle className="text-xl font-black italic uppercase text-foreground">Place Your Bet</DialogTitle>
+                <Button variant="ghost" size="icon" onClick={() => setIsBetPanelOpen(false)} className="rounded-full"><X size={20} /></Button>
+              </div>
+           </DialogHeader>
+
+           <div className="p-8 space-y-8">
+              <div className="bg-secondary/40 p-6 rounded-[2rem] border border-border flex items-center justify-between">
+                  <div className="space-y-1">
+                      <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Selected Option</p>
+                      <h4 className="text-3xl font-black italic uppercase text-primary">{selectedOption}</h4>
+                  </div>
+                  <div className="text-right space-y-1">
+                      <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Current Balance</p>
+                      <p className="text-xl font-black text-foreground">₹{userProfile?.virtualBalance || 0}</p>
+                  </div>
+              </div>
+
+              <div className="space-y-4">
+                  <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Select Amount (Coins)</p>
+                  <div className="grid grid-cols-3 gap-3">
+                      {['1', '5', '10', '20', '50', '100'].map(val => (
+                          <button 
+                            key={val} 
+                            onClick={() => setBetAmount(val)}
+                            className={cn(
+                                "h-12 rounded-xl font-black text-sm uppercase transition-all active:scale-95 border-2",
+                                betAmount === val ? "bg-primary text-white border-primary shadow-lg shadow-primary/20" : "bg-background text-foreground border-border"
+                            )}
+                          >
+                              ₹{val}
+                          </button>
+                      ))}
+                  </div>
+                  <div className="relative mt-2">
+                      <Coins className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                      <Input 
+                        type="number" 
+                        value={betAmount} 
+                        onChange={(e) => setBetAmount(e.target.value)}
+                        className="h-14 pl-12 bg-secondary/30 border-none rounded-2xl font-black text-lg"
+                        placeholder="Enter custom amount"
+                      />
+                  </div>
+              </div>
+
+              <Button 
+                onClick={handlePlaceBet}
+                disabled={isBetting}
+                className="w-full h-16 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-2xl shadow-xl shadow-primary/20 flex items-center justify-center gap-3 active:scale-95 transition-all text-base"
+              >
+                  {isBetting ? <Loader2 className="animate-spin" /> : <><CheckCircle2 /> Confirm Bet</>}
+              </Button>
+           </div>
+
+           <div className="p-4 bg-primary/5 text-center">
+                <p className="text-[9px] font-black uppercase text-primary/60 tracking-[0.2em]">Game Mode: Virtual Only • No Real Cash</p>
+           </div>
+        </DialogContent>
+      </Dialog>
+
+      <div className="p-5 bg-primary/5 rounded-[2rem] border border-primary/10 flex items-start gap-4">
+         <AlertCircle className="text-primary mt-0.5" size={20} />
+         <p className="text-[10px] text-muted-foreground leading-relaxed font-medium uppercase">
+            भाई, यह गेम सिर्फ मनोरंजन के लिए है। ये वर्चुअल सिक्के पूरी तरह फ्री और नकली हैं। असली पैसा न तो जमा किया जा सकता है और न ही निकाला जा सकता है। ✅
+         </p>
       </div>
     </div>
   );

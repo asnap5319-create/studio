@@ -25,9 +25,9 @@ function HomeContent() {
 
   useEffect(() => {
     if (user && firestore && userProfile && userProfile.virtualBalance === undefined) {
-      // First time user initialization with 10,000 virtual coins
+      // First time user initialization with 100 virtual coins as requested
       setDoc(doc(firestore, 'users', user.uid), {
-        virtualBalance: 10000,
+        virtualBalance: 100,
         updatedAt: serverTimestamp()
       }, { merge: true }).catch(console.error);
     }
@@ -74,7 +74,7 @@ function HomeContent() {
                   <div className="flex items-center justify-between">
                      <div className="space-y-1">
                         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 flex items-center gap-2">
-                          <Sparkles size={10} className="text-yellow-400" /> Current Balance
+                          <Sparkles size={10} className="text-yellow-400" /> Virtual Balance
                         </p>
                         <div className="flex items-baseline gap-2">
                            <span className="text-2xl font-black text-white/80">₹</span>
