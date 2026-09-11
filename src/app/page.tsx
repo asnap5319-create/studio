@@ -2,11 +2,11 @@
 'use client';
 
 import { useUser, useFirebase, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { Loader2, Wallet, PlusCircle, ArrowUpRight, TrendingUp, Sparkles } from 'lucide-react';
 import { BottomNav } from "@/components/bottom-nav";
 import { PredictionGame } from '@/components/prediction-game';
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/models/user';
@@ -15,6 +15,7 @@ function HomeContent() {
   const { user, isUserLoading } = useUser();
   const { firestore } = useFirebase();
   const { toast } = useToast();
+  const [isInitializing, setIsInitializing] = useState(false);
 
   // Fetch or Initialize User Profile with Virtual Coins
   const userRef = useMemoFirebase(() => 
@@ -25,21 +26,37 @@ function HomeContent() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile & { virtualBalance?: number }>(userRef);
 
   useEffect(() => {
-    if (user && firestore && !isProfileLoading) {
-      // Ensure user document exists with virtualBalance
-      if (!userProfile || userProfile.virtualBalance === undefined) {
-        const uRef = doc(firestore, 'users', user.uid);
-        setDoc(uRef, {
-          id: user.uid,
-          username: user.displayName || user.email?.split('@')[0] || 'user',
-          email: user.email || '',
-          virtualBalance: 100, // 100 FREE VIRTUAL COINS starting balance
-          updatedAt: serverTimestamp()
-        }, { merge: true }).catch(err => {
+    const initializeUser = async () => {
+      if (user && firestore && !isProfileLoading && !isInitializing) {
+        // Only initialize if the profile doesn't exist OR virtualBalance is completely missing (undefined)
+        // If balance is 0, it counts as "defined", so it won't reset to 100.
+        if (!userProfile || userProfile.virtualBalance === undefined) {
+          setIsInitializing(true);
+          try {
+            const uRef = doc(firestore, 'users', user.uid);
+            const snap = await getDoc(uRef);
+            
+            // Final check to ensure we don't overwrite 0 with 100
+            if (!snap.exists() || snap.data()?.virtualBalance === undefined) {
+              await setDoc(uRef, {
+                id: user.uid,
+                username: user.displayName || user.email?.split('@')[0] || 'user',
+                email: user.email || '',
+                virtualBalance: 100, // FREE STARTING COINS - ONLY ONCE
+                updatedAt: serverTimestamp()
+              }, { merge: true });
+              console.log("User initialized with 100 coins");
+            }
+          } catch (err) {
             console.error("Initialization error:", err);
-        });
+          } finally {
+            setIsInitializing(false);
+          }
+        }
       }
-    }
+    };
+
+    initializeUser();
   }, [user, firestore, userProfile, isProfileLoading]);
 
   const handleActionClick = (type: string) => {
@@ -49,7 +66,7 @@ function HomeContent() {
     });
   };
 
-  if (isUserLoading || isProfileLoading) {
+  if (isUserLoading || isProfileLoading || isInitializing) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
         <Loader2 className="animate-spin text-primary h-10 w-10" />
@@ -144,3 +161,4 @@ export default function HomePage() {
     </Suspense>
   );
 }
+

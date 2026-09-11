@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit, doc, updateDoc, increment, setDoc, serverTimestamp, writeBatch, getDoc, addDoc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, doc, updateDoc, increment, setDoc, serverTimestamp, writeBatch, addDoc } from 'firebase/firestore';
 import { CheckCircle2, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -50,14 +51,12 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   const generateResult = async (periodToProcess: string) => {
     if (!firestore || !user) return;
     
-    // Safety check to prevent spamming from the same client
     if (processedPeriods.current.has(periodToProcess)) return;
     processedPeriods.current.add(periodToProcess);
 
     try {
         const resultDocRef = doc(firestore, 'game_results', periodToProcess);
         
-        // Attempt to create. Rule "allow create: if !exists(...)" handles race conditions for multiple users.
         const num = Math.floor(Math.random() * 10);
         let color: 'red' | 'green' | 'violet' | 'red-violet' | 'green-violet' = 'red';
         
@@ -78,7 +77,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         }, { merge: false });
 
     } catch (e: any) {
-        // If someone else already wrote the result, this will fail silently via security rules
         if (e.code !== 'permission-denied' && e.code !== 'already-exists') {
             console.error("Global Result generation error:", e);
         }
@@ -89,11 +87,10 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   useEffect(() => {
     const updateTimer = () => {
       const now = new Date();
-      const seconds = now.getUTCSeconds(); // Use UTC for true global sync
+      const seconds = now.getUTCSeconds();
       const remaining = 30 - (seconds % 30);
       setTimeLeft(remaining);
 
-      // Deterministic Global Period ID: YYYYMMDD + Global Index
       const datePart = format(now, 'yyyyMMdd');
       const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
       const roundIndex = Math.floor(seconds / 30);
@@ -101,7 +98,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       
       if (periodId !== currentPeriod) {
         if (currentPeriod) {
-            // Previous round just ended, trigger global result creation
             generateResult(currentPeriod);
         }
         setCurrentPeriod(periodId);
@@ -127,7 +123,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   );
   const { data: myBets } = useCollection<Bet>(myBetsQuery);
 
-  // GLOBAL SETTLEMENT (Runs on client but validated by the one-time result)
+  // GLOBAL SETTLEMENT
   useEffect(() => {
     if (!firestore || !user || !results || results.length === 0 || !myBets) return;
 
@@ -135,7 +131,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     if (pendingBets.length === 0) return;
 
     const batch = writeBatch(firestore);
-    let totalWin = 0;
+    let totalWinDelta = 0;
     let updatedCount = 0;
 
     pendingBets.forEach(bet => {
@@ -160,7 +156,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             const betRef = doc(firestore, 'users', user.uid, 'game_bets', bet.id);
             if (isWin) {
                 const winAmt = bet.amount * mult;
-                totalWin += winAmt;
+                totalWinDelta += winAmt;
                 batch.update(betRef, { status: 'win', winAmount: winAmt });
             } else {
                 batch.update(betRef, { status: 'loss' });
@@ -170,11 +166,11 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     });
 
     if (updatedCount > 0) {
-        if (totalWin > 0) {
+        if (totalWinDelta > 0) {
             batch.update(doc(firestore, 'users', user.uid), {
-                virtualBalance: increment(totalWin)
+                virtualBalance: increment(totalWinDelta)
             });
-            toast({ title: "Jackpot! 💰", description: `Aap ₹${totalWin.toFixed(0)} coins jeet gaye!` });
+            toast({ title: "Jackpot! 💰", description: `भाई, आप ₹${totalWinDelta.toFixed(0)} सिक्के जीत गए!` });
         }
         batch.commit().catch(err => console.error("Settlement error:", err));
     }
@@ -182,7 +178,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
   const handleOpenBetPanel = (option: string | number) => {
     if (timeLeft < 5) {
-        toast({ variant: 'destructive', title: "Round Locked", description: "Wait for next round." });
+        toast({ variant: 'destructive', title: "Round Locked", description: "अगले राउंड का इंतज़ार करें।" });
         return;
     }
     setSelectedOption(option);
@@ -193,20 +189,19 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     if (!user || !firestore || isBetting || selectedOption === null || !userProfile) return;
 
     if (timeLeft < 5) {
-        toast({ variant: 'destructive', title: "Round Locked", description: "Round is locking, try next." });
+        toast({ variant: 'destructive', title: "Round Locked", description: "राउंड बंद हो रहा है, थोड़ा रुकें।" });
         setIsBetPanelOpen(false);
         return;
     }
 
     const finalAmount = parseInt(betAmount) * multiplier;
     if (finalAmount > (userProfile.virtualBalance || 0)) {
-      toast({ variant: 'destructive', title: "No Coins", description: "Incentive balance low." });
+      toast({ variant: 'destructive', title: "No Coins", description: "आपका बैलेंस कम है।" });
       return;
     }
 
     setIsBetting(true);
     try {
-      // Atomic update
       await updateDoc(doc(firestore, 'users', user.uid), {
         virtualBalance: increment(-finalAmount)
       });
@@ -224,7 +219,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       setIsBetPanelOpen(false);
     } catch (e: any) {
       console.error("Bet error:", e);
-      toast({ variant: 'destructive', title: "Error", description: "Bet failed." });
+      toast({ variant: 'destructive', title: "Error", description: "बेट फेल हो गई।" });
     } finally {
       setIsBetting(false);
     }
@@ -358,6 +353,10 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             <TabsContent value="my" className="m-0 p-4 space-y-3 bg-secondary/5 min-h-[300px]">
                 {myBets?.map(bet => {
                     const matchedResult = results?.find(r => r.period === bet.period);
+                    const isWin = bet.status === 'win';
+                    const isLoss = bet.status === 'loss';
+                    const isPending = bet.status === 'pending';
+
                     return (
                         <div key={bet.id} className="bg-white p-5 rounded-3xl border border-border shadow-sm flex items-center justify-between group active:scale-[0.98] transition-all">
                             <div className="space-y-2">
@@ -371,10 +370,13 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                                 )}
                             </div>
                             <div className="text-right">
-                                <p className={cn("font-black text-lg", bet.status === 'win' ? "text-green-600" : bet.status === 'loss' ? "text-red-500" : "text-primary animate-pulse")}>
-                                    {bet.status === 'win' ? `+₹${bet.winAmount?.toFixed(0)}` : bet.status === 'loss' ? `-₹${bet.amount}` : 'Wait...'}
+                                <p className={cn(
+                                  "font-black text-lg", 
+                                  isWin ? "text-green-600" : isLoss ? "text-red-500" : "text-primary animate-pulse"
+                                )}>
+                                    {isWin ? `+₹${bet.winAmount?.toFixed(0)}` : isLoss ? `-₹${bet.amount}` : 'Wait...'}
                                 </p>
-                                <p className="text-[8px] text-muted-foreground font-bold uppercase mt-1">Amount: ₹{bet.amount}</p>
+                                <p className="text-[8px] text-muted-foreground font-bold uppercase mt-1">Stake: ₹{bet.amount}</p>
                             </div>
                         </div>
                     );
@@ -435,3 +437,4 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     </div>
   );
 }
+
