@@ -19,14 +19,13 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // --- GAME RESULTS RULES (OPTIMIZED) ---
+    // --- GAME RESULTS RULES (GLOBAL & SECURE) ---
     match /game_results/{periodId} {
-      // Results can be seen by everyone
+      // Everyone can see history
       allow get, list: if true;
-      // Any logged in user can "propose" the next result (first one wins)
-      // We use create because we use periodId as doc ID to prevent duplicates
-      allow create: if isAuthenticated();
-      // Strictly prevent updating or deleting results
+      // Only authenticated users can "propose" a result. 
+      // Rule prevents updating or deleting once created.
+      allow create: if isAuthenticated() && !exists(/databases/$(database)/documents/game_results/$(periodId));
       allow update, delete: if false;
     }
 
@@ -36,7 +35,6 @@ service cloud.firestore {
       allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
 
       match /{collectionName}/{docId} {
-        // Allow list for queries on subcollections like game_bets
         allow read, list: if true;
         allow write, create, delete: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       }

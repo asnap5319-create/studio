@@ -46,63 +46,62 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   
   const processedPeriods = useRef<Set<string>>(new Set());
 
-  // Result generation logic (Internal)
+  // GLOBAL RESULT GENERATION (Idempotent)
   const generateResult = async (periodToProcess: string) => {
     if (!firestore || !user) return;
     
-    // Prevent duplicate processing in same session
+    // Safety check to prevent spamming from the same client
     if (processedPeriods.current.has(periodToProcess)) return;
     processedPeriods.current.add(periodToProcess);
 
     try {
         const resultDocRef = doc(firestore, 'game_results', periodToProcess);
-        const docSnap = await getDoc(resultDocRef);
+        
+        // Attempt to create. Rule "allow create: if !exists(...)" handles race conditions for multiple users.
+        const num = Math.floor(Math.random() * 10);
+        let color: 'red' | 'green' | 'violet' | 'red-violet' | 'green-violet' = 'red';
+        
+        if (num === 0) color = 'red-violet';
+        else if (num === 5) color = 'green-violet';
+        else if ([1, 3, 7, 9].includes(num)) color = 'green';
+        else color = 'red';
 
-        // Only create if it doesn't exist to prevent errors and ensure single result
-        if (!docSnap.exists()) {
-            const num = Math.floor(Math.random() * 10);
-            let color: 'red' | 'green' | 'violet' | 'red-violet' | 'green-violet' = 'red';
-            
-            if (num === 0) color = 'red-violet';
-            else if (num === 5) color = 'green-violet';
-            else if ([1, 3, 7, 9].includes(num)) color = 'green';
-            else color = 'red';
+        const size = num >= 5 ? 'big' : 'small';
 
-            const size = num >= 5 ? 'big' : 'small';
+        await setDoc(resultDocRef, {
+            id: periodToProcess,
+            period: periodToProcess,
+            number: num,
+            color,
+            size,
+            createdAt: serverTimestamp()
+        }, { merge: false });
 
-            await setDoc(resultDocRef, {
-                id: periodToProcess,
-                period: periodToProcess,
-                number: num,
-                color,
-                size,
-                createdAt: serverTimestamp()
-            });
-        }
     } catch (e: any) {
-        if (e.code !== 'permission-denied') {
-            console.error("Result generation error:", e);
-            processedPeriods.current.delete(periodToProcess);
+        // If someone else already wrote the result, this will fail silently via security rules
+        if (e.code !== 'permission-denied' && e.code !== 'already-exists') {
+            console.error("Global Result generation error:", e);
         }
     }
   };
 
+  // REAL-TIME SYNCED TIMER & PERIOD
   useEffect(() => {
     const updateTimer = () => {
       const now = new Date();
-      const seconds = now.getSeconds();
+      const seconds = now.getUTCSeconds(); // Use UTC for true global sync
       const remaining = 30 - (seconds % 30);
       setTimeLeft(remaining);
 
-      // Period ID: YYYYMMDD + Sequence (4 digits)
+      // Deterministic Global Period ID: YYYYMMDD + Global Index
       const datePart = format(now, 'yyyyMMdd');
-      const minutePart = now.getHours() * 60 + now.getMinutes();
-      const roundPart = Math.floor(seconds / 30);
-      const periodId = `${datePart}${(minutePart * 2 + roundPart).toString().padStart(4, '0')}`;
+      const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+      const roundIndex = Math.floor(seconds / 30);
+      const periodId = `${datePart}${(utcMinutes * 2 + roundIndex).toString().padStart(4, '0')}`;
       
       if (periodId !== currentPeriod) {
-        // When period changes, generate result for the PREVIOUS period immediately
         if (currentPeriod) {
+            // Previous round just ended, trigger global result creation
             generateResult(currentPeriod);
         }
         setCurrentPeriod(periodId);
@@ -114,21 +113,21 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     return () => clearInterval(interval);
   }, [currentPeriod, firestore, user]);
 
-  // Real-time Game History (Limited to 100 for daily view)
+  // Real-time Global History
   const resultsQuery = useMemoFirebase(() => 
-    firestore ? query(collection(firestore, 'game_results'), orderBy('period', 'desc'), limit(100)) : null, 
+    firestore ? query(collection(firestore, 'game_results'), orderBy('period', 'desc'), limit(50)) : null, 
     [firestore]
   );
   const { data: results } = useCollection<GameResult>(resultsQuery);
 
-  // Real-time My Bets
+  // Real-time User Bets
   const myBetsQuery = useMemoFirebase(() => 
     (firestore && user) ? query(collection(firestore, 'users', user.uid, 'game_bets'), orderBy('createdAt', 'desc'), limit(50)) : null, 
     [firestore, user]
   );
   const { data: myBets } = useCollection<Bet>(myBetsQuery);
 
-  // Auto-settlement Logic
+  // GLOBAL SETTLEMENT (Runs on client but validated by the one-time result)
   useEffect(() => {
     if (!firestore || !user || !results || results.length === 0 || !myBets) return;
 
@@ -175,15 +174,15 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             batch.update(doc(firestore, 'users', user.uid), {
                 virtualBalance: increment(totalWin)
             });
-            toast({ title: "Win Notification! 💰", description: `You won ₹${totalWin.toFixed(2)} in the last round!` });
+            toast({ title: "Jackpot! 💰", description: `Aap ₹${totalWin.toFixed(0)} coins jeet gaye!` });
         }
         batch.commit().catch(err => console.error("Settlement error:", err));
     }
-  }, [results, myBets, firestore, user, toast]);
+  }, [results, myBets, firestore, user]);
 
   const handleOpenBetPanel = (option: string | number) => {
     if (timeLeft < 5) {
-        toast({ variant: 'destructive', title: "Round Locked", description: "Wait for next round (Last 5s locked)." });
+        toast({ variant: 'destructive', title: "Round Locked", description: "Wait for next round." });
         return;
     }
     setSelectedOption(option);
@@ -194,20 +193,20 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     if (!user || !firestore || isBetting || selectedOption === null || !userProfile) return;
 
     if (timeLeft < 5) {
-        toast({ variant: 'destructive', title: "Round Locked", description: "Too late! Wait for next round." });
+        toast({ variant: 'destructive', title: "Round Locked", description: "Round is locking, try next." });
         setIsBetPanelOpen(false);
         return;
     }
 
     const finalAmount = parseInt(betAmount) * multiplier;
-    const currentBalance = userProfile.virtualBalance || 0;
-    if (finalAmount > currentBalance) {
-      toast({ variant: 'destructive', title: "Insufficient Coins", description: `You need ₹${finalAmount} coins.` });
+    if (finalAmount > (userProfile.virtualBalance || 0)) {
+      toast({ variant: 'destructive', title: "No Coins", description: "Incentive balance low." });
       return;
     }
 
     setIsBetting(true);
     try {
+      // Atomic update
       await updateDoc(doc(firestore, 'users', user.uid), {
         virtualBalance: increment(-finalAmount)
       });
@@ -221,11 +220,11 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         createdAt: serverTimestamp()
       });
 
-      toast({ title: "Bet Success! 🚀" });
+      toast({ title: "Bet Placed! ✅" });
       setIsBetPanelOpen(false);
     } catch (e: any) {
       console.error("Bet error:", e);
-      toast({ variant: 'destructive', title: "Error", description: "Failed to place bet." });
+      toast({ variant: 'destructive', title: "Error", description: "Bet failed." });
     } finally {
       setIsBetting(false);
     }
@@ -247,7 +246,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   return (
     <div className="space-y-4 select-none pb-20">
       {/* Header Dashboard */}
-      <div className="bg-[#f95959] rounded-2xl p-5 text-white flex justify-between items-center shadow-lg animate-in fade-in duration-500">
+      <div className="bg-[#f95959] rounded-2xl p-5 text-white flex justify-between items-center shadow-lg">
         <div className="space-y-3">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-90">WinGo 30sec</p>
             <div className="flex gap-1.5">
@@ -274,9 +273,9 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       {/* Betting Pad */}
       <div className="bg-white rounded-[2.5rem] p-6 shadow-xl border border-border/50 space-y-6">
           <div className="grid grid-cols-3 gap-4">
-              <Button onClick={() => handleOpenBetPanel('green')} className="bg-green-500 hover:bg-green-600 h-14 rounded-2xl font-black uppercase text-xs shadow-lg active:scale-95 transition-all">Green</Button>
-              <Button onClick={() => handleOpenBetPanel('violet')} className="bg-purple-500 hover:bg-purple-600 h-14 rounded-2xl font-black uppercase text-xs shadow-lg active:scale-95 transition-all">Violet</Button>
-              <Button onClick={() => handleOpenBetPanel('red')} className="bg-red-500 hover:bg-red-600 h-14 rounded-2xl font-black uppercase text-xs shadow-lg active:scale-95 transition-all">Red</Button>
+              <Button onClick={() => handleOpenBetPanel('green')} className="bg-green-500 hover:bg-green-600 h-14 rounded-2xl font-black uppercase text-xs">Green</Button>
+              <Button onClick={() => handleOpenBetPanel('violet')} className="bg-purple-500 hover:bg-purple-600 h-14 rounded-2xl font-black uppercase text-xs">Violet</Button>
+              <Button onClick={() => handleOpenBetPanel('red')} className="bg-red-500 hover:bg-red-600 h-14 rounded-2xl font-black uppercase text-xs">Red</Button>
           </div>
 
           <div className="bg-[#f6f7ff] p-5 rounded-[2rem] border border-blue-50/50 shadow-inner">
@@ -290,7 +289,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                         getNumberBgClass(num)
                       )}
                     >
-                      <div className="absolute inset-1 rounded-full border-2 border-white/20" />
                       {num}
                     </button>
                   ))}
@@ -298,25 +296,23 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           </div>
 
           <div className="flex justify-between items-center gap-2">
-              <button className="flex-1 bg-white border border-border h-10 rounded-xl text-[10px] font-black text-muted-foreground uppercase shadow-sm">Random</button>
               {[1, 5, 10, 20, 50, 100].map(m => (
                   <button key={m} onClick={() => setMultiplier(m)} className={cn("flex-1 h-10 rounded-xl text-[10px] font-black uppercase transition-all shadow-sm", multiplier === m ? "bg-green-500 text-white" : "bg-[#f1f3ff] text-muted-foreground")}>X{m}</button>
               ))}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-              <Button onClick={() => handleOpenBetPanel('big')} className="bg-[#ffae42] hover:bg-[#f39c12] h-14 rounded-l-full rounded-r-none font-black uppercase text-sm text-white shadow-md">Big</Button>
-              <Button onClick={() => handleOpenBetPanel('small')} className="bg-[#5d83ff] hover:bg-[#3498db] h-14 rounded-r-full rounded-l-none font-black uppercase text-sm text-white shadow-md">Small</Button>
+              <Button onClick={() => handleOpenBetPanel('big')} className="bg-[#ffae42] hover:bg-[#f39c12] h-14 rounded-l-full rounded-r-none font-black uppercase text-sm text-white">Big</Button>
+              <Button onClick={() => handleOpenBetPanel('small')} className="bg-[#5d83ff] hover:bg-[#3498db] h-14 rounded-r-full rounded-l-none font-black uppercase text-sm text-white">Small</Button>
           </div>
       </div>
 
       {/* History Tabs */}
       <div className="bg-white rounded-[2.5rem] overflow-hidden shadow-2xl border border-border/50">
         <Tabs defaultValue="results" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-[#f1f3ff] p-0 h-14 rounded-none">
+            <TabsList className="grid w-full grid-cols-2 bg-[#f1f3ff] p-0 h-14 rounded-none">
                 <TabsTrigger value="results" className="rounded-none font-black text-[11px] uppercase data-[state=active]:bg-white data-[state=active]:text-[#f95959]">Game History</TabsTrigger>
-                <TabsTrigger value="chart" className="rounded-none font-black text-[11px] uppercase data-[state=active]:bg-white data-[state=active]:text-[#f95959]">Trends</TabsTrigger>
-                <TabsTrigger value="my" className="rounded-none font-black text-[11px] uppercase data-[state=active]:bg-white data-[state=active]:text-[#f95959]">My History</TabsTrigger>
+                <TabsTrigger value="my" className="rounded-none font-black text-[11px] uppercase data-[state=active]:bg-white data-[state=active]:text-[#f95959]">My Bets</TabsTrigger>
             </TabsList>
 
             <TabsContent value="results" className="m-0">
@@ -325,14 +321,14 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                         <thead className="bg-[#f95959] text-white">
                             <tr className="text-[10px] font-black uppercase">
                                 <th className="py-4 px-4 text-center">Period</th>
-                                <th className="py-4 px-2 text-center">Num</th>
-                                <th className="py-4 px-2 text-center">Size</th>
+                                <th className="py-4 px-2 text-center">Number</th>
+                                <th className="py-4 px-2 text-center">Big Small</th>
                                 <th className="py-4 px-4 text-center">Color</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border/20">
                             {results?.map(res => (
-                                <tr key={res.id} className="text-[13px] hover:bg-secondary/5 animate-in fade-in slide-in-from-top-2 duration-500">
+                                <tr key={res.id} className="text-[13px] hover:bg-secondary/5">
                                     <td className="py-4 px-4 text-center text-muted-foreground font-bold tracking-tighter">{res.period}</td>
                                     <td className={cn("py-4 px-2 text-center font-black text-xl", getNumberColorClass(res.number))}>
                                         {res.number}
@@ -359,7 +355,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                 </div>
             </TabsContent>
 
-            <TabsContent value="my" className="m-0 p-4 space-y-3 bg-secondary/5">
+            <TabsContent value="my" className="m-0 p-4 space-y-3 bg-secondary/5 min-h-[300px]">
                 {myBets?.map(bet => {
                     const matchedResult = results?.find(r => r.period === bet.period);
                     return (
@@ -376,7 +372,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                             </div>
                             <div className="text-right">
                                 <p className={cn("font-black text-lg", bet.status === 'win' ? "text-green-600" : bet.status === 'loss' ? "text-red-500" : "text-primary animate-pulse")}>
-                                    {bet.status === 'win' ? `+₹${bet.winAmount?.toFixed(2)}` : bet.status === 'loss' ? `-₹${bet.amount}` : 'Pending...'}
+                                    {bet.status === 'win' ? `+₹${bet.winAmount?.toFixed(0)}` : bet.status === 'loss' ? `-₹${bet.amount}` : 'Wait...'}
                                 </p>
                                 <p className="text-[8px] text-muted-foreground font-bold uppercase mt-1">Amount: ₹{bet.amount}</p>
                             </div>
@@ -384,7 +380,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                     );
                 })}
                 {(!myBets || myBets.length === 0) && (
-                    <div className="text-center py-20 opacity-30 italic text-sm font-bold uppercase tracking-widest">No Bet History</div>
+                    <div className="text-center py-20 opacity-30 italic text-sm font-bold uppercase tracking-widest">No history yet</div>
                 )}
             </TabsContent>
         </Tabs>
@@ -392,7 +388,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
       {/* Bet Panel Dialog */}
       <Dialog open={isBetPanelOpen} onOpenChange={setIsBetPanelOpen}>
-        <DialogContent className="max-w-[420px] bg-background border-border rounded-[3rem] p-0 overflow-hidden z-[1000] animate-in zoom-in-95 duration-300">
+        <DialogContent className="max-w-[420px] bg-background border-border rounded-[3rem] p-0 overflow-hidden z-[1000]">
            <DialogHeader className="p-8 pb-0">
               <div className="flex items-center justify-between">
                 <DialogTitle className="text-2xl font-black italic uppercase text-foreground tracking-tighter">Place Bet (X{multiplier})</DialogTitle>
