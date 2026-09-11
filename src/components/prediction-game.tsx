@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit, doc, updateDoc, increment, addDoc, serverTimestamp, writeBatch, getDocs, where } from 'firebase/firestore';
+import { collection, query, orderBy, limit, doc, updateDoc, increment, setDoc, serverTimestamp, writeBatch, getDocs, where, getDoc } from 'firebase/firestore';
 import { Timer, History, Trophy, Coins, CheckCircle2, AlertCircle, TrendingUp, Info, Zap, X, Loader2, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -72,11 +72,11 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         processedPeriods.current.add(periodToProcess);
 
         try {
-            const resultsRef = collection(firestore, 'game_results');
-            const q = query(resultsRef, where('period', '==', periodToProcess), limit(1));
-            const snapshot = await getDocs(q);
+            // Use setDoc with period ID to ensure only one result exists per period
+            const resultDocRef = doc(firestore, 'game_results', periodToProcess);
+            const docSnap = await getDoc(resultDocRef);
 
-            if (snapshot.empty) {
+            if (!docSnap.exists()) {
                 const num = Math.floor(Math.random() * 10);
                 let color: 'red' | 'green' | 'violet' | 'red-violet' | 'green-violet' = 'red';
                 
@@ -87,19 +87,22 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
                 const size = num >= 5 ? 'big' : 'small';
 
-                await addDoc(collection(firestore, 'game_results'), {
+                // We use setDoc which will trigger 'create' permission in rules
+                await setDoc(resultDocRef, {
                     period: periodToProcess,
                     number: num,
                     color,
                     size,
                     createdAt: serverTimestamp()
                 });
+                console.log(`Result generated for ${periodToProcess}: ${num} (${size})`);
             }
         } catch (e: any) {
             if (e.code === 'permission-denied') {
-                console.warn("Result generation skip: Another user or admin is writing.");
+                // This is expected if another client already wrote the result
+                console.warn("Result already exists or another user is writing.");
             } else {
-                console.error("Result generation failed:", e);
+                console.error("Result generation error:", e);
                 processedPeriods.current.delete(periodToProcess);
             }
         }
@@ -122,6 +125,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   );
   const { data: myBets } = useCollection<Bet>(myBetsQuery);
 
+  // Process payouts when results update
   useEffect(() => {
     if (!firestore || !user || !results || results.length === 0 || !myBets) return;
 
@@ -163,17 +167,17 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             batch.update(doc(firestore, 'users', user.uid), {
                 virtualBalance: increment(totalWin)
             });
-            toast({ title: "Congratulations! 🎉", description: `You won ₹${totalWin.toFixed(2)} coins in round ${latestResult.period.slice(-4)}!` });
+            toast({ title: "Congratulations! 🎉", description: `You won ₹${totalWin.toFixed(2)} in round ${latestResult.period.slice(-4)}!` });
         }
         batch.commit().catch(err => {
-            console.error("Payout failed:", err);
+            console.error("Payout process error:", err);
         });
     }
   }, [results, myBets, firestore, user, toast]);
 
   const handleOpenBetPanel = (option: string | number) => {
     if (timeLeft < 5) {
-        toast({ variant: 'destructive', title: "Wait for Next Round", description: "Round is locked (last 5 seconds)." });
+        toast({ variant: 'destructive', title: "Round Locked", description: "Wait for next round (5s lock)." });
         return;
     }
     setSelectedOption(option);
@@ -184,7 +188,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     if (!user || !firestore || isBetting || selectedOption === null || !userProfile) return;
 
     if (timeLeft < 5) {
-        toast({ variant: 'destructive', title: "Round Locked", description: "Please wait for the next round." });
+        toast({ variant: 'destructive', title: "Round Locked", description: "Too late! Wait for next round." });
         setIsBetPanelOpen(false);
         return;
     }
@@ -192,7 +196,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     const finalAmount = parseInt(betAmount) * multiplier;
     const currentBalance = userProfile.virtualBalance || 0;
     if (finalAmount > currentBalance) {
-      toast({ variant: 'destructive', title: "Insufficient Balance", description: `Wallet: ₹${currentBalance}` });
+      toast({ variant: 'destructive', title: "Insufficient Coins", description: `Available: ₹${currentBalance}` });
       return;
     }
 
@@ -211,11 +215,11 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         createdAt: serverTimestamp()
       });
 
-      toast({ title: "Bet Placed! 🚀" });
+      toast({ title: "Bet Confirmed! 🚀" });
       setIsBetPanelOpen(false);
     } catch (e: any) {
-      console.error("Bet placement error:", e);
-      toast({ variant: 'destructive', title: "Error", description: e.message || "Could not place bet." });
+      console.error("Bet error:", e);
+      toast({ variant: 'destructive', title: "Error", description: "Failed to place bet. Try again." });
     } finally {
       setIsBetting(false);
     }
@@ -237,6 +241,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
   return (
     <div className="space-y-4 select-none pb-20">
+      {/* Header with Timer */}
       <div className="bg-[#f95959] rounded-2xl p-4 text-white flex justify-between items-center shadow-lg">
         <div className="space-y-2">
             <p className="text-[10px] font-bold uppercase tracking-wider opacity-90">WinGo 30sec</p>
@@ -261,6 +266,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </div>
       </div>
 
+      {/* Main Betting Grid */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/50 space-y-6">
           <div className="grid grid-cols-3 gap-4">
               <Button onClick={() => handleOpenBetPanel('green')} className="bg-green-500 hover:bg-green-600 h-12 rounded-xl font-black uppercase text-sm">Green</Button>
@@ -299,6 +305,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           </div>
       </div>
 
+      {/* Tabs for History */}
       <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-border/50">
         <Tabs defaultValue="results" className="w-full">
             <TabsList className="grid w-full grid-cols-3 bg-[#f1f3ff] p-0 h-12 rounded-none">
@@ -360,10 +367,14 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                         </div>
                     );
                 })}
+                {(!myBets || myBets.length === 0) && (
+                    <div className="text-center py-10 opacity-30 italic text-sm">No betting history</div>
+                )}
             </TabsContent>
         </Tabs>
       </div>
 
+      {/* Bet Selection Dialog */}
       <Dialog open={isBetPanelOpen} onOpenChange={setIsBetPanelOpen}>
         <DialogContent className="max-w-[400px] bg-background border-border rounded-[2.5rem] p-0 overflow-hidden z-[1000]">
            <DialogHeader className="p-6 pb-0">
