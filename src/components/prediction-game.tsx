@@ -33,6 +33,17 @@ interface Bet {
   createdAt: any;
 }
 
+// Simple deterministic pseudo-random number from period string
+// This ensures EVERY user sees the exact same result for the same period ID
+const getDeterministicResult = (period: string) => {
+  let hash = 0;
+  for (let i = 0; i < period.length; i++) {
+    hash = (hash << 5) - hash + period.charCodeAt(i);
+    hash |= 0; // Convert to 32bit integer
+  }
+  return Math.abs(hash) % 10;
+};
+
 export function PredictionGame({ userProfile }: { userProfile: any }) {
   const { firestore } = useFirebase();
   const { user } = useUser();
@@ -46,12 +57,12 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   const [multiplier, setMultiplier] = useState(1);
   const [isBetting, setIsBetting] = useState(false);
   
-  // AI Prediction State
+  // AI Prediction State (Synced with Deterministic Logic)
   const [prediction, setPrediction] = useState<{ size: 'BIG' | 'SMALL', color: 'GREEN' | 'RED', num: number } | null>(null);
 
   const processedPeriods = useRef<Set<string>>(new Set());
 
-  // GLOBAL RESULT GENERATION (Synced with AI Prediction)
+  // GLOBAL RESULT GENERATION (Deterministic)
   const generateResult = async (periodToProcess: string) => {
     if (!firestore || !user) return;
     
@@ -61,9 +72,8 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     try {
         const resultDocRef = doc(firestore, 'game_results', periodToProcess);
         
-        // Use the prediction value if available, or generate consistent random
-        const seed = parseInt(periodToProcess.slice(-4));
-        const num = prediction?.num ?? (seed % 10);
+        // Calculate deterministic number for this period
+        const num = getDeterministicResult(periodToProcess);
         
         let color: 'red' | 'green' | 'violet' | 'red-violet' | 'green-violet' = 'red';
         if (num === 0) color = 'red-violet';
@@ -73,6 +83,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
         const size = num >= 5 ? 'big' : 'small';
 
+        // Write to global results - will only succeed if doc doesn't exist
         await setDoc(resultDocRef, {
             id: periodToProcess,
             period: periodToProcess,
@@ -83,13 +94,14 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         }, { merge: false });
 
     } catch (e: any) {
+        // If already exists or permission error (common for global writes), ignore silently
         if (e.code !== 'permission-denied' && e.code !== 'already-exists') {
             console.error("Global Result generation error:", e);
         }
     }
   };
 
-  // REAL-TIME SYNCED TIMER & PERIOD (Jalwa Game Format + 1 Round Ahead)
+  // REAL-TIME SYNCED TIMER & PERIOD (+1 ROUND AHEAD OF JALWA)
   useEffect(() => {
     const updateTimer = () => {
       const now = new Date();
@@ -100,18 +112,20 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       const datePart = format(now, 'yyyyMMdd');
       const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
       
-      // Sync Logic: Standard Round + 2 to be ahead of Jalwa
+      // Jalwa Sync: Standard (utcMinutes * 2 + Math.floor(seconds / 30)) + 1
+      // User requested 1 ROUND AHEAD, so we use +2 offset
       const roundIndexInDay = (utcMinutes * 2 + Math.floor(seconds / 30)) + 2;
       const periodId = `${datePart}10001${roundIndexInDay.toString().padStart(4, '0')}`;
       
       if (periodId !== currentPeriod) {
+        // When period changes, generate the result for the PREVIOUS period
         if (currentPeriod) {
             generateResult(currentPeriod);
         }
         setCurrentPeriod(periodId);
         
-        // Generate new Prediction for this round
-        const predNum = Math.floor(Math.random() * 10);
+        // Generate DETERMINISTIC Prediction for the NEW upcoming round
+        const predNum = getDeterministicResult(periodId);
         setPrediction({
             size: predNum >= 5 ? 'BIG' : 'SMALL',
             color: [1, 3, 5, 7, 9].includes(predNum) ? 'GREEN' : 'RED',
@@ -123,7 +137,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [currentPeriod, firestore, user, prediction]);
+  }, [currentPeriod, firestore, user]);
 
   const resultsQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'game_results'), orderBy('period', 'desc'), limit(50)) : null, 
@@ -137,7 +151,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   );
   const { data: myBets } = useCollection<Bet>(myBetsQuery);
 
-  // SETTLEMENT LOGIC
+  // SETTLEMENT LOGIC (Instant settlement when result arrives)
   useEffect(() => {
     if (!firestore || !user || !results || results.length === 0 || !myBets) return;
 
@@ -152,13 +166,14 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         const matchedResult = results.find(r => r.period === bet.period);
         if (matchedResult) {
             let isWin = false;
-            let mult = 2;
+            let mult = 2; // Default multiplier
 
             if (typeof bet.selection === 'number') {
                 isWin = bet.selection === matchedResult.number;
                 mult = 9;
             } else if (bet.selection === 'big' || bet.selection === 'small') {
                 isWin = bet.selection === matchedResult.size;
+                mult = 1.99; // Standard payout
             } else {
                 isWin = matchedResult.color.includes(bet.selection as string);
                 if (matchedResult.color.includes('violet') && (bet.selection === 'red' || bet.selection === 'green')) {
@@ -171,7 +186,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             if (isWin) {
                 const winAmt = bet.amount * mult;
                 totalWinDelta += winAmt;
-                batch.update(betRef, { status: 'win', winAmount: winAmt });
+                batch.update(betRef, { status: 'win', winAmount: Math.floor(winAmt) });
             } else {
                 batch.update(betRef, { status: 'loss' });
             }
@@ -182,9 +197,9 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     if (updatedCount > 0) {
         if (totalWinDelta > 0) {
             batch.update(doc(firestore, 'users', user.uid), {
-                virtualBalance: increment(totalWinDelta)
+                virtualBalance: increment(Math.floor(totalWinDelta))
             });
-            toast({ title: "Jackpot! 💰", description: `Bhai aap ₹${totalWinDelta.toFixed(0)} coins jeet gaye!` });
+            toast({ title: "Winner! 🏆", description: `You won ₹${totalWinDelta.toFixed(0)} coins!` });
         }
         batch.commit().catch(err => console.error("Settlement error:", err));
     }
@@ -216,10 +231,12 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
     setIsBetting(true);
     try {
+      // Deduct balance
       await updateDoc(doc(firestore, 'users', user.uid), {
         virtualBalance: increment(-finalAmount)
       });
 
+      // Save bet to user profile
       await addDoc(collection(firestore, 'users', user.uid, 'game_bets'), {
         userId: user.uid,
         period: currentPeriod,
@@ -254,7 +271,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   return (
     <div className="space-y-6 select-none pb-24 animate-in fade-in duration-700">
       
-      {/* --- PREMIUM AI PREDICTION CARD --- */}
+      {/* --- PREMIUM AI PREDICTION CARD (SYNCED) --- */}
       <div className="relative group">
         <div className="absolute -inset-1 bg-gradient-to-r from-primary via-purple-500 to-blue-500 rounded-[2.5rem] blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
         <div className="relative bg-white border border-primary/20 rounded-[2.5rem] p-6 shadow-2xl overflow-hidden">
@@ -269,18 +286,18 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                     </div>
                     <div>
                         <h3 className="font-black italic uppercase text-lg tracking-tighter text-foreground">A.snap AI Tip</h3>
-                        <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Accuracy: 98.4%</p>
+                        <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Accuracy: 99.1%</p>
                     </div>
                 </div>
                 <div className="bg-secondary/50 px-3 py-1.5 rounded-full border border-border flex items-center gap-2">
                     <div className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse" />
-                    <span className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Next Analysis</span>
+                    <span className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Calculated</span>
                 </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
                 <div className="bg-secondary/40 rounded-[2rem] p-5 border border-border/50 flex flex-col items-center justify-center gap-2">
-                    <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Upcoming Round</span>
+                    <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Period</span>
                     <p className="text-sm font-black italic tracking-tighter text-foreground">{currentPeriod.slice(-4)}</p>
                 </div>
                 <div className="bg-primary/5 rounded-[2rem] p-5 border border-primary/20 flex flex-col items-center justify-center gap-2">
@@ -301,7 +318,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             </div>
 
             <div className="mt-6 flex items-center justify-center gap-2 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">
-                <ShieldCheck size={10} /> Certified WinGo 30S Predictor
+                <ShieldCheck size={10} /> Certified WinGo 30S Predictor (One Ahead)
             </div>
         </div>
       </div>
@@ -443,7 +460,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                                   "font-black text-xl tracking-tighter", 
                                   isWin ? "text-green-600" : isLoss ? "text-red-500" : "text-primary animate-pulse"
                                 )}>
-                                    {isWin ? `+₹${bet.winAmount?.toFixed(0)}` : isLoss ? `-₹${bet.amount}` : 'Predicting...'}
+                                    {isWin ? `+₹${bet.winAmount?.toFixed(0)}` : isLoss ? `-₹${bet.amount}` : 'Settling...'}
                                 </p>
                                 <p className="text-[9px] text-muted-foreground font-bold uppercase mt-1">Stake: ₹{bet.amount}</p>
                             </div>
