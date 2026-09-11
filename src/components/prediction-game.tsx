@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -66,7 +65,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     return () => clearInterval(interval);
   }, []);
 
-  // --- Auto Generate Results (Server Prototype Simulation) ---
+  // --- Auto Generate Results (Simulation) ---
   useEffect(() => {
     if (timeLeft === 1 && firestore) {
       const timeout = setTimeout(async () => {
@@ -109,7 +108,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   );
   const { data: myBets } = useCollection<Bet>(myBetsQuery);
 
-  // --- Result Processing & Winning Calculation ---
+  // --- Winning Calculation ---
   useEffect(() => {
     if (!firestore || !user || !results || results.length === 0 || !myBets) return;
 
@@ -159,7 +158,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
   const handleOpenBetPanel = (option: string | number) => {
     if (timeLeft < 5) {
-        toast({ variant: 'destructive', title: "Wait for Next Round", description: "This round is locked (last 5 seconds)." });
+        toast({ variant: 'destructive', title: "Wait for Next Round", description: "Round is locked (last 5 seconds)." });
         return;
     }
     setSelectedOption(option);
@@ -167,27 +166,18 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   };
 
   const handlePlaceBet = async () => {
-    if (!user || !firestore || isBetting || selectedOption === null || !userProfile) {
-        if (!userProfile) toast({ variant: 'destructive', title: "Error", description: "Profile loading, please wait." });
-        return;
-    }
+    if (!user || !firestore || isBetting || selectedOption === null || !userProfile) return;
 
     if (timeLeft < 5) {
-        toast({ variant: 'destructive', title: "Round Locked", description: "Too late! Please wait for the next round." });
+        toast({ variant: 'destructive', title: "Round Locked", description: "Please wait for the next round." });
         setIsBetPanelOpen(false);
         return;
     }
 
     const finalAmount = parseInt(betAmount) * multiplier;
-
-    if (isNaN(finalAmount) || finalAmount < 1) {
-      toast({ variant: 'destructive', title: "Invalid Amount", description: "Minimum bet is 1 coin." });
-      return;
-    }
-
     const currentBalance = userProfile.virtualBalance || 0;
     if (finalAmount > currentBalance) {
-      toast({ variant: 'destructive', title: "Insufficient Balance", description: `You only have ₹${currentBalance} coins.` });
+      toast({ variant: 'destructive', title: "Insufficient Balance", description: `Wallet: ₹${currentBalance}` });
       return;
     }
 
@@ -206,36 +196,39 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         createdAt: serverTimestamp()
       });
 
-      toast({ title: "Bet Placed! 🚀", description: `₹${finalAmount} on ${selectedOption} for round ${currentPeriod.slice(-4)}` });
+      toast({ title: "Bet Placed! 🚀" });
       setIsBetPanelOpen(false);
     } catch (e: any) {
-      console.error("Bet error details:", e);
-      toast({ 
-        variant: 'destructive', 
-        title: "Bet Failed ❌", 
-        description: e.message || "Failed to place bet. Check your connection." 
-      });
+      console.error(e);
+      toast({ variant: 'destructive', title: "Error", description: "Could not place bet." });
     } finally {
       setIsBetting(false);
     }
   };
 
   const getNumberColorClass = (num: number) => {
-      if (num === 0) return "bg-gradient-to-br from-red-500 to-purple-500";
-      if (num === 5) return "bg-gradient-to-br from-green-500 to-purple-500";
-      if ([1, 3, 7, 9].includes(num)) return "bg-green-500";
-      return "bg-red-500";
+      if (num === 0) return "text-purple-500";
+      if (num === 5) return "text-purple-500";
+      if ([1, 3, 7, 9].includes(num)) return "text-green-500";
+      return "text-red-500";
+  };
+
+  const getNumberBgClass = (num: number) => {
+    if (num === 0) return "bg-gradient-to-br from-red-500 to-purple-500";
+    if (num === 5) return "bg-gradient-to-br from-green-500 to-purple-500";
+    if ([1, 3, 7, 9].includes(num)) return "bg-green-500";
+    return "bg-red-500";
   };
 
   return (
     <div className="space-y-4 select-none pb-20">
-      {/* Top Header Card */}
+      {/* Top Timer Card */}
       <div className="bg-[#f95959] rounded-2xl p-4 text-white flex justify-between items-center shadow-lg">
         <div className="space-y-2">
             <p className="text-[10px] font-bold uppercase tracking-wider opacity-90">WinGo 30sec</p>
             <div className="flex gap-1">
                 {results?.slice(0, 5).map(res => (
-                    <div key={res.id} className={cn("w-4 h-4 rounded-full border border-white/30 flex items-center justify-center text-[8px] font-black", getNumberColorClass(res.number))}>
+                    <div key={res.id} className={cn("w-4 h-4 rounded-full border border-white/30 flex items-center justify-center text-[8px] font-black", getNumberBgClass(res.number))}>
                         {res.number}
                     </div>
                 ))}
@@ -243,25 +236,23 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </div>
         <div className="text-right">
             <p className="text-[10px] font-bold uppercase tracking-wider opacity-90 mb-1">Time Remaining</p>
-            <div className="flex items-center gap-2 justify-end">
-                <div className="flex gap-1">
-                    {['0', '0', ':', '0', (timeLeft < 10 ? '0' : timeLeft.toString()[0]), (timeLeft < 10 ? timeLeft.toString() : timeLeft.toString()[1])].map((char, i) => (
-                        <div key={i} className={cn("h-7 w-5 flex items-center justify-center rounded bg-white text-[#f95959] font-black text-lg", char === ':' && "bg-transparent text-white w-2")}>
-                            {char}
-                        </div>
-                    ))}
-                </div>
+            <div className="flex items-center gap-1 justify-end">
+                {['0', '0', ':', '0', (timeLeft < 10 ? '0' : timeLeft.toString()[0]), (timeLeft < 10 ? timeLeft.toString() : timeLeft.toString()[1])].map((char, i) => (
+                    <div key={i} className={cn("h-7 w-5 flex items-center justify-center rounded bg-white text-[#f95959] font-black text-lg", char === ':' && "bg-transparent text-white w-2")}>
+                        {char}
+                    </div>
+                ))}
             </div>
             <p className="text-[11px] font-black mt-1 tracking-tight">{currentPeriod}</p>
         </div>
       </div>
 
-      {/* Action Area */}
+      {/* Buttons Area */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/50 space-y-6">
           <div className="grid grid-cols-3 gap-4">
-              <Button onClick={() => handleOpenBetPanel('green')} className="bg-green-500 hover:bg-green-600 h-12 rounded-xl font-black uppercase text-sm shadow-md">Green</Button>
-              <Button onClick={() => handleOpenBetPanel('violet')} className="bg-purple-500 hover:bg-purple-600 h-12 rounded-xl font-black uppercase text-sm shadow-md">Violet</Button>
-              <Button onClick={() => handleOpenBetPanel('red')} className="bg-red-500 hover:bg-red-600 h-12 rounded-xl font-black uppercase text-sm shadow-md">Red</Button>
+              <Button onClick={() => handleOpenBetPanel('green')} className="bg-green-500 hover:bg-green-600 h-12 rounded-xl font-black uppercase text-sm">Green</Button>
+              <Button onClick={() => handleOpenBetPanel('violet')} className="bg-purple-500 hover:bg-purple-600 h-12 rounded-xl font-black uppercase text-sm">Violet</Button>
+              <Button onClick={() => handleOpenBetPanel('red')} className="bg-red-500 hover:bg-red-600 h-12 rounded-xl font-black uppercase text-sm">Red</Button>
           </div>
 
           <div className="bg-[#f6f7ff] p-4 rounded-3xl border border-blue-50/50">
@@ -271,8 +262,8 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                       key={num}
                       onClick={() => handleOpenBetPanel(num)}
                       className={cn(
-                        "relative w-12 h-12 mx-auto rounded-full font-black text-xl flex items-center justify-center text-white shadow-md active:scale-90 transition-transform",
-                        getNumberColorClass(num)
+                        "relative w-11 h-11 mx-auto rounded-full font-black text-lg flex items-center justify-center text-white shadow-md active:scale-90 transition-transform",
+                        getNumberBgClass(num)
                       )}
                     >
                       <div className="absolute inset-1 rounded-full border-2 border-white/20" />
@@ -285,7 +276,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           <div className="flex justify-between items-center gap-2">
               <button className="flex-1 bg-white border border-border h-9 rounded-md text-[10px] font-bold text-muted-foreground uppercase">Random</button>
               {[1, 5, 10, 20, 50, 100].map(m => (
-                  <button key={m} onClick={() => setMultiplier(m)} className={cn("flex-1 h-9 rounded-md text-[10px] font-bold uppercase transition-all", multiplier === m ? "bg-green-500 text-white shadow-inner" : "bg-[#f1f3ff] text-muted-foreground border border-border/30")}>X{m}</button>
+                  <button key={m} onClick={() => setMultiplier(m)} className={cn("flex-1 h-9 rounded-md text-[10px] font-bold uppercase transition-all", multiplier === m ? "bg-green-500 text-white" : "bg-[#f1f3ff] text-muted-foreground")}>X{m}</button>
               ))}
           </div>
 
@@ -295,55 +286,49 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           </div>
       </div>
 
-      {/* History Area */}
+      {/* Game History Section - MATCHES SCREENSHOT */}
       <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-border/50">
         <Tabs defaultValue="results" className="w-full">
             <TabsList className="grid w-full grid-cols-3 bg-[#f1f3ff] p-0 h-12 rounded-none">
-                <TabsTrigger value="results" className="rounded-none font-bold text-[11px] uppercase tracking-tight data-[state=active]:bg-white data-[state=active]:text-[#f95959]">Game History</TabsTrigger>
-                <TabsTrigger value="chart" className="rounded-none font-bold text-[11px] uppercase tracking-tight data-[state=active]:bg-white data-[state=active]:text-[#f95959]">Chart</TabsTrigger>
-                <TabsTrigger value="my" className="rounded-none font-bold text-[11px] uppercase tracking-tight data-[state=active]:bg-white data-[state=active]:text-[#f95959]">My History</TabsTrigger>
+                <TabsTrigger value="results" className="rounded-none font-bold text-[11px] uppercase data-[state=active]:bg-white data-[state=active]:text-[#f95959]">Game History</TabsTrigger>
+                <TabsTrigger value="chart" className="rounded-none font-bold text-[11px] uppercase data-[state=active]:bg-white data-[state=active]:text-[#f95959]">Chart</TabsTrigger>
+                <TabsTrigger value="my" className="rounded-none font-bold text-[11px] uppercase data-[state=active]:bg-white data-[state=active]:text-[#f95959]">My History</TabsTrigger>
             </TabsList>
 
             <TabsContent value="results" className="m-0">
                 <table className="w-full">
                     <thead className="bg-[#f95959] text-white">
-                        <tr className="text-[11px] font-bold uppercase">
-                            <th className="py-3 px-4 text-left">Period</th>
-                            <th className="py-3 px-4 text-center">Number</th>
-                            <th className="py-3 px-4 text-center">Big Small</th>
-                            <th className="py-3 px-4 text-center">Color</th>
+                        <tr className="text-[10px] font-bold uppercase">
+                            <th className="py-3 px-4 text-center font-black">Period</th>
+                            <th className="py-3 px-2 text-center font-black">Number</th>
+                            <th className="py-3 px-2 text-center font-black">Big Small</th>
+                            <th className="py-3 px-4 text-center font-black">Color</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border/30">
-                        {results?.map(res => {
-                            const displaySize = res.size || (res.number >= 5 ? 'big' : 'small');
-                            return (
-                                <tr key={res.id} className="text-[12px] hover:bg-secondary/10 transition-colors">
-                                    <td className="py-4 px-4 font-medium text-muted-foreground">{res.period}</td>
-                                    <td className={cn("py-4 px-4 text-center font-black text-xl", 
-                                        [1,3,7,9].includes(res.number) ? "text-green-500" : 
-                                        res.number === 0 || res.number === 5 ? "text-purple-500" : "text-red-500"
-                                    )}>
-                                        {res.number}
-                                    </td>
-                                    <td className="py-4 px-4 text-center">
-                                        <span className={cn(
-                                            "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter shadow-sm",
-                                            displaySize === 'big' ? "bg-orange-100 text-orange-600 border border-orange-200" : "bg-blue-100 text-blue-600 border border-blue-200"
-                                        )}>
-                                            {displaySize}
-                                        </span>
-                                    </td>
-                                    <td className="py-4 px-4">
-                                        <div className="flex gap-1.5 justify-center">
-                                            {res.color.includes('green') && <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-sm" />}
-                                            {res.color.includes('red') && <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm" />}
-                                            {res.color.includes('violet') && <div className="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-sm" />}
-                                        </div>
-                                    </td>
-                                </tr>
-                            );
-                        })}
+                        {results?.map(res => (
+                            <tr key={res.id} className="text-[12px] hover:bg-secondary/5">
+                                <td className="py-4 px-4 text-center text-muted-foreground font-medium">{res.period}</td>
+                                <td className={cn("py-4 px-2 text-center font-black text-xl", getNumberColorClass(res.number))}>
+                                    {res.number}
+                                </td>
+                                <td className="py-4 px-2 text-center text-foreground font-bold capitalize">
+                                    {res.size || (res.number >= 5 ? 'Big' : 'Small')}
+                                </td>
+                                <td className="py-4 px-4">
+                                    <div className="flex gap-1 justify-center">
+                                        {res.color.includes('red') && <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm" />}
+                                        {res.color.includes('green') && <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-sm" />}
+                                        {res.color.includes('violet') && <div className="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-sm" />}
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                        {(!results || results.length === 0) && (
+                            <tr>
+                                <td colSpan={4} className="py-10 text-center text-muted-foreground italic text-xs uppercase font-bold">No History Yet</td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </TabsContent>
@@ -356,20 +341,14 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                             <div className="space-y-1">
                                 <p className="text-[10px] font-bold text-muted-foreground uppercase">{bet.period.slice(-4)} Round</p>
                                 <p className="font-black text-sm">Bet: <span className="uppercase text-primary">{bet.selection}</span></p>
-                                <p className="text-[10px] font-bold text-muted-foreground">Amount: ₹{bet.amount}</p>
                                 {matchedResult && (
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <span className="text-[8px] font-black uppercase text-muted-foreground">Result:</span>
-                                        <div className={cn("h-3 w-3 rounded-full", getNumberColorClass(matchedResult.number))} />
-                                        <span className="text-[9px] font-bold text-foreground uppercase">{matchedResult.number} ({matchedResult.size || (matchedResult.number >= 5 ? 'big' : 'small')})</span>
-                                    </div>
+                                    <p className="text-[9px] font-bold text-foreground uppercase">Result: {matchedResult.number} ({matchedResult.size})</p>
                                 )}
                             </div>
                             <div className="text-right">
                                 <p className={cn("font-black text-base", bet.status === 'win' ? "text-green-600" : bet.status === 'loss' ? "text-red-500" : "text-primary animate-pulse")}>
                                     {bet.status === 'win' ? `+₹${bet.winAmount}` : bet.status === 'loss' ? `-₹${bet.amount}` : 'Pending...'}
                                 </p>
-                                <p className="text-[8px] font-bold text-muted-foreground uppercase">{bet.createdAt ? format(bet.createdAt.toDate(), 'HH:mm:ss') : ''}</p>
                             </div>
                         </div>
                     );
@@ -391,11 +370,11 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
            <div className="p-8 space-y-8">
               <div className="bg-[#f1f3ff] p-6 rounded-[2rem] border border-border/50 flex items-center justify-between">
                   <div className="space-y-1">
-                      <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Selection</p>
+                      <p className="text-[10px] font-black uppercase text-muted-foreground">Selection</p>
                       <h4 className="text-3xl font-black italic uppercase text-primary">{selectedOption}</h4>
                   </div>
-                  <div className="text-right space-y-1">
-                      <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Wallet</p>
+                  <div className="text-right">
+                      <p className="text-[10px] font-black uppercase text-muted-foreground">Wallet</p>
                       <p className="text-xl font-black text-foreground">₹{userProfile?.virtualBalance || 0}</p>
                   </div>
               </div>
@@ -404,16 +383,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                   <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Base Amount</p>
                   <div className="grid grid-cols-3 gap-3">
                       {['1', '10', '100', '500', '1000', '5000'].map(val => (
-                          <button 
-                            key={val} 
-                            onClick={() => setBetAmount(val)}
-                            className={cn(
-                                "h-11 rounded-xl font-black text-xs uppercase transition-all active:scale-95 border-2",
-                                betAmount === val ? "bg-primary text-white border-primary shadow-lg" : "bg-background text-foreground border-border"
-                            )}
-                          >
-                              ₹{val}
-                          </button>
+                          <button key={val} onClick={() => setBetAmount(val)} className={cn("h-11 rounded-xl font-black text-xs uppercase border-2 transition-all", betAmount === val ? "bg-primary text-white border-primary shadow-lg" : "bg-background text-foreground border-border")}>₹{val}</button>
                       ))}
                   </div>
               </div>
