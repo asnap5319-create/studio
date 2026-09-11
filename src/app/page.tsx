@@ -28,24 +28,27 @@ function HomeContent() {
   useEffect(() => {
     const initializeUser = async () => {
       if (user && firestore && !isProfileLoading && !isInitializing) {
-        // Only initialize if the profile doesn't exist OR virtualBalance is completely missing (undefined)
-        // If balance is 0, it counts as "defined", so it won't reset to 100.
+        // If userProfile is missing OR virtualBalance is completely undefined
+        // We do a final check from database to ensure 0 is not overwritten with 100
         if (!userProfile || userProfile.virtualBalance === undefined) {
           setIsInitializing(true);
           try {
             const uRef = doc(firestore, 'users', user.uid);
             const snap = await getDoc(uRef);
             
-            // Final check to ensure we don't overwrite 0 with 100
-            if (!snap.exists() || snap.data()?.virtualBalance === undefined) {
-              await setDoc(uRef, {
-                id: user.uid,
-                username: user.displayName || user.email?.split('@')[0] || 'user',
-                email: user.email || '',
-                virtualBalance: 100, // FREE STARTING COINS - ONLY ONCE
-                updatedAt: serverTimestamp()
-              }, { merge: true });
-              console.log("User initialized with 100 coins");
+            // Critical check: if it exists AND balance is a number (even 0), do NOT reset
+            if (snap.exists() && typeof snap.data()?.virtualBalance === 'number') {
+                console.log("User already initialized with balance:", snap.data()?.virtualBalance);
+            } else {
+                // Only if balance is truly missing, give 100 coins
+                await setDoc(uRef, {
+                    id: user.uid,
+                    username: user.displayName || user.email?.split('@')[0] || 'user',
+                    email: user.email || '',
+                    virtualBalance: 100, // FREE STARTING COINS - ONLY ONCE
+                    updatedAt: serverTimestamp()
+                }, { merge: true });
+                console.log("User initialized with 100 coins");
             }
           } catch (err) {
             console.error("Initialization error:", err);
@@ -161,4 +164,3 @@ export default function HomePage() {
     </Suspense>
   );
 }
-

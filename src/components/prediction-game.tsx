@@ -84,7 +84,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     }
   };
 
-  // REAL-TIME SYNCED TIMER & PERIOD (Updated with new ID format)
+  // REAL-TIME SYNCED TIMER & PERIOD (Jalwa Game Format)
   useEffect(() => {
     const updateTimer = () => {
       const now = new Date();
@@ -94,11 +94,11 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
       const datePart = format(now, 'yyyyMMdd');
       const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
-      const roundIndexInDay = utcMinutes * 2 + Math.floor(seconds / 30);
+      // Round index: 1 to 2880 for a 30s game in 24h
+      const roundIndexInDay = (utcMinutes * 2 + Math.floor(seconds / 30)) + 1;
       
-      // अभिषेक भाई के कहे अनुसार नया 17-digit फॉर्मेट: 
-      // YYYYMMDD + 1000 + (50000 + roundIndex)
-      const periodId = `${datePart}1000${(50000 + roundIndexInDay).toString().padStart(5, '0')}`;
+      // Jalwa Style: YYYYMMDD + 10001 + 0780 (4-digit round)
+      const periodId = `${datePart}10001${roundIndexInDay.toString().padStart(4, '0')}`;
       
       if (periodId !== currentPeriod) {
         if (currentPeriod) {
@@ -113,14 +113,12 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     return () => clearInterval(interval);
   }, [currentPeriod, firestore, user]);
 
-  // Real-time Global History (Sorted by period to keep the high numbers on top)
   const resultsQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'game_results'), orderBy('period', 'desc'), limit(50)) : null, 
     [firestore]
   );
   const { data: results } = useCollection<GameResult>(resultsQuery);
 
-  // Real-time User Bets
   const myBetsQuery = useMemoFirebase(() => 
     (firestore && user) ? query(collection(firestore, 'users', user.uid, 'game_bets'), orderBy('createdAt', 'desc'), limit(50)) : null, 
     [firestore, user]
@@ -372,7 +370,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                             <div className="space-y-2">
                                 <div className="flex items-center gap-2">
                                     <div className="h-2 w-2 rounded-full bg-primary" />
-                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{bet.period.slice(-5)} Round</p>
+                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{bet.period.slice(-4)} Round</p>
                                 </div>
                                 <p className="font-black text-sm text-foreground">Bet: <span className="uppercase text-primary">{bet.selection}</span></p>
                                 {matchedResult && (
@@ -448,7 +446,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                         value={betAmount}
                         onChange={(e) => {
                             const val = e.target.value;
-                            // Only allow positive integers
                             if (val === '' || /^\d+$/.test(val)) {
                                 setBetAmount(val);
                             }
