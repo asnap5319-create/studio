@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { useFirebase, useUser, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit, doc, updateDoc, increment, addDoc, serverTimestamp, getDocs, where, writeBatch } from 'firebase/firestore';
+import { collection, query, orderBy, limit, doc, updateDoc, increment, addDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { Timer, History, Trophy, Coins, CheckCircle2, AlertCircle, TrendingUp, Info, Zap, X, Loader2, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,7 +66,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     return () => clearInterval(interval);
   }, []);
 
-  // --- Auto Generate Results (Server Prototype) ---
+  // --- Auto Generate Results (Server Prototype Simulation) ---
   useEffect(() => {
     if (timeLeft === 1 && firestore) {
       const timeout = setTimeout(async () => {
@@ -95,7 +96,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     }
   }, [timeLeft, currentPeriod, firestore]);
 
-  // --- Fetch Data (50 Rounds Limit) ---
+  // --- Fetch Data ---
   const resultsQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'game_results'), orderBy('createdAt', 'desc'), limit(50)) : null, 
     [firestore]
@@ -108,7 +109,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   );
   const { data: myBets } = useCollection<Bet>(myBetsQuery);
 
-  // --- Result Processing ---
+  // --- Result Processing & Winning Calculation ---
   useEffect(() => {
     if (!firestore || !user || !results || results.length === 0 || !myBets) return;
 
@@ -130,6 +131,11 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                 isWin = bet.selection === latestResult.size;
             } else {
                 isWin = latestResult.color.includes(bet.selection as string);
+                // Violet has lower multiplier if shared
+                if (latestResult.color.includes('violet') && (bet.selection === 'red' || bet.selection === 'green')) {
+                    mult = 1.5;
+                }
+                if (bet.selection === 'violet') mult = 4.5;
             }
 
             const betRef = doc(firestore, 'users', user.uid, 'game_bets', bet.id);
@@ -146,7 +152,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             batch.update(doc(firestore, 'users', user.uid), {
                 virtualBalance: increment(totalWin)
             });
-            toast({ title: "Congratulations! 🎉", description: `Round ${latestResult.period.slice(-4)} result: ${latestResult.number}. You won ₹${totalWin} coins!` });
+            toast({ title: "Congratulations! 🎉", description: `You won ₹${totalWin} coins in round ${latestResult.period.slice(-4)}!` });
         }
         batch.commit().catch(console.error);
     }
@@ -154,7 +160,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
   const handleOpenBetPanel = (option: string | number) => {
     if (timeLeft < 5) {
-        toast({ variant: 'destructive', title: "Wait for Next Round", description: "This round is locked." });
+        toast({ variant: 'destructive', title: "Wait for Next Round", description: "This round is locked (last 5 seconds)." });
         return;
     }
     setSelectedOption(option);
@@ -162,7 +168,17 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   };
 
   const handlePlaceBet = async () => {
-    if (!user || !firestore || isBetting || selectedOption === null) return;
+    if (!user || !firestore || isBetting || selectedOption === null || !userProfile) {
+        if (!userProfile) toast({ variant: 'destructive', title: "Error", description: "Profile loading, please wait." });
+        return;
+    }
+
+    if (timeLeft < 5) {
+        toast({ variant: 'destructive', title: "Round Locked", description: "Too late! Please wait for the next round." });
+        setIsBetPanelOpen(false);
+        return;
+    }
+
     const finalAmount = parseInt(betAmount) * multiplier;
 
     if (isNaN(finalAmount) || finalAmount < 1) {
@@ -170,17 +186,20 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       return;
     }
 
-    if (finalAmount > (userProfile?.virtualBalance || 0)) {
-      toast({ variant: 'destructive', title: "Insufficient Balance", description: "Check your virtual wallet." });
+    const currentBalance = userProfile.virtualBalance || 0;
+    if (finalAmount > currentBalance) {
+      toast({ variant: 'destructive', title: "Insufficient Balance", description: `You only have ₹${currentBalance} coins.` });
       return;
     }
 
     setIsBetting(true);
     try {
+      // 1. Deduct balance first
       await updateDoc(doc(firestore, 'users', user.uid), {
         virtualBalance: increment(-finalAmount)
       });
 
+      // 2. Save bet record
       await addDoc(collection(firestore, 'users', user.uid, 'game_bets'), {
         userId: user.uid,
         period: currentPeriod,
@@ -190,11 +209,15 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         createdAt: serverTimestamp()
       });
 
-      toast({ title: "Bet Placed! 🚀", description: `₹${finalAmount} on ${selectedOption}` });
+      toast({ title: "Bet Placed! 🚀", description: `₹${finalAmount} on ${selectedOption} for round ${currentPeriod.slice(-4)}` });
       setIsBetPanelOpen(false);
-    } catch (e) {
-      console.error(e);
-      toast({ variant: 'destructive', title: "Error", description: "Try again later." });
+    } catch (e: any) {
+      console.error("Bet error details:", e);
+      toast({ 
+        variant: 'destructive', 
+        title: "Bet Failed ❌", 
+        description: e.message || "Failed to place bet. Check your connection." 
+      });
     } finally {
       setIsBetting(false);
     }
@@ -209,7 +232,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
   return (
     <div className="space-y-4 select-none pb-20">
-      {/* Top Header Card (Red) */}
+      {/* Top Header Card */}
       <div className="bg-[#f95959] rounded-2xl p-4 text-white flex justify-between items-center shadow-lg">
         <div className="space-y-2">
             <p className="text-[10px] font-bold uppercase tracking-wider opacity-90">WinGo 30sec</p>
@@ -236,7 +259,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </div>
       </div>
 
-      {/* Action Buttons Area */}
+      {/* Action Area */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/50 space-y-6">
           <div className="grid grid-cols-3 gap-4">
               <Button onClick={() => handleOpenBetPanel('green')} className="bg-green-500 hover:bg-green-600 h-12 rounded-xl font-black uppercase text-sm shadow-md">Green</Button>
@@ -275,7 +298,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           </div>
       </div>
 
-      {/* History Tabs */}
+      {/* History Area */}
       <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-border/50">
         <Tabs defaultValue="results" className="w-full">
             <TabsList className="grid w-full grid-cols-3 bg-[#f1f3ff] p-0 h-12 rounded-none">
@@ -338,7 +361,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </Tabs>
       </div>
 
-      {/* Betting Dialog */}
+      {/* Bet Dialog */}
       <Dialog open={isBetPanelOpen} onOpenChange={setIsBetPanelOpen}>
         <DialogContent className="max-w-[400px] bg-background border-border rounded-[2.5rem] p-0 overflow-hidden z-[1000]">
            <DialogHeader className="p-6 pb-0">
@@ -396,8 +419,3 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     </div>
   );
 }
-
-/** 
- * अभिषेक भाई, useCollection यहाँ ऊपर से इम्पोर्ट किया गया है, 
- * इसे दोबारा न लिखें वरना एरर आएगा।
- */

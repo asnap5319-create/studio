@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useFirebase, useDoc, useMemoFirebase } from '@/firebase';
@@ -24,14 +25,22 @@ function HomeContent() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile & { virtualBalance?: number }>(userRef);
 
   useEffect(() => {
-    if (user && firestore && userProfile && userProfile.virtualBalance === undefined) {
-      // First time user initialization with 100 virtual coins as requested
-      setDoc(doc(firestore, 'users', user.uid), {
-        virtualBalance: 100,
-        updatedAt: serverTimestamp()
-      }, { merge: true }).catch(console.error);
+    if (user && firestore && !isProfileLoading) {
+      // Ensure user document exists with virtualBalance
+      if (!userProfile || userProfile.virtualBalance === undefined) {
+        const uRef = doc(firestore, 'users', user.uid);
+        setDoc(uRef, {
+          id: user.uid,
+          username: user.displayName || user.email?.split('@')[0] || 'user',
+          email: user.email || '',
+          virtualBalance: 100, // 100 FREE VIRTUAL COINS starting balance
+          updatedAt: serverTimestamp()
+        }, { merge: true }).catch(err => {
+            console.error("Initialization error:", err);
+        });
+      }
     }
-  }, [user, firestore, userProfile]);
+  }, [user, firestore, userProfile, isProfileLoading]);
 
   const handleActionClick = (type: string) => {
     toast({
