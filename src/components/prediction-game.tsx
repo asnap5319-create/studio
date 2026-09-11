@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit, doc, updateDoc, increment, setDoc, serverTimestamp, writeBatch, getDocs, where, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, doc, updateDoc, increment, setDoc, serverTimestamp, writeBatch, getDocs, where, getDoc, addDoc } from 'firebase/firestore';
 import { Timer, History, Trophy, Coins, CheckCircle2, AlertCircle, TrendingUp, Info, Zap, X, Loader2, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -72,7 +73,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         processedPeriods.current.add(periodToProcess);
 
         try {
-            // Use setDoc with period ID to ensure only one result exists per period
             const resultDocRef = doc(firestore, 'game_results', periodToProcess);
             const docSnap = await getDoc(resultDocRef);
 
@@ -87,7 +87,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
                 const size = num >= 5 ? 'big' : 'small';
 
-                // We use setDoc which will trigger 'create' permission in rules
                 await setDoc(resultDocRef, {
                     period: periodToProcess,
                     number: num,
@@ -95,11 +94,9 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                     size,
                     createdAt: serverTimestamp()
                 });
-                console.log(`Result generated for ${periodToProcess}: ${num} (${size})`);
             }
         } catch (e: any) {
             if (e.code === 'permission-denied') {
-                // This is expected if another client already wrote the result
                 console.warn("Result already exists or another user is writing.");
             } else {
                 console.error("Result generation error:", e);
@@ -125,7 +122,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   );
   const { data: myBets } = useCollection<Bet>(myBetsQuery);
 
-  // Process payouts when results update
   useEffect(() => {
     if (!firestore || !user || !results || results.length === 0 || !myBets) return;
 
@@ -241,7 +237,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
   return (
     <div className="space-y-4 select-none pb-20">
-      {/* Header with Timer */}
       <div className="bg-[#f95959] rounded-2xl p-4 text-white flex justify-between items-center shadow-lg">
         <div className="space-y-2">
             <p className="text-[10px] font-bold uppercase tracking-wider opacity-90">WinGo 30sec</p>
@@ -266,7 +261,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </div>
       </div>
 
-      {/* Main Betting Grid */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/50 space-y-6">
           <div className="grid grid-cols-3 gap-4">
               <Button onClick={() => handleOpenBetPanel('green')} className="bg-green-500 hover:bg-green-600 h-12 rounded-xl font-black uppercase text-sm">Green</Button>
@@ -305,7 +299,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           </div>
       </div>
 
-      {/* Tabs for History */}
       <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-border/50">
         <Tabs defaultValue="results" className="w-full">
             <TabsList className="grid w-full grid-cols-3 bg-[#f1f3ff] p-0 h-12 rounded-none">
@@ -374,7 +367,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </Tabs>
       </div>
 
-      {/* Bet Selection Dialog */}
       <Dialog open={isBetPanelOpen} onOpenChange={setIsBetPanelOpen}>
         <DialogContent className="max-w-[400px] bg-background border-border rounded-[2.5rem] p-0 overflow-hidden z-[1000]">
            <DialogHeader className="p-6 pb-0">
