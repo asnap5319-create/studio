@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useFirebase, useUser, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit, doc, updateDoc, increment, addDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { collection, query, orderBy, limit, doc, updateDoc, increment, addDoc, serverTimestamp, writeBatch, getDocs, where } from 'firebase/firestore';
 import { Timer, History, Trophy, Coins, CheckCircle2, AlertCircle, TrendingUp, Info, Zap, X, Loader2, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,8 +44,11 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   const [betAmount, setBetAmount] = useState('1');
   const [multiplier, setMultiplier] = useState(1);
   const [isBetting, setIsBetting] = useState(false);
+  
+  // To prevent multiple writes for the same period by the same client
+  const processedPeriods = useRef<Set<string>>(new Set());
 
-  // --- Round Logic ---
+  // --- Timer & Period Logic ---
   useEffect(() => {
     const updateTimer = () => {
       const now = new Date();
@@ -57,45 +60,57 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       const minutePart = now.getHours() * 60 + now.getMinutes();
       const roundPart = Math.floor(seconds / 30);
       const periodId = `${datePart}${(minutePart * 2 + roundPart).toString().padStart(4, '0')}`;
-      setCurrentPeriod(periodId);
+      
+      if (periodId !== currentPeriod) {
+        // Round just flipped! 
+        if (currentPeriod && !processedPeriods.current.has(currentPeriod)) {
+            generateResult(currentPeriod);
+        }
+        setCurrentPeriod(periodId);
+      }
+    };
+
+    const generateResult = async (periodToProcess: string) => {
+        if (!firestore) return;
+        processedPeriods.current.add(periodToProcess);
+
+        // In a real app, this happens on server. Here we check if someone else wrote it first.
+        const resultsRef = collection(firestore, 'game_results');
+        const q = query(resultsRef, where('period', '==', periodToProcess), limit(1));
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) {
+            const num = Math.floor(Math.random() * 10);
+            let color: 'red' | 'green' | 'violet' | 'red-violet' | 'green-violet' = 'red';
+            
+            if (num === 0) color = 'red-violet';
+            else if (num === 5) color = 'green-violet';
+            else if ([1, 3, 7, 9].includes(num)) color = 'green';
+            else color = 'red';
+
+            const size = num >= 5 ? 'big' : 'small';
+
+            try {
+                await addDoc(collection(firestore, 'game_results'), {
+                    period: periodToProcess,
+                    number: num,
+                    color,
+                    size,
+                    createdAt: serverTimestamp()
+                });
+            } catch (e) {
+                console.error("Result generation failed:", e);
+                processedPeriods.current.delete(periodToProcess); // Allow retry if failed
+            }
+        }
     };
 
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [currentPeriod, firestore]);
 
-  // --- Auto Generate Results (Simulation) ---
-  useEffect(() => {
-    if (timeLeft === 1 && firestore) {
-      const timeout = setTimeout(async () => {
-          const num = Math.floor(Math.random() * 10);
-          let color: 'red' | 'green' | 'violet' | 'red-violet' | 'green-violet' = 'red';
-          
-          if (num === 0) color = 'red-violet';
-          else if (num === 5) color = 'green-violet';
-          else if ([1, 3, 7, 9].includes(num)) color = 'green';
-          else color = 'red';
-
-          const size = num >= 5 ? 'big' : 'small';
-
-          try {
-            await addDoc(collection(firestore, 'game_results'), {
-                period: currentPeriod,
-                number: num,
-                color,
-                size,
-                createdAt: serverTimestamp()
-            });
-          } catch (e) {
-            console.error("Result generation failed:", e);
-          }
-      }, 1500);
-      return () => clearTimeout(timeout);
-    }
-  }, [timeLeft, currentPeriod, firestore]);
-
-  // --- Fetch Data ---
+  // --- Fetch Data (Real-time updates) ---
   const resultsQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'game_results'), orderBy('createdAt', 'desc'), limit(50)) : null, 
     [firestore]
@@ -108,7 +123,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   );
   const { data: myBets } = useCollection<Bet>(myBetsQuery);
 
-  // --- Winning Calculation ---
+  // --- Winning Calculation (Triggers when history updates) ---
   useEffect(() => {
     if (!firestore || !user || !results || results.length === 0 || !myBets) return;
 
@@ -150,7 +165,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             batch.update(doc(firestore, 'users', user.uid), {
                 virtualBalance: increment(totalWin)
             });
-            toast({ title: "Congratulations! 🎉", description: `You won ₹${totalWin} coins in round ${latestResult.period.slice(-4)}!` });
+            toast({ title: "Congratulations! 🎉", description: `You won ₹${totalWin.toFixed(2)} coins in round ${latestResult.period.slice(-4)}!` });
         }
         batch.commit().catch(console.error);
     }
@@ -237,7 +252,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         <div className="text-right">
             <p className="text-[10px] font-bold uppercase tracking-wider opacity-90 mb-1">Time Remaining</p>
             <div className="flex items-center gap-1 justify-end">
-                {['0', '0', ':', '0', (timeLeft < 10 ? '0' : timeLeft.toString()[0]), (timeLeft < 10 ? timeLeft.toString() : timeLeft.toString()[1])].map((char, i) => (
+                {['0', '0', ':', '0', (timeLeft < 10 ? '0' : timeLeft.toString()[0]), (timeLeft < 10 ? timeLeft.toString() : (timeLeft.toString()[1] || '0'))].map((char, i) => (
                     <div key={i} className={cn("h-7 w-5 flex items-center justify-center rounded bg-white text-[#f95959] font-black text-lg", char === ':' && "bg-transparent text-white w-2")}>
                         {char}
                     </div>
@@ -286,7 +301,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           </div>
       </div>
 
-      {/* Game History Section - MATCHES SCREENSHOT */}
+      {/* Game History Section */}
       <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-border/50">
         <Tabs defaultValue="results" className="w-full">
             <TabsList className="grid w-full grid-cols-3 bg-[#f1f3ff] p-0 h-12 rounded-none">
@@ -307,7 +322,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                     </thead>
                     <tbody className="divide-y divide-border/30">
                         {results?.map(res => (
-                            <tr key={res.id} className="text-[12px] hover:bg-secondary/5">
+                            <tr key={res.id} className="text-[12px] hover:bg-secondary/5 animate-in fade-in slide-in-from-top-4 duration-500">
                                 <td className="py-4 px-4 text-center text-muted-foreground font-medium">{res.period}</td>
                                 <td className={cn("py-4 px-2 text-center font-black text-xl", getNumberColorClass(res.number))}>
                                     {res.number}
@@ -347,7 +362,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                             </div>
                             <div className="text-right">
                                 <p className={cn("font-black text-base", bet.status === 'win' ? "text-green-600" : bet.status === 'loss' ? "text-red-500" : "text-primary animate-pulse")}>
-                                    {bet.status === 'win' ? `+₹${bet.winAmount}` : bet.status === 'loss' ? `-₹${bet.amount}` : 'Pending...'}
+                                    {bet.status === 'win' ? `+₹${bet.winAmount?.toFixed(2)}` : bet.status === 'loss' ? `-₹${bet.amount}` : 'Pending...'}
                                 </p>
                             </div>
                         </div>
