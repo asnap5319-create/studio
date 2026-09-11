@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useFirebase, useUser, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit, doc, updateDoc, increment, addDoc, serverTimestamp, getDocs, where, writeBatch } from 'firebase/firestore';
-import { Timer, History, Trophy, Coins, CheckCircle2, AlertCircle, TrendingUp, Info, Zap, X } from 'lucide-react';
+import { Timer, History, Trophy, Coins, CheckCircle2, AlertCircle, TrendingUp, Info, Zap, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
