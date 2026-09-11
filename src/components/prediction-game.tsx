@@ -6,6 +6,7 @@ import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase
 import { collection, query, orderBy, limit, doc, updateDoc, increment, setDoc, serverTimestamp, writeBatch, addDoc } from 'firebase/firestore';
 import { CheckCircle2, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from '@/hooks/use-toast';
@@ -41,7 +42,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   const [currentPeriod, setCurrentPeriod] = useState('');
   const [isBetPanelOpen, setIsBetPanelOpen] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | number | null>(null);
-  const [betAmount, setBetAmount] = useState('1');
+  const [betAmount, setBetAmount] = useState('10');
   const [multiplier, setMultiplier] = useState(1);
   const [isBetting, setIsBetting] = useState(false);
   
@@ -194,7 +195,13 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         return;
     }
 
-    const finalAmount = parseInt(betAmount) * multiplier;
+    const amountNum = parseInt(betAmount);
+    if (isNaN(amountNum) || amountNum < 1) {
+      toast({ variant: 'destructive', title: "Invalid Amount", description: "सही अमाउंट लिखें (Min ₹1)" });
+      return;
+    }
+
+    const finalAmount = amountNum * multiplier;
     if (finalAmount > (userProfile.virtualBalance || 0)) {
       toast({ variant: 'destructive', title: "No Coins", description: "आपका बैलेंस कम है।" });
       return;
@@ -411,17 +418,46 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
               </div>
 
               <div className="space-y-4">
-                  <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] ml-1">Base Amount</p>
-                  <div className="grid grid-cols-3 gap-3">
-                      {['1', '10', '100', '500', '1000', '5000'].map(val => (
-                          <button key={val} onClick={() => setBetAmount(val)} className={cn("h-12 rounded-2xl font-black text-xs uppercase border-2 transition-all active:scale-90", betAmount === val ? "bg-primary text-white border-primary shadow-lg" : "bg-background text-foreground border-border")}>₹{val}</button>
+                  <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] ml-1">Select Amount</p>
+                  <div className="grid grid-cols-4 gap-3">
+                      {['10', '50', '100', '500'].map(val => (
+                          <button 
+                            key={val} 
+                            onClick={() => setBetAmount(val)} 
+                            className={cn(
+                                "h-12 rounded-2xl font-black text-xs uppercase border-2 transition-all active:scale-90", 
+                                betAmount === val ? "bg-primary text-white border-primary shadow-lg" : "bg-background text-foreground border-border"
+                            )}
+                          >
+                            ₹{val}
+                          </button>
                       ))}
+                  </div>
+              </div>
+
+              <div className="space-y-4">
+                  <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] ml-1">Custom Amount</p>
+                  <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-muted-foreground">₹</span>
+                      <Input 
+                        type="number"
+                        placeholder="Enter custom amount..."
+                        value={betAmount}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            // Only allow positive integers
+                            if (val === '' || /^\d+$/.test(val)) {
+                                setBetAmount(val);
+                            }
+                        }}
+                        className="h-14 bg-[#f1f3ff] border-none rounded-2xl pl-10 pr-6 text-lg font-bold focus-visible:ring-primary shadow-inner"
+                      />
                   </div>
               </div>
 
               <div className="bg-primary/5 p-5 rounded-2xl flex justify-between items-center border border-primary/10">
                   <p className="text-xs font-black uppercase text-primary tracking-widest">Total Stake:</p>
-                  <p className="text-2xl font-black text-primary">₹{parseInt(betAmount) * multiplier}</p>
+                  <p className="text-2xl font-black text-primary">₹{(parseInt(betAmount) || 0) * multiplier}</p>
               </div>
 
               <Button 
@@ -437,4 +473,3 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     </div>
   );
 }
-
