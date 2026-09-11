@@ -19,7 +19,13 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // Unified Rule for Users and their subcollections (Posts, Notifications, etc.)
+    // Game Results Rules
+    match /game_results/{resultId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+    }
+
+    // Unified Rule for Users and their subcollections (Posts, Notifications, game_bets, etc.)
     match /users/{userId} {
       allow read, get: if true;
       allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
