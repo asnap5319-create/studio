@@ -84,7 +84,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     }
   };
 
-  // REAL-TIME SYNCED TIMER & PERIOD
+  // REAL-TIME SYNCED TIMER & PERIOD (Updated with new ID format)
   useEffect(() => {
     const updateTimer = () => {
       const now = new Date();
@@ -94,8 +94,11 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
       const datePart = format(now, 'yyyyMMdd');
       const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
-      const roundIndex = Math.floor(seconds / 30);
-      const periodId = `${datePart}${(utcMinutes * 2 + roundIndex).toString().padStart(4, '0')}`;
+      const roundIndexInDay = utcMinutes * 2 + Math.floor(seconds / 30);
+      
+      // अभिषेक भाई के कहे अनुसार नया 17-digit फॉर्मेट: 
+      // YYYYMMDD + 1000 + (50000 + roundIndex)
+      const periodId = `${datePart}1000${(50000 + roundIndexInDay).toString().padStart(5, '0')}`;
       
       if (periodId !== currentPeriod) {
         if (currentPeriod) {
@@ -110,7 +113,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     return () => clearInterval(interval);
   }, [currentPeriod, firestore, user]);
 
-  // Real-time Global History
+  // Real-time Global History (Sorted by period to keep the high numbers on top)
   const resultsQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'game_results'), orderBy('period', 'desc'), limit(50)) : null, 
     [firestore]
@@ -369,7 +372,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                             <div className="space-y-2">
                                 <div className="flex items-center gap-2">
                                     <div className="h-2 w-2 rounded-full bg-primary" />
-                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{bet.period.slice(-4)} Round</p>
+                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{bet.period.slice(-5)} Round</p>
                                 </div>
                                 <p className="font-black text-sm text-foreground">Bet: <span className="uppercase text-primary">{bet.selection}</span></p>
                                 {matchedResult && (
