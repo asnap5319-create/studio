@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
-import { Heart, MessageCircle, BadgeCheck, Loader2, MoreVertical, Trash2, Volume2, VolumeX, Flag, Ban, Info, Link2 } from 'lucide-react';
+import { Heart, MessageCircle, BadgeCheck, Loader2, MoreVertical, Trash2, Volume2, VolumeX, Ban } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -21,7 +21,6 @@ import {
   AlertDialogAction, 
   AlertDialogCancel, 
   AlertDialogContent, 
-  AlertDialogDescription, 
   AlertDialogFooter, 
   AlertDialogHeader, 
   AlertDialogTitle 
@@ -130,8 +129,8 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
   };
 
   useEffect(() => {
-    // Increased threshold to 0.8 to ensure only one reel is active
     const observer = new IntersectionObserver(([entry]) => { 
+        // Strict 0.8 threshold ensures audio doesn't overlap
         setIsInView(entry.isIntersecting && entry.intersectionRatio >= 0.8); 
     }, { threshold: [0, 0.8, 1.0] });
     if (cardRef.current) observer.observe(cardRef.current);
@@ -146,9 +145,9 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
         if (!video) return;
 
         if (isInView) {
-            // Unmute based on global setting and play
             video.muted = globalMuted;
             setIsMuted(globalMuted);
+            video.currentTime = 0; // Reset video to start on scroll
             video.play().then(() => {
                 if (!viewCounted.current) {
                     viewCounted.current = true;
@@ -163,12 +162,10 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                 video.play().catch(() => {});
             });
         } else {
-            // Strictly pause and mute when not in view
             video.pause();
             video.muted = true;
         }
     } else if (isInView && !viewCounted.current) {
-        // Handle image views
         viewCounted.current = true;
         updateDoc(doc(firestore, 'users', post.userId, 'posts', post.id), { 
             viewCount: increment(1),
@@ -194,7 +191,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
             onWaiting={() => setIsBuffering(true)} 
             onPlaying={() => setIsBuffering(false)}
             onLoadedData={() => setIsBuffering(false)}
-            onError={() => setIsBuffering(false)}
           />
       ) : (
           <div className="relative w-full h-full flex items-center justify-center bg-black">
@@ -203,7 +199,6 @@ export function PostCard({ post, isFocused = false }: PostCardProps) {
                 alt={post.caption}
                 className="max-w-full max-h-full object-contain"
                 onLoad={() => setIsBuffering(false)}
-                onError={() => setIsBuffering(false)}
               />
           </div>
       )}

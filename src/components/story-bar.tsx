@@ -3,12 +3,12 @@
 import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
 import { collectionGroup, query, orderBy, limit, where, doc, setDoc, serverTimestamp, collection, updateDoc, increment, writeBatch, deleteDoc } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Plus, BadgeCheck, X, Play, Heart, MessageCircle, Share2, Users } from 'lucide-react';
+import { Plus, BadgeCheck, X, Play, Heart, MessageCircle, Users } from 'lucide-react';
 import Link from 'next/link';
 import type { Post } from '@/models/post';
 import type { UserProfile } from '@/models/user';
 import { useDoc } from '@/firebase';
-import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogHeader } from './ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { cn } from '@/lib/utils';
@@ -16,9 +16,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { CommentSection } from './comment-section';
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
-const REVENUE_PER_VIEW = 0.008;
 
-// --- Activity List for Likes Only ---
+// --- Likes List for Owner ---
 function LikesList({ postId, postOwnerId }: { postId: string, postOwnerId: string }) {
     const { firestore } = useFirebase();
     const likesQuery = useMemoFirebase(() => {
@@ -88,13 +87,11 @@ function StoryViewer({
     const [isCommentOpen, setIsCommentOpen] = useState(false);
     const [isLiking, setIsLiking] = useState(false);
     
-    const videoRef = useRef<HTMLVideoElement>(null);
     const post = posts[currentIndex];
     const { firestore } = useFirebase();
     const { user } = useUser();
     
     const isMyStory = user?.uid === post.userId;
-    const viewLoggedRef = useRef<string | null>(null);
 
     const userRef = useMemoFirebase(() => firestore ? doc(firestore, 'users', post.userId) : null, [firestore, post.userId]);
     const { data: author } = useDoc<UserProfile>(userRef);
@@ -106,6 +103,10 @@ function StoryViewer({
     // Auto-advance logic
     useEffect(() => {
         setProgress(0);
+        const duration = 8000; // 8 seconds per story
+        const intervalTime = 50;
+        const step = (intervalTime / duration) * 100;
+
         const interval = setInterval(() => {
             if (!isLikesOpen && !isCommentOpen) {
                 setProgress((prev) => {
@@ -113,25 +114,12 @@ function StoryViewer({
                         handleNext();
                         return 0;
                     }
-                    return prev + 1;
+                    return prev + step;
                 });
             }
-        }, 50); 
+        }, intervalTime); 
         return () => clearInterval(interval);
     }, [currentIndex, isLikesOpen, isCommentOpen]);
-
-    // Record view and increment counter (Background)
-    useEffect(() => {
-        if (firestore && user && user.uid !== post.userId && viewLoggedRef.current !== post.id) {
-            viewLoggedRef.current = post.id;
-            const postRef = doc(firestore, 'users', post.userId, 'posts', post.id);
-            updateDoc(postRef, {
-                viewCount: increment(1),
-                adImpressions: increment(1),
-                estimatedEarnings: increment(REVENUE_PER_VIEW)
-            }).catch(() => {});
-        }
-    }, [currentIndex, firestore, user, post]);
 
     const handleNext = () => {
         if (currentIndex < posts.length - 1) {
@@ -215,7 +203,6 @@ function StoryViewer({
             <div className="relative w-full h-full flex items-center justify-center">
                 {isVideo ? (
                     <video 
-                        ref={videoRef}
                         src={post.mediaUrl} 
                         className="w-full h-full object-contain" 
                         autoPlay 
@@ -236,21 +223,21 @@ function StoryViewer({
                 )}
             </div>
 
-            {/* Bottom Actions - Insta Style Side/Bottom Layout */}
-            <div className="absolute bottom-6 inset-x-0 z-[70] flex items-end justify-between px-6 pb-2">
+            {/* Bottom/Side Actions - Instagram Style */}
+            <div className="absolute bottom-10 inset-x-0 z-[70] flex items-end justify-between px-6">
                 {/* Left Side: Show Likes list if owner */}
                 <div className="flex-1">
                     {isMyStory && (
                         <Sheet open={isLikesOpen} onOpenChange={setIsLikesOpen}>
                             <SheetTrigger asChild>
-                                <button className="bg-white/10 backdrop-blur-2xl py-2.5 px-4 rounded-2xl border border-white/10 flex items-center gap-2 shadow-2xl active:scale-95 transition-all">
-                                    <Heart size={16} className="text-white fill-white" />
-                                    <span className="text-[11px] font-black uppercase text-white tracking-widest">Liked by</span>
+                                <button className="bg-white/10 backdrop-blur-2xl py-2 px-4 rounded-xl border border-white/10 flex items-center gap-2 shadow-2xl active:scale-95 transition-all">
+                                    <Heart size={14} className="text-white fill-white" />
+                                    <span className="text-[10px] font-black uppercase text-white tracking-widest">Likes</span>
                                 </button>
                             </SheetTrigger>
                             <SheetContent side="bottom" className="h-[60vh] p-0 rounded-t-[3rem] bg-background border-none z-[1100]">
                                 <SheetHeader className="p-6 border-b border-border/50">
-                                    <SheetTitle className="text-center font-black uppercase italic tracking-tighter text-xl">Likes</SheetTitle>
+                                    <SheetTitle className="text-center font-black uppercase italic tracking-tighter text-xl">Liked by</SheetTitle>
                                 </SheetHeader>
                                 <div className="flex-1 overflow-y-auto px-4 pb-20 scrollbar-hide">
                                     <LikesList postId={post.id} postOwnerId={post.userId} />
@@ -260,20 +247,15 @@ function StoryViewer({
                     )}
                 </div>
 
-                {/* Right Side: Interaction Buttons (Like & Comment) */}
-                <div className="flex items-center gap-5">
-                    {/* Like Button */}
-                    <button 
-                        onClick={handleLikeToggle}
-                        className="flex flex-col items-center gap-1 active:scale-150 transition-all"
-                    >
+                {/* Right Side: Like & Comment Vertical */}
+                <div className="flex flex-col items-center gap-6">
+                    <button onClick={handleLikeToggle} className="active:scale-150 transition-all">
                         <Heart className={cn("h-8 w-8 drop-shadow-xl", isLiked ? "fill-primary text-primary" : "text-white")} />
                     </button>
 
-                    {/* Comment Button */}
                     <Sheet open={isCommentOpen} onOpenChange={setIsCommentOpen}>
                         <SheetTrigger asChild>
-                            <button className="flex flex-col items-center gap-1 active:scale-125 transition-all">
+                            <button className="active:scale-125 transition-all">
                                 <MessageCircle className="h-8 w-8 text-white drop-shadow-xl" />
                             </button>
                         </SheetTrigger>
@@ -284,9 +266,9 @@ function StoryViewer({
                 </div>
             </div>
             
-            {/* Caption (Subtle overlay) */}
+            {/* Caption */}
             {post.caption && !isLikesOpen && !isCommentOpen && (
-                <div className="absolute bottom-24 left-6 right-6 pointer-events-none">
+                <div className="absolute bottom-28 left-6 right-20 pointer-events-none">
                     <p className="text-white text-xs font-medium drop-shadow-md line-clamp-2 opacity-80">{post.caption}</p>
                 </div>
             )}
@@ -320,7 +302,7 @@ function StoryItem({
             className="flex flex-col items-center gap-1.5 shrink-0 animate-in fade-in zoom-in duration-500 cursor-pointer"
         >
             <div className="relative group">
-                <div className="absolute -inset-[3.5px] bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] rounded-full animate-pulse opacity-90 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute -inset-[3.5px] bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] rounded-full opacity-90 group-hover:opacity-100 transition-opacity" />
                 <div className="relative h-[68px] w-[68px] rounded-full border-[3px] border-background overflow-hidden bg-secondary">
                     <Avatar className="h-full w-full">
                         <AvatarImage src={profile.profileImageUrl} className="object-cover" />
@@ -366,6 +348,7 @@ export function StoryBar() {
         
         return posts.reduce((acc: Post[], current) => {
             const postTime = current.createdAt?.toMillis() || 0;
+            // Only show posts from the last 24 hours in the story bar
             if (now - postTime < twentyFourHours) {
                 const alreadyAdded = acc.find(item => item.userId === current.userId);
                 if (!alreadyAdded) {
@@ -377,7 +360,7 @@ export function StoryBar() {
     }, [posts]);
 
     return (
-        <div className="w-full bg-background/50 border-b border-border/40 py-4 overflow-hidden">
+        <div className="w-full bg-background border-b border-border/50 py-4 overflow-hidden">
             <div className="flex items-center gap-4 px-4 overflow-x-auto scrollbar-hide">
                 {user && !uniqueUserPosts.find(p => p.userId === user.uid) && (
                     <Link href="/create" className="flex flex-col items-center gap-1.5 shrink-0">
