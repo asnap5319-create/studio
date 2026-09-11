@@ -131,7 +131,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                 isWin = bet.selection === latestResult.size;
             } else {
                 isWin = latestResult.color.includes(bet.selection as string);
-                // Violet has lower multiplier if shared
                 if (latestResult.color.includes('violet') && (bet.selection === 'red' || bet.selection === 'green')) {
                     mult = 1.5;
                 }
@@ -194,12 +193,10 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
     setIsBetting(true);
     try {
-      // 1. Deduct balance first
       await updateDoc(doc(firestore, 'users', user.uid), {
         virtualBalance: increment(-finalAmount)
       });
 
-      // 2. Save bet record
       await addDoc(collection(firestore, 'users', user.uid, 'game_bets'), {
         userId: user.uid,
         period: currentPeriod,
@@ -318,45 +315,65 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border/30">
-                        {results?.map(res => (
-                            <tr key={res.id} className="text-[12px] hover:bg-secondary/10 transition-colors">
-                                <td className="py-4 px-4 font-medium text-muted-foreground">{res.period}</td>
-                                <td className={cn("py-4 px-4 text-center font-black text-xl", 
-                                    [1,3,7,9].includes(res.number) ? "text-green-500" : 
-                                    res.number === 0 || res.number === 5 ? "text-purple-500" : "text-red-500"
-                                )}>
-                                    {res.number}
-                                </td>
-                                <td className="py-4 px-4 text-center text-muted-foreground font-semibold capitalize">{res.size}</td>
-                                <td className="py-4 px-4">
-                                    <div className="flex gap-1.5 justify-center">
-                                        {res.color.includes('green') && <div className="w-2.5 h-2.5 rounded-full bg-green-500" />}
-                                        {res.color.includes('red') && <div className="w-2.5 h-2.5 rounded-full bg-red-500" />}
-                                        {res.color.includes('violet') && <div className="w-2.5 h-2.5 rounded-full bg-purple-500" />}
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
+                        {results?.map(res => {
+                            const displaySize = res.size || (res.number >= 5 ? 'big' : 'small');
+                            return (
+                                <tr key={res.id} className="text-[12px] hover:bg-secondary/10 transition-colors">
+                                    <td className="py-4 px-4 font-medium text-muted-foreground">{res.period}</td>
+                                    <td className={cn("py-4 px-4 text-center font-black text-xl", 
+                                        [1,3,7,9].includes(res.number) ? "text-green-500" : 
+                                        res.number === 0 || res.number === 5 ? "text-purple-500" : "text-red-500"
+                                    )}>
+                                        {res.number}
+                                    </td>
+                                    <td className="py-4 px-4 text-center">
+                                        <span className={cn(
+                                            "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter shadow-sm",
+                                            displaySize === 'big' ? "bg-orange-100 text-orange-600 border border-orange-200" : "bg-blue-100 text-blue-600 border border-blue-200"
+                                        )}>
+                                            {displaySize}
+                                        </span>
+                                    </td>
+                                    <td className="py-4 px-4">
+                                        <div className="flex gap-1.5 justify-center">
+                                            {res.color.includes('green') && <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-sm" />}
+                                            {res.color.includes('red') && <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm" />}
+                                            {res.color.includes('violet') && <div className="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-sm" />}
+                                        </div>
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </TabsContent>
 
             <TabsContent value="my" className="m-0 p-4 space-y-3">
-                {myBets?.map(bet => (
-                    <div key={bet.id} className="bg-secondary/20 p-4 rounded-2xl border border-border flex items-center justify-between">
-                        <div>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase">{bet.period.slice(-4)} Round</p>
-                            <p className="font-black text-sm">Bet: <span className="uppercase text-primary">{bet.selection}</span></p>
-                            <p className="text-[10px] font-bold text-muted-foreground">Amount: ₹{bet.amount}</p>
+                {myBets?.map(bet => {
+                    const matchedResult = results?.find(r => r.period === bet.period);
+                    return (
+                        <div key={bet.id} className="bg-secondary/20 p-4 rounded-2xl border border-border flex items-center justify-between">
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase">{bet.period.slice(-4)} Round</p>
+                                <p className="font-black text-sm">Bet: <span className="uppercase text-primary">{bet.selection}</span></p>
+                                <p className="text-[10px] font-bold text-muted-foreground">Amount: ₹{bet.amount}</p>
+                                {matchedResult && (
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-[8px] font-black uppercase text-muted-foreground">Result:</span>
+                                        <div className={cn("h-3 w-3 rounded-full", getNumberColorClass(matchedResult.number))} />
+                                        <span className="text-[9px] font-bold text-foreground uppercase">{matchedResult.number} ({matchedResult.size || (matchedResult.number >= 5 ? 'big' : 'small')})</span>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="text-right">
+                                <p className={cn("font-black text-base", bet.status === 'win' ? "text-green-600" : bet.status === 'loss' ? "text-red-500" : "text-primary animate-pulse")}>
+                                    {bet.status === 'win' ? `+₹${bet.winAmount}` : bet.status === 'loss' ? `-₹${bet.amount}` : 'Pending...'}
+                                </p>
+                                <p className="text-[8px] font-bold text-muted-foreground uppercase">{bet.createdAt ? format(bet.createdAt.toDate(), 'HH:mm:ss') : ''}</p>
+                            </div>
                         </div>
-                        <div className="text-right">
-                            <p className={cn("font-black text-base", bet.status === 'win' ? "text-green-600" : bet.status === 'loss' ? "text-red-500" : "text-primary animate-pulse")}>
-                                {bet.status === 'win' ? `+₹${bet.winAmount}` : bet.status === 'loss' ? `-₹${bet.amount}` : 'Pending...'}
-                            </p>
-                            <p className="text-[8px] font-bold text-muted-foreground uppercase">{bet.createdAt ? format(bet.createdAt.toDate(), 'HH:mm:ss') : ''}</p>
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
             </TabsContent>
         </Tabs>
       </div>
