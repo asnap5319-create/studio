@@ -55,12 +55,14 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       const remaining = 30 - (seconds % 30);
       setTimeLeft(remaining);
 
+      // Period ID logic based on time
       const datePart = format(now, 'yyyyMMdd');
       const minutePart = now.getHours() * 60 + now.getMinutes();
       const roundPart = Math.floor(seconds / 30);
       const periodId = `${datePart}${(minutePart * 2 + roundPart).toString().padStart(4, '0')}`;
       
       if (periodId !== currentPeriod) {
+        // When period changes, generate result for the PREVIOUS period
         if (currentPeriod && !processedPeriods.current.has(currentPeriod)) {
             generateResult(currentPeriod);
         }
@@ -76,6 +78,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             const resultDocRef = doc(firestore, 'game_results', periodToProcess);
             const docSnap = await getDoc(resultDocRef);
 
+            // Only create if it doesn't exist to prevent errors and ensure single result
             if (!docSnap.exists()) {
                 const num = Math.floor(Math.random() * 10);
                 let color: 'red' | 'green' | 'violet' | 'red-violet' | 'green-violet' = 'red';
@@ -88,6 +91,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                 const size = num >= 5 ? 'big' : 'small';
 
                 await setDoc(resultDocRef, {
+                    id: periodToProcess,
                     period: periodToProcess,
                     number: num,
                     color,
@@ -96,9 +100,8 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                 });
             }
         } catch (e: any) {
-            if (e.code === 'permission-denied') {
-                console.warn("Result already exists or another user is writing.");
-            } else {
+            // Permission errors are common if multiple users write, we just catch them
+            if (e.code !== 'permission-denied') {
                 console.error("Result generation error:", e);
                 processedPeriods.current.delete(periodToProcess);
             }
@@ -110,8 +113,9 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     return () => clearInterval(interval);
   }, [currentPeriod, firestore, user]);
 
+  // Use 'period' for sorting instead of 'createdAt' to prevent null-timestamp flickering
   const resultsQuery = useMemoFirebase(() => 
-    firestore ? query(collection(firestore, 'game_results'), orderBy('createdAt', 'desc'), limit(50)) : null, 
+    firestore ? query(collection(firestore, 'game_results'), orderBy('period', 'desc'), limit(50)) : null, 
     [firestore]
   );
   const { data: results } = useCollection<GameResult>(resultsQuery);
@@ -122,28 +126,31 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   );
   const { data: myBets } = useCollection<Bet>(myBetsQuery);
 
+  // Settlement Logic: Check all results against all pending bets
   useEffect(() => {
     if (!firestore || !user || !results || results.length === 0 || !myBets) return;
 
-    const latestResult = results[0];
-    const pendingBets = myBets.filter(b => b.status === 'pending' && b.period === latestResult.period);
+    const pendingBets = myBets.filter(b => b.status === 'pending');
+    if (pendingBets.length === 0) return;
 
-    if (pendingBets.length > 0) {
-        const batch = writeBatch(firestore);
-        let totalWin = 0;
+    const batch = writeBatch(firestore);
+    let totalWin = 0;
+    let updatedCount = 0;
 
-        pendingBets.forEach(bet => {
+    pendingBets.forEach(bet => {
+        const matchedResult = results.find(r => r.period === bet.period);
+        if (matchedResult) {
             let isWin = false;
             let mult = 2;
 
             if (typeof bet.selection === 'number') {
-                isWin = bet.selection === latestResult.number;
+                isWin = bet.selection === matchedResult.number;
                 mult = 9;
             } else if (bet.selection === 'big' || bet.selection === 'small') {
-                isWin = bet.selection === latestResult.size;
+                isWin = bet.selection === matchedResult.size;
             } else {
-                isWin = latestResult.color.includes(bet.selection as string);
-                if (latestResult.color.includes('violet') && (bet.selection === 'red' || bet.selection === 'green')) {
+                isWin = matchedResult.color.includes(bet.selection as string);
+                if (matchedResult.color.includes('violet') && (bet.selection === 'red' || bet.selection === 'green')) {
                     mult = 1.5;
                 }
                 if (bet.selection === 'violet') mult = 4.5;
@@ -157,17 +164,18 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             } else {
                 batch.update(betRef, { status: 'loss' });
             }
-        });
+            updatedCount++;
+        }
+    });
 
+    if (updatedCount > 0) {
         if (totalWin > 0) {
             batch.update(doc(firestore, 'users', user.uid), {
                 virtualBalance: increment(totalWin)
             });
-            toast({ title: "Congratulations! 🎉", description: `You won ₹${totalWin.toFixed(2)} in round ${latestResult.period.slice(-4)}!` });
+            toast({ title: "Congratulations! 🎉", description: `You won ₹${totalWin.toFixed(2)} in total!` });
         }
-        batch.commit().catch(err => {
-            console.error("Payout process error:", err);
-        });
+        batch.commit().catch(err => console.error("Batch settle error:", err));
     }
   }, [results, myBets, firestore, user, toast]);
 
@@ -198,10 +206,12 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
     setIsBetting(true);
     try {
+      // Deduct balance first
       await updateDoc(doc(firestore, 'users', user.uid), {
         virtualBalance: increment(-finalAmount)
       });
 
+      // Save bet document
       await addDoc(collection(firestore, 'users', user.uid, 'game_bets'), {
         userId: user.uid,
         period: currentPeriod,
