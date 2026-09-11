@@ -19,24 +19,30 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // Game Results Rules
+    // --- GAME RESULTS RULES (CRITICAL FIX) ---
     match /game_results/{resultId} {
-      allow read: if true;
+      // Any visitor can see the history
+      allow get, list: if true;
+      // Any logged in user can help generate the next result (first one wins)
+      // but they cannot update or delete existing results (cheating prevention)
       allow create: if isAuthenticated();
+      allow update, delete: if false;
     }
 
-    // Unified Rule for Users and their subcollections (Posts, Notifications, game_bets, etc.)
+    // Unified Rule for Users and their subcollections
     match /users/{userId} {
       allow read, get: if true;
       allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
 
       match /{collectionName}/{docId} {
+        // Users can see their own bets and notifications
+        // We allow list for queries on subcollections
         allow read, list: if true;
         allow write, create, delete: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       }
     }
 
-    // Broad rules for collection groups (needed for Feed)
+    // Broad rules for collection groups (needed for Feed/Reels)
     match /{path=**}/posts/{postId} {
       allow read, list: if true;
     }

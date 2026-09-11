@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useFirebase, useUser, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit, doc, updateDoc, increment, addDoc, serverTimestamp, writeBatch, getDocs, where } from 'firebase/firestore';
 import { Timer, History, Trophy, Coins, CheckCircle2, AlertCircle, TrendingUp, Info, Zap, X, Loader2, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -45,10 +45,8 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   const [multiplier, setMultiplier] = useState(1);
   const [isBetting, setIsBetting] = useState(false);
   
-  // To prevent multiple writes for the same period by the same client
   const processedPeriods = useRef<Set<string>>(new Set());
 
-  // --- Timer & Period Logic ---
   useEffect(() => {
     const updateTimer = () => {
       const now = new Date();
@@ -62,7 +60,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       const periodId = `${datePart}${(minutePart * 2 + roundPart).toString().padStart(4, '0')}`;
       
       if (periodId !== currentPeriod) {
-        // Round just flipped! 
         if (currentPeriod && !processedPeriods.current.has(currentPeriod)) {
             generateResult(currentPeriod);
         }
@@ -71,26 +68,25 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     };
 
     const generateResult = async (periodToProcess: string) => {
-        if (!firestore) return;
+        if (!firestore || !user) return;
         processedPeriods.current.add(periodToProcess);
 
-        // In a real app, this happens on server. Here we check if someone else wrote it first.
-        const resultsRef = collection(firestore, 'game_results');
-        const q = query(resultsRef, where('period', '==', periodToProcess), limit(1));
-        const snapshot = await getDocs(q);
+        try {
+            const resultsRef = collection(firestore, 'game_results');
+            const q = query(resultsRef, where('period', '==', periodToProcess), limit(1));
+            const snapshot = await getDocs(q);
 
-        if (snapshot.empty) {
-            const num = Math.floor(Math.random() * 10);
-            let color: 'red' | 'green' | 'violet' | 'red-violet' | 'green-violet' = 'red';
-            
-            if (num === 0) color = 'red-violet';
-            else if (num === 5) color = 'green-violet';
-            else if ([1, 3, 7, 9].includes(num)) color = 'green';
-            else color = 'red';
+            if (snapshot.empty) {
+                const num = Math.floor(Math.random() * 10);
+                let color: 'red' | 'green' | 'violet' | 'red-violet' | 'green-violet' = 'red';
+                
+                if (num === 0) color = 'red-violet';
+                else if (num === 5) color = 'green-violet';
+                else if ([1, 3, 7, 9].includes(num)) color = 'green';
+                else color = 'red';
 
-            const size = num >= 5 ? 'big' : 'small';
+                const size = num >= 5 ? 'big' : 'small';
 
-            try {
                 await addDoc(collection(firestore, 'game_results'), {
                     period: periodToProcess,
                     number: num,
@@ -98,9 +94,13 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                     size,
                     createdAt: serverTimestamp()
                 });
-            } catch (e) {
+            }
+        } catch (e: any) {
+            if (e.code === 'permission-denied') {
+                console.warn("Result generation skip: Another user or admin is writing.");
+            } else {
                 console.error("Result generation failed:", e);
-                processedPeriods.current.delete(periodToProcess); // Allow retry if failed
+                processedPeriods.current.delete(periodToProcess);
             }
         }
     };
@@ -108,9 +108,8 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [currentPeriod, firestore]);
+  }, [currentPeriod, firestore, user]);
 
-  // --- Fetch Data (Real-time updates) ---
   const resultsQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'game_results'), orderBy('createdAt', 'desc'), limit(50)) : null, 
     [firestore]
@@ -123,7 +122,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   );
   const { data: myBets } = useCollection<Bet>(myBetsQuery);
 
-  // --- Winning Calculation (Triggers when history updates) ---
   useEffect(() => {
     if (!firestore || !user || !results || results.length === 0 || !myBets) return;
 
@@ -167,7 +165,9 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             });
             toast({ title: "Congratulations! 🎉", description: `You won ₹${totalWin.toFixed(2)} coins in round ${latestResult.period.slice(-4)}!` });
         }
-        batch.commit().catch(console.error);
+        batch.commit().catch(err => {
+            console.error("Payout failed:", err);
+        });
     }
   }, [results, myBets, firestore, user, toast]);
 
@@ -214,8 +214,8 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       toast({ title: "Bet Placed! 🚀" });
       setIsBetPanelOpen(false);
     } catch (e: any) {
-      console.error(e);
-      toast({ variant: 'destructive', title: "Error", description: "Could not place bet." });
+      console.error("Bet placement error:", e);
+      toast({ variant: 'destructive', title: "Error", description: e.message || "Could not place bet." });
     } finally {
       setIsBetting(false);
     }
@@ -237,7 +237,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
   return (
     <div className="space-y-4 select-none pb-20">
-      {/* Top Timer Card */}
       <div className="bg-[#f95959] rounded-2xl p-4 text-white flex justify-between items-center shadow-lg">
         <div className="space-y-2">
             <p className="text-[10px] font-bold uppercase tracking-wider opacity-90">WinGo 30sec</p>
@@ -262,7 +261,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </div>
       </div>
 
-      {/* Buttons Area */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/50 space-y-6">
           <div className="grid grid-cols-3 gap-4">
               <Button onClick={() => handleOpenBetPanel('green')} className="bg-green-500 hover:bg-green-600 h-12 rounded-xl font-black uppercase text-sm">Green</Button>
@@ -301,7 +299,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           </div>
       </div>
 
-      {/* Game History Section */}
       <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-border/50">
         <Tabs defaultValue="results" className="w-full">
             <TabsList className="grid w-full grid-cols-3 bg-[#f1f3ff] p-0 h-12 rounded-none">
@@ -339,11 +336,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                                 </td>
                             </tr>
                         ))}
-                        {(!results || results.length === 0) && (
-                            <tr>
-                                <td colSpan={4} className="py-10 text-center text-muted-foreground italic text-xs uppercase font-bold">No History Yet</td>
-                            </tr>
-                        )}
                     </tbody>
                 </table>
             </TabsContent>
@@ -372,7 +364,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </Tabs>
       </div>
 
-      {/* Bet Dialog */}
       <Dialog open={isBetPanelOpen} onOpenChange={setIsBetPanelOpen}>
         <DialogContent className="max-w-[400px] bg-background border-border rounded-[2.5rem] p-0 overflow-hidden z-[1000]">
            <DialogHeader className="p-6 pb-0">
