@@ -2,15 +2,18 @@
 
 import { useUser, useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Wallet, PlusCircle, ArrowUpRight, TrendingUp, Sparkles } from 'lucide-react';
 import { BottomNav } from "@/components/bottom-nav";
 import { PredictionGame } from '@/components/prediction-game';
 import { Suspense, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/models/user';
 
 function HomeContent() {
   const { user, isUserLoading } = useUser();
   const { firestore } = useFirebase();
+  const { toast } = useToast();
 
   // Fetch or Initialize User Profile with Virtual Coins
   const userRef = useMemoFirebase(() => 
@@ -30,6 +33,13 @@ function HomeContent() {
     }
   }, [user, firestore, userProfile]);
 
+  const handleActionClick = (type: string) => {
+    toast({
+      title: `${type} Section`,
+      description: "भाई, यह सिर्फ एक वर्चुअल गेम है। असली डिपॉजिट या विड्रॉल अभी उपलब्ध नहीं है।",
+    });
+  };
+
   if (isUserLoading || isProfileLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
@@ -40,27 +50,70 @@ function HomeContent() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="p-4 bg-primary text-white sticky top-0 z-50 flex items-center justify-between shadow-lg">
+      <header className="p-4 bg-background sticky top-0 z-50 flex items-center justify-between border-b border-border/50 backdrop-blur-md">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center font-black italic">A</div>
-          <h1 className="text-xl font-black italic tracking-tighter">A.Prediction</h1>
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center font-black italic text-white shadow-lg shadow-primary/20">A</div>
+          <h1 className="text-xl font-black italic tracking-tighter uppercase">A.Snap Game</h1>
         </div>
-        <div className="bg-white/10 px-3 py-1 rounded-full border border-white/20">
-          <p className="text-[10px] font-bold uppercase opacity-70">Virtual Balance</p>
-          <p className="text-sm font-black">₹{userProfile?.virtualBalance?.toLocaleString() || '10,000'}</p>
+        <div className="flex items-center gap-1 bg-secondary/50 px-3 py-1.5 rounded-full border border-border">
+          <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Server Live</span>
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto p-4">
+      <main className="max-w-lg mx-auto p-4 space-y-6">
         {user ? (
-          <PredictionGame userProfile={userProfile} />
+          <>
+            {/* Premium Wallet Dashboard */}
+            <div className="bg-money-pattern p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(22,163,74,0.3)] text-white relative overflow-hidden group">
+               <div className="absolute top-0 right-0 p-6 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-700">
+                  <Wallet size={120} />
+               </div>
+               
+               <div className="relative z-10 space-y-8">
+                  <div className="flex items-center justify-between">
+                     <div className="space-y-1">
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 flex items-center gap-2">
+                          <Sparkles size={10} className="text-yellow-400" /> Current Balance
+                        </p>
+                        <div className="flex items-baseline gap-2">
+                           <span className="text-2xl font-black text-white/80">₹</span>
+                           <h2 className="text-5xl font-black italic tracking-tighter drop-shadow-lg">
+                              {userProfile?.virtualBalance?.toLocaleString() || '0'}
+                           </h2>
+                        </div>
+                     </div>
+                     <div className="bg-white/10 p-3 rounded-2xl border border-white/10 backdrop-blur-md">
+                        <TrendingUp className="text-white" />
+                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                     <Button 
+                        onClick={() => handleActionClick('Deposit')}
+                        className="bg-white text-green-700 hover:bg-white/90 rounded-2xl h-14 font-black uppercase text-xs flex items-center justify-center gap-2 shadow-xl shadow-black/10 active:scale-95 transition-all"
+                     >
+                        <PlusCircle size={18} /> Deposit
+                     </Button>
+                     <Button 
+                        onClick={() => handleActionClick('Withdraw')}
+                        className="bg-green-800/40 text-white hover:bg-green-800/60 border border-white/20 rounded-2xl h-14 font-black uppercase text-xs flex items-center justify-center gap-2 shadow-xl shadow-black/10 active:scale-95 transition-all backdrop-blur-sm"
+                     >
+                        <ArrowUpRight size={18} /> Withdraw
+                     </Button>
+                  </div>
+               </div>
+            </div>
+
+            <PredictionGame userProfile={userProfile} />
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center h-[70vh] text-center gap-6">
-             <div className="w-24 h-24 bg-money-pattern rounded-3xl flex items-center justify-center animate-bounce">
+             <div className="w-24 h-24 bg-money-pattern rounded-3xl flex items-center justify-center animate-bounce shadow-2xl">
                 <span className="text-4xl text-white font-black italic">A</span>
              </div>
              <div className="space-y-2">
-               <h2 className="text-2xl font-black uppercase italic">Welcome to A.snap</h2>
+               <h2 className="text-2xl font-black uppercase italic tracking-tighter">Welcome to A.snap</h2>
                <p className="text-muted-foreground text-sm max-w-xs mx-auto">Login now to start your virtual coin prediction journey and compete with friends.</p>
              </div>
              <a href="/login?auth=true" className="w-full max-w-[200px]">
