@@ -12,8 +12,8 @@ import { BottomNav } from "@/components/bottom-nav";
 import { cn } from '@/lib/utils';
 
 const PRESET_AMOUNTS = [100, 200, 300, 400, 500, 1000];
-const UPI_ID = "63953342@ybl"; // अभिषेक भाई, आपका नंबर यहाँ सुरक्षित है
-const PAYEE_NAME = "Abhishek Kumar"; // बैंक रिजेक्शन से बचने के लिए आपका नाम
+const UPI_ID = "9389844930@nyes"; // अभिषेक भाई, आपकी नई आईडी यहाँ डाल दी है
+const PAYEE_NAME = "Abhishek Kumar"; // बैंक रिजेक्शन से बचने के लिए आपका असली नाम
 
 function DepositContent() {
     const { firestore } = useFirebase();
@@ -33,9 +33,9 @@ function DepositContent() {
             return;
         }
 
-        // Generate UPI Deep Link with personal name for high success rate
+        // Generate UPI Deep Link with personal name and new ID
         const encodedName = encodeURIComponent(PAYEE_NAME);
-        const upiUrl = `upi://pay?pa=${UPI_ID}&pn=${encodedName}&am=${amt}&cu=INR&tn=Deposit%20Recharge`;
+        const upiUrl = `upi://pay?pa=${UPI_ID}&pn=${encodedName}&am=${amt}&cu=INR&tn=Recharge%20A.snap`;
         
         // Open UPI App
         window.location.href = upiUrl;
@@ -91,7 +91,7 @@ function DepositContent() {
             <main className="p-6 space-y-8 max-w-lg mx-auto">
                 {step === 'select' ? (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        {/* Balance Card */}
+                        {/* Selected Amount Card */}
                         <div className="bg-secondary/40 border border-white/5 p-8 rounded-[2.5rem] relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-4 opacity-5 rotate-12"><CreditCard size={100} /></div>
                             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-2">Selected Amount</p>
