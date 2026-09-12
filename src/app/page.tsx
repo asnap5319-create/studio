@@ -30,7 +30,7 @@ function HomeContent() {
         const uRef = doc(firestore, 'users', user.uid);
         const snap = await getDoc(uRef);
         
-        // Strictly only initialize if balance does not exist at all
+        // Strictly only initialize if virtualBalance is undefined (one-time logic)
         if (!snap.exists() || snap.data()?.virtualBalance === undefined) {
           setIsInitializing(true);
           try {
@@ -38,7 +38,7 @@ function HomeContent() {
                 id: user.uid,
                 username: user.displayName || user.email?.split('@')[0] || 'user',
                 email: user.email || '',
-                virtualBalance: 100,
+                virtualBalance: 100, // Initial free virtual coins
                 updatedAt: serverTimestamp()
             }, { merge: true });
           } catch (err) {
