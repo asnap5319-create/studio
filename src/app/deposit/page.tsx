@@ -2,8 +2,8 @@
 
 import { useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
-import { useFirebase, useUser, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { useFirebase, useUser } from '@/firebase';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 
 const PRESET_AMOUNTS = [100, 200, 300, 400, 500, 1000];
 const UPI_ID = "63953342@ybl"; // अभिषेक भाई, आपका नंबर यहाँ सुरक्षित है
+const PAYEE_NAME = "Abhishek Kumar"; // बैंक रिजेक्शन से बचने के लिए आपका नाम
 
 function DepositContent() {
     const { firestore } = useFirebase();
@@ -32,8 +33,9 @@ function DepositContent() {
             return;
         }
 
-        // Generate UPI Deep Link
-        const upiUrl = `upi://pay?pa=${UPI_ID}&pn=WinGo%20Games&am=${amt}&cu=INR&tn=Deposit%20for%20WinGo`;
+        // Generate UPI Deep Link with personal name for high success rate
+        const encodedName = encodeURIComponent(PAYEE_NAME);
+        const upiUrl = `upi://pay?pa=${UPI_ID}&pn=${encodedName}&am=${amt}&cu=INR&tn=Deposit%20Recharge`;
         
         // Open UPI App
         window.location.href = upiUrl;
@@ -49,11 +51,16 @@ function DepositContent() {
             return;
         }
 
+        if (utr.length < 10) {
+            toast({ variant: 'destructive', title: "Invalid UTR", description: "Please enter a valid 12-digit UTR number." });
+            return;
+        }
+
         setIsLoading(true);
         try {
             await addDoc(collection(firestore, 'deposit_requests'), {
                 userId: user.uid,
-                username: user.displayName || user.email?.split('@')[0],
+                username: user.displayName || user.email?.split('@')[0] || "User",
                 amount: parseInt(amount),
                 utr: utr.trim(),
                 status: 'pending',
@@ -63,7 +70,7 @@ function DepositContent() {
             toast({ title: "Request Sent! ✅", description: "Admin will verify and add balance in 10-30 mins." });
             router.push('/profile');
         } catch (e) {
-            toast({ variant: 'destructive', title: "Error", description: "Something went wrong." });
+            toast({ variant: 'destructive', title: "Error", description: "Something went wrong. Try again." });
         } finally {
             setIsLoading(false);
         }
@@ -88,7 +95,7 @@ function DepositContent() {
                         <div className="bg-secondary/40 border border-white/5 p-8 rounded-[2.5rem] relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-4 opacity-5 rotate-12"><CreditCard size={100} /></div>
                             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-2">Selected Amount</p>
-                            <h2 className="text-6xl font-black text-white" style={{ fontStyle: 'normal' }}>₹{amount}</h2>
+                            <h2 className="text-7xl font-black text-white" style={{ fontStyle: 'normal' }}>₹{amount}</h2>
                         </div>
 
                         {/* Presets */}
@@ -146,7 +153,7 @@ function DepositContent() {
                             </div>
                             <div className="space-y-1">
                                 <h3 className="text-xl font-black uppercase italic">Payment Initiated</h3>
-                                <p className="text-xs text-muted-foreground">Please complete the payment in your UPI app for ₹{amount}</p>
+                                <p className="text-xs text-muted-foreground">Please complete the payment to <b>{PAYEE_NAME}</b></p>
                             </div>
                         </div>
 
@@ -162,7 +169,7 @@ function DepositContent() {
                                 placeholder="Enter 12 Digit UTR Number"
                                 value={utr}
                                 onChange={(e) => setUtr(e.target.value)}
-                                className="h-16 bg-background border-white/10 rounded-2xl text-xl font-black text-center text-primary"
+                                className="h-16 bg-background border-white/10 rounded-2xl text-2xl font-black text-center text-primary"
                                 maxLength={12}
                                 style={{ fontStyle: 'normal' }}
                             />
@@ -170,7 +177,7 @@ function DepositContent() {
                             <Button 
                                 onClick={submitRequest}
                                 disabled={isLoading || utr.length < 10}
-                                className="w-full h-16 bg-green-600 hover:bg-green-700 text-white font-black uppercase rounded-2xl flex items-center justify-center gap-3"
+                                className="w-full h-16 bg-green-600 hover:bg-green-700 text-white font-black uppercase rounded-2xl flex items-center justify-center gap-3 shadow-lg"
                             >
                                 {isLoading ? <Loader2 className="animate-spin" /> : <><Sparkles size={20} /> SUBMIT VERIFICATION</>}
                             </Button>
