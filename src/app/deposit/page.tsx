@@ -12,8 +12,8 @@ import { BottomNav } from "@/components/bottom-nav";
 import { cn } from '@/lib/utils';
 
 const PRESET_AMOUNTS = [100, 200, 300, 400, 500, 1000];
-const UPI_ID = "9389844930@nyes"; // अभिषेक भाई, आपकी नई आईडी यहाँ डाल दी है
-const PAYEE_NAME = "Abhishek Kumar"; // बैंक रिजेक्शन से बचने के लिए आपका असली नाम
+const UPI_ID = "ak63315561338@okicici"; // अभिषेक भाई, आपकी नई ICICI आईडी यहाँ डाल दी है
+const PAYEE_NAME = "Abhishek Kumar"; // बैंक वेरिफिकेशन के लिए आपका असली नाम
 
 function DepositContent() {
     const { firestore } = useFirebase();
@@ -33,26 +33,26 @@ function DepositContent() {
             return;
         }
 
-        // Generate UPI Deep Link with personal name and new ID
+        // Generate Standard UPI Deep Link for better GPay/PhonePe compatibility
         const encodedName = encodeURIComponent(PAYEE_NAME);
-        const upiUrl = `upi://pay?pa=${UPI_ID}&pn=${encodedName}&am=${amt}&cu=INR&tn=Recharge%20A.snap`;
+        const upiUrl = `upi://pay?pa=${UPI_ID}&pn=${encodedName}&am=${amt}&cu=INR&tn=Deposit%20to%20Asnap`;
         
-        // Open UPI App
+        // Open UPI App via deep linking
         window.location.href = upiUrl;
         
         // Move to verification step
         setStep('verify');
-        toast({ title: "UPI App Opened", description: "Please complete payment and copy UTR/Ref number." });
+        toast({ title: "Opening UPI App", description: "Please complete the payment and note down the UTR/Ref number." });
     };
 
     const submitRequest = async () => {
         if (!user || !firestore || !utr.trim()) {
-            toast({ variant: 'destructive', title: "Enter UTR", description: "Payment Reference/UTR is required." });
+            toast({ variant: 'destructive', title: "Enter UTR", description: "Please enter the 12-digit payment reference number." });
             return;
         }
 
         if (utr.length < 10) {
-            toast({ variant: 'destructive', title: "Invalid UTR", description: "Please enter a valid 12-digit UTR number." });
+            toast({ variant: 'destructive', title: "Invalid UTR", description: "Please enter a valid Transaction ID/UTR." });
             return;
         }
 
@@ -67,10 +67,10 @@ function DepositContent() {
                 createdAt: serverTimestamp()
             });
 
-            toast({ title: "Request Sent! ✅", description: "Admin will verify and add balance in 10-30 mins." });
+            toast({ title: "Request Submitted! ✅", description: "Admin will verify your payment and add balance shortly." });
             router.push('/profile');
         } catch (e) {
-            toast({ variant: 'destructive', title: "Error", description: "Something went wrong. Try again." });
+            toast({ variant: 'destructive', title: "Error", description: "Failed to send request. Please try again." });
         } finally {
             setIsLoading(false);
         }
@@ -83,15 +83,15 @@ function DepositContent() {
                     <ArrowLeft />
                 </Button>
                 <div>
-                    <h1 className="text-xl font-black uppercase italic tracking-tighter">Add Cash</h1>
-                    <p className="text-[9px] text-green-500 font-bold uppercase tracking-widest">Secure Payment Gateway</p>
+                    <h1 className="text-xl font-black uppercase italic tracking-tighter">Add Money</h1>
+                    <p className="text-[9px] text-green-500 font-bold uppercase tracking-widest">Safe & Secure Gateway</p>
                 </div>
             </header>
 
             <main className="p-6 space-y-8 max-w-lg mx-auto">
                 {step === 'select' ? (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        {/* Selected Amount Card */}
+                        {/* Balance Card Styling */}
                         <div className="bg-secondary/40 border border-white/5 p-8 rounded-[2.5rem] relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-4 opacity-5 rotate-12"><CreditCard size={100} /></div>
                             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-2">Selected Amount</p>
@@ -137,12 +137,12 @@ function DepositContent() {
                             onClick={handlePayment}
                             className="w-full h-20 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-[2.5rem] shadow-2xl shadow-primary/30 flex items-center justify-center gap-4 text-xl active:scale-95 transition-all"
                         >
-                            <Zap size={24} className="fill-white" /> PAY NOW
+                            <Zap size={24} className="fill-white" /> DEPOSIT NOW
                         </Button>
 
                         <div className="flex items-center justify-center gap-3 py-4 opacity-40">
                              <ShieldCheck size={16} />
-                             <span className="text-[9px] font-black uppercase tracking-widest">End-to-End Encrypted</span>
+                             <span className="text-[9px] font-black uppercase tracking-widest">Encrypted Transaction</span>
                         </div>
                     </div>
                 ) : (
@@ -152,16 +152,16 @@ function DepositContent() {
                                 <CheckCircle2 className="text-white" size={32} />
                             </div>
                             <div className="space-y-1">
-                                <h3 className="text-xl font-black uppercase italic">Payment Initiated</h3>
-                                <p className="text-xs text-muted-foreground">Please complete the payment to <b>{PAYEE_NAME}</b></p>
+                                <h3 className="text-xl font-black uppercase italic">Payment Started</h3>
+                                <p className="text-xs text-muted-foreground">Complete payment to <b>{PAYEE_NAME}</b></p>
                             </div>
                         </div>
 
                         <div className="bg-secondary/40 border border-white/5 p-8 rounded-[2.5rem] space-y-6">
                             <div className="space-y-2">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-primary">Verify Transaction</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-primary">Verification Step</p>
                                 <h4 className="text-sm font-bold text-white leading-relaxed">
-                                    पैसे भेजने के बाद, पेमेंट का **UTR (12 Digit)** नंबर यहाँ डालें। बैलेंस 5-10 मिनट में जुड़ जाएगा।
+                                    पेमेंट पूरा करने के बाद, ट्रांजेक्शन का **UTR/Reference Number (12 Digit)** यहाँ भरें।
                                 </h4>
                             </div>
 
@@ -179,12 +179,12 @@ function DepositContent() {
                                 disabled={isLoading || utr.length < 10}
                                 className="w-full h-16 bg-green-600 hover:bg-green-700 text-white font-black uppercase rounded-2xl flex items-center justify-center gap-3 shadow-lg"
                             >
-                                {isLoading ? <Loader2 className="animate-spin" /> : <><Sparkles size={20} /> SUBMIT VERIFICATION</>}
+                                {isLoading ? <Loader2 className="animate-spin" /> : <><Sparkles size={20} /> SUBMIT FOR APPROVAL</>}
                             </Button>
                         </div>
 
                         <p className="text-[9px] text-center text-muted-foreground uppercase font-black tracking-[0.2em] leading-relaxed px-6">
-                            गलत UTR डालने पर बैलेंस रिजेक्ट कर दिया जाएगा। कृपया सही नंबर डालें।
+                            Note: Wrong UTR submissions will result in permanent account suspension. Please provide correct details.
                         </p>
                     </div>
                 )}
