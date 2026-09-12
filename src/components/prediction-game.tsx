@@ -111,7 +111,8 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
     const fullHistory: GameResult[] = [];
 
-    for (let i = 1; i <= 50; i++) {
+    // Increase range to catch older rounds for settlement
+    for (let i = 1; i <= 60; i++) {
         const roundIdx = currentRoundIndex - i;
         if (roundIdx < 0) continue; 
         
@@ -264,11 +265,12 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       const batch = writeBatch(firestore);
       const userRef = doc(firestore, 'users', user.uid);
       const betColRef = collection(firestore, 'users', user.uid, 'game_bets');
-      const betDocRef = doc(betColRef);
+      const betId = `bet_${Date.now()}_${user.uid.slice(0, 5)}`;
+      const betDocRef = doc(betColRef, betId);
 
       batch.update(userRef, { virtualBalance: increment(-finalAmount) });
       batch.set(betDocRef, {
-        id: betDocRef.id,
+        id: betId,
         userId: user.uid,
         period: currentPeriod,
         selection: selectedOption,
@@ -445,20 +447,35 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                             <div key={bet.id} className="bg-white p-5 rounded-[2.5rem] border border-border/50 shadow-sm space-y-4 animate-in fade-in slide-in-from-bottom-2">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center font-black uppercase text-[10px]", isWin ? "bg-green-500/10 text-green-600" : isLoss ? "bg-red-500/10 text-red-600" : "bg-primary/10 text-primary")}>
-                                            {isWin ? 'Win' : isLoss ? 'Loss' : 'Wait'}
+                                        <div className={cn(
+                                            "w-12 h-12 rounded-full flex items-center justify-center font-black uppercase text-[10px] border-2",
+                                            isWin ? "bg-green-500/10 text-green-600 border-green-500" : 
+                                            isLoss ? "bg-red-500/10 text-red-600 border-red-500" : 
+                                            "bg-primary/10 text-primary border-primary/20"
+                                        )}>
+                                            {isWin ? 'WIN' : isLoss ? 'LOSS' : 'WAIT'}
                                         </div>
                                         <div>
-                                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{bet.period.slice(-4)} Round</p>
+                                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{bet.period.slice(-4)} ROUND</p>
                                             <p className="text-[9px] font-bold text-muted-foreground">{bet.createdAt ? format(bet.createdAt.toDate(), 'HH:mm dd MMM') : 'Just now'}</p>
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <div className={cn("inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-1", isWin ? "bg-green-500 text-white" : isLoss ? "bg-red-500 text-white" : "bg-secondary text-muted-foreground")}>
-                                            {isWin ? 'Winning' : isLoss ? 'Losing' : 'Settling...'}
+                                        <div className={cn(
+                                            "inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-1", 
+                                            isWin ? "bg-green-500 text-white" : 
+                                            isLoss ? "bg-red-500 text-white" : 
+                                            "bg-secondary text-muted-foreground"
+                                        )}>
+                                            {isWin ? 'WINNING' : isLoss ? 'LOSING' : 'SETTLING...'}
                                         </div>
-                                        <p className={cn("font-black text-lg tracking-tighter", isWin ? "text-green-600" : isLoss ? "text-red-600" : "text-primary animate-pulse")}>
-                                            {isWin ? `+₹${bet.winAmount?.toFixed(0)}` : isLoss ? `-₹${bet.amount}` : `₹${bet.amount}`}
+                                        <p className={cn(
+                                            "font-black text-lg tracking-tighter", 
+                                            isWin ? "text-green-600" : 
+                                            isLoss ? "text-red-600" : 
+                                            "text-primary animate-pulse"
+                                        )}>
+                                            {isWin ? `+₹${bet.winAmount?.toFixed(1)}` : isLoss ? `-₹${bet.amount}` : `₹${bet.amount}`}
                                         </p>
                                     </div>
                                 </div>
