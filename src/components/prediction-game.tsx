@@ -44,10 +44,6 @@ interface PopupData {
     } | null;
 }
 
-/**
- * अभिषेक भाई, यह 'Jalwa Math' है।
- * यह पीरियड आईडी के आधार पर हमेशा एक ही रिजल्ट देगा।
- */
 const getJalwaResult = (period: string) => {
   let hash = 0;
   for (let i = 0; i < period.length; i++) {
@@ -87,7 +83,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   const shownPeriodsRef = useRef<Set<string>>(new Set());
   const processedPeriods = useRef<Set<string>>(new Set());
 
-  // Firestore Data
   const resultsQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'game_results'), orderBy('period', 'desc'), limit(50)) : null, 
     [firestore]
@@ -100,10 +95,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   );
   const { data: myBets } = useCollection<Bet>(myBetsQuery);
 
-  /**
-   * अभिषेक भाई, यह 'Deterministic History' लॉजिक है।
-   * यह पिछले 50 राउंड्स की लिस्ट को हमेशा फुल रखेगा।
-   */
   const displayResults = useMemo(() => {
     const now = new Date();
     const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
@@ -113,19 +104,15 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
     const fullHistory: GameResult[] = [];
 
-    // पिछले 50 राउंड्स के लिए डेटा बनाएं
     for (let i = 1; i <= 50; i++) {
         const roundIdx = currentRoundIndex - i;
         if (roundIdx < 0) continue; 
         
         const periodId = `${datePart}10001${(roundIdx).toString().padStart(4, '0')}`;
-        
-        // चेक करें कि क्या यह डेटाबेस में है
         const dbEntry = firestoreResults?.find(r => r.period === periodId);
         if (dbEntry) {
             fullHistory.push(dbEntry);
         } else {
-            // अगर डेटाबेस में नहीं है, तो तुरंत 'Jalwa Math' से बनाओ (इससे हिस्ट्री कभी गायब नहीं होगी)
             const mathRes = getJalwaResult(periodId);
             fullHistory.push({
                 id: periodId,
@@ -212,8 +199,12 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                 const betRef = doc(firestore, 'users', user.uid, 'game_bets', bet.id);
                 const winAmt = Math.floor(bet.amount * mult);
                 
-                if (isWin) { totalWinDelta += winAmt; batch.update(betRef, { status: 'win', winAmount: winAmt }); }
-                else { batch.update(betRef, { status: 'loss' }); }
+                if (isWin) { 
+                    totalWinDelta += winAmt; 
+                    batch.update(betRef, { status: 'win', winAmount: winAmt }); 
+                } else { 
+                    batch.update(betRef, { status: 'loss' }); 
+                }
                 
                 updatedCount++;
                 if (!shownPeriodsRef.current.has(bet.period)) {
@@ -224,6 +215,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         });
 
         if (updatedCount > 0) {
+            // अभिषेक भाई, यहाँ हम बैलेंस अपडेट कर रहे हैं
             if (totalWinDelta > 0) {
                 batch.update(doc(firestore, 'users', user.uid), { virtualBalance: increment(totalWinDelta) });
             }
@@ -280,7 +272,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   return (
     <div className="space-y-6 select-none pb-24 animate-in fade-in duration-700 w-full px-4">
       
-      {/* ELITE ANALYSIS - SYNCED WITH LAST ENTRY */}
       <div className="relative group w-full">
         <div className="absolute -inset-1 bg-gradient-to-r from-primary via-purple-600 to-blue-600 rounded-[2.5rem] blur opacity-30"></div>
         <div className="relative bg-white border border-primary/20 rounded-[2.5rem] p-6 shadow-2xl overflow-hidden">
@@ -316,7 +307,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </div>
       </div>
 
-      {/* Timer Bar */}
       <div className="bg-[#f95959] rounded-[2.5rem] p-6 text-white flex justify-between items-center shadow-xl relative overflow-hidden w-full">
         <div className="space-y-4 z-10">
             <div className="flex items-center gap-2"><Zap size={14} className="fill-white" /><p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-90">WinGo 30S</p></div>
@@ -345,7 +335,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </div>
       </div>
 
-      {/* Betting Buttons */}
       <div className="bg-white rounded-[3rem] p-8 shadow-2xl border border-border/50 space-y-8 w-full">
           <div className="grid grid-cols-3 gap-4">
               <Button onClick={() => handleOpenBetPanel('green')} className="bg-green-500 hover:bg-green-600 h-16 rounded-[1.5rem] font-black uppercase text-xs">Green</Button>
@@ -373,7 +362,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           </div>
       </div>
 
-      {/* History Tabs */}
       <div className="bg-white rounded-[3rem] overflow-hidden shadow-2xl border border-border/50 w-full">
         <Tabs defaultValue="results" className="w-full">
             <TabsList className="grid w-full grid-cols-2 bg-secondary/50 p-1 h-14 rounded-none">
@@ -415,16 +403,13 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                                     </td>
                                 </tr>
                             ))}
-                            {isHistoryLoading && [1,2,3].map(i => (
-                                <tr key={i} className="animate-pulse"><td colSpan={4} className="py-10 bg-secondary/10" /></tr>
-                            ))}
                         </tbody>
                     </table>
                 </div>
             </TabsContent>
 
             <TabsContent value="my" className="m-0 p-6 space-y-4 bg-secondary/5 min-h-[400px]">
-                {displayBets.map(bet => {
+                {myBets?.map(bet => {
                     const isWin = bet.status === 'win';
                     const isLoss = bet.status === 'loss';
                     return (
@@ -446,7 +431,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </Tabs>
       </div>
 
-      {/* Bet Dialog */}
       <Dialog open={isBetPanelOpen} onOpenChange={setIsBetPanelOpen}>
         <DialogContent className="max-w-[420px] bg-background border-border rounded-[3.5rem] p-0 overflow-hidden z-[1000] shadow-2xl">
            <DialogHeader className="p-10 pb-0">
@@ -494,7 +478,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </DialogContent>
       </Dialog>
 
-      {/* RESULT POPUP */}
       <Dialog open={popup.isOpen} onOpenChange={(open) => !open && setPopup(prev => ({ ...prev, isOpen: false }))}>
         <DialogContent className={cn("max-w-[340px] p-0 border-none rounded-[2.5rem] overflow-hidden shadow-[0_30px_70px_rgba(0,0,0,0.5)] z-[2000] animate-in zoom-in duration-300", popup.isWin ? "bg-gradient-to-b from-[#2e7d32] to-[#1b5e20]" : "bg-gradient-to-b from-[#1565c0] to-[#0d47a1]")}>
             <div className="relative p-8 flex flex-col items-center text-center text-white space-y-6">

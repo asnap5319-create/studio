@@ -22,28 +22,28 @@ function HomeContent() {
     [firestore, user]
   );
   
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile & { virtualBalance?: number }>(userRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile & { virtualBalance?: number, walletVersion?: string }>(userRef);
 
   useEffect(() => {
     const initializeUser = async () => {
       if (user && firestore && !isProfileLoading && !isInitializing) {
         const uRef = doc(firestore, 'users', user.uid);
         const snap = await getDoc(uRef);
+        const data = snap.data();
+
+        // अभिषेक भाई, यहाँ हम चेक कर रहे हैं कि क्या 'v28' वाला वर्जन पहले से है?
+        // अगर नहीं है, तभी 28 रुपये देंगे। इससे जीतने पर पैसे ओवरराइट (Overwrite) नहीं होंगे।
+        const needsInitialization = !snap.exists() || data?.walletVersion !== 'v28';
         
-        const currentBalance = snap.data()?.virtualBalance;
-        
-        // अभिषेक भाई, यहाँ हम बैलेंस 28 सेट कर रहे हैं:
-        // 1. अगर यूजर नया है
-        // 2. अगर पुराने यूजर के पास 100 सिक्के हैं
-        // 3. अगर यूजर सब हार गया है (बैलेंस 0 है)
-        if (!snap.exists() || currentBalance === 100 || currentBalance === 0 || currentBalance === undefined) {
+        if (needsInitialization) {
           setIsInitializing(true);
           try {
             await setDoc(uRef, {
                 id: user.uid,
                 username: user.displayName || user.email?.split('@')[0] || 'user',
                 email: user.email || '',
-                virtualBalance: 28, // Updated starting coins as per request
+                virtualBalance: 28, 
+                walletVersion: 'v28', // पक्का फ्लैग ताकि दोबारा रिसेट न हो
                 updatedAt: serverTimestamp()
             }, { merge: true });
           } catch (err) {
@@ -56,7 +56,7 @@ function HomeContent() {
     };
 
     initializeUser();
-  }, [user, firestore, userProfile, isProfileLoading]);
+  }, [user, firestore, isProfileLoading]); // dependency से userProfile हटाया ताकि लूप न बने
 
   const handleActionClick = (type: string) => {
     toast({
