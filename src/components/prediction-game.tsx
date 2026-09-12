@@ -82,7 +82,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   });
   const [popupTimer, setPopupTimer] = useState(3);
 
-  // अभिषेक भाई, ये रिफ्स जीत-हार को "Bulletproof" बनाते हैं
   const settledBetIdsRef = useRef<Set<string>>(new Set());
   const processedPeriodsRef = useRef<Set<string>>(new Set());
   const shownPopupPeriodsRef = useRef<Set<string>>(new Set());
@@ -163,7 +162,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   useEffect(() => {
     if (!firestore || !user || !displayResults.length || !myBets) return;
 
-    // सिर्फ उन्हीं बेट्स को लें जो 'pending' हैं और इस सेशन में सेटल नहीं हुई हैं
     const pendingBets = myBets.filter(b => b.status === 'pending' && !settledBetIdsRef.current.has(b.id));
     if (pendingBets.length === 0) return;
 
@@ -200,7 +198,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                     batch.update(betRef, { status: 'loss' }); 
                 }
                 
-                // पॉपअप सिर्फ पार्टिसिपेट करने वाले को दिखेगा
                 if (!shownPopupPeriodsRef.current.has(bet.period)) {
                     setPopup({ isOpen: true, isWin: isWin, amount: isWin ? winAmt : 0, period: bet.period, result: { num: result.number, color: result.color, size: result.size } });
                     setPopupTimer(3);
@@ -211,7 +208,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         });
 
         if (updatedCount > 0) {
-            // रीयल-टाइम इंक्रीमेंट: पैसा कभी गायब नहीं होगा
             if (totalWinDelta > 0) {
                 batch.update(doc(firestore, 'users', user.uid), { 
                   virtualBalance: increment(totalWinDelta),
@@ -446,7 +442,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </Tabs>
       </div>
 
-      {/* Bet Dialog */}
       <Dialog open={isBetPanelOpen} onOpenChange={setIsBetPanelOpen}>
         <DialogContent className="max-w-[400px] bg-background border-border rounded-[3rem] p-0 overflow-hidden z-[1000]">
            <DialogHeader className="p-8 pb-0 flex flex-row items-center justify-between">
@@ -489,7 +484,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </DialogContent>
       </Dialog>
 
-      {/* Result Popup */}
       <Dialog open={popup.isOpen} onOpenChange={(open) => !open && setPopup(prev => ({ ...prev, isOpen: false }))}>
         <DialogContent className={cn("max-w-[340px] p-0 border-none rounded-[3rem] overflow-hidden shadow-2xl z-[2000] animate-in zoom-in duration-300", popup.isWin ? "bg-green-700" : "bg-blue-800")}>
             <div className="relative p-10 flex flex-col items-center text-center text-white space-y-8">

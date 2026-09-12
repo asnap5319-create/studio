@@ -22,32 +22,34 @@ function HomeContent() {
     [firestore, user]
   );
   
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile & { virtualBalance?: number, walletVersion?: string }>(userRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile & { virtualBalance?: number }>(userRef);
 
   useEffect(() => {
     const initializeUser = async () => {
-      // अभिषेक भाई, यहाँ 'v28_final' का इस्तेमाल कर रहे हैं ताकि बैलेंस कभी ओवरराइट न हो
+      // अभिषेक भाई, यहाँ हम सिर्फ ये चेक कर रहे हैं कि क्या यूजर नया है।
+      // अगर बैलेंस पहले से है, तो हम कुछ नहीं बदलेंगे (No Overwrite)
       if (!user || !firestore || isProfileLoading || isInitializing || initRef.current) return;
 
       const uRef = doc(firestore, 'users', user.uid);
       try {
           const snap = await getDoc(uRef);
-          const data = snap.data();
-
-          // अगर यूजर के पास पहले से डेटा है और वर्जन 'v28_final' है, तो वापस जाओ (Return)
-          if (data && data.walletVersion === 'v28_final') {
-            initRef.current = true;
-            return;
+          
+          if (snap.exists()) {
+            const data = snap.data();
+            // अगर बैलेंस पहले से मौजूद है, तो वापस जाओ। कुछ मत बदलो।
+            if (data && typeof data.virtualBalance === 'number') {
+              initRef.current = true;
+              return;
+            }
           }
 
-          // सिर्फ तभी 28 रुपये सेट करो जब वर्जन 'v28_final' न हो (सिर्फ एक बार होगा)
+          // सिर्फ नए यूजर के लिए 28 रुपये सेट करो
           setIsInitializing(true);
           await setDoc(uRef, {
               id: user.uid,
               username: user.displayName || user.email?.split('@')[0] || `user_${user.uid.slice(0, 4)}`,
               email: user.email || '',
               virtualBalance: 28, 
-              walletVersion: 'v28_final',
               updatedAt: serverTimestamp()
           }, { merge: true });
           
@@ -107,7 +109,7 @@ function HomeContent() {
                             </p>
                             <div className="flex items-baseline gap-2">
                                <span className="text-4xl font-black text-white/80">₹</span>
-                               <h2 className="text-7xl font-black tracking-tighter drop-shadow-lg !italic-none" style={{ fontStyle: 'normal' }}>
+                               <h2 className="text-7xl font-black tracking-tighter drop-shadow-lg" style={{ fontStyle: 'normal' }}>
                                   {userProfile?.virtualBalance?.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) || '0.0'}
                                </h2>
                             </div>
