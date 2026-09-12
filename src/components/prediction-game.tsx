@@ -140,7 +140,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       const datePart = format(now, 'yyyyMMdd');
       const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
       const roundIndexInDay = (utcMinutes * 2 + Math.floor(seconds / 30));
-      const periodId = `${datePart}10005${(roundIndexInDay + 50000).toString().padStart(4, '0')}`;
+      const periodId = `${datePart}10001${(roundIndexInDay).toString().padStart(4, '0')}`;
       
       if (periodId !== currentPeriod) {
         if (currentPeriod) { generateResult(currentPeriod); }
@@ -271,7 +271,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             <div className="grid grid-cols-2 gap-4">
                 <div className="bg-secondary/30 rounded-[2.5rem] p-6 border border-border/40 flex flex-col items-center justify-center gap-2">
                     <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Target Round</span>
-                    <p className="text-lg font-black italic tracking-tighter text-foreground">{currentPeriod.slice(-5)}</p>
+                    <p className="text-lg font-black italic tracking-tighter text-foreground">{currentPeriod.slice(-4)}</p>
                 </div>
                 <div className="bg-primary/5 rounded-[2.5rem] p-6 border border-primary/20 flex flex-col items-center justify-center gap-2">
                     <span className="text-[10px] font-black text-primary uppercase tracking-widest">Last Result</span>
@@ -335,18 +335,18 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           </div>
       </div>
 
-      {/* History Tabs (Screenshot Style Dark UI) */}
-      <div className="bg-[#0b1426] rounded-[3rem] overflow-hidden shadow-2xl border border-white/5 w-full">
+      {/* History Tabs (Reverted to Light UI) */}
+      <div className="bg-white rounded-[3rem] overflow-hidden shadow-2xl border border-border/50 w-full">
         <Tabs defaultValue="results" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-[#16213e] p-0 h-16 rounded-none">
-                <TabsTrigger value="results" className="rounded-none font-black text-[11px] uppercase data-[state=active]:bg-[#0b1426] data-[state=active]:text-white text-white/50">Game History</TabsTrigger>
-                <TabsTrigger value="my" className="rounded-none font-black text-[11px] uppercase data-[state=active]:bg-[#0b1426] data-[state=active]:text-white text-white/50">My History</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 bg-secondary/50 p-1 h-14 rounded-none">
+                <TabsTrigger value="results" className="rounded-none font-black text-[11px] uppercase data-[state=active]:bg-white data-[state=active]:text-foreground">Game History</TabsTrigger>
+                <TabsTrigger value="my" className="rounded-none font-black text-[11px] uppercase data-[state=active]:bg-white data-[state=active]:text-foreground">My History</TabsTrigger>
             </TabsList>
 
             <TabsContent value="results" className="m-0">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
-                        <thead className="bg-[#16213e] text-white/60">
+                        <thead className="bg-secondary/20 text-muted-foreground">
                             <tr className="text-[10px] font-black uppercase">
                                 <th className="py-5 px-4">Period</th>
                                 <th className="py-5 px-2 text-center">Number</th>
@@ -354,15 +354,15 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                                 <th className="py-5 px-4 text-center">Color</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-white/5">
+                        <tbody className="divide-y divide-border/50">
                             {displayResults.map(res => (
-                                <tr key={res.id} className="text-white hover:bg-white/5 transition-colors">
-                                    <td className="py-6 px-4 text-[11px] font-medium tracking-tight text-white/80">{res.period}</td>
+                                <tr key={res.id} className="hover:bg-secondary/10 transition-colors">
+                                    <td className="py-6 px-4 text-[11px] font-medium tracking-tight text-muted-foreground">{res.period}</td>
                                     <td className={cn("py-6 px-2 text-center font-black text-2xl", getNumberColorClass(res.number))}>
                                         {res.number}
                                     </td>
                                     <td className="py-6 px-2 text-center font-black">
-                                        <span className={cn("text-[12px] font-bold", res.size === 'big' ? "text-white" : "text-white/70")}>{res.size === 'big' ? 'Big' : 'Small'}</span>
+                                        <span className={cn("text-[12px] font-bold", res.size === 'big' ? "text-foreground" : "text-muted-foreground")}>{res.size === 'big' ? 'Big' : 'Small'}</span>
                                     </td>
                                     <td className="py-6 px-4">
                                         <div className="flex gap-1 justify-center">
@@ -378,28 +378,28 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                                 </tr>
                             ))}
                             {isHistoryLoading && [1,2,3].map(i => (
-                                <tr key={i} className="animate-pulse"><td colSpan={4} className="py-10 bg-white/5" /></tr>
+                                <tr key={i} className="animate-pulse"><td colSpan={4} className="py-10 bg-secondary/10" /></tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
             </TabsContent>
 
-            <TabsContent value="my" className="m-0 p-6 space-y-4 bg-white/5 min-h-[400px]">
+            <TabsContent value="my" className="m-0 p-6 space-y-4 bg-secondary/5 min-h-[400px]">
                 {displayBets.map(bet => {
                     const isWin = bet.status === 'win';
                     const isLoss = bet.status === 'loss';
                     return (
-                        <div key={bet.id} className="bg-[#16213e] p-6 rounded-[2.5rem] border border-white/5 shadow-sm flex items-center justify-between text-white">
+                        <div key={bet.id} className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm flex items-center justify-between">
                             <div className="space-y-2">
-                                <p className="text-[10px] font-black text-white/50 uppercase tracking-widest">{bet.period.slice(-5)} Round</p>
+                                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{bet.period.slice(-4)} Round</p>
                                 <p className="font-black text-sm uppercase">Bet: <span className="text-primary">{bet.selection}</span></p>
                             </div>
                             <div className="text-right">
                                 <p className={cn("font-black text-xl tracking-tighter", isWin ? "text-green-500" : isLoss ? "text-red-500" : "text-primary animate-pulse")}>
                                     {isWin ? `+₹${bet.winAmount?.toFixed(0)}` : isLoss ? `-₹${bet.amount}` : 'Settling...'}
                                 </p>
-                                <p className="text-[9px] text-white/40 font-bold uppercase mt-1">Stake: ₹{bet.amount}</p>
+                                <p className="text-[9px] text-muted-foreground font-bold uppercase mt-1">Stake: ₹{bet.amount}</p>
                             </div>
                         </div>
                     );
@@ -481,7 +481,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                                 <span className={cn("px-3 py-1 rounded-full text-[10px] font-black uppercase border border-white/20", popup.result?.size === 'big' ? "bg-orange-500" : "bg-blue-500")}>{popup.result?.size}</span>
                                 <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-white/20 border border-white/20">{popup.result?.color.replace('-violet', '')}</span>
                              </div>
-                             <p className="text-[9px] font-bold opacity-40">Round: {popup.period.slice(-5)}</p>
+                             <p className="text-[9px] font-bold opacity-40">Round: {popup.period.slice(-4)}</p>
                         </div>
                     </div>
                 </div>
