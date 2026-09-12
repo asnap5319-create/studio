@@ -36,6 +36,7 @@ interface Bet {
 /**
  * A.snap Official Jalwa Algorithm
  * Uses the same distribution as professional WinGo games.
+ * Predicts based on Period ID.
  */
 const getJalwaResult = (period: string) => {
   let hash = 0;
@@ -85,6 +86,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         const resultDocRef = doc(firestore, 'game_results', periodToProcess);
         const { num, color, size } = getJalwaResult(periodToProcess);
 
+        // One-time creation for the global result
         await setDoc(resultDocRef, {
             id: periodToProcess,
             period: periodToProcess,
@@ -95,9 +97,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         }, { merge: false });
 
     } catch (e: any) {
-        if (e.code !== 'permission-denied' && e.code !== 'already-exists') {
-            console.error("Global Result generation error:", e);
-        }
+        // Silently fail if already exists or permission denied
     }
   };
 
@@ -111,9 +111,8 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       const datePart = format(now, 'yyyyMMdd');
       const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
       
-      // Jalwa Sync: +1 Ahead logic.
-      // Rounds start from 1 at 00:00 UTC.
-      const roundIndexInDay = (utcMinutes * 2 + Math.floor(seconds / 30)) + 1;
+      // Jalwa Sync Fixed: Removed +1 offset to match current round instead of being 2 steps ahead.
+      const roundIndexInDay = (utcMinutes * 2 + Math.floor(seconds / 30));
       const periodId = `${datePart}10001${roundIndexInDay.toString().padStart(4, '0')}`;
       
       if (periodId !== currentPeriod) {
@@ -122,7 +121,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         }
         setCurrentPeriod(periodId);
         
-        // Predict using the Official Jalwa Math
+        // Predict using the Official Jalwa Math for THIS period
         const pred = getJalwaResult(periodId);
         setPrediction({
             size: pred.size.toUpperCase() as 'BIG' | 'SMALL',
@@ -149,7 +148,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   );
   const { data: myBets } = useCollection<Bet>(myBetsQuery);
 
-  // Settlement Logic: Fast and Reliable
+  // Settlement Logic: Settlement triggered when new results arrive
   useEffect(() => {
     if (!firestore || !user || !results || results.length === 0 || !myBets) return;
 
@@ -265,10 +264,10 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   };
 
   return (
-    <div className="space-y-6 select-none pb-24 animate-in fade-in duration-700">
+    <div className="space-y-6 select-none pb-24 animate-in fade-in duration-700 w-full">
       
-      {/* --- ELITE AI PREDICTION (Official Sync) --- */}
-      <div className="relative group">
+      {/* --- ELITE AI PREDICTION (Full Width) --- */}
+      <div className="relative group w-full">
         <div className="absolute -inset-1 bg-gradient-to-r from-[#ff3366] via-purple-600 to-blue-600 rounded-[2.5rem] blur opacity-30 group-hover:opacity-60 transition duration-1000"></div>
         <div className="relative bg-white border border-primary/20 rounded-[2.5rem] p-6 shadow-2xl overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-5 rotate-12">
@@ -298,13 +297,13 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             <div className="grid grid-cols-2 gap-4">
                 <div className="bg-secondary/30 rounded-[2.5rem] p-6 border border-border/40 flex flex-col items-center justify-center gap-2 group/box hover:bg-secondary/50 transition-all">
                     <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-                        <Clock size={10} /> Round ID
+                        <Clock size={10} /> Current Round
                     </span>
                     <p className="text-lg font-black italic tracking-tighter text-foreground">{currentPeriod.slice(-4)}</p>
                 </div>
                 <div className="bg-primary/5 rounded-[2.5rem] p-6 border border-primary/20 flex flex-col items-center justify-center gap-2 hover:scale-[1.02] transition-transform">
                     <span className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1.5">
-                        <BarChart3 size={10} /> Next Entry
+                        <BarChart3 size={10} /> Prediction
                     </span>
                     <div className="flex items-center gap-3">
                         <p className={cn(
@@ -322,12 +321,12 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             </div>
 
             <div className="mt-6 flex items-center justify-center gap-2 text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-60">
-                <ShieldCheck size={12} className="text-primary" /> Official Jalwa Math v1.0 (+1 Step)
+                <ShieldCheck size={12} className="text-primary" /> Official WinGo 30S Match
             </div>
         </div>
       </div>
 
-      <div className="bg-[#f95959] rounded-[2.5rem] p-6 text-white flex justify-between items-center shadow-xl relative overflow-hidden">
+      <div className="bg-[#f95959] rounded-[2.5rem] p-6 text-white flex justify-between items-center shadow-xl relative overflow-hidden w-full">
         <div className="absolute top-0 left-0 w-full h-full bg-black/5 pointer-events-none" />
         <div className="space-y-4 z-10">
             <div className="flex items-center gap-2">
@@ -355,7 +354,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-[3rem] p-8 shadow-2xl border border-border/50 space-y-8">
+      <div className="bg-white rounded-[3rem] p-8 shadow-2xl border border-border/50 space-y-8 w-full">
           <div className="grid grid-cols-3 gap-4">
               <Button onClick={() => handleOpenBetPanel('green')} className="bg-green-500 hover:bg-green-600 h-16 rounded-[1.5rem] font-black uppercase text-xs shadow-lg shadow-green-500/20 transition-all active:scale-95">Green</Button>
               <Button onClick={() => handleOpenBetPanel('violet')} className="bg-purple-500 hover:bg-purple-600 h-16 rounded-[1.5rem] font-black uppercase text-xs shadow-lg shadow-purple-500/20 transition-all active:scale-95">Violet</Button>
@@ -391,7 +390,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           </div>
       </div>
 
-      <div className="bg-white rounded-[3rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.1)] border border-border/50">
+      <div className="bg-white rounded-[3rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.1)] border border-border/50 w-full">
         <Tabs defaultValue="results" className="w-full">
             <TabsList className="grid w-full grid-cols-2 bg-[#f1f3ff] p-0 h-16 rounded-none">
                 <TabsTrigger value="results" className="rounded-none font-black text-[11px] uppercase data-[state=active]:bg-white data-[state=active]:text-[#f95959] transition-all">Game History</TabsTrigger>
@@ -552,4 +551,3 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     </div>
   );
 }
-

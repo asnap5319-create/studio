@@ -90,11 +90,11 @@ function HomeContent() {
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto p-4 space-y-6">
+      <main className="w-full p-4 space-y-6">
         {user ? (
           <>
-            {/* Premium Wallet Dashboard */}
-            <div className="bg-money-pattern p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(22,163,74,0.3)] text-white relative overflow-hidden group">
+            {/* Premium Wallet Dashboard - Expanded */}
+            <div className="max-w-4xl mx-auto bg-money-pattern p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(22,163,74,0.3)] text-white relative overflow-hidden group">
                <div className="absolute top-0 right-0 p-6 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-700">
                   <Wallet size={120} />
                </div>
@@ -134,7 +134,9 @@ function HomeContent() {
                </div>
             </div>
 
-            <PredictionGame userProfile={userProfile} />
+            <div className="max-w-4xl mx-auto w-full">
+              <PredictionGame userProfile={userProfile} />
+            </div>
           </>
         ) : (
           <div className="flex flex-col items-center justify-center h-[70vh] text-center gap-6">
