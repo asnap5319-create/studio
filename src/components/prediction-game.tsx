@@ -44,6 +44,7 @@ interface PopupData {
     } | null;
 }
 
+// जलवा गेम का असली गणित (Deterministic Results)
 const getJalwaResult = (period: string) => {
   let hash = 0;
   for (let i = 0; i < period.length; i++) {
@@ -81,8 +82,8 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   });
   const [popupTimer, setPopupTimer] = useState(3);
 
-  // अभिषेक भाई, ये रिफ्स बहुत जरूरी हैं ताकि एक जीत दो बार न जुड़े
-  const processedBetIdsRef = useRef<Set<string>>(new Set());
+  // अभिषेक भाई, ये रिफ्स जीत-हार को "Bulletproof" बनाते हैं
+  const settledBetIdsRef = useRef<Set<string>>(new Set());
   const processedPeriodsRef = useRef<Set<string>>(new Set());
   const shownPopupPeriodsRef = useRef<Set<string>>(new Set());
 
@@ -146,7 +147,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                         id: currentPeriod, period: currentPeriod, number: num, color, size, createdAt: serverTimestamp()
                     }, { merge: true });
                 } catch (e) {
-                    // Ignore errors during silent background result saving
+                    // Ignore background errors
                 }
             };
             saveResult();
@@ -162,24 +163,24 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   useEffect(() => {
     if (!firestore || !user || !displayResults.length || !myBets) return;
 
-    const pendingBets = myBets.filter(b => b.status === 'pending' && !processedBetIdsRef.current.has(b.id));
+    // सिर्फ उन्हीं बेट्स को लें जो 'pending' हैं और इस सेशन में सेटल नहीं हुई हैं
+    const pendingBets = myBets.filter(b => b.status === 'pending' && !settledBetIdsRef.current.has(b.id));
     if (pendingBets.length === 0) return;
 
     const processSettlement = async () => {
         const batch = writeBatch(firestore);
         let totalWinDelta = 0;
         let updatedCount = 0;
-        const periodPopups = new Map<string, { win: boolean; amount: number; result: any }>();
 
         pendingBets.forEach(bet => {
             const result = displayResults.find(r => r.period === bet.period);
             if (result) {
-                processedBetIdsRef.current.add(bet.id);
+                settledBetIdsRef.current.add(bet.id);
                 
                 let isWin = false;
                 let mult = 1.99;
 
-                // अभिषेक भाई, यहाँ Big/Small का जीत-हार लॉजिक एकदम सटीक है
+                // जलवा रूल्स: 5-9 Big, 0-4 Small
                 if (bet.selection === 'big') isWin = result.number >= 5;
                 else if (bet.selection === 'small') isWin = result.number < 5;
                 else if (typeof bet.selection === 'number') { isWin = bet.selection === result.number; mult = 9.0; }
@@ -199,16 +200,18 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                     batch.update(betRef, { status: 'loss' }); 
                 }
                 
-                const existing = periodPopups.get(bet.period);
-                if (!existing || isWin) {
-                    periodPopups.set(bet.period, { win: isWin, amount: isWin ? winAmt : 0, result });
+                // पॉपअप सिर्फ पार्टिसिपेट करने वाले को दिखेगा
+                if (!shownPopupPeriodsRef.current.has(bet.period)) {
+                    setPopup({ isOpen: true, isWin: isWin, amount: isWin ? winAmt : 0, period: bet.period, result: { num: result.number, color: result.color, size: result.size } });
+                    setPopupTimer(3);
+                    shownPopupPeriodsRef.current.add(bet.period);
                 }
                 updatedCount++;
             }
         });
 
         if (updatedCount > 0) {
-            // रीयल-टाइम बैलेंस अपडेट के लिए increment() का इस्तेमाल
+            // रीयल-टाइम इंक्रीमेंट: पैसा कभी गायब नहीं होगा
             if (totalWinDelta > 0) {
                 batch.update(doc(firestore, 'users', user.uid), { 
                   virtualBalance: increment(totalWinDelta),
@@ -217,15 +220,8 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             }
             try {
                 await batch.commit();
-                periodPopups.forEach((data, period) => {
-                    if (!shownPopupPeriodsRef.current.has(period)) {
-                        setPopup({ isOpen: true, isWin: data.win, amount: data.amount, period: period, result: { num: data.result.number, color: data.result.color, size: data.result.size } });
-                        setPopupTimer(3);
-                        shownPopupPeriodsRef.current.add(period);
-                    }
-                });
             } catch (error) {
-                console.error("Settlement failed:", error);
+                console.error("Settlement error:", error);
             }
         }
     };
@@ -264,7 +260,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       const betId = `bet_${Date.now()}_${user.uid.slice(0, 5)}`;
       const betDocRef = doc(firestore, 'users', user.uid, 'game_bets', betId);
 
-      // अभिषेक भाई, यहाँ atomic increment का इस्तेमाल करके बैलेंस तुरंत काट रहे हैं
       batch.update(userRef, { 
         virtualBalance: increment(-finalAmount),
         updatedAt: serverTimestamp()
@@ -282,7 +277,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
   return (
     <div className="space-y-8 select-none pb-24 w-full px-5">
-      {/* Analysis Card - Straight Numbers */}
+      {/* Analysis Card */}
       <div className="relative w-full">
         <div className="bg-white border border-border rounded-[3rem] p-8 shadow-sm overflow-hidden">
             <div className="flex items-center justify-between mb-8">
@@ -302,28 +297,28 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             <div className="grid grid-cols-2 gap-4">
                 <div className="bg-secondary/20 rounded-[2.5rem] p-8 border border-border flex flex-col items-center justify-center gap-2">
                     <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Period</span>
-                    <p className="text-2xl font-black text-foreground">{currentPeriod.slice(-4)}</p>
+                    <p className="text-3xl font-black text-foreground" style={{ fontStyle: 'normal' }}>{currentPeriod.slice(-4)}</p>
                 </div>
                 <div className="bg-primary/5 rounded-[2.5rem] p-8 border border-primary/10 flex flex-col items-center justify-center gap-2">
                     <span className="text-[10px] font-black text-primary uppercase tracking-widest">Last Result</span>
                     <div className="flex items-center gap-3">
-                        <p className={cn("text-4xl font-black uppercase", displayResults[0]?.size === 'big' ? "text-orange-500" : "text-blue-500")}>
+                        <p className={cn("text-4xl font-black uppercase", displayResults[0]?.size === 'big' ? "text-orange-500" : "text-blue-500")} style={{ fontStyle: 'normal' }}>
                             {displayResults[0]?.size || '---'}
                         </p>
-                        {displayResults[0] && <div className={cn("w-5 h-5 rounded-full shadow-sm", displayResults[0].color.includes('green') ? "bg-green-500" : "bg-red-500")} />}
+                        {displayResults[0] && <div className={cn("w-6 h-6 rounded-full shadow-sm", displayResults[0].color.includes('green') ? "bg-green-500" : "bg-red-500")} />}
                     </div>
                 </div>
             </div>
         </div>
       </div>
 
-      {/* Timer Section - Straight Numbers */}
+      {/* Timer Section */}
       <div className="bg-[#f95959] rounded-[3.5rem] p-10 text-white flex justify-between items-center shadow-xl relative overflow-hidden w-full">
         <div className="space-y-6 z-10">
             <div className="flex items-center gap-2"><Zap size={20} className="fill-white" /><p className="text-[11px] font-black uppercase tracking-[0.3em]">WinGo 30S</p></div>
             <div className="flex gap-2">
                 {displayResults.slice(0, 5).map(res => (
-                    <div key={res.id} className={cn("w-10 h-10 rounded-full border border-white/30 flex items-center justify-center text-sm font-black shadow-md", res.color.includes('green') ? "bg-green-500" : "bg-red-500")}>{res.number}</div>
+                    <div key={res.id} className={cn("w-10 h-10 rounded-full border border-white/30 flex items-center justify-center text-sm font-black shadow-md", res.color.includes('green') ? "bg-green-500" : "bg-red-500")} style={{ fontStyle: 'normal' }}>{res.number}</div>
                 ))}
             </div>
         </div>
@@ -338,14 +333,14 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                     </div>
                 ) : (
                     ['0', '0', ':', (timeLeft < 10 ? '0' : timeLeft.toString()[0]), (timeLeft < 10 ? timeLeft.toString() : (timeLeft.toString()[1] || '0'))].map((char, i) => (
-                        <div key={i} className={cn("h-16 w-12 flex items-center justify-center rounded-2xl bg-white text-[#f95959] font-black text-4xl shadow-xl mx-0.5", char === ':' && "bg-transparent text-white w-2 shadow-none")}>{char}</div>
+                        <div key={i} className={cn("h-16 w-12 flex items-center justify-center rounded-2xl bg-white text-[#f95959] font-black text-4xl shadow-xl mx-0.5", char === ':' && "bg-transparent text-white w-2 shadow-none")} style={{ fontStyle: 'normal' }}>{char}</div>
                     ))
                 )}
             </div>
         </div>
       </div>
 
-      {/* Control Panel - Straight Numbers */}
+      {/* Control Panel */}
       <div className="bg-white rounded-[4rem] p-10 shadow-2xl border border-border/50 space-y-10 w-full">
           <div className="grid grid-cols-3 gap-4">
               <Button onClick={() => handleOpenBetPanel('green')} className="bg-green-500 hover:bg-green-600 h-20 rounded-[2rem] font-black uppercase text-sm">Green</Button>
@@ -356,7 +351,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           <div className="bg-secondary/30 p-8 rounded-[3rem] border border-border/50">
               <div className="grid grid-cols-5 gap-6">
                   {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-                    <button key={num} onClick={() => handleOpenBetPanel(num)} className={cn("relative w-14 h-14 mx-auto rounded-full font-black text-2xl flex items-center justify-center text-white shadow-md active:scale-90 transition-all", num === 0 || num === 5 ? "bg-gradient-to-br from-purple-500 to-red-500" : [1, 3, 7, 9].includes(num) ? "bg-green-500" : "bg-red-500")}>{num}</button>
+                    <button key={num} onClick={() => handleOpenBetPanel(num)} className={cn("relative w-14 h-14 mx-auto rounded-full font-black text-2xl flex items-center justify-center text-white shadow-md active:scale-90 transition-all", num === 0 || num === 5 ? "bg-gradient-to-br from-purple-500 to-red-500" : [1, 3, 7, 9].includes(num) ? "bg-green-500" : "bg-red-500")} style={{ fontStyle: 'normal' }}>{num}</button>
                   ))}
               </div>
           </div>
@@ -368,12 +363,12 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-              <Button onClick={() => handleOpenBetPanel('big')} className="bg-orange-400 hover:bg-orange-500 h-20 rounded-[2rem] font-black uppercase text-xl text-white">Big</Button>
-              <Button onClick={() => handleOpenBetPanel('small')} className="bg-blue-400 hover:bg-blue-500 h-20 rounded-[2rem] font-black uppercase text-xl text-white">Small</Button>
+              <Button onClick={() => handleOpenBetPanel('big')} className="bg-orange-400 hover:bg-orange-500 h-20 rounded-[2rem] font-black uppercase text-2xl text-white">Big</Button>
+              <Button onClick={() => handleOpenBetPanel('small')} className="bg-blue-400 hover:bg-blue-500 h-20 rounded-[2rem] font-black uppercase text-2xl text-white">Small</Button>
           </div>
       </div>
 
-      {/* History Tabs - Straight Numbers */}
+      {/* History Tabs */}
       <div className="bg-white rounded-[3rem] overflow-hidden shadow-xl border border-border/50 w-full">
         <Tabs defaultValue="results" className="w-full">
             <TabsList className="grid w-full grid-cols-2 bg-secondary/50 p-1.5 h-16 rounded-none">
@@ -395,8 +390,8 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                         <tbody className="divide-y divide-border/50">
                             {displayResults.map(res => (
                                 <tr key={res.id} className="hover:bg-secondary/5 transition-colors">
-                                    <td className="py-8 px-6 text-xs font-bold text-muted-foreground">{res.period}</td>
-                                    <td className={cn("py-8 px-2 text-center font-black text-3xl", res.number === 0 || res.number === 5 ? "text-purple-600" : [1, 3, 7, 9].includes(res.number) ? "text-green-600" : "text-red-600")}>
+                                    <td className="py-8 px-6 text-xs font-bold text-muted-foreground" style={{ fontStyle: 'normal' }}>{res.period}</td>
+                                    <td className={cn("py-8 px-2 text-center font-black text-4xl", res.number === 0 || res.number === 5 ? "text-purple-600" : [1, 3, 7, 9].includes(res.number) ? "text-green-600" : "text-red-600")} style={{ fontStyle: 'normal' }}>
                                         {res.number}
                                     </td>
                                     <td className="py-8 px-2 text-center font-black text-sm uppercase">
@@ -405,11 +400,11 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                                     <td className="py-8 px-6">
                                         <div className="flex gap-1.5 justify-center">
                                             {res.number === 0 ? (
-                                                <><div className="w-4 h-4 rounded-full bg-red-500" /><div className="w-4 h-4 rounded-full bg-purple-500" /></>
+                                                <><div className="w-5 h-5 rounded-full bg-red-500" /><div className="w-5 h-5 rounded-full bg-purple-500" /></>
                                             ) : res.number === 5 ? (
-                                                <><div className="w-4 h-4 rounded-full bg-green-500" /><div className="w-4 h-4 rounded-full bg-purple-500" /></>
+                                                <><div className="w-5 h-5 rounded-full bg-green-500" /><div className="w-5 h-5 rounded-full bg-purple-500" /></>
                                             ) : (
-                                                <div className={cn("w-4 h-4 rounded-full", res.color.includes('green') ? "bg-green-500" : "bg-red-500")} />
+                                                <div className={cn("w-5 h-5 rounded-full", res.color.includes('green') ? "bg-green-500" : "bg-red-500")} />
                                             )}
                                         </div>
                                     </td>
@@ -425,16 +420,16 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                     myBets.map(bet => (
                         <div key={bet.id} className="bg-white p-6 rounded-[2.5rem] border border-border shadow-sm flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                                <div className={cn("w-12 h-12 rounded-full flex items-center justify-center font-black text-[10px]", bet.status === 'win' ? "bg-green-500 text-white" : bet.status === 'loss' ? "bg-red-500 text-white" : "bg-primary/10 text-primary")}>
+                                <div className={cn("px-4 py-2 rounded-xl flex items-center justify-center font-black text-xs", bet.status === 'win' ? "bg-green-500 text-white" : bet.status === 'loss' ? "bg-red-500 text-white" : "bg-primary/10 text-primary")}>
                                     {bet.status.toUpperCase()}
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-black text-muted-foreground uppercase">{bet.period.slice(-4)} Round</p>
+                                    <p className="text-[10px] font-black text-muted-foreground uppercase" style={{ fontStyle: 'normal' }}>{bet.period.slice(-4)} Round</p>
                                     <p className="text-sm font-black uppercase text-foreground">{bet.selection}</p>
                                 </div>
                             </div>
                             <div className="text-right">
-                                <p className={cn("font-black text-xl", bet.status === 'win' ? "text-green-600" : bet.status === 'loss' ? "text-red-600" : "text-primary")}>
+                                <p className={cn("font-black text-2xl", bet.status === 'win' ? "text-green-600" : bet.status === 'loss' ? "text-red-600" : "text-primary")} style={{ fontStyle: 'normal' }}>
                                     {bet.status === 'win' ? `+₹${bet.winAmount?.toFixed(1)}` : bet.status === 'loss' ? `-₹${bet.amount}` : `₹${bet.amount}`}
                                 </p>
                                 <p className="text-[8px] font-bold text-muted-foreground uppercase">Stake: ₹{bet.amount}</p>
@@ -467,7 +462,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                   </div>
                   <div className="text-right space-y-2">
                       <p className="text-[10px] font-black uppercase text-muted-foreground">Balance</p>
-                      <p className="text-2xl font-black text-foreground">₹{userProfile?.virtualBalance?.toFixed(1) || '0.0'}</p>
+                      <p className="text-3xl font-black text-foreground" style={{ fontStyle: 'normal' }}>₹{userProfile?.virtualBalance?.toFixed(1) || '0.0'}</p>
                   </div>
               </div>
 
@@ -479,12 +474,12 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
               <div className="space-y-4">
                   <p className="text-[10px] font-black uppercase text-muted-foreground ml-2">Custom Amount</p>
-                  <Input type="number" placeholder="0.0" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} className="h-16 bg-secondary border-none rounded-2xl text-2xl font-black px-6" />
+                  <Input type="number" placeholder="0.0" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} className="h-16 bg-secondary border-none rounded-2xl text-2xl font-black px-6" style={{ fontStyle: 'normal' }} />
               </div>
 
               <div className="bg-primary/5 p-6 rounded-2xl flex justify-between items-center border border-primary/10">
                   <p className="text-xs font-black uppercase text-primary">Total Pay:</p>
-                  <p className="text-3xl font-black text-primary">₹{(parseInt(betAmount) || 0) * multiplier}</p>
+                  <p className="text-4xl font-black text-primary" style={{ fontStyle: 'normal' }}>₹{(parseInt(betAmount) || 0) * multiplier}</p>
               </div>
 
               <Button onClick={handlePlaceBet} disabled={isBetting} className="w-full h-20 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-[2rem] shadow-lg flex items-center justify-center gap-4 text-xl">
@@ -494,7 +489,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </DialogContent>
       </Dialog>
 
-      {/* Result Popup - Straight Numbers */}
+      {/* Result Popup */}
       <Dialog open={popup.isOpen} onOpenChange={(open) => !open && setPopup(prev => ({ ...prev, isOpen: false }))}>
         <DialogContent className={cn("max-w-[340px] p-0 border-none rounded-[3rem] overflow-hidden shadow-2xl z-[2000] animate-in zoom-in duration-300", popup.isWin ? "bg-green-700" : "bg-blue-800")}>
             <div className="relative p-10 flex flex-col items-center text-center text-white space-y-8">
@@ -503,16 +498,16 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                 </div>
 
                 <div className="space-y-2">
-                    <h2 className="text-5xl font-black uppercase tracking-tight">{popup.isWin ? "WIN!" : "LOSE"}</h2>
+                    <h2 className="text-6xl font-black uppercase tracking-tight">{popup.isWin ? "WIN!" : "LOSE"}</h2>
                     <p className="text-[10px] font-black uppercase tracking-widest opacity-70">{popup.isWin ? "Congratulations" : "Better luck next time"}</p>
                 </div>
 
                 <div className="bg-white/10 backdrop-blur-md rounded-[2.5rem] p-6 w-full space-y-4">
                     <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Result: {popup.period.slice(-4)}</p>
                     <div className="flex items-center justify-center gap-4">
-                        <div className={cn("w-12 h-12 rounded-full flex items-center justify-center font-black text-2xl border-2 border-white/20", popup.result?.num === 0 || popup.result?.num === 5 ? "bg-purple-600" : [1,3,7,9].includes(popup.result?.num || 0) ? "bg-green-600" : "bg-red-600")}>{popup.result?.num}</div>
+                        <div className={cn("w-14 h-14 rounded-full flex items-center justify-center font-black text-3xl border-2 border-white/20", popup.result?.num === 0 || popup.result?.num === 5 ? "bg-purple-600" : [1,3,7,9].includes(popup.result?.num || 0) ? "bg-green-600" : "bg-red-600")} style={{ fontStyle: 'normal' }}>{popup.result?.num}</div>
                         <div className="flex gap-2">
-                            <span className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase bg-white/20">{popup.result?.size}</span>
+                            <span className="px-5 py-2 rounded-full text-xs font-black uppercase bg-white/20">{popup.result?.size}</span>
                         </div>
                     </div>
                 </div>
@@ -520,12 +515,12 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                 {popup.isWin && (
                     <div className="space-y-2">
                         <p className="text-[10px] font-black uppercase tracking-widest text-yellow-400">Winning</p>
-                        <div className="flex items-center justify-center gap-2"><Coins className="text-yellow-400" /><h3 className="text-5xl font-black">₹{popup.amount?.toFixed(1)}</h3></div>
+                        <div className="flex items-center justify-center gap-2"><Coins className="text-yellow-400" /><h3 className="text-6xl font-black" style={{ fontStyle: 'normal' }}>₹{popup.amount?.toFixed(1)}</h3></div>
                     </div>
                 )}
 
                 <div className="w-full pt-4">
-                    <div className="h-1.5 bg-white/10 rounded-full overflow-hidden"><div className="h-full bg-white transition-all duration-1000 ease-linear" style={{ width: `${(popupTimer / 3) * 100}%` }} /></div>
+                    <div className="h-2 bg-white/10 rounded-full overflow-hidden"><div className="h-full bg-white transition-all duration-1000 ease-linear" style={{ width: `${(popupTimer / 3) * 100}%` }} /></div>
                     <p className="text-[8px] font-black uppercase tracking-widest mt-4 opacity-40">Closing in {popupTimer}s</p>
                 </div>
             </div>

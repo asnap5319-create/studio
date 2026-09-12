@@ -26,6 +26,7 @@ function HomeContent() {
 
   useEffect(() => {
     const initializeUser = async () => {
+      // अभिषेक भाई, यहाँ 'v28_final' का इस्तेमाल कर रहे हैं ताकि बैलेंस कभी ओवरराइट न हो
       if (!user || !firestore || isProfileLoading || isInitializing || initRef.current) return;
 
       const uRef = doc(firestore, 'users', user.uid);
@@ -33,28 +34,22 @@ function HomeContent() {
           const snap = await getDoc(uRef);
           const data = snap.data();
 
-          // अभिषेक भाई, यहाँ बदलाव किया है: 
-          // अगर यूजर के पास पहले से बैलेंस है, तो उसे दोबारा 28 पर कभी मत पटको!
-          if (data && data.virtualBalance !== undefined && data.walletVersion === 'v28') {
+          // अगर यूजर के पास पहले से डेटा है और वर्जन 'v28_final' है, तो वापस जाओ (Return)
+          if (data && data.walletVersion === 'v28_final') {
             initRef.current = true;
             return;
           }
 
-          // सिर्फ तभी 28 रुपये दो जब बैलेंस बिल्कुल भी न हो (नए यूजर के लिए)
-          if (!data || data.virtualBalance === undefined) {
-              setIsInitializing(true);
-              await setDoc(uRef, {
-                  id: user.uid,
-                  username: user.displayName || user.email?.split('@')[0] || `user_${user.uid.slice(0, 4)}`,
-                  email: user.email || '',
-                  virtualBalance: 28, 
-                  walletVersion: 'v28',
-                  updatedAt: serverTimestamp()
-              }, { merge: true });
-          } else if (data.walletVersion !== 'v28') {
-              // अगर सिर्फ वर्जन अपडेट करना है, तो बैलेंस मत बदलो
-              await setDoc(uRef, { walletVersion: 'v28' }, { merge: true });
-          }
+          // सिर्फ तभी 28 रुपये सेट करो जब वर्जन 'v28_final' न हो (सिर्फ एक बार होगा)
+          setIsInitializing(true);
+          await setDoc(uRef, {
+              id: user.uid,
+              username: user.displayName || user.email?.split('@')[0] || `user_${user.uid.slice(0, 4)}`,
+              email: user.email || '',
+              virtualBalance: 28, 
+              walletVersion: 'v28_final',
+              updatedAt: serverTimestamp()
+          }, { merge: true });
           
           initRef.current = true;
       } catch (err) {
@@ -112,7 +107,7 @@ function HomeContent() {
                             </p>
                             <div className="flex items-baseline gap-2">
                                <span className="text-4xl font-black text-white/80">₹</span>
-                               <h2 className="text-7xl font-black tracking-tighter drop-shadow-lg">
+                               <h2 className="text-7xl font-black tracking-tighter drop-shadow-lg !italic-none" style={{ fontStyle: 'normal' }}>
                                   {userProfile?.virtualBalance?.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) || '0.0'}
                                </h2>
                             </div>

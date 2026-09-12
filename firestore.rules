@@ -9,7 +9,8 @@ service cloud.firestore {
       return isAuthenticated() && (
         request.auth.uid == 'gKSRL4grGrgragX3UKYIngkTT6C2' || 
         request.auth.uid == 'gHZ9n7s2b9X8fJ2kP3s5t8YxVOE2' ||
-        ('email' in request.auth.token && (request.auth.token.email == 'asnap5319@gmail.com' || request.auth.token.email == 'ak63315561338@gmail.com'))
+        request.auth.token.get('email', '') == 'asnap5319@gmail.com' || 
+        request.auth.token.get('email', '') == 'ak63315561338@gmail.com'
       );
     }
 
@@ -18,11 +19,9 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // --- GAME RESULTS RULES (GLOBAL & SECURE) ---
+    // --- GAME RESULTS RULES ---
     match /game_results/{periodId} {
-      // Everyone can see history
       allow get, list: if true;
-      // Allow creation and updates by any logged in user to sync the game
       allow write: if isAuthenticated();
     }
 
@@ -37,7 +36,7 @@ service cloud.firestore {
       }
     }
 
-    // Broad rules for collection groups (needed for Feed/Reels)
+    // Broad rules for collection groups
     match /{path=**}/posts/{postId} {
       allow read, list: if true;
     }
