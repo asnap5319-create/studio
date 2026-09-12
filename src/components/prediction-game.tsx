@@ -46,7 +46,7 @@ interface PopupData {
 }
 
 /**
- * जलवा गेम का रैंडम और अनपेक्षित परिणाम जनरेशन (Advanced Chaotic Hash)
+ * Jalwa Game Result Logic (Chaos Hash)
  */
 const getJalwaResult = (period: string) => {
   let h = 0;
@@ -263,115 +263,116 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   };
 
   return (
-    <div className="space-y-8 select-none pb-24 w-full px-5">
-      {/* Analysis Card */}
-      <div className="bg-secondary/40 border border-white/5 rounded-[3rem] p-8 shadow-2xl backdrop-blur-md">
-          <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-4">
-                  <div className="h-14 w-14 bg-primary/20 rounded-2xl flex items-center justify-center text-primary"><BarChart3 size={30} /></div>
+    <div className="space-y-6 select-none pb-24 w-full px-4">
+      {/* Analysis Card - Compact */}
+      <div className="bg-secondary/40 border border-white/5 rounded-[2.5rem] p-5 shadow-2xl backdrop-blur-md">
+          <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary"><BarChart3 size={20} /></div>
                   <div>
-                      <h3 className="font-black uppercase text-2xl tracking-tight text-white">Analysis</h3>
-                      <p className="text-[10px] font-black text-green-500 uppercase tracking-[0.2em]">Independent Results</p>
+                      <h3 className="font-black uppercase text-lg tracking-tight text-white">Analysis</h3>
+                      <p className="text-[8px] font-black text-green-500 uppercase tracking-[0.2em]">Independent</p>
                   </div>
               </div>
-              <div className="bg-white/5 px-4 py-2 rounded-full border border-white/10 flex items-center gap-2">
-                  <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-[10px] font-black uppercase text-white/60">Fair Play Active</span>
+              <div className="bg-white/5 px-3 py-1 rounded-full border border-white/10 flex items-center gap-1.5">
+                  <div className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse" />
+                  <span className="text-[8px] font-black uppercase text-white/60">Fair Play</span>
               </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-              <div className="bg-background/40 rounded-[2.5rem] p-8 border border-white/5 flex flex-col items-center justify-center gap-2 shadow-inner">
-                  <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Period</span>
-                  <p className="text-3xl font-black text-white" style={{ fontStyle: 'normal' }}>{currentPeriod.slice(-4)}</p>
+          <div className="grid grid-cols-2 gap-3">
+              <div className="bg-background/40 rounded-2xl p-4 border border-white/5 flex flex-col items-center justify-center gap-1 shadow-inner">
+                  <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">Period</span>
+                  <p className="text-xl font-black text-white" style={{ fontStyle: 'normal' }}>{currentPeriod.slice(-4)}</p>
               </div>
-              <div className="bg-primary/10 rounded-[2.5rem] p-8 border border-primary/20 flex flex-col items-center justify-center gap-2 shadow-inner">
-                  <span className="text-[10px] font-black text-primary uppercase tracking-widest">Last Result</span>
-                  <div className="flex items-center gap-3">
-                      <p className={cn("text-4xl font-black uppercase", displayResults[0]?.size === 'big' ? "text-orange-400" : "text-blue-400")} style={{ fontStyle: 'normal' }}>
+              <div className="bg-primary/10 rounded-2xl p-4 border border-primary/20 flex flex-col items-center justify-center gap-1 shadow-inner">
+                  <span className="text-[8px] font-black text-primary uppercase tracking-widest">Last Result</span>
+                  <div className="flex items-center gap-2">
+                      <p className={cn("text-xl font-black uppercase", displayResults[0]?.size === 'big' ? "text-orange-400" : "text-blue-400")} style={{ fontStyle: 'normal' }}>
                           {displayResults[0]?.size || '---'}
                       </p>
-                      {displayResults[0] && <div className={cn("w-6 h-6 rounded-full shadow-lg", displayResults[0].color.includes('green') ? "bg-green-500" : "bg-red-500")} />}
+                      {displayResults[0] && <div className={cn("w-4 h-4 rounded-full shadow-lg", displayResults[0].color.includes('green') ? "bg-green-500" : "bg-red-500")} />}
                   </div>
               </div>
           </div>
       </div>
 
-      <div className="bg-[#f95959] rounded-[3.5rem] p-10 text-white flex justify-between items-center shadow-xl relative overflow-hidden">
-        <div className="space-y-6 z-10">
-            <div className="flex items-center gap-2"><Zap size={20} className="fill-white" /><p className="text-[11px] font-black uppercase tracking-[0.3em]">WinGo 30S</p></div>
-            <div className="flex gap-2">
+      {/* Timer Section - Slanted & Compact */}
+      <div className="bg-[#f95959] rounded-[2.5rem] p-6 text-white flex justify-between items-center shadow-xl relative overflow-hidden">
+        <div className="space-y-3 z-10">
+            <div className="flex items-center gap-1.5"><Zap size={14} className="fill-white" /><p className="text-[9px] font-black uppercase tracking-[0.2em]">WinGo 30S</p></div>
+            <div className="flex gap-1.5">
                 {displayResults.slice(0, 5).map(res => (
-                    <div key={res.id} className={cn("w-10 h-10 rounded-full border border-white/30 flex items-center justify-center text-sm font-black shadow-md", res.color.includes('green') ? "bg-green-500" : "bg-red-500")} style={{ fontStyle: 'normal' }}>{res.number}</div>
+                    <div key={res.id} className={cn("w-7 h-7 rounded-full border border-white/20 flex items-center justify-center text-[10px] font-black shadow-md", res.color.includes('green') ? "bg-green-500" : "bg-red-500")} style={{ fontStyle: 'normal' }}>{res.number}</div>
                 ))}
             </div>
         </div>
         <div className="text-right z-10">
-            <p className="text-[11px] font-black uppercase tracking-[0.3em] opacity-90 mb-4">{timeLeft <= 5 ? "Wait" : "Time Left"}</p>
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-90 mb-2">{timeLeft <= 5 ? "Wait" : "Time Left"}</p>
             <div className="flex items-center justify-end">
                 {timeLeft <= 5 ? (
-                    <div className="h-16 flex items-center justify-center px-6 rounded-2xl bg-white text-red-600 font-black text-2xl shadow-xl animate-pulse uppercase">Round Over</div>
+                    <div className="h-12 flex items-center justify-center px-4 rounded-xl bg-white text-red-600 font-black text-lg shadow-xl animate-pulse uppercase">Wait</div>
                 ) : (
                     ['0', '0', ':', (timeLeft < 10 ? '0' : timeLeft.toString()[0]), (timeLeft < 10 ? timeLeft.toString() : (timeLeft.toString()[1] || '0'))].map((char, i) => (
-                        <div key={i} className={cn("h-16 w-12 flex items-center justify-center rounded-2xl bg-white text-[#f95959] font-black text-4xl shadow-xl mx-0.5", char === ':' && "bg-transparent text-white w-2 shadow-none")} style={{ fontStyle: 'normal' }}>{char}</div>
+                        <div key={i} className={cn("h-12 w-9 flex items-center justify-center rounded-xl bg-white text-[#f95959] font-black text-2xl shadow-xl mx-0.5", char === ':' && "bg-transparent text-white w-2 shadow-none")} style={{ fontStyle: 'normal' }}>{char}</div>
                     ))
                 )}
             </div>
         </div>
       </div>
 
-      {/* Main Game Interface */}
-      <div className="bg-secondary/40 rounded-[4rem] p-10 shadow-2xl border border-white/5 space-y-10 backdrop-blur-xl">
-          <div className="grid grid-cols-3 gap-4">
-              <Button onClick={() => handleOpenBetPanel('green')} className="bg-green-500 hover:bg-green-600 h-20 rounded-[2rem] font-black uppercase text-sm shadow-[0_10px_30px_rgba(34,197,94,0.3)]">Green</Button>
-              <Button onClick={() => handleOpenBetPanel('violet')} className="bg-purple-500 hover:bg-purple-600 h-20 rounded-[2rem] font-black uppercase text-sm shadow-[0_10px_30px_rgba(168,85,247,0.3)]">Violet</Button>
-              <Button onClick={() => handleOpenBetPanel('red')} className="bg-red-500 hover:bg-red-600 h-20 rounded-[2rem] font-black uppercase text-sm shadow-[0_10px_30px_rgba(239,68,68,0.3)]">Red</Button>
+      {/* Main Game Interface - Compact */}
+      <div className="bg-secondary/40 rounded-[3rem] p-6 shadow-2xl border border-white/5 space-y-6 backdrop-blur-xl">
+          <div className="grid grid-cols-3 gap-3">
+              <Button onClick={() => handleOpenBetPanel('green')} className="bg-green-500 hover:bg-green-600 h-14 rounded-2xl font-black uppercase text-xs shadow-lg">Green</Button>
+              <Button onClick={() => handleOpenBetPanel('violet')} className="bg-purple-500 hover:bg-purple-600 h-14 rounded-2xl font-black uppercase text-xs shadow-lg">Violet</Button>
+              <Button onClick={() => handleOpenBetPanel('red')} className="bg-red-500 hover:bg-red-600 h-14 rounded-2xl font-black uppercase text-xs shadow-lg">Red</Button>
           </div>
-          <div className="bg-background/60 p-8 rounded-[3rem] border border-white/5 shadow-inner">
-              <div className="grid grid-cols-5 gap-6">
+          <div className="bg-background/60 p-5 rounded-2xl border border-white/5 shadow-inner">
+              <div className="grid grid-cols-5 gap-3">
                   {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-                    <button key={num} onClick={() => handleOpenBetPanel(num)} className={cn("relative w-14 h-14 mx-auto rounded-full font-black text-2xl flex items-center justify-center text-white shadow-xl active:scale-90 transition-all", num === 0 || num === 5 ? "bg-gradient-to-br from-purple-500 to-red-500" : [1, 3, 7, 9].includes(num) ? "bg-green-500" : "bg-red-500")} style={{ fontStyle: 'normal' }}>{num}</button>
+                    <button key={num} onClick={() => handleOpenBetPanel(num)} className={cn("relative w-11 h-11 mx-auto rounded-full font-black text-lg flex items-center justify-center text-white shadow-lg active:scale-90 transition-all", num === 0 || num === 5 ? "bg-gradient-to-br from-purple-500 to-red-500" : [1, 3, 7, 9].includes(num) ? "bg-green-500" : "bg-red-500")} style={{ fontStyle: 'normal' }}>{num}</button>
                   ))}
               </div>
           </div>
-          <div className="flex justify-between items-center gap-2 overflow-x-auto scrollbar-hide py-1">
+          <div className="flex justify-between items-center gap-1.5 overflow-x-auto scrollbar-hide py-1">
               {[1, 5, 10, 20, 50, 100].map(m => (
-                  <button key={m} onClick={() => setMultiplier(m)} className={cn("flex-1 min-w-[60px] h-14 rounded-xl text-xs font-black uppercase transition-all", multiplier === m ? "bg-primary text-white shadow-lg" : "bg-white/5 text-white/40 border border-white/5")}>X{m}</button>
+                  <button key={m} onClick={() => setMultiplier(m)} className={cn("flex-1 min-w-[50px] h-10 rounded-lg text-[10px] font-black uppercase transition-all", multiplier === m ? "bg-primary text-white shadow-lg" : "bg-white/5 text-white/40 border border-white/5")}>X{m}</button>
               ))}
           </div>
-          <div className="grid grid-cols-2 gap-4">
-              <Button onClick={() => handleOpenBetPanel('big')} className="bg-orange-500 hover:bg-orange-600 h-20 rounded-[2rem] font-black uppercase text-2xl text-white shadow-[0_10px_30px_rgba(249,115,22,0.3)]">Big</Button>
-              <Button onClick={() => handleOpenBetPanel('small')} className="bg-blue-500 hover:bg-blue-600 h-20 rounded-[2rem] font-black uppercase text-2xl text-white shadow-[0_10px_30px_rgba(59,130,246,0.3)]">Small</Button>
+          <div className="grid grid-cols-2 gap-3">
+              <Button onClick={() => handleOpenBetPanel('big')} className="bg-orange-500 hover:bg-orange-600 h-14 rounded-2xl font-black uppercase text-xl text-white shadow-lg">Big</Button>
+              <Button onClick={() => handleOpenBetPanel('small')} className="bg-blue-500 hover:bg-blue-600 h-14 rounded-2xl font-black uppercase text-xl text-white shadow-lg">Small</Button>
           </div>
       </div>
 
-      {/* History Tabs */}
-      <div className="bg-secondary/40 rounded-[3rem] overflow-hidden shadow-2xl border border-white/5">
+      {/* History Tabs - Compact */}
+      <div className="bg-secondary/40 rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/5">
         <Tabs defaultValue="results" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-background/50 p-1.5 h-16 rounded-none border-b border-white/5">
-                <TabsTrigger value="results" className="rounded-none font-black text-xs uppercase data-[state=active]:bg-primary/20 data-[state=active]:text-primary">History</TabsTrigger>
-                <TabsTrigger value="my" className="rounded-none font-black text-xs uppercase data-[state=active]:bg-primary/20 data-[state=active]:text-primary">My Bets</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 bg-background/50 p-1 h-12 rounded-none border-b border-white/5">
+                <TabsTrigger value="results" className="rounded-none font-black text-[10px] uppercase data-[state=active]:bg-primary/20 data-[state=active]:text-primary">History</TabsTrigger>
+                <TabsTrigger value="my" className="rounded-none font-black text-[10px] uppercase data-[state=active]:bg-primary/20 data-[state=active]:text-primary">My Bets</TabsTrigger>
             </TabsList>
             <TabsContent value="results" className="m-0">
-                <div className="overflow-x-auto max-h-[600px] overflow-y-auto scrollbar-hide">
+                <div className="overflow-x-auto max-h-[400px] overflow-y-auto scrollbar-hide">
                     <table className="w-full text-left border-collapse">
                         <thead className="bg-background/80 text-white/40 sticky top-0 z-10 backdrop-blur-md">
-                            <tr className="text-[10px] font-black uppercase">
-                                <th className="py-6 px-6">Period</th>
-                                <th className="py-6 px-2 text-center">Num</th>
-                                <th className="py-6 px-2 text-center">Size</th>
-                                <th className="py-6 px-6 text-center">Color</th>
+                            <tr className="text-[8px] font-black uppercase">
+                                <th className="py-4 px-4">Period</th>
+                                <th className="py-4 px-2 text-center">Num</th>
+                                <th className="py-4 px-2 text-center">Size</th>
+                                <th className="py-4 px-4 text-center">Color</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
                             {displayResults.map(res => (
                                 <tr key={res.id} className="hover:bg-white/5 transition-colors">
-                                    <td className="py-8 px-6 text-xs font-bold text-white/50" style={{ fontStyle: 'normal' }}>{res.period}</td>
-                                    <td className={cn("py-8 px-2 text-center font-black text-4xl", res.number === 0 || res.number === 5 ? "text-purple-400" : [1, 3, 7, 9].includes(res.number) ? "text-green-400" : "text-red-400")} style={{ fontStyle: 'normal' }}>{res.number}</td>
-                                    <td className="py-8 px-2 text-center font-black text-sm uppercase text-white/80">{res.size}</td>
-                                    <td className="py-8 px-6">
-                                        <div className="flex gap-1.5 justify-center">
-                                            {res.number === 0 ? <><div className="w-5 h-5 rounded-full bg-red-500 shadow-lg" /><div className="w-5 h-5 rounded-full bg-purple-500 shadow-lg" /></> : res.number === 5 ? <><div className="w-5 h-5 rounded-full bg-green-500 shadow-lg" /><div className="w-5 h-5 rounded-full bg-purple-500 shadow-lg" /></> : <div className={cn("w-5 h-5 rounded-full shadow-lg", res.color.includes('green') ? "bg-green-500" : "bg-red-500")} />}
+                                    <td className="py-4 px-4 text-[10px] font-bold text-white/50" style={{ fontStyle: 'normal' }}>{res.period.slice(-4)}</td>
+                                    <td className={cn("py-4 px-2 text-center font-black text-xl", res.number === 0 || res.number === 5 ? "text-purple-400" : [1, 3, 7, 9].includes(res.number) ? "text-green-400" : "text-red-400")} style={{ fontStyle: 'normal' }}>{res.number}</td>
+                                    <td className="py-4 px-2 text-center font-black text-[10px] uppercase text-white/80">{res.size}</td>
+                                    <td className="py-4 px-4">
+                                        <div className="flex gap-1 justify-center">
+                                            {res.number === 0 ? <><div className="w-3.5 h-3.5 rounded-full bg-red-500" /><div className="w-3.5 h-3.5 rounded-full bg-purple-500" /></> : res.number === 5 ? <><div className="w-3.5 h-3.5 rounded-full bg-green-500" /><div className="w-3.5 h-3.5 rounded-full bg-purple-500" /></> : <div className={cn("w-3.5 h-3.5 rounded-full", res.color.includes('green') ? "bg-green-500" : "bg-red-500")} />}
                                         </div>
                                     </td>
                                 </tr>
@@ -380,72 +381,71 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                     </table>
                 </div>
             </TabsContent>
-            <TabsContent value="my" className="m-0 p-6 space-y-4 bg-background/20 min-h-[400px]">
+            <TabsContent value="my" className="m-0 p-4 space-y-3 bg-background/20 min-h-[300px]">
                 {myBets && myBets.length > 0 ? (
                     myBets.map(bet => (
-                        <div key={bet.id} className="bg-secondary/60 p-6 rounded-[2.5rem] border border-white/5 shadow-xl flex items-center justify-between group hover:bg-secondary/80 transition-all">
-                            <div className="flex items-center gap-4">
-                                <div className={cn("px-4 py-2 rounded-xl flex items-center justify-center font-black text-[10px] uppercase shadow-lg", bet.status === 'win' ? "bg-green-500 text-white" : bet.status === 'loss' ? "bg-red-500 text-white" : "bg-primary/20 text-primary border border-primary/20")}>
+                        <div key={bet.id} className="bg-secondary/60 p-4 rounded-2xl border border-white/5 shadow-xl flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className={cn("px-3 py-1 rounded-lg flex items-center justify-center font-black text-[8px] uppercase", bet.status === 'win' ? "bg-green-500 text-white" : bet.status === 'loss' ? "bg-red-500 text-white" : "bg-primary/20 text-primary")}>
                                     {bet.status}
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-black text-white/40 uppercase" style={{ fontStyle: 'normal' }}>{bet.period.slice(-4)} Round</p>
-                                    <p className="text-sm font-black uppercase text-white">{bet.selection}</p>
+                                    <p className="text-[8px] font-black text-white/40 uppercase" style={{ fontStyle: 'normal' }}>{bet.period.slice(-4)} Round</p>
+                                    <p className="text-[10px] font-black uppercase text-white">{bet.selection}</p>
                                 </div>
                             </div>
                             <div className="text-right">
-                                <p className={cn("font-black text-2xl drop-shadow-md", bet.status === 'win' ? "text-green-400" : bet.status === 'loss' ? "text-red-400" : "text-primary")} style={{ fontStyle: 'normal' }}>
+                                <p className={cn("font-black text-lg", bet.status === 'win' ? "text-green-400" : bet.status === 'loss' ? "text-red-400" : "text-primary")} style={{ fontStyle: 'normal' }}>
                                     {bet.status === 'win' ? `+₹${bet.winAmount?.toFixed(1)}` : bet.status === 'loss' ? `-₹${bet.amount}` : `₹${bet.amount}`}
                                 </p>
                             </div>
                         </div>
                     ))
                 ) : (
-                    <div className="flex flex-col items-center justify-center py-20 text-center opacity-20"><BarChart3 size={50} className="text-white" /><p className="text-xs font-black uppercase tracking-widest mt-4 text-white">No History</p></div>
+                    <div className="flex flex-col items-center justify-center py-10 text-center opacity-20"><BarChart3 size={30} className="text-white" /><p className="text-[10px] font-black uppercase tracking-widest mt-2 text-white">No History</p></div>
                 )}
             </TabsContent>
         </Tabs>
       </div>
 
-      {/* NEW IMPROVED BET PANEL: Large Bottom Sheet */}
+      {/* BET PANEL: Compact Bottom Sheet */}
       <Sheet open={isBetPanelOpen} onOpenChange={setIsBetPanelOpen}>
-        <SheetContent side="bottom" className="h-[85vh] bg-background border-white/5 rounded-t-[3.5rem] p-0 overflow-hidden z-[1000] text-white outline-none">
-           <SheetHeader className="p-8 pb-4 flex flex-row items-center justify-between border-b border-white/5">
-                <SheetTitle className="text-3xl font-black uppercase tracking-tighter text-white italic">PLACE BET</SheetTitle>
-                <button onClick={() => setIsBetPanelOpen(false)} className="p-2 bg-white/5 rounded-full text-white/40 hover:text-white transition-colors">
-                    <X size={24} />
+        <SheetContent side="bottom" className="h-[75vh] bg-background border-white/5 rounded-t-[2.5rem] p-0 overflow-hidden z-[1000] text-white outline-none">
+           <SheetHeader className="p-6 pb-2 flex flex-row items-center justify-between border-b border-white/5">
+                <SheetTitle className="text-xl font-black uppercase tracking-tighter text-white italic">PLACE BET</SheetTitle>
+                <button onClick={() => setIsBetPanelOpen(false)} className="p-1.5 bg-white/5 rounded-full text-white/40 hover:text-white transition-colors">
+                    <X size={20} />
                 </button>
            </SheetHeader>
            
-           <div className="p-8 space-y-10 overflow-y-auto h-full pb-32 scrollbar-hide">
-              {/* Choice & Balance Hero Section */}
-              <div className="bg-secondary/60 p-10 rounded-[3rem] flex items-center justify-between border border-white/5 shadow-2xl relative overflow-hidden group">
-                  <div className="absolute inset-0 bg-primary/5 blur-3xl rounded-full opacity-50 pointer-events-none" />
-                  <div className="space-y-2 relative z-10">
-                      <p className="text-[12px] font-black uppercase tracking-[0.4em] text-white/40">CHOICE</p>
+           <div className="p-6 space-y-6 overflow-y-auto h-full pb-24 scrollbar-hide">
+              {/* Choice & Balance Hero */}
+              <div className="bg-secondary/60 p-6 rounded-3xl flex items-center justify-between border border-white/5 shadow-2xl relative overflow-hidden group">
+                  <div className="space-y-1 relative z-10">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">CHOICE</p>
                       <h4 className={cn(
-                          "text-7xl font-black uppercase drop-shadow-[0_0_20px_rgba(255,51,102,0.4)]",
+                          "text-5xl font-black uppercase",
                           typeof selectedOption === 'string' && selectedOption === 'big' ? "text-orange-400" :
                           typeof selectedOption === 'string' && selectedOption === 'small' ? "text-blue-400" : "text-primary"
                       )} style={{ fontStyle: 'normal' }}>
                           {selectedOption}
                       </h4>
                   </div>
-                  <div className="text-right space-y-2 relative z-10">
-                      <p className="text-[12px] font-black uppercase tracking-[0.4em] text-white/40">BALANCE</p>
-                      <p className="text-4xl font-black text-white" style={{ fontStyle: 'normal' }}>₹{userProfile?.virtualBalance?.toFixed(1) || '0.0'}</p>
+                  <div className="text-right space-y-1 relative z-10">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">BALANCE</p>
+                      <p className="text-2xl font-black text-white" style={{ fontStyle: 'normal' }}>₹{userProfile?.virtualBalance?.toFixed(1) || '0.0'}</p>
                   </div>
               </div>
 
               {/* Preset Amounts Grid */}
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-4 gap-2">
                   {[10, 50, 100, 500].map(amt => (
                       <button 
                         key={amt} 
                         onClick={() => setBetAmount(amt.toString())} 
                         className={cn(
-                            "h-16 rounded-[1.5rem] text-sm font-black uppercase border-2 transition-all active:scale-90", 
-                            betAmount === amt.toString() ? "bg-primary text-white border-primary shadow-[0_10px_25px_rgba(255,51,102,0.4)]" : "bg-white/5 text-white/60 border-transparent hover:bg-white/10"
+                            "h-12 rounded-xl text-xs font-black uppercase border-2 transition-all active:scale-90", 
+                            betAmount === amt.toString() ? "bg-primary text-white border-primary" : "bg-white/5 text-white/60 border-transparent"
                         )}
                       >
                         ₹{amt}
@@ -454,42 +454,39 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
               </div>
 
               {/* Custom Input */}
-              <div className="space-y-4">
-                  <p className="text-[11px] font-black uppercase tracking-[0.3em] text-white/40 ml-4">CUSTOM AMOUNT</p>
+              <div className="space-y-2">
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 ml-2">CUSTOM AMOUNT</p>
                   <div className="relative">
                       <Input 
                         type="number" 
-                        placeholder="Enter amount..." 
+                        placeholder="Amount..." 
                         value={betAmount} 
                         onChange={(e) => setBetAmount(e.target.value)} 
-                        className="h-20 bg-white/5 border-white/10 rounded-[2rem] text-3xl font-black px-8 text-white focus:ring-primary placeholder:text-white/10" 
+                        className="h-16 bg-white/5 border-white/10 rounded-2xl text-2xl font-black px-6 text-white focus:ring-primary" 
                         style={{ fontStyle: 'normal' }} 
                       />
                   </div>
               </div>
 
               {/* Final Summary Card */}
-              <div className="bg-primary/10 p-8 rounded-[2.5rem] flex justify-between items-center border border-primary/20 shadow-inner">
-                  <div className="flex items-center gap-3">
-                      <div className="w-1.5 h-8 bg-primary rounded-full" />
-                      <p className="text-sm font-black uppercase tracking-widest text-primary">TOTAL PAY:</p>
-                  </div>
-                  <p className="text-5xl font-black text-primary drop-shadow-[0_0_15px_rgba(255,51,102,0.2)]" style={{ fontStyle: 'normal' }}>₹{(parseInt(betAmount) || 0) * multiplier}</p>
+              <div className="bg-primary/10 p-5 rounded-2xl flex justify-between items-center border border-primary/20 shadow-inner">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-primary">TOTAL PAY:</p>
+                  <p className="text-4xl font-black text-primary" style={{ fontStyle: 'normal' }}>₹{(parseInt(betAmount) || 0) * multiplier}</p>
               </div>
 
-              {/* Huge Confirm Button */}
+              {/* Confirm Button */}
               <Button 
                 onClick={handlePlaceBet} 
                 disabled={isBetting} 
-                className="w-full h-24 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-[2.5rem] shadow-[0_20px_50px_rgba(255,51,102,0.5)] flex items-center justify-center gap-5 text-2xl active:scale-95 transition-all mb-10"
+                className="w-full h-16 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-2xl shadow-xl flex items-center justify-center gap-3 text-lg active:scale-95 transition-all mb-6"
               >
                   {isBetting ? (
-                    <div className="flex items-center gap-3">
-                        <Loader2 className="animate-spin h-8 w-8" />
+                    <div className="flex items-center gap-2">
+                        <Loader2 className="animate-spin h-6 w-6" />
                         <span>BETTING...</span>
                     </div>
                   ) : (
-                    <><CheckCircle2 size={32} /> CONFIRM BET</>
+                    <><CheckCircle2 size={24} /> CONFIRM BET</>
                   )}
               </Button>
            </div>
@@ -498,31 +495,31 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
       {/* Win/Loss Popup Dialog */}
       <Dialog open={popup.isOpen} onOpenChange={(open) => !open && setPopup(prev => ({ ...prev, isOpen: false }))}>
-        <DialogContent className={cn("max-w-[340px] p-0 border-none rounded-[3rem] overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.5)] z-[2000] animate-in zoom-in duration-300", popup.isWin ? "bg-green-700" : "bg-blue-900")}>
-            <div className="relative p-10 flex flex-col items-center text-center text-white space-y-8">
-                <div className={cn("w-24 h-24 rounded-full flex items-center justify-center shadow-2xl", popup.isWin ? "bg-yellow-400 text-green-900" : "bg-white/10 text-white")}>
-                    {popup.isWin ? <Trophy size={48} className="animate-bounce" /> : <Frown size={48} />}
+        <DialogContent className={cn("max-w-[300px] p-0 border-none rounded-[2.5rem] overflow-hidden shadow-2xl z-[2000] animate-in zoom-in duration-300", popup.isWin ? "bg-green-700" : "bg-blue-900")}>
+            <div className="relative p-8 flex flex-col items-center text-center text-white space-y-6">
+                <div className={cn("w-20 h-20 rounded-full flex items-center justify-center shadow-2xl", popup.isWin ? "bg-yellow-400 text-green-900" : "bg-white/10 text-white")}>
+                    {popup.isWin ? <Trophy size={40} className="animate-bounce" /> : <Frown size={40} />}
                 </div>
-                <div className="space-y-2">
-                    <h2 className="text-6xl font-black uppercase tracking-tight">{popup.isWin ? "WIN!" : "LOSE"}</h2>
-                    <p className="text-[10px] font-black uppercase tracking-widest opacity-70">{popup.isWin ? "Congratulations" : "Better luck next time"}</p>
+                <div className="space-y-1">
+                    <h2 className="text-5xl font-black uppercase tracking-tight">{popup.isWin ? "WIN!" : "LOSE"}</h2>
+                    <p className="text-[9px] font-black uppercase tracking-widest opacity-70">{popup.isWin ? "Congratulations" : "Better luck next time"}</p>
                 </div>
-                <div className="bg-white/10 backdrop-blur-md rounded-[2.5rem] p-6 w-full space-y-4 shadow-inner border border-white/5">
-                    <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Result: {popup.period.slice(-4)}</p>
-                    <div className="flex items-center justify-center gap-4">
-                        <div className={cn("w-14 h-14 rounded-full flex items-center justify-center font-black text-3xl border-2 border-white/20 shadow-lg", popup.result?.num === 0 || popup.result?.num === 5 ? "bg-purple-600" : [1,3,7,9].includes(popup.result?.num || 0) ? "bg-green-600" : "bg-red-600")} style={{ fontStyle: 'normal' }}>{popup.result?.num}</div>
-                        <div className="flex gap-2"><span className="px-5 py-2 rounded-full text-xs font-black uppercase bg-white/20">{popup.result?.size}</span></div>
+                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 w-full space-y-3 shadow-inner border border-white/5">
+                    <p className="text-[8px] font-black uppercase tracking-widest opacity-60">Result: {popup.period.slice(-4)}</p>
+                    <div className="flex items-center justify-center gap-3">
+                        <div className={cn("w-11 h-11 rounded-full flex items-center justify-center font-black text-2xl border-2 border-white/20 shadow-lg", popup.result?.num === 0 || popup.result?.num === 5 ? "bg-purple-600" : [1,3,7,9].includes(popup.result?.num || 0) ? "bg-green-600" : "bg-red-600")} style={{ fontStyle: 'normal' }}>{popup.result?.num}</div>
+                        <span className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase bg-white/20">{popup.result?.size}</span>
                     </div>
                 </div>
                 {popup.isWin && (
-                    <div className="space-y-2">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-yellow-400">Winning</p>
-                        <div className="flex items-center justify-center gap-2"><Coins className="text-yellow-400" /><h3 className="text-6xl font-black" style={{ fontStyle: 'normal' }}>₹{popup.amount?.toFixed(1)}</h3></div>
+                    <div className="space-y-1">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-yellow-400">Winning</p>
+                        <div className="flex items-center justify-center gap-1.5"><Coins size={16} className="text-yellow-400" /><h3 className="text-4xl font-black" style={{ fontStyle: 'normal' }}>₹{popup.amount?.toFixed(1)}</h3></div>
                     </div>
                 )}
-                <div className="w-full pt-4">
-                    <div className="h-2 bg-white/10 rounded-full overflow-hidden"><div className="h-full bg-white transition-all duration-1000 ease-linear" style={{ width: `${(popupTimer / 3) * 100}%` }} /></div>
-                    <p className="text-[8px] font-black uppercase tracking-widest mt-4 opacity-40">Closing in {popupTimer}s</p>
+                <div className="w-full pt-2">
+                    <div className="h-1.5 bg-white/10 rounded-full overflow-hidden"><div className="h-full bg-white transition-all duration-1000 ease-linear" style={{ width: `${(popupTimer / 3) * 100}%` }} /></div>
+                    <p className="text-[7px] font-black uppercase tracking-widest mt-3 opacity-40">Closing in {popupTimer}s</p>
                 </div>
             </div>
         </DialogContent>
