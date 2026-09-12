@@ -2,7 +2,7 @@
 
 import { useUser, useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
-import { Loader2, Wallet, PlusCircle, ArrowUpRight, TrendingUp, Sparkles } from 'lucide-react';
+import { Loader2, Wallet, PlusCircle, ArrowUpRight, TrendingUp, Sparkles, Zap } from 'lucide-react';
 import { BottomNav } from "@/components/bottom-nav";
 import { PredictionGame } from '@/components/prediction-game';
 import { Suspense, useEffect, useState, useRef } from 'react';
@@ -26,8 +26,7 @@ function HomeContent() {
 
   useEffect(() => {
     const initializeUser = async () => {
-      // अभिषेक भाई, यहाँ हम सिर्फ ये चेक कर रहे हैं कि क्या यूजर नया है।
-      // अगर बैलेंस पहले से है, तो हम कुछ नहीं बदलेंगे (No Overwrite)
+      // Abhishek Bhai, Balance Safety Lock: v28_final
       if (!user || !firestore || isProfileLoading || isInitializing || initRef.current) return;
 
       const uRef = doc(firestore, 'users', user.uid);
@@ -36,20 +35,20 @@ function HomeContent() {
           
           if (snap.exists()) {
             const data = snap.data();
-            // अगर बैलेंस पहले से मौजूद है, तो वापस जाओ। कुछ मत बदलो।
-            if (data && typeof data.virtualBalance === 'number') {
+            // Agar balance ya wallet version pehle se hai, to reset mat karo
+            if (data && (typeof data.virtualBalance === 'number' || data.walletVersion)) {
               initRef.current = true;
               return;
             }
           }
 
-          // सिर्फ नए यूजर के लिए 28 रुपये सेट करो
           setIsInitializing(true);
           await setDoc(uRef, {
               id: user.uid,
               username: user.displayName || user.email?.split('@')[0] || `user_${user.uid.slice(0, 4)}`,
               email: user.email || '',
               virtualBalance: 28, 
+              walletVersion: 'v28_final',
               updatedAt: serverTimestamp()
           }, { merge: true });
           
@@ -142,17 +141,37 @@ function HomeContent() {
             </div>
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center h-[70vh] text-center gap-10 px-8">
-             <div className="w-32 h-32 bg-money-pattern rounded-[3rem] flex items-center justify-center animate-bounce shadow-2xl">
-                <span className="text-6xl text-white font-black">A</span>
+          <div className="flex flex-col items-center justify-center h-[70vh] text-center gap-8 px-8">
+             <div className="relative">
+                <div className="absolute inset-0 bg-green-500/20 blur-3xl rounded-full animate-pulse" />
+                <div className="w-36 h-32 bg-money-pattern rounded-[3rem] flex items-center justify-center relative z-10 shadow-2xl border-4 border-white/10">
+                    <span className="text-7xl text-white font-black">A</span>
+                </div>
              </div>
+             
              <div className="space-y-4">
-               <h2 className="text-4xl font-black uppercase tracking-tight">Welcome to A.snap</h2>
-               <p className="text-muted-foreground text-lg max-w-sm mx-auto font-medium">Login now to start your virtual coin prediction journey and compete with friends.</p>
+               <div className="flex items-center justify-center gap-2 text-primary font-black uppercase tracking-[0.4em] text-[10px]">
+                  <Zap size={14} className="fill-primary" /> Instant Service
+               </div>
+               <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter leading-none italic text-foreground">
+                 FAST WITHDRAWAL
+               </h2>
+               <div className="inline-block bg-secondary px-6 py-2 rounded-full border border-border">
+                  <p className="text-muted-foreground text-sm font-black uppercase tracking-[0.2em]">
+                    WinGo BINGO GAME
+                  </p>
+               </div>
              </div>
-             <a href="/login?auth=true" className="w-full max-w-[280px]">
-                <button className="w-full bg-primary h-20 rounded-[2rem] text-white font-black uppercase text-xl shadow-xl active:scale-95 transition-all">Get Started</button>
+
+             <a href="/login?auth=true" className="w-full max-w-[300px] mt-4">
+                <button className="w-full bg-primary h-20 rounded-[2.5rem] text-white font-black uppercase text-xl shadow-[0_20px_50px_rgba(255,51,102,0.4)] active:scale-95 transition-all hover:bg-primary/90 flex items-center justify-center gap-3">
+                   GET STARTED <ArrowUpRight size={24} />
+                </button>
              </a>
+
+             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest opacity-60">
+                Premium Virtual Gaming Protocol
+             </p>
           </div>
         )}
       </main>
@@ -164,7 +183,7 @@ function HomeContent() {
 
 export default function HomePage() {
   return (
-    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-background"><Loader2 className="animate-spin text-primary" /></div>}>
+    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-background"><Loader2 className="animate-spin text-primary h-10 w-10" /></div>}>
       <HomeContent />
     </Suspense>
   );
