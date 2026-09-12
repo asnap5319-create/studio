@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit, doc, setDoc, serverTimestamp, writeBatch, increment } from 'firebase/firestore';
-import { CheckCircle2, Loader2, X, Zap, BarChart3, Trophy, Frown, Coins, ChevronRight } from 'lucide-react';
+import { CheckCircle2, Loader2, X, Zap, BarChart3, Trophy, Frown, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -44,9 +44,6 @@ interface PopupData {
     } | null;
 }
 
-/**
- * Deterministic Result Logic - Fair and Global
- */
 const getJalwaResult = (period: string) => {
   let hash = 0;
   for (let i = 0; i < period.length; i++) {
@@ -88,7 +85,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   const processedPeriodsRef = useRef<Set<string>>(new Set());
   const shownPopupPeriodsRef = useRef<Set<string>>(new Set());
 
-  // Real-time Sync
   const resultsQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'game_results'), orderBy('period', 'desc'), limit(50)) : null, 
     [firestore]
@@ -101,7 +97,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   );
   const { data: myBets } = useCollection<Bet>(myBetsQuery);
 
-  // History Reconstruction
   const displayResults = useMemo(() => {
     const now = new Date();
     const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
@@ -127,7 +122,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     return fullHistory;
   }, [firestoreResults, currentPeriod]);
 
-  // Global Timer and Period Sync
   useEffect(() => {
     const updateTimer = () => {
       const now = new Date();
@@ -150,7 +144,9 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                     await setDoc(doc(firestore, 'game_results', currentPeriod), {
                         id: currentPeriod, period: currentPeriod, number: num, color, size, createdAt: serverTimestamp()
                     }, { merge: true });
-                } catch (e) {}
+                } catch (e) {
+                    console.error("Result save error (ignoring):", e);
+                }
             };
             saveResult();
         }
@@ -162,13 +158,9 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     return () => clearInterval(interval);
   }, [currentPeriod, firestore, user]);
 
-  /**
-   * ROBUST BET SETTLEMENT LOGIC
-   */
   useEffect(() => {
     if (!firestore || !user || !displayResults.length || !myBets) return;
 
-    // केवल वही बेट्स लें जो अभी 'pending' हैं और इस सेशन में प्रोसेस नहीं हुई हैं
     const pendingBets = myBets.filter(b => b.status === 'pending' && !processedBetIdsRef.current.has(b.id));
     if (pendingBets.length === 0) return;
 
@@ -181,12 +173,11 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         pendingBets.forEach(bet => {
             const result = displayResults.find(r => r.period === bet.period);
             if (result) {
-                processedBetIdsRef.current.add(bet.id); // Mark as proccessing instantly
+                processedBetIdsRef.current.add(bet.id);
                 
                 let isWin = false;
                 let mult = 1.99;
 
-                // --- STICKY RULES ---
                 if (bet.selection === 'big') isWin = result.number >= 5;
                 else if (bet.selection === 'small') isWin = result.number < 5;
                 else if (typeof bet.selection === 'number') { isWin = bet.selection === result.number; mult = 9.0; }
@@ -206,7 +197,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                     batch.update(betRef, { status: 'loss' }); 
                 }
                 
-                // Track for popup
                 const existing = periodPopups.get(bet.period);
                 if (!existing || isWin) {
                     periodPopups.set(bet.period, { win: isWin, amount: isWin ? winAmt : 0, result });
@@ -219,20 +209,23 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             if (totalWinDelta > 0) {
                 batch.update(doc(firestore, 'users', user.uid), { virtualBalance: increment(totalWinDelta) });
             }
-            await batch.commit();
-
-            // Trigger Popups
-            periodPopups.forEach((data, period) => {
-                if (!shownPopupPeriodsRef.current.has(period)) {
-                    setPopup({ isOpen: true, isWin: data.win, amount: data.amount, period: period, result: { num: data.result.number, color: data.result.color, size: data.result.size } });
-                    setPopupTimer(3);
-                    shownPopupPeriodsRef.current.add(period);
-                }
-            });
+            try {
+                await batch.commit();
+                periodPopups.forEach((data, period) => {
+                    if (!shownPopupPeriodsRef.current.has(period)) {
+                        setPopup({ isOpen: true, isWin: data.win, amount: data.amount, period: period, result: { num: data.result.number, color: data.result.color, size: data.result.size } });
+                        setPopupTimer(3);
+                        shownPopupPeriodsRef.current.add(period);
+                    }
+                });
+            } catch (error) {
+                console.error("Settlement commit failed (permissions?):", error);
+                toast({ variant: 'destructive', title: "Sync Error", description: "Failed to add winning money. Check rules." });
+            }
         }
     };
     processSettlement();
-  }, [displayResults, myBets, firestore, user]);
+  }, [displayResults, myBets, firestore, user, toast]);
 
   useEffect(() => {
     if (popup.isOpen && popupTimer > 0) {
@@ -280,7 +273,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
   return (
     <div className="space-y-8 select-none pb-24 w-full px-5">
-      {/* Analysis Card */}
+      {/* Analysis Card - Straight Numbers */}
       <div className="relative w-full">
         <div className="bg-white border border-border rounded-[3rem] p-8 shadow-sm overflow-hidden">
             <div className="flex items-center justify-between mb-8">
@@ -315,7 +308,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </div>
       </div>
 
-      {/* Timer Section */}
+      {/* Timer Section - Straight Numbers */}
       <div className="bg-[#f95959] rounded-[3.5rem] p-10 text-white flex justify-between items-center shadow-xl relative overflow-hidden w-full">
         <div className="space-y-6 z-10">
             <div className="flex items-center gap-2"><Zap size={20} className="fill-white" /><p className="text-[11px] font-black uppercase tracking-[0.3em]">WinGo 30S</p></div>
@@ -343,7 +336,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </div>
       </div>
 
-      {/* Control Panel */}
+      {/* Control Panel - Straight Numbers */}
       <div className="bg-white rounded-[4rem] p-10 shadow-2xl border border-border/50 space-y-10 w-full">
           <div className="grid grid-cols-3 gap-4">
               <Button onClick={() => handleOpenBetPanel('green')} className="bg-green-500 hover:bg-green-600 h-20 rounded-[2rem] font-black uppercase text-sm">Green</Button>
@@ -371,7 +364,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           </div>
       </div>
 
-      {/* History Tabs */}
+      {/* History Tabs - Straight Numbers */}
       <div className="bg-white rounded-[3rem] overflow-hidden shadow-xl border border-border/50 w-full">
         <Tabs defaultValue="results" className="w-full">
             <TabsList className="grid w-full grid-cols-2 bg-secondary/50 p-1.5 h-16 rounded-none">
@@ -492,7 +485,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </DialogContent>
       </Dialog>
 
-      {/* Result Popup */}
+      {/* Result Popup - Straight Numbers */}
       <Dialog open={popup.isOpen} onOpenChange={(open) => !open && setPopup(prev => ({ ...prev, isOpen: false }))}>
         <DialogContent className={cn("max-w-[340px] p-0 border-none rounded-[3rem] overflow-hidden shadow-2xl z-[2000] animate-in zoom-in duration-300", popup.isWin ? "bg-green-700" : "bg-blue-800")}>
             <div className="relative p-10 flex flex-col items-center text-center text-white space-y-8">

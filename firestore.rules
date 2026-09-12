@@ -9,8 +9,7 @@ service cloud.firestore {
       return isAuthenticated() && (
         request.auth.uid == 'gKSRL4grGrgragX3UKYIngkTT6C2' || 
         request.auth.uid == 'gHZ9n7s2b9X8fJ2kP3s5t8YxVOE2' ||
-        request.auth.token.email == 'asnap5319@gmail.com' ||
-        request.auth.token.email == 'ak63315561338@gmail.com'
+        (exists(request.auth.token.email) && (request.auth.token.email == 'asnap5319@gmail.com' || request.auth.token.email == 'ak63315561338@gmail.com'))
       );
     }
 
@@ -23,7 +22,7 @@ service cloud.firestore {
     match /game_results/{periodId} {
       // Everyone can see history
       allow get, list: if true;
-      // Allow creation and updates (to prevent errors during simultaneous online users)
+      // Allow creation and updates by any logged in user to sync the game
       allow write: if isAuthenticated();
     }
 

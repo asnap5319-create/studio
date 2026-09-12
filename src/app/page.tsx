@@ -17,7 +17,6 @@ function HomeContent() {
   const [isInitializing, setIsInitializing] = useState(false);
   const initRef = useRef(false);
 
-  // Fetch User Profile
   const userRef = useMemoFirebase(() => 
     (firestore && user) ? doc(firestore, 'users', user.uid) : null, 
     [firestore, user]
@@ -27,33 +26,30 @@ function HomeContent() {
 
   useEffect(() => {
     const initializeUser = async () => {
-      // अगर पहले ही इस सेशन में कर चुके हैं या डेटा लोड हो रहा है, तो रुकें
       if (!user || !firestore || isProfileLoading || isInitializing || initRef.current) return;
 
       const uRef = doc(firestore, 'users', user.uid);
-      const snap = await getDoc(uRef);
-      const data = snap.data();
-
-      // अगर वर्जन 'v28' पहले से है, तो कुछ नहीं करना
-      if (data?.walletVersion === 'v28') {
-        initRef.current = true;
-        return;
-      }
-
-      // वरना पहली बार 28 रुपये सेट करें
-      setIsInitializing(true);
       try {
-        await setDoc(uRef, {
-            id: user.uid,
-            username: user.displayName || user.email?.split('@')[0] || 'user',
-            email: user.email || '',
-            virtualBalance: 28, 
-            walletVersion: 'v28',
-            updatedAt: serverTimestamp()
-        }, { merge: true });
-        initRef.current = true;
+          const snap = await getDoc(uRef);
+          const data = snap.data();
+
+          if (data?.walletVersion === 'v28') {
+            initRef.current = true;
+            return;
+          }
+
+          setIsInitializing(true);
+          await setDoc(uRef, {
+              id: user.uid,
+              username: user.displayName || user.email?.split('@')[0] || `user_${user.uid.slice(0, 4)}`,
+              email: user.email || '',
+              virtualBalance: 28, 
+              walletVersion: 'v28',
+              updatedAt: serverTimestamp()
+          }, { merge: true });
+          initRef.current = true;
       } catch (err) {
-        console.error("Initialization error:", err);
+        console.error("Initialization permission error:", err);
       } finally {
         setIsInitializing(false);
       }
