@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit, doc, updateDoc, increment, setDoc, serverTimestamp, writeBatch, addDoc } from 'firebase/firestore';
 import { CheckCircle2, Loader2, X, TrendingUp, Zap, Sparkles, ShieldCheck, Target, BarChart3, Clock, Trophy, Frown, Coins } from 'lucide-react';
@@ -44,6 +44,10 @@ interface PopupData {
     } | null;
 }
 
+/**
+ * अभिषेक भाई, यह 'Jalwa Math' है।
+ * यह पीरियड आईडी के आधार पर हमेशा एक ही रिजल्ट देगा।
+ */
 const getJalwaResult = (period: string) => {
   let hash = 0;
   for (let i = 0; i < period.length; i++) {
@@ -83,14 +87,12 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   const shownPeriodsRef = useRef<Set<string>>(new Set());
   const processedPeriods = useRef<Set<string>>(new Set());
 
-  const [displayResults, setDisplayResults] = useState<GameResult[]>([]);
-  const [displayBets, setDisplayBets] = useState<Bet[]>([]);
-
+  // Firestore Data
   const resultsQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'game_results'), orderBy('period', 'desc'), limit(50)) : null, 
     [firestore]
   );
-  const { data: results, isLoading: isHistoryLoading } = useCollection<GameResult>(resultsQuery);
+  const { data: firestoreResults, isLoading: isHistoryLoading } = useCollection<GameResult>(resultsQuery);
 
   const myBetsQuery = useMemoFirebase(() => 
     (firestore && user) ? query(collection(firestore, 'users', user.uid, 'game_bets'), orderBy('createdAt', 'desc'), limit(50)) : null, 
@@ -98,17 +100,45 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   );
   const { data: myBets } = useCollection<Bet>(myBetsQuery);
 
-  useEffect(() => {
-    if (results && results.length > 0) {
-      setDisplayResults(results);
-    }
-  }, [results]);
+  /**
+   * अभिषेक भाई, यह 'Deterministic History' लॉजिक है।
+   * यह पिछले 50 राउंड्स की लिस्ट को हमेशा फुल रखेगा।
+   */
+  const displayResults = useMemo(() => {
+    const now = new Date();
+    const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+    const currentSeconds = now.getUTCSeconds();
+    const currentRoundIndex = (utcMinutes * 2 + Math.floor(currentSeconds / 30));
+    const datePart = format(now, 'yyyyMMdd');
 
-  useEffect(() => {
-    if (myBets) {
-      setDisplayBets(myBets);
+    const fullHistory: GameResult[] = [];
+
+    // पिछले 50 राउंड्स के लिए डेटा बनाएं
+    for (let i = 1; i <= 50; i++) {
+        const roundIdx = currentRoundIndex - i;
+        if (roundIdx < 0) continue; 
+        
+        const periodId = `${datePart}10001${(roundIdx).toString().padStart(4, '0')}`;
+        
+        // चेक करें कि क्या यह डेटाबेस में है
+        const dbEntry = firestoreResults?.find(r => r.period === periodId);
+        if (dbEntry) {
+            fullHistory.push(dbEntry);
+        } else {
+            // अगर डेटाबेस में नहीं है, तो तुरंत 'Jalwa Math' से बनाओ (इससे हिस्ट्री कभी गायब नहीं होगी)
+            const mathRes = getJalwaResult(periodId);
+            fullHistory.push({
+                id: periodId,
+                period: periodId,
+                number: mathRes.num,
+                color: mathRes.color as any,
+                size: mathRes.size as any,
+                createdAt: null
+            });
+        }
     }
-  }, [myBets]);
+    return fullHistory;
+  }, [firestoreResults, currentPeriod]);
 
   const generateResult = async (periodToProcess: string) => {
     if (!firestore || !user) return;
@@ -154,7 +184,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   }, [currentPeriod, firestore, user]);
 
   useEffect(() => {
-    if (!firestore || !user || !results || results.length === 0 || !myBets) return;
+    if (!firestore || !user || !displayResults || displayResults.length === 0 || !myBets) return;
 
     const pendingBets = myBets.filter(b => b.status === 'pending');
     if (pendingBets.length === 0) return;
@@ -166,7 +196,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         let latestSettle: { win: boolean; amount: number; period: string; result: any } | null = null;
 
         pendingBets.forEach(bet => {
-            const matchedResult = results.find(r => r.period === bet.period);
+            const matchedResult = displayResults.find(r => r.period === bet.period);
             if (matchedResult) {
                 let isWin = false;
                 let mult = 2;
@@ -205,7 +235,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         }
     };
     processSettlement();
-  }, [results, myBets, firestore, user]);
+  }, [displayResults, myBets, firestore, user]);
 
   useEffect(() => {
     if (popup.isOpen && popupTimer > 0) {
@@ -250,7 +280,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   return (
     <div className="space-y-6 select-none pb-24 animate-in fade-in duration-700 w-full px-4">
       
-      {/* ELITE ANALYSIS */}
+      {/* ELITE ANALYSIS - SYNCED WITH LAST ENTRY */}
       <div className="relative group w-full">
         <div className="absolute -inset-1 bg-gradient-to-r from-primary via-purple-600 to-blue-600 rounded-[2.5rem] blur opacity-30"></div>
         <div className="relative bg-white border border-primary/20 rounded-[2.5rem] p-6 shadow-2xl overflow-hidden">
@@ -259,7 +289,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                     <div className="h-12 w-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary"><BarChart3 size={28} /></div>
                     <div>
                         <h3 className="font-black italic uppercase text-xl tracking-tighter text-foreground">Elite Analysis</h3>
-                        <p className="text-[10px] font-black text-green-600 uppercase tracking-[0.2em]">Live Predictions</p>
+                        <p className="text-[10px] font-black text-green-600 uppercase tracking-[0.2em]">Latest Data Entry</p>
                     </div>
                 </div>
                 <div className="bg-secondary/50 px-3 py-1.5 rounded-full border border-border flex items-center gap-2">
@@ -270,11 +300,11 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
             <div className="grid grid-cols-2 gap-4">
                 <div className="bg-secondary/30 rounded-[2.5rem] p-6 border border-border/40 flex flex-col items-center justify-center gap-2">
-                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Target Round</span>
+                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Active Round</span>
                     <p className="text-lg font-black italic tracking-tighter text-foreground">{currentPeriod.slice(-4)}</p>
                 </div>
                 <div className="bg-primary/5 rounded-[2.5rem] p-6 border border-primary/20 flex flex-col items-center justify-center gap-2">
-                    <span className="text-[10px] font-black text-primary uppercase tracking-widest">Last Result</span>
+                    <span className="text-[10px] font-black text-primary uppercase tracking-widest">Previous Result</span>
                     <div className="flex items-center gap-3">
                         <p className={cn("text-3xl font-black italic uppercase tracking-tighter", displayResults[0]?.size === 'big' ? "text-orange-500" : "text-blue-500")}>
                             {displayResults[0]?.size ? displayResults[0].size.toUpperCase() : '---'}
@@ -297,12 +327,11 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             </div>
         </div>
         <div className="text-right z-10">
-            <p className={cn("text-[10px] font-black uppercase tracking-[0.2em] opacity-90 mb-3", timeLeft <= 5 && "text-white")}>
-                {timeLeft <= 5 ? "Wait for Result" : "Next Draw In"}
+            <p className={cn("text-[10px] font-black uppercase tracking-[0.2em] opacity-90 mb-3")}>
+                {timeLeft <= 5 ? "Result Processing" : "Next Draw In"}
             </p>
             <div className="flex items-center gap-1.5 justify-end">
                 {timeLeft <= 5 ? (
-                    // अभिषेक भाई, 5 सेकंड से कम होने पर यहाँ "Last Result" लाल रंग में दिखेगा
                     <div className="h-11 flex items-center justify-center px-4 rounded-xl bg-white text-red-600 font-black text-xl shadow-xl animate-pulse">
                         LAST RESULT
                     </div>
