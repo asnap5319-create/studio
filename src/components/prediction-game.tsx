@@ -44,11 +44,6 @@ interface PopupData {
     } | null;
 }
 
-/**
- * Official Jalwa WinGo 30S Logic
- * 0: Red+Violet (Small) | 5: Green+Violet (Big)
- * 1,3,7,9: Green | 2,4,6,8: Red
- */
 const getJalwaResult = (period: string) => {
   let hash = 0;
   for (let i = 0; i < period.length; i++) {
@@ -101,7 +96,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   );
   const { data: myBets } = useCollection<Bet>(myBetsQuery);
 
-  // Stable History Reconstruction
+  // Stable History Reconstruction - NEVER MISSES A ROUND
   const displayResults = useMemo(() => {
     const now = new Date();
     const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
@@ -111,7 +106,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
     const fullHistory: GameResult[] = [];
 
-    // Increase range to catch older rounds for settlement
     for (let i = 1; i <= 60; i++) {
         const roundIdx = currentRoundIndex - i;
         if (roundIdx < 0) continue; 
@@ -136,27 +130,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     return fullHistory;
   }, [firestoreResults, currentPeriod]);
 
-  // Result Generator
-  const generateResult = async (periodToProcess: string) => {
-    if (!firestore || !user) return;
-    if (processedPeriods.current.has(periodToProcess)) return;
-    processedPeriods.current.add(periodToProcess);
-
-    try {
-        const resultDocRef = doc(firestore, 'game_results', periodToProcess);
-        const { num, color, size } = getJalwaResult(periodToProcess);
-
-        await setDoc(resultDocRef, {
-            id: periodToProcess,
-            period: periodToProcess,
-            number: num,
-            color,
-            size,
-            createdAt: serverTimestamp()
-        }, { merge: false });
-    } catch (e: any) {}
-  };
-
+  // Sync Timer and Period
   useEffect(() => {
     const updateTimer = () => {
       const now = new Date();
@@ -170,7 +144,19 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       const periodId = `${datePart}10001${(roundIndexInDay).toString().padStart(4, '0')}`;
       
       if (periodId !== currentPeriod) {
-        if (currentPeriod) { generateResult(currentPeriod); }
+        if (currentPeriod && firestore && user) {
+            const generateResult = async () => {
+                if (processedPeriods.current.has(currentPeriod)) return;
+                processedPeriods.current.add(currentPeriod);
+                const { num, color, size } = getJalwaResult(currentPeriod);
+                try {
+                    await setDoc(doc(firestore, 'game_results', currentPeriod), {
+                        id: currentPeriod, period: currentPeriod, number: num, color, size, createdAt: serverTimestamp()
+                    });
+                } catch (e) {}
+            };
+            generateResult();
+        }
         setCurrentPeriod(periodId);
       }
     };
@@ -180,9 +166,9 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     return () => clearInterval(interval);
   }, [currentPeriod, firestore, user]);
 
-  // Winning Settlement
+  // Settlement Logic - Handles adding winnings correctly
   useEffect(() => {
-    if (!firestore || !user || !displayResults || displayResults.length === 0 || !myBets) return;
+    if (!firestore || !user || !displayResults.length || !myBets) return;
 
     const pendingBets = myBets.filter(b => b.status === 'pending');
     if (pendingBets.length === 0) return;
@@ -264,10 +250,10 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     try {
       const batch = writeBatch(firestore);
       const userRef = doc(firestore, 'users', user.uid);
-      const betColRef = collection(firestore, 'users', user.uid, 'game_bets');
       const betId = `bet_${Date.now()}_${user.uid.slice(0, 5)}`;
-      const betDocRef = doc(betColRef, betId);
+      const betDocRef = doc(firestore, 'users', user.uid, 'game_bets', betId);
 
+      // तुरंत पैसे काटना और दांव लगाना एक साथ
       batch.update(userRef, { virtualBalance: increment(-finalAmount) });
       batch.set(betDocRef, {
         id: betId,
@@ -283,7 +269,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       toast({ title: "Bet Placed! ✅" });
       setIsBetPanelOpen(false);
     } catch (e: any) {
-      toast({ variant: 'destructive', title: "Error" });
+      toast({ variant: 'destructive', title: "Error Placing Bet" });
     } finally { setIsBetting(false); }
   };
 
@@ -441,7 +427,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                     myBets.map(bet => {
                         const isWin = bet.status === 'win';
                         const isLoss = bet.status === 'loss';
-                        const isPending = bet.status === 'pending';
                         
                         return (
                             <div key={bet.id} className="bg-white p-5 rounded-[2.5rem] border border-border/50 shadow-sm space-y-4 animate-in fade-in slide-in-from-bottom-2">

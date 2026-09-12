@@ -16,7 +16,7 @@ function HomeContent() {
   const { toast } = useToast();
   const [isInitializing, setIsInitializing] = useState(false);
 
-  // Fetch or Initialize User Profile with Virtual Coins
+  // Fetch User Profile
   const userRef = useMemoFirebase(() => 
     (firestore && user) ? doc(firestore, 'users', user.uid) : null, 
     [firestore, user]
@@ -26,12 +26,13 @@ function HomeContent() {
 
   useEffect(() => {
     const initializeUser = async () => {
+      // अभिषेक भाई, 'v28' वाला वर्जन चेक कर रहे हैं ताकि बैलेंस बार-बार रिसेट न हो।
       if (user && firestore && !isProfileLoading && !isInitializing) {
         const uRef = doc(firestore, 'users', user.uid);
         const snap = await getDoc(uRef);
         const data = snap.data();
 
-        // अभिषेक भाई, 'v28' वाला वर्जन चेक कर रहे हैं ताकि बैलेंस बार-बार रिसेट न हो।
+        // अगर यूजर नया है या उसका वर्जन v28 नहीं है, तभी 28 रुपये देंगे
         const needsInitialization = !snap.exists() || data?.walletVersion !== 'v28';
         
         if (needsInitialization) {
@@ -41,8 +42,9 @@ function HomeContent() {
                 id: user.uid,
                 username: user.displayName || user.email?.split('@')[0] || 'user',
                 email: user.email || '',
-                virtualBalance: snap.exists() ? (data?.virtualBalance ?? 28) : 28, 
-                walletVersion: 'v28', // पक्का फ्लैग
+                // अगर पहले से कुछ बैलेंस है (जैसे 100), तो उसे 28 कर देंगे, वरना 28 देंगे
+                virtualBalance: 28, 
+                walletVersion: 'v28', // यह फ्लैग दोबारा रिसेट होने से रोकेगा
                 updatedAt: serverTimestamp()
             }, { merge: true });
           } catch (err) {
