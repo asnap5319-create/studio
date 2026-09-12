@@ -81,6 +81,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   });
   const [popupTimer, setPopupTimer] = useState(3);
 
+  // अभिषेक भाई, ये रिफ्स बहुत जरूरी हैं ताकि एक जीत दो बार न जुड़े
   const processedBetIdsRef = useRef<Set<string>>(new Set());
   const processedPeriodsRef = useRef<Set<string>>(new Set());
   const shownPopupPeriodsRef = useRef<Set<string>>(new Set());
@@ -145,7 +146,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                         id: currentPeriod, period: currentPeriod, number: num, color, size, createdAt: serverTimestamp()
                     }, { merge: true });
                 } catch (e) {
-                    console.error("Result save error (ignoring):", e);
+                    // Ignore errors during silent background result saving
                 }
             };
             saveResult();
@@ -178,6 +179,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                 let isWin = false;
                 let mult = 1.99;
 
+                // अभिषेक भाई, यहाँ Big/Small का जीत-हार लॉजिक एकदम सटीक है
                 if (bet.selection === 'big') isWin = result.number >= 5;
                 else if (bet.selection === 'small') isWin = result.number < 5;
                 else if (typeof bet.selection === 'number') { isWin = bet.selection === result.number; mult = 9.0; }
@@ -206,8 +208,12 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         });
 
         if (updatedCount > 0) {
+            // रीयल-टाइम बैलेंस अपडेट के लिए increment() का इस्तेमाल
             if (totalWinDelta > 0) {
-                batch.update(doc(firestore, 'users', user.uid), { virtualBalance: increment(totalWinDelta) });
+                batch.update(doc(firestore, 'users', user.uid), { 
+                  virtualBalance: increment(totalWinDelta),
+                  updatedAt: serverTimestamp() 
+                });
             }
             try {
                 await batch.commit();
@@ -219,13 +225,12 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                     }
                 });
             } catch (error) {
-                console.error("Settlement commit failed (permissions?):", error);
-                toast({ variant: 'destructive', title: "Sync Error", description: "Failed to add winning money. Check rules." });
+                console.error("Settlement failed:", error);
             }
         }
     };
     processSettlement();
-  }, [displayResults, myBets, firestore, user, toast]);
+  }, [displayResults, myBets, firestore, user]);
 
   useEffect(() => {
     if (popup.isOpen && popupTimer > 0) {
@@ -259,7 +264,11 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       const betId = `bet_${Date.now()}_${user.uid.slice(0, 5)}`;
       const betDocRef = doc(firestore, 'users', user.uid, 'game_bets', betId);
 
-      batch.update(userRef, { virtualBalance: increment(-finalAmount) });
+      // अभिषेक भाई, यहाँ atomic increment का इस्तेमाल करके बैलेंस तुरंत काट रहे हैं
+      batch.update(userRef, { 
+        virtualBalance: increment(-finalAmount),
+        updatedAt: serverTimestamp()
+      });
       batch.set(betDocRef, {
         id: betId, userId: user.uid, period: currentPeriod, selection: selectedOption, amount: finalAmount, status: 'pending', createdAt: serverTimestamp()
       });

@@ -33,23 +33,32 @@ function HomeContent() {
           const snap = await getDoc(uRef);
           const data = snap.data();
 
-          if (data?.walletVersion === 'v28') {
+          // अभिषेक भाई, यहाँ बदलाव किया है: 
+          // अगर यूजर के पास पहले से बैलेंस है, तो उसे दोबारा 28 पर कभी मत पटको!
+          if (data && data.virtualBalance !== undefined && data.walletVersion === 'v28') {
             initRef.current = true;
             return;
           }
 
-          setIsInitializing(true);
-          await setDoc(uRef, {
-              id: user.uid,
-              username: user.displayName || user.email?.split('@')[0] || `user_${user.uid.slice(0, 4)}`,
-              email: user.email || '',
-              virtualBalance: 28, 
-              walletVersion: 'v28',
-              updatedAt: serverTimestamp()
-          }, { merge: true });
+          // सिर्फ तभी 28 रुपये दो जब बैलेंस बिल्कुल भी न हो (नए यूजर के लिए)
+          if (!data || data.virtualBalance === undefined) {
+              setIsInitializing(true);
+              await setDoc(uRef, {
+                  id: user.uid,
+                  username: user.displayName || user.email?.split('@')[0] || `user_${user.uid.slice(0, 4)}`,
+                  email: user.email || '',
+                  virtualBalance: 28, 
+                  walletVersion: 'v28',
+                  updatedAt: serverTimestamp()
+              }, { merge: true });
+          } else if (data.walletVersion !== 'v28') {
+              // अगर सिर्फ वर्जन अपडेट करना है, तो बैलेंस मत बदलो
+              await setDoc(uRef, { walletVersion: 'v28' }, { merge: true });
+          }
+          
           initRef.current = true;
       } catch (err) {
-        console.error("Initialization permission error:", err);
+        console.error("Initialization error:", err);
       } finally {
         setIsInitializing(false);
       }
