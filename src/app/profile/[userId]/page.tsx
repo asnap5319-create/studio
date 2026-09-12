@@ -33,8 +33,6 @@ export default function ProfilePage() {
     
     const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
     const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-    const [postToDelete, setPostToDelete] = useState<Post | null>(null);
     const [isEarningsOpen, setIsEarningsOpen] = useState(false);
     const [isMonetizationOpen, setIsMonetizationOpen] = useState(false);
     const [isSupportOpen, setIsSupportOpen] = useState(false);
@@ -73,10 +71,10 @@ export default function ProfilePage() {
         router.push('/login?auth=true');
     };
 
-    const handleActionClick = (type: string) => {
+    const handleWithdrawClick = () => {
       toast({
-        title: `${type} Section`,
-        description: "भाई, यह सिर्फ एक वर्चुअल गेम है। असली डिपॉजिट या विड्रॉल अभी उपलब्ध नहीं है।",
+        title: "Withdrawal Section",
+        description: "भाई, विड्रॉल अभी उपलब्ध नहीं है। गेम खेलकर बैलेंस बढ़ाओ!",
       });
     };
 
@@ -143,7 +141,7 @@ export default function ProfilePage() {
                     </div>
                 </div>
 
-                {/* Gaming Wallet Section with Top Deposit/Withdrawal */}
+                {/* Gaming Wallet Section */}
                 {isOwnProfile && (
                     <div className="px-4">
                         <div className="bg-money-pattern p-6 rounded-[2.5rem] shadow-xl text-white relative overflow-hidden group border border-white/5">
@@ -165,14 +163,15 @@ export default function ProfilePage() {
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">
+                                  <Link href="/deposit" className="flex-1">
+                                    <Button 
+                                        className="w-full bg-white text-green-700 hover:bg-white/90 rounded-2xl h-14 font-black uppercase text-xs flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"
+                                    >
+                                        <PlusCircle size={18} /> Deposit
+                                    </Button>
+                                  </Link>
                                   <Button 
-                                      onClick={() => handleActionClick('Deposit')}
-                                      className="bg-white text-green-700 hover:bg-white/90 rounded-2xl h-14 font-black uppercase text-xs flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"
-                                  >
-                                      <PlusCircle size={18} /> Deposit
-                                  </Button>
-                                  <Button 
-                                      onClick={() => handleActionClick('Withdraw')}
+                                      onClick={handleWithdrawClick}
                                       className="bg-green-800/40 text-white hover:bg-green-800/60 border border-white/20 rounded-2xl h-14 font-black uppercase text-xs flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all backdrop-blur-sm"
                                   >
                                       <ArrowUpRight size={18} /> Withdraw
@@ -230,7 +229,6 @@ export default function ProfilePage() {
                         <Play size={10} className="text-muted-foreground group-hover:text-primary transition-colors" />
                     </button>
 
-                    {/* Dedicated Logout Button at Bottom */}
                     {isOwnProfile && (
                       <button 
                         onClick={handleLogout} 
@@ -283,4 +281,3 @@ export default function ProfilePage() {
         </div>
     );
 }
-

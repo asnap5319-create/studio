@@ -9,6 +9,7 @@ import { Suspense, useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/models/user';
+import Link from 'next/link';
 
 function HomeContent() {
   const { user, isUserLoading } = useUser();
@@ -34,7 +35,6 @@ function HomeContent() {
           
           if (snap.exists()) {
             const data = snap.data();
-            // अभिषेक भाई, अगर यूजर के पास पहले से पैसे हैं, तो यह कोड उन्हें ओवरराइट नहीं करेगा।
             if (data && (typeof data.virtualBalance === 'number' || data.walletVersion === 'v28_final')) {
               initRef.current = true;
               return;
@@ -62,10 +62,10 @@ function HomeContent() {
     initializeUser();
   }, [user, firestore, isProfileLoading, isInitializing]);
 
-  const handleActionClick = (type: string) => {
+  const handleWithdrawClick = () => {
     toast({
-      title: `${type} Section`,
-      description: "भाई, यह सिर्फ एक वर्चुअल गेम है। असली डिपॉजिट या विड्रॉल अभी उपलब्ध नहीं है।",
+      title: "Withdrawal System",
+      description: "भाई, यह अभी उपलब्ध नहीं है। गेम खेलो और बैलेंस बनाओ!",
     });
   };
 
@@ -118,14 +118,15 @@ function HomeContent() {
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
+                         <Link href="/deposit" className="flex-1">
+                            <Button 
+                                className="w-full bg-white text-green-700 hover:bg-white/90 rounded-[2rem] h-20 font-black uppercase text-base flex items-center justify-center gap-3 shadow-2xl active:scale-95 transition-all"
+                            >
+                                <PlusCircle size={24} /> Deposit
+                            </Button>
+                         </Link>
                          <Button 
-                            onClick={() => handleActionClick('Deposit')}
-                            className="bg-white text-green-700 hover:bg-white/90 rounded-[2rem] h-20 font-black uppercase text-base flex items-center justify-center gap-3 shadow-2xl active:scale-95 transition-all"
-                         >
-                            <PlusCircle size={24} /> Deposit
-                         </Button>
-                         <Button 
-                            onClick={() => handleActionClick('Withdraw')}
+                            onClick={handleWithdrawClick}
                             className="bg-green-800/40 text-white hover:bg-green-800/60 border border-white/20 rounded-[2rem] h-20 font-black uppercase text-base flex items-center justify-center gap-3 shadow-2xl active:scale-95 transition-all backdrop-blur-sm"
                          >
                             <ArrowUpRight size={24} /> Withdraw
