@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -46,7 +47,6 @@ interface PopupData {
 
 /**
  * जलवा गेम का रैंडम और अनपेक्षित परिणाम जनरेशन (Advanced Chaotic Hash)
- * अभिषेक भाई, यह कोड हर राउंड में बिल्कुल नया और रैंडम फील देगा।
  */
 const getJalwaResult = (period: string) => {
   let h = 0;
@@ -264,7 +264,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
   return (
     <div className="space-y-8 select-none pb-24 w-full px-5">
-      {/* Analysis Card - Dark Version */}
+      {/* Analysis Card */}
       <div className="bg-secondary/40 border border-white/5 rounded-[3rem] p-8 shadow-2xl backdrop-blur-md">
           <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-4">
@@ -320,7 +320,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </div>
       </div>
 
-      {/* Main Game Interface - Dark Version */}
+      {/* Main Game Interface */}
       <div className="bg-secondary/40 rounded-[4rem] p-10 shadow-2xl border border-white/5 space-y-10 backdrop-blur-xl">
           <div className="grid grid-cols-3 gap-4">
               <Button onClick={() => handleOpenBetPanel('green')} className="bg-green-500 hover:bg-green-600 h-20 rounded-[2rem] font-black uppercase text-sm shadow-[0_10px_30px_rgba(34,197,94,0.3)]">Green</Button>
@@ -345,7 +345,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           </div>
       </div>
 
-      {/* History Tabs - Dark Version */}
+      {/* History Tabs */}
       <div className="bg-secondary/40 rounded-[3rem] overflow-hidden shadow-2xl border border-white/5">
         <Tabs defaultValue="results" className="w-full">
             <TabsList className="grid w-full grid-cols-2 bg-background/50 p-1.5 h-16 rounded-none border-b border-white/5">
@@ -407,44 +407,96 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </Tabs>
       </div>
 
-      {/* Bet Panel Dialog - Dark Version */}
-      <Dialog open={isBetPanelOpen} onOpenChange={setIsBetPanelOpen}>
-        <DialogContent className="max-w-[400px] bg-background border-white/5 rounded-[3rem] p-0 overflow-hidden z-[1000] text-white">
-           <DialogHeader className="p-8 pb-0 flex flex-row items-center justify-between">
-                <DialogTitle className="text-2xl font-black uppercase tracking-tight text-white">Place Bet</DialogTitle>
-                <Button variant="ghost" size="icon" onClick={() => setIsBetPanelOpen(false)} className="rounded-full text-white/40 hover:text-white hover:bg-white/5"><X /></Button>
-           </DialogHeader>
-           <div className="p-8 space-y-8">
-              <div className="bg-secondary/60 p-8 rounded-[2.5rem] flex items-center justify-between border border-white/5 shadow-inner">
-                  <div className="space-y-2">
-                      <p className="text-[10px] font-black uppercase text-white/40">Choice</p>
-                      <h4 className="text-5xl font-black uppercase text-primary drop-shadow-[0_0_15px_rgba(255,51,102,0.3)]">{selectedOption}</h4>
+      {/* NEW IMPROVED BET PANEL: Large Bottom Sheet */}
+      <Sheet open={isBetPanelOpen} onOpenChange={setIsBetPanelOpen}>
+        <SheetContent side="bottom" className="h-[85vh] bg-background border-white/5 rounded-t-[3.5rem] p-0 overflow-hidden z-[1000] text-white outline-none">
+           <SheetHeader className="p-8 pb-4 flex flex-row items-center justify-between border-b border-white/5">
+                <SheetTitle className="text-3xl font-black uppercase tracking-tighter text-white italic">PLACE BET</SheetTitle>
+                <button onClick={() => setIsBetPanelOpen(false)} className="p-2 bg-white/5 rounded-full text-white/40 hover:text-white transition-colors">
+                    <X size={24} />
+                </button>
+           </SheetHeader>
+           
+           <div className="p-8 space-y-10 overflow-y-auto h-full pb-32 scrollbar-hide">
+              {/* Choice & Balance Hero Section */}
+              <div className="bg-secondary/60 p-10 rounded-[3rem] flex items-center justify-between border border-white/5 shadow-2xl relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-primary/5 blur-3xl rounded-full opacity-50 pointer-events-none" />
+                  <div className="space-y-2 relative z-10">
+                      <p className="text-[12px] font-black uppercase tracking-[0.4em] text-white/40">CHOICE</p>
+                      <h4 className={cn(
+                          "text-7xl font-black uppercase drop-shadow-[0_0_20px_rgba(255,51,102,0.4)]",
+                          typeof selectedOption === 'string' && selectedOption === 'big' ? "text-orange-400" :
+                          typeof selectedOption === 'string' && selectedOption === 'small' ? "text-blue-400" : "text-primary"
+                      )} style={{ fontStyle: 'normal' }}>
+                          {selectedOption}
+                      </h4>
                   </div>
-                  <div className="text-right space-y-2">
-                      <p className="text-[10px] font-black uppercase text-white/40">Balance</p>
-                      <p className="text-3xl font-black text-white" style={{ fontStyle: 'normal' }}>₹{userProfile?.virtualBalance?.toFixed(1) || '0.0'}</p>
+                  <div className="text-right space-y-2 relative z-10">
+                      <p className="text-[12px] font-black uppercase tracking-[0.4em] text-white/40">BALANCE</p>
+                      <p className="text-4xl font-black text-white" style={{ fontStyle: 'normal' }}>₹{userProfile?.virtualBalance?.toFixed(1) || '0.0'}</p>
                   </div>
               </div>
-              <div className="grid grid-cols-4 gap-2">
+
+              {/* Preset Amounts Grid */}
+              <div className="grid grid-cols-4 gap-3">
                   {[10, 50, 100, 500].map(amt => (
-                      <button key={amt} onClick={() => setBetAmount(amt.toString())} className={cn("h-12 rounded-xl text-xs font-black uppercase border-2 transition-all", betAmount === amt.toString() ? "bg-primary text-white border-primary shadow-lg" : "bg-white/5 text-white/60 border-transparent hover:bg-white/10")}>₹{amt}</button>
+                      <button 
+                        key={amt} 
+                        onClick={() => setBetAmount(amt.toString())} 
+                        className={cn(
+                            "h-16 rounded-[1.5rem] text-sm font-black uppercase border-2 transition-all active:scale-90", 
+                            betAmount === amt.toString() ? "bg-primary text-white border-primary shadow-[0_10px_25px_rgba(255,51,102,0.4)]" : "bg-white/5 text-white/60 border-transparent hover:bg-white/10"
+                        )}
+                      >
+                        ₹{amt}
+                      </button>
                   ))}
               </div>
+
+              {/* Custom Input */}
               <div className="space-y-4">
-                  <p className="text-[10px] font-black uppercase text-white/40 ml-2">Custom Amount</p>
-                  <Input type="number" placeholder="0.0" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} className="h-16 bg-white/5 border-white/10 rounded-2xl text-2xl font-black px-6 text-white focus:ring-primary" style={{ fontStyle: 'normal' }} />
+                  <p className="text-[11px] font-black uppercase tracking-[0.3em] text-white/40 ml-4">CUSTOM AMOUNT</p>
+                  <div className="relative">
+                      <Input 
+                        type="number" 
+                        placeholder="Enter amount..." 
+                        value={betAmount} 
+                        onChange={(e) => setBetAmount(e.target.value)} 
+                        className="h-20 bg-white/5 border-white/10 rounded-[2rem] text-3xl font-black px-8 text-white focus:ring-primary placeholder:text-white/10" 
+                        style={{ fontStyle: 'normal' }} 
+                      />
+                  </div>
               </div>
-              <div className="bg-primary/10 p-6 rounded-2xl flex justify-between items-center border border-primary/20 shadow-inner">
-                  <p className="text-xs font-black uppercase text-primary">Total Pay:</p>
-                  <p className="text-4xl font-black text-primary" style={{ fontStyle: 'normal' }}>₹{(parseInt(betAmount) || 0) * multiplier}</p>
+
+              {/* Final Summary Card */}
+              <div className="bg-primary/10 p-8 rounded-[2.5rem] flex justify-between items-center border border-primary/20 shadow-inner">
+                  <div className="flex items-center gap-3">
+                      <div className="w-1.5 h-8 bg-primary rounded-full" />
+                      <p className="text-sm font-black uppercase tracking-widest text-primary">TOTAL PAY:</p>
+                  </div>
+                  <p className="text-5xl font-black text-primary drop-shadow-[0_0_15px_rgba(255,51,102,0.2)]" style={{ fontStyle: 'normal' }}>₹{(parseInt(betAmount) || 0) * multiplier}</p>
               </div>
-              <Button onClick={handlePlaceBet} disabled={isBetting} className="w-full h-20 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-[2rem] shadow-[0_15px_40px_rgba(255,51,102,0.4)] flex items-center justify-center gap-4 text-xl active:scale-95 transition-all">
-                  {isBetting ? <Loader2 className="animate-spin" /> : <><CheckCircle2 /> Confirm</>}
+
+              {/* Huge Confirm Button */}
+              <Button 
+                onClick={handlePlaceBet} 
+                disabled={isBetting} 
+                className="w-full h-24 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-[2.5rem] shadow-[0_20px_50px_rgba(255,51,102,0.5)] flex items-center justify-center gap-5 text-2xl active:scale-95 transition-all mb-10"
+              >
+                  {isBetting ? (
+                    <div className="flex items-center gap-3">
+                        <Loader2 className="animate-spin h-8 w-8" />
+                        <span>BETTING...</span>
+                    </div>
+                  ) : (
+                    <><CheckCircle2 size={32} /> CONFIRM BET</>
+                  )}
               </Button>
            </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
+      {/* Win/Loss Popup Dialog */}
       <Dialog open={popup.isOpen} onOpenChange={(open) => !open && setPopup(prev => ({ ...prev, isOpen: false }))}>
         <DialogContent className={cn("max-w-[340px] p-0 border-none rounded-[3rem] overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.5)] z-[2000] animate-in zoom-in duration-300", popup.isWin ? "bg-green-700" : "bg-blue-900")}>
             <div className="relative p-10 flex flex-col items-center text-center text-white space-y-8">
