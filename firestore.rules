@@ -23,10 +23,8 @@ service cloud.firestore {
     match /game_results/{periodId} {
       // Everyone can see history
       allow get, list: if true;
-      // Only authenticated users can "propose" a result. 
-      // Rule prevents updating or deleting once created.
-      allow create: if isAuthenticated() && !exists(/databases/$(database)/documents/game_results/$(periodId));
-      allow update, delete: if false;
+      // Allow creation and updates (to prevent errors during simultaneous online users)
+      allow write: if isAuthenticated();
     }
 
     // Unified Rule for Users and their subcollections

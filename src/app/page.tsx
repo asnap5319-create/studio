@@ -78,54 +78,54 @@ function HomeContent() {
     <div className="min-h-screen bg-background pb-20 w-full max-w-none">
       <header className="p-5 bg-background sticky top-0 z-50 flex items-center justify-between border-b border-border/50 backdrop-blur-md">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center font-black text-white shadow-lg shadow-primary/20 text-xl">A</div>
-          <h1 className="text-2xl font-black tracking-tight uppercase">A.Snap Game</h1>
+          <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center font-black text-white shadow-lg shadow-primary/20 text-2xl">A</div>
+          <h1 className="text-3xl font-black tracking-tight uppercase">A.Snap Game</h1>
         </div>
-        <div className="flex items-center gap-1.5 bg-secondary/50 px-4 py-2 rounded-full border border-border">
+        <div className="flex items-center gap-1.5 bg-secondary/50 px-5 py-2.5 rounded-full border border-border">
           <div className="h-2.5 w-2.5 bg-green-500 rounded-full animate-pulse" />
-          <span className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Server Live</span>
+          <span className="text-[12px] font-black uppercase tracking-widest text-muted-foreground">Server Live</span>
         </div>
       </header>
 
-      <main className="w-full space-y-8 pt-6">
+      <main className="w-full space-y-8 pt-8">
         {user ? (
           <>
             <div className="w-full px-5">
-                <div className="bg-money-pattern p-10 rounded-[3rem] shadow-[0_25px_60px_rgba(22,163,74,0.3)] text-white relative overflow-hidden group">
-                   <div className="absolute top-0 right-0 p-8 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-700">
-                      <Wallet size={140} />
+                <div className="bg-money-pattern p-12 rounded-[3.5rem] shadow-[0_30px_70px_rgba(22,163,74,0.3)] text-white relative overflow-hidden group">
+                   <div className="absolute top-0 right-0 p-10 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-700">
+                      <Wallet size={160} />
                    </div>
                    
-                   <div className="relative z-10 space-y-10">
+                   <div className="relative z-10 space-y-12">
                       <div className="flex items-center justify-between">
-                         <div className="space-y-2">
-                            <p className="text-[11px] font-black uppercase tracking-[0.4em] text-white/70 flex items-center gap-2">
-                              <Sparkles size={12} className="text-yellow-400" /> Virtual Balance
+                         <div className="space-y-3">
+                            <p className="text-[12px] font-black uppercase tracking-[0.4em] text-white/70 flex items-center gap-2">
+                              <Sparkles size={14} className="text-yellow-400" /> Virtual Balance
                             </p>
-                            <div className="flex items-baseline gap-2.5">
-                               <span className="text-3xl font-black text-white/80">₹</span>
-                               <h2 className="text-6xl font-black tracking-tight drop-shadow-lg">
+                            <div className="flex items-baseline gap-3">
+                               <span className="text-4xl font-black text-white/80">₹</span>
+                               <h2 className="text-7xl font-black tracking-tight drop-shadow-lg">
                                   {userProfile?.virtualBalance?.toLocaleString() || '0'}
                                </h2>
                             </div>
                          </div>
-                         <div className="bg-white/10 p-4 rounded-2xl border border-white/10 backdrop-blur-md">
-                            <TrendingUp className="text-white w-7 h-7" />
+                         <div className="bg-white/10 p-5 rounded-3xl border border-white/10 backdrop-blur-md">
+                            <TrendingUp className="text-white w-8 h-8" />
                          </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-5">
+                      <div className="grid grid-cols-2 gap-6">
                          <Button 
                             onClick={() => handleActionClick('Deposit')}
-                            className="bg-white text-green-700 hover:bg-white/90 rounded-[1.5rem] h-16 font-black uppercase text-sm flex items-center justify-center gap-3 shadow-xl shadow-black/10 active:scale-95 transition-all"
+                            className="bg-white text-green-700 hover:bg-white/90 rounded-[2rem] h-20 font-black uppercase text-base flex items-center justify-center gap-3 shadow-xl shadow-black/10 active:scale-95 transition-all"
                          >
-                            <PlusCircle size={20} /> Deposit
+                            <PlusCircle size={24} /> Deposit
                          </Button>
                          <Button 
                             onClick={() => handleActionClick('Withdraw')}
-                            className="bg-green-800/40 text-white hover:bg-green-800/60 border border-white/20 rounded-[1.5rem] h-16 font-black uppercase text-sm flex items-center justify-center gap-3 shadow-xl shadow-black/10 active:scale-95 transition-all backdrop-blur-sm"
+                            className="bg-green-800/40 text-white hover:bg-green-800/60 border border-white/20 rounded-[2rem] h-20 font-black uppercase text-base flex items-center justify-center gap-3 shadow-xl shadow-black/10 active:scale-95 transition-all backdrop-blur-sm"
                          >
-                            <ArrowUpRight size={20} /> Withdraw
+                            <ArrowUpRight size={24} /> Withdraw
                          </Button>
                       </div>
                    </div>
@@ -137,16 +137,16 @@ function HomeContent() {
             </div>
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center h-[70vh] text-center gap-8 px-6">
-             <div className="w-28 h-28 bg-money-pattern rounded-[2.5rem] flex items-center justify-center animate-bounce shadow-2xl">
-                <span className="text-5xl text-white font-black">A</span>
+          <div className="flex flex-col items-center justify-center h-[70vh] text-center gap-10 px-8">
+             <div className="w-32 h-32 bg-money-pattern rounded-[3rem] flex items-center justify-center animate-bounce shadow-2xl">
+                <span className="text-6xl text-white font-black">A</span>
              </div>
-             <div className="space-y-3">
-               <h2 className="text-3xl font-black uppercase tracking-tight">Welcome to A.snap</h2>
-               <p className="text-muted-foreground text-base max-w-xs mx-auto">Login now to start your virtual coin prediction journey and compete with friends.</p>
+             <div className="space-y-4">
+               <h2 className="text-4xl font-black uppercase tracking-tight">Welcome to A.snap</h2>
+               <p className="text-muted-foreground text-lg max-w-sm mx-auto font-medium">Login now to start your virtual coin prediction journey and compete with friends.</p>
              </div>
-             <a href="/login?auth=true" className="w-full max-w-[250px]">
-                <button className="w-full bg-primary h-16 rounded-[1.5rem] text-white font-black uppercase text-lg shadow-xl active:scale-95 transition-all">Get Started</button>
+             <a href="/login?auth=true" className="w-full max-w-[280px]">
+                <button className="w-full bg-primary h-20 rounded-[2rem] text-white font-black uppercase text-xl shadow-xl active:scale-95 transition-all">Get Started</button>
              </a>
           </div>
         )}
