@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit, doc, updateDoc, increment, setDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
-import { CheckCircle2, Loader2, X, Zap, BarChart3, Clock, Trophy, Frown, Coins, ChevronRight } from 'lucide-react';
+import { collection, query, orderBy, limit, doc, setDoc, serverTimestamp, writeBatch, increment } from 'firebase/firestore';
+import { CheckCircle2, Loader2, X, Zap, BarChart3, Trophy, Frown, Coins, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -83,8 +83,10 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     isOpen: false, isWin: false, amount: 0, period: '', result: null 
   });
   const [popupTimer, setPopupTimer] = useState(3);
-  const shownPeriodsRef = useRef<Set<string>>(new Set());
-  const processedPeriods = useRef<Set<string>>(new Set());
+
+  const processedBetIdsRef = useRef<Set<string>>(new Set());
+  const processedPeriodsRef = useRef<Set<string>>(new Set());
+  const shownPopupPeriodsRef = useRef<Set<string>>(new Set());
 
   // Real-time Sync
   const resultsQuery = useMemoFirebase(() => 
@@ -99,7 +101,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   );
   const { data: myBets } = useCollection<Bet>(myBetsQuery);
 
-  // Reconstruct history deterministically
+  // History Reconstruction
   const displayResults = useMemo(() => {
     const now = new Date();
     const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
@@ -108,25 +110,17 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     const datePart = format(now, 'yyyyMMdd');
 
     const fullHistory: GameResult[] = [];
-
     for (let i = 1; i <= 60; i++) {
         const roundIdx = currentRoundIndex - i;
         if (roundIdx < 0) continue; 
-        
         const periodId = `${datePart}10001${(roundIdx).toString().padStart(4, '0')}`;
         const dbEntry = firestoreResults?.find(r => r.period === periodId);
-        
         if (dbEntry) {
             fullHistory.push(dbEntry);
         } else {
             const mathRes = getJalwaResult(periodId);
             fullHistory.push({
-                id: periodId,
-                period: periodId,
-                number: mathRes.num,
-                color: mathRes.color as any,
-                size: mathRes.size as any,
-                createdAt: null
+                id: periodId, period: periodId, number: mathRes.num, color: mathRes.color as any, size: mathRes.size as any, createdAt: null
             });
         }
     }
@@ -148,61 +142,57 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       
       if (periodId !== currentPeriod) {
         if (currentPeriod && firestore && user) {
-            const generateResult = async () => {
-                if (processedPeriods.current.has(currentPeriod)) return;
-                processedPeriods.current.add(currentPeriod);
+            const saveResult = async () => {
+                if (processedPeriodsRef.current.has(currentPeriod)) return;
+                processedPeriodsRef.current.add(currentPeriod);
                 const { num, color, size } = getJalwaResult(currentPeriod);
                 try {
                     await setDoc(doc(firestore, 'game_results', currentPeriod), {
                         id: currentPeriod, period: currentPeriod, number: num, color, size, createdAt: serverTimestamp()
-                    });
+                    }, { merge: true });
                 } catch (e) {}
             };
-            generateResult();
+            saveResult();
         }
         setCurrentPeriod(periodId);
       }
     };
-
-    updateTimer();
     const interval = setInterval(updateTimer, 1000);
+    updateTimer();
     return () => clearInterval(interval);
   }, [currentPeriod, firestore, user]);
 
   /**
-   * BET SETTLEMENT LOGIC - THE CORE ENGINE
+   * ROBUST BET SETTLEMENT LOGIC
    */
   useEffect(() => {
     if (!firestore || !user || !displayResults.length || !myBets) return;
 
-    const pendingBets = myBets.filter(b => b.status === 'pending');
+    // केवल वही बेट्स लें जो अभी 'pending' हैं और इस सेशन में प्रोसेस नहीं हुई हैं
+    const pendingBets = myBets.filter(b => b.status === 'pending' && !processedBetIdsRef.current.has(b.id));
     if (pendingBets.length === 0) return;
 
     const processSettlement = async () => {
         const batch = writeBatch(firestore);
         let totalWinDelta = 0;
         let updatedCount = 0;
-        const periodPopupData = new Map<string, { win: boolean; amount: number; result: any }>();
+        const periodPopups = new Map<string, { win: boolean; amount: number; result: any }>();
 
         pendingBets.forEach(bet => {
-            const matchedResult = displayResults.find(r => r.period === bet.period);
-            if (matchedResult) {
+            const result = displayResults.find(r => r.period === bet.period);
+            if (result) {
+                processedBetIdsRef.current.add(bet.id); // Mark as proccessing instantly
+                
                 let isWin = false;
-                let mult = 2.0;
+                let mult = 1.99;
 
-                // --- LOGIC RULES ---
-                if (typeof bet.selection === 'number') { 
-                    // Number Guess (9x)
-                    isWin = bet.selection === matchedResult.number; 
-                    mult = 9.0; 
-                } else if (bet.selection === 'big' || bet.selection === 'small') { 
-                    // Big/Small (1.99x)
-                    isWin = bet.selection === matchedResult.size; 
-                    mult = 1.99; 
-                } else {
-                    // Color Guess
-                    isWin = matchedResult.color.includes(bet.selection as string);
-                    if (matchedResult.color.includes('violet') && (bet.selection === 'red' || bet.selection === 'green')) { mult = 1.5; }
+                // --- STICKY RULES ---
+                if (bet.selection === 'big') isWin = result.number >= 5;
+                else if (bet.selection === 'small') isWin = result.number < 5;
+                else if (typeof bet.selection === 'number') { isWin = bet.selection === result.number; mult = 9.0; }
+                else {
+                    isWin = result.color.includes(bet.selection as string);
+                    if (result.color.includes('violet') && (bet.selection === 'red' || bet.selection === 'green')) mult = 1.5;
                     if (bet.selection === 'violet') mult = 4.5;
                 }
 
@@ -216,45 +206,27 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                     batch.update(betRef, { status: 'loss' }); 
                 }
                 
-                // Track for popup (If multiple bets in same round, WIN takes priority for display)
-                const existing = periodPopupData.get(bet.period);
+                // Track for popup
+                const existing = periodPopups.get(bet.period);
                 if (!existing || isWin) {
-                    periodPopupData.set(bet.period, { 
-                        win: isWin, 
-                        amount: isWin ? winAmt : 0, 
-                        result: matchedResult 
-                    });
+                    periodPopups.set(bet.period, { win: isWin, amount: isWin ? winAmt : 0, result });
                 }
-                
                 updatedCount++;
             }
         });
 
         if (updatedCount > 0) {
             if (totalWinDelta > 0) {
-                // Update User Balance with decimal precision
-                batch.update(doc(firestore, 'users', user.uid), { 
-                    virtualBalance: increment(totalWinDelta) 
-                });
+                batch.update(doc(firestore, 'users', user.uid), { virtualBalance: increment(totalWinDelta) });
             }
             await batch.commit();
 
-            // Trigger Popups for participatng users
-            periodPopupData.forEach((data, period) => {
-                if (!shownPeriodsRef.current.has(period)) {
-                    setPopup({ 
-                        isOpen: true, 
-                        isWin: data.win, 
-                        amount: data.amount, 
-                        period: period, 
-                        result: { 
-                            num: data.result.number, 
-                            color: data.result.color, 
-                            size: data.result.size 
-                        } 
-                    });
+            // Trigger Popups
+            periodPopups.forEach((data, period) => {
+                if (!shownPopupPeriodsRef.current.has(period)) {
+                    setPopup({ isOpen: true, isWin: data.win, amount: data.amount, period: period, result: { num: data.result.number, color: data.result.color, size: data.result.size } });
                     setPopupTimer(3);
-                    shownPeriodsRef.current.add(period);
+                    shownPopupPeriodsRef.current.add(period);
                 }
             });
         }
@@ -262,7 +234,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     processSettlement();
   }, [displayResults, myBets, firestore, user]);
 
-  // Auto-close popup timer
   useEffect(() => {
     if (popup.isOpen && popupTimer > 0) {
       const t = setTimeout(() => setPopupTimer(prev => prev - 1), 1000);
@@ -297,62 +268,47 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
       batch.update(userRef, { virtualBalance: increment(-finalAmount) });
       batch.set(betDocRef, {
-        id: betId,
-        userId: user.uid,
-        period: currentPeriod,
-        selection: selectedOption,
-        amount: finalAmount,
-        status: 'pending',
-        createdAt: serverTimestamp()
+        id: betId, userId: user.uid, period: currentPeriod, selection: selectedOption, amount: finalAmount, status: 'pending', createdAt: serverTimestamp()
       });
 
       await batch.commit();
       toast({ title: "Bet Placed! ✅" });
       setIsBetPanelOpen(false);
-    } catch (e: any) {
-      toast({ variant: 'destructive', title: "Error Placing Bet" });
-    } finally { setIsBetting(false); }
-  };
-
-  const getNumberColorClass = (num: number) => {
-    if (num === 0 || num === 5) return "text-purple-600";
-    if ([1, 3, 7, 9].includes(num)) return "text-green-600";
-    return "text-red-600";
+    } catch (e) { toast({ variant: 'destructive', title: "Error Placing Bet" }); }
+    finally { setIsBetting(false); }
   };
 
   return (
-    <div className="space-y-8 select-none pb-24 animate-in fade-in duration-700 w-full px-5">
-      
+    <div className="space-y-8 select-none pb-24 w-full px-5">
       {/* Analysis Card */}
-      <div className="relative group w-full">
-        <div className="absolute -inset-1.5 bg-gradient-to-r from-primary via-purple-600 to-blue-600 rounded-[3rem] blur opacity-40"></div>
-        <div className="relative bg-white border border-primary/20 rounded-[3rem] p-10 shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between mb-10">
-                <div className="flex items-center gap-5">
-                    <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary"><BarChart3 size={40} /></div>
+      <div className="relative w-full">
+        <div className="bg-white border border-border rounded-[3rem] p-8 shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                    <div className="h-14 w-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary"><BarChart3 size={30} /></div>
                     <div>
-                        <h3 className="font-black uppercase text-3xl tracking-tight text-foreground">Elite Analysis</h3>
-                        <p className="text-[12px] font-black text-green-600 uppercase tracking-[0.3em]">Live Round Data</p>
+                        <h3 className="font-black uppercase text-2xl tracking-tight text-foreground">Analysis</h3>
+                        <p className="text-[10px] font-black text-green-600 uppercase tracking-[0.2em]">Real-time Sync</p>
                     </div>
                 </div>
-                <div className="bg-secondary/50 px-5 py-2.5 rounded-full border border-border flex items-center gap-2">
-                    <div className="h-2.5 w-2.5 bg-green-500 rounded-full animate-pulse" />
-                    <span className="text-[11px] font-black uppercase text-muted-foreground">Sync Active</span>
+                <div className="bg-secondary/50 px-4 py-2 rounded-full border border-border flex items-center gap-2">
+                    <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
+                    <span className="text-[10px] font-black uppercase text-muted-foreground">Server Active</span>
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-8">
-                <div className="bg-secondary/30 rounded-[3rem] p-10 border border-border/40 flex flex-col items-center justify-center gap-4">
-                    <span className="text-[12px] font-black text-muted-foreground uppercase tracking-widest">Current Round</span>
-                    <p className="text-3xl font-black text-foreground">{currentPeriod.slice(-4)}</p>
+            <div className="grid grid-cols-2 gap-4">
+                <div className="bg-secondary/20 rounded-[2.5rem] p-8 border border-border flex flex-col items-center justify-center gap-2">
+                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Period</span>
+                    <p className="text-2xl font-black text-foreground">{currentPeriod.slice(-4)}</p>
                 </div>
-                <div className="bg-primary/5 rounded-[3rem] p-10 border border-primary/20 flex flex-col items-center justify-center gap-4">
-                    <span className="text-[12px] font-black text-primary uppercase tracking-widest">Last Round</span>
-                    <div className="flex items-center gap-5">
-                        <p className={cn("text-5xl font-black uppercase tracking-tight", displayResults[0]?.size === 'big' ? "text-orange-500" : "text-blue-500")}>
-                            {displayResults[0]?.size ? displayResults[0].size.toUpperCase() : '---'}
+                <div className="bg-primary/5 rounded-[2.5rem] p-8 border border-primary/10 flex flex-col items-center justify-center gap-2">
+                    <span className="text-[10px] font-black text-primary uppercase tracking-widest">Last Result</span>
+                    <div className="flex items-center gap-3">
+                        <p className={cn("text-4xl font-black uppercase", displayResults[0]?.size === 'big' ? "text-orange-500" : "text-blue-500")}>
+                            {displayResults[0]?.size || '---'}
                         </p>
-                        {displayResults[0] && <div className={cn("w-6 h-6 rounded-full shadow-lg border-2 border-white", displayResults[0].color.includes('green') ? "bg-green-500" : "bg-red-500")} />}
+                        {displayResults[0] && <div className={cn("w-5 h-5 rounded-full shadow-sm", displayResults[0].color.includes('green') ? "bg-green-500" : "bg-red-500")} />}
                     </div>
                 </div>
             </div>
@@ -361,98 +317,97 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
       {/* Timer Section */}
       <div className="bg-[#f95959] rounded-[3.5rem] p-10 text-white flex justify-between items-center shadow-xl relative overflow-hidden w-full">
-        <div className="space-y-8 z-10">
-            <div className="flex items-center gap-3"><Zap size={22} className="fill-white" /><p className="text-[12px] font-black uppercase tracking-[0.4em] opacity-95">WinGo 30S</p></div>
-            <div className="flex gap-3">
+        <div className="space-y-6 z-10">
+            <div className="flex items-center gap-2"><Zap size={20} className="fill-white" /><p className="text-[11px] font-black uppercase tracking-[0.3em]">WinGo 30S</p></div>
+            <div className="flex gap-2">
                 {displayResults.slice(0, 5).map(res => (
-                    <div key={res.id} className={cn("w-11 h-11 rounded-full border border-white/40 flex items-center justify-center text-base font-black shadow-lg", res.color.includes('green') ? "bg-green-500" : "bg-red-500")}>{res.number}</div>
+                    <div key={res.id} className={cn("w-10 h-10 rounded-full border border-white/30 flex items-center justify-center text-sm font-black shadow-md", res.color.includes('green') ? "bg-green-500" : "bg-red-500")}>{res.number}</div>
                 ))}
             </div>
         </div>
         <div className="text-right z-10">
-            <p className="text-[12px] font-black uppercase tracking-[0.3em] opacity-95 mb-5">
-                {timeLeft <= 5 ? "Processing Result" : "Round Closes In"}
+            <p className="text-[11px] font-black uppercase tracking-[0.3em] opacity-90 mb-4">
+                {timeLeft <= 5 ? "Processing" : "Time Left"}
             </p>
-            <div className="flex items-center gap-2.5 justify-end">
+            <div className="flex items-center justify-end">
                 {timeLeft <= 5 ? (
-                    <div className="h-16 flex items-center justify-center px-8 rounded-2xl bg-white text-red-600 font-black text-3xl shadow-xl animate-pulse uppercase tracking-tight">
+                    <div className="h-16 flex items-center justify-center px-6 rounded-2xl bg-white text-red-600 font-black text-2xl shadow-xl animate-pulse uppercase">
                         Last Result
                     </div>
                 ) : (
-                    ['0', '0', ':', '0', (timeLeft < 10 ? '0' : timeLeft.toString()[0]), (timeLeft < 10 ? timeLeft.toString() : (timeLeft.toString()[1] || '0'))].map((char, i) => (
-                        <div key={i} className={cn("h-16 w-12 flex items-center justify-center rounded-2xl bg-white text-[#f95959] font-black text-4xl shadow-xl", char === ':' && "bg-transparent text-white w-2 shadow-none")}>{char}</div>
+                    ['0', '0', ':', (timeLeft < 10 ? '0' : timeLeft.toString()[0]), (timeLeft < 10 ? timeLeft.toString() : (timeLeft.toString()[1] || '0'))].map((char, i) => (
+                        <div key={i} className={cn("h-16 w-12 flex items-center justify-center rounded-2xl bg-white text-[#f95959] font-black text-4xl shadow-xl mx-0.5", char === ':' && "bg-transparent text-white w-2 shadow-none")}>{char}</div>
                     ))
                 )}
             </div>
-            <p className="text-base font-black mt-5 tracking-tight opacity-80 bg-black/10 px-8 py-2.5 rounded-full inline-block">{currentPeriod}</p>
         </div>
       </div>
 
       {/* Control Panel */}
-      <div className="bg-white rounded-[4rem] p-12 shadow-2xl border border-border/50 space-y-12 w-full">
-          <div className="grid grid-cols-3 gap-6">
-              <Button onClick={() => handleOpenBetPanel('green')} className="bg-green-500 hover:bg-green-600 h-24 rounded-[2.5rem] font-black uppercase text-base shadow-lg shadow-green-500/20">Green</Button>
-              <Button onClick={() => handleOpenBetPanel('violet')} className="bg-purple-500 hover:bg-purple-600 h-24 rounded-[2.5rem] font-black uppercase text-base shadow-lg shadow-purple-500/20">Violet</Button>
-              <Button onClick={() => handleOpenBetPanel('red')} className="bg-red-500 hover:bg-red-600 h-24 rounded-[2.5rem] font-black uppercase text-base shadow-lg shadow-red-500/20">Red</Button>
+      <div className="bg-white rounded-[4rem] p-10 shadow-2xl border border-border/50 space-y-10 w-full">
+          <div className="grid grid-cols-3 gap-4">
+              <Button onClick={() => handleOpenBetPanel('green')} className="bg-green-500 hover:bg-green-600 h-20 rounded-[2rem] font-black uppercase text-sm">Green</Button>
+              <Button onClick={() => handleOpenBetPanel('violet')} className="bg-purple-500 hover:bg-purple-600 h-20 rounded-[2rem] font-black uppercase text-sm">Violet</Button>
+              <Button onClick={() => handleOpenBetPanel('red')} className="bg-red-500 hover:bg-red-600 h-20 rounded-[2rem] font-black uppercase text-sm">Red</Button>
           </div>
 
-          <div className="bg-[#f6f7ff] p-10 rounded-[3.5rem] border border-blue-50/50 shadow-inner">
-              <div className="grid grid-cols-5 gap-y-10 gap-x-5">
+          <div className="bg-secondary/30 p-8 rounded-[3rem] border border-border/50">
+              <div className="grid grid-cols-5 gap-6">
                   {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-                    <button key={num} onClick={() => handleOpenBetPanel(num)} className={cn("relative w-16 h-16 mx-auto rounded-full font-black text-3xl flex items-center justify-center text-white shadow-md active:scale-90 transition-all", num === 0 || num === 5 ? "bg-gradient-to-br from-purple-500 to-red-500" : [1, 3, 7, 9].includes(num) ? "bg-green-500" : "bg-red-500")}>{num}</button>
+                    <button key={num} onClick={() => handleOpenBetPanel(num)} className={cn("relative w-14 h-14 mx-auto rounded-full font-black text-2xl flex items-center justify-center text-white shadow-md active:scale-90 transition-all", num === 0 || num === 5 ? "bg-gradient-to-br from-purple-500 to-red-500" : [1, 3, 7, 9].includes(num) ? "bg-green-500" : "bg-red-500")}>{num}</button>
                   ))}
               </div>
           </div>
 
-          <div className="flex justify-between items-center gap-4 overflow-x-auto scrollbar-hide py-2">
+          <div className="flex justify-between items-center gap-2 overflow-x-auto scrollbar-hide py-1">
               {[1, 5, 10, 20, 50, 100].map(m => (
-                  <button key={m} onClick={() => setMultiplier(m)} className={cn("flex-1 min-w-[70px] h-16 rounded-2xl text-[14px] font-black uppercase transition-all shadow-sm", multiplier === m ? "bg-green-500 text-white shadow-green-500/30" : "bg-[#f1f3ff] text-muted-foreground")}>X{m}</button>
+                  <button key={m} onClick={() => setMultiplier(m)} className={cn("flex-1 min-w-[60px] h-14 rounded-xl text-xs font-black uppercase transition-all", multiplier === m ? "bg-primary text-white" : "bg-secondary text-muted-foreground")}>X{m}</button>
               ))}
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
-              <Button onClick={() => handleOpenBetPanel('big')} className="bg-[#ffae42] hover:bg-[#f39c12] h-24 rounded-l-[3.5rem] rounded-r-none font-black uppercase text-2xl text-white shadow-lg shadow-orange-500/20">Big</Button>
-              <Button onClick={() => handleOpenBetPanel('small')} className="bg-[#5d83ff] hover:bg-[#3498db] h-24 rounded-r-[3.5rem] rounded-l-none font-black uppercase text-2xl text-white shadow-lg shadow-blue-500/20">Small</Button>
+          <div className="grid grid-cols-2 gap-4">
+              <Button onClick={() => handleOpenBetPanel('big')} className="bg-orange-400 hover:bg-orange-500 h-20 rounded-[2rem] font-black uppercase text-xl text-white">Big</Button>
+              <Button onClick={() => handleOpenBetPanel('small')} className="bg-blue-400 hover:bg-blue-500 h-20 rounded-[2rem] font-black uppercase text-xl text-white">Small</Button>
           </div>
       </div>
 
       {/* History Tabs */}
-      <div className="bg-white rounded-[4rem] overflow-hidden shadow-2xl border border-border/50 w-full">
+      <div className="bg-white rounded-[3rem] overflow-hidden shadow-xl border border-border/50 w-full">
         <Tabs defaultValue="results" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-secondary/50 p-2 h-20 rounded-none">
-                <TabsTrigger value="results" className="rounded-none font-black text-[14px] uppercase data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm">Game History</TabsTrigger>
-                <TabsTrigger value="my" className="rounded-none font-black text-[14px] uppercase data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm">My History</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 bg-secondary/50 p-1.5 h-16 rounded-none">
+                <TabsTrigger value="results" className="rounded-none font-black text-xs uppercase data-[state=active]:bg-white">History</TabsTrigger>
+                <TabsTrigger value="my" className="rounded-none font-black text-xs uppercase data-[state=active]:bg-white">My Bets</TabsTrigger>
             </TabsList>
 
             <TabsContent value="results" className="m-0">
-                <div className="overflow-x-auto max-h-[800px] overflow-y-auto scrollbar-hide">
+                <div className="overflow-x-auto max-h-[600px] overflow-y-auto scrollbar-hide">
                     <table className="w-full text-left border-collapse">
                         <thead className="bg-secondary/20 text-muted-foreground sticky top-0 z-10">
-                            <tr className="text-[12px] font-black uppercase">
-                                <th className="py-8 px-8">Period</th>
-                                <th className="py-8 px-2 text-center">Number</th>
-                                <th className="py-8 px-2 text-center">Size</th>
-                                <th className="py-8 px-8 text-center">Color</th>
+                            <tr className="text-[10px] font-black uppercase">
+                                <th className="py-6 px-6">Period</th>
+                                <th className="py-6 px-2 text-center">Num</th>
+                                <th className="py-6 px-2 text-center">Size</th>
+                                <th className="py-6 px-6 text-center">Color</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border/50">
                             {displayResults.map(res => (
-                                <tr key={res.id} className="hover:bg-secondary/10 transition-colors">
-                                    <td className="py-10 px-8 text-sm font-bold tracking-tight text-muted-foreground">{res.period}</td>
-                                    <td className={cn("py-10 px-2 text-center font-black text-4xl", getNumberColorClass(res.number))}>
+                                <tr key={res.id} className="hover:bg-secondary/5 transition-colors">
+                                    <td className="py-8 px-6 text-xs font-bold text-muted-foreground">{res.period}</td>
+                                    <td className={cn("py-8 px-2 text-center font-black text-3xl", res.number === 0 || res.number === 5 ? "text-purple-600" : [1, 3, 7, 9].includes(res.number) ? "text-green-600" : "text-red-600")}>
                                         {res.number}
                                     </td>
-                                    <td className="py-10 px-2 text-center font-black">
-                                        <span className={cn("text-[16px] font-black", res.size === 'big' ? "text-foreground" : "text-muted-foreground")}>{res.size === 'big' ? 'Big' : 'Small'}</span>
+                                    <td className="py-8 px-2 text-center font-black text-sm uppercase">
+                                        {res.size}
                                     </td>
-                                    <td className="py-10 px-8">
-                                        <div className="flex gap-2 justify-center">
+                                    <td className="py-8 px-6">
+                                        <div className="flex gap-1.5 justify-center">
                                             {res.number === 0 ? (
-                                                <><div className="w-5 h-5 rounded-full bg-red-500 shadow-sm" /><div className="w-5 h-5 rounded-full bg-purple-500 shadow-sm" /></>
+                                                <><div className="w-4 h-4 rounded-full bg-red-500" /><div className="w-4 h-4 rounded-full bg-purple-500" /></>
                                             ) : res.number === 5 ? (
-                                                <><div className="w-5 h-5 rounded-full bg-green-500 shadow-sm" /><div className="w-5 h-5 rounded-full bg-purple-500 shadow-sm" /></>
+                                                <><div className="w-4 h-4 rounded-full bg-green-500" /><div className="w-4 h-4 rounded-full bg-purple-500" /></>
                                             ) : (
-                                                <div className={cn("w-5 h-5 rounded-full shadow-sm", res.color.includes('green') ? "bg-green-500" : "bg-red-500")} />
+                                                <div className={cn("w-4 h-4 rounded-full", res.color.includes('green') ? "bg-green-500" : "bg-red-500")} />
                                             )}
                                         </div>
                                     </td>
@@ -463,68 +418,31 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                 </div>
             </TabsContent>
 
-            <TabsContent value="my" className="m-0 p-10 space-y-6 bg-secondary/5 min-h-[500px]">
+            <TabsContent value="my" className="m-0 p-6 space-y-4 bg-secondary/5 min-h-[400px]">
                 {myBets && myBets.length > 0 ? (
-                    myBets.map(bet => {
-                        const isWin = bet.status === 'win';
-                        const isLoss = bet.status === 'loss';
-                        
-                        return (
-                            <div key={bet.id} className="bg-white p-8 rounded-[3.5rem] border border-border/50 shadow-md space-y-6 animate-in fade-in slide-in-from-bottom-2">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className={cn(
-                                            "w-16 h-16 rounded-full flex items-center justify-center font-black uppercase text-sm border-2",
-                                            isWin ? "bg-green-500/10 text-green-600 border-green-500" : 
-                                            isLoss ? "bg-red-500/10 text-red-600 border-red-500" : 
-                                            "bg-primary/10 text-primary border-primary/20"
-                                        )}>
-                                            {isWin ? 'WIN' : isLoss ? 'LOSS' : 'WAIT'}
-                                        </div>
-                                        <div>
-                                            <p className="text-[12px] font-black text-muted-foreground uppercase tracking-widest">{bet.period.slice(-4)} ROUND</p>
-                                            <p className="text-[11px] font-bold text-muted-foreground">{bet.createdAt ? format(bet.createdAt.toDate(), 'HH:mm dd MMM') : 'Just now'}</p>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className={cn(
-                                            "inline-flex px-5 py-2 rounded-full text-[12px] font-black uppercase tracking-widest mb-2", 
-                                            isWin ? "bg-green-500 text-white" : 
-                                            isLoss ? "bg-red-500 text-white" : 
-                                            "bg-secondary text-muted-foreground"
-                                        )}>
-                                            {isWin ? 'WINNING' : isLoss ? 'LOSING' : 'SETTLING...'}
-                                        </div>
-                                        <p className={cn(
-                                            "font-black text-3xl tracking-tight", 
-                                            isWin ? "text-green-600" : 
-                                            isLoss ? "text-red-600" : 
-                                            "text-primary animate-pulse"
-                                        )}>
-                                            {isWin ? `+₹${bet.winAmount?.toFixed(1)}` : isLoss ? `-₹${bet.amount}` : `₹${bet.amount}`}
-                                        </p>
-                                    </div>
+                    myBets.map(bet => (
+                        <div key={bet.id} className="bg-white p-6 rounded-[2.5rem] border border-border shadow-sm flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className={cn("w-12 h-12 rounded-full flex items-center justify-center font-black text-[10px]", bet.status === 'win' ? "bg-green-500 text-white" : bet.status === 'loss' ? "bg-red-500 text-white" : "bg-primary/10 text-primary")}>
+                                    {bet.status.toUpperCase()}
                                 </div>
-                                <div className="flex items-center justify-between pt-5 border-t border-dashed border-border">
-                                    <div className="flex items-center gap-8">
-                                        <div className="space-y-1.5">
-                                            <p className="text-[10px] font-bold text-muted-foreground uppercase">Choice</p>
-                                            <p className="text-base font-black uppercase text-foreground">{bet.selection}</p>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <p className="text-[10px] font-bold text-muted-foreground uppercase">Stake</p>
-                                            <p className="text-base font-black text-foreground">₹{bet.amount}</p>
-                                        </div>
-                                    </div>
-                                    <ChevronRight size={22} className="text-muted-foreground/30" />
+                                <div>
+                                    <p className="text-[10px] font-black text-muted-foreground uppercase">{bet.period.slice(-4)} Round</p>
+                                    <p className="text-sm font-black uppercase text-foreground">{bet.selection}</p>
                                 </div>
                             </div>
-                        );
-                    })
+                            <div className="text-right">
+                                <p className={cn("font-black text-xl", bet.status === 'win' ? "text-green-600" : bet.status === 'loss' ? "text-red-600" : "text-primary")}>
+                                    {bet.status === 'win' ? `+₹${bet.winAmount?.toFixed(1)}` : bet.status === 'loss' ? `-₹${bet.amount}` : `₹${bet.amount}`}
+                                </p>
+                                <p className="text-[8px] font-bold text-muted-foreground uppercase">Stake: ₹{bet.amount}</p>
+                            </div>
+                        </div>
+                    ))
                 ) : (
-                    <div className="flex flex-col items-center justify-center py-28 text-center space-y-8 opacity-40">
-                        <BarChart3 size={70} className="text-muted-foreground" />
-                        <p className="text-base font-black uppercase tracking-[0.3em]">No bets placed yet</p>
+                    <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 opacity-30">
+                        <BarChart3 size={50} />
+                        <p className="text-xs font-black uppercase tracking-widest">No bets yet</p>
                     </div>
                 )}
             </TabsContent>
@@ -533,47 +451,42 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
       {/* Bet Dialog */}
       <Dialog open={isBetPanelOpen} onOpenChange={setIsBetPanelOpen}>
-        <DialogContent className="max-w-[450px] bg-background border-border rounded-[4rem] p-0 overflow-hidden z-[1000] shadow-2xl">
-           <DialogHeader className="p-12 pb-0">
-              <div className="flex items-center justify-between">
-                <DialogTitle className="text-4xl font-black uppercase tracking-tight text-foreground">Predict</DialogTitle>
-                <Button variant="ghost" size="icon" onClick={() => setIsBetPanelOpen(false)} className="rounded-full bg-secondary/50 h-14 w-14"><X size={28} /></Button>
-              </div>
+        <DialogContent className="max-w-[400px] bg-background border-border rounded-[3rem] p-0 overflow-hidden z-[1000]">
+           <DialogHeader className="p-8 pb-0 flex flex-row items-center justify-between">
+                <DialogTitle className="text-2xl font-black uppercase tracking-tight">Place Bet</DialogTitle>
+                <Button variant="ghost" size="icon" onClick={() => setIsBetPanelOpen(false)} className="rounded-full"><X /></Button>
            </DialogHeader>
 
-           <div className="p-12 space-y-12">
-              <div className="bg-secondary p-12 rounded-[3.5rem] border border-border/50 flex items-center justify-between">
-                  <div className="space-y-4">
-                      <p className="text-[12px] font-black uppercase text-muted-foreground tracking-widest">Target</p>
-                      <h4 className="text-7xl font-black uppercase text-primary">{selectedOption}</h4>
+           <div className="p-8 space-y-8">
+              <div className="bg-secondary p-8 rounded-[2.5rem] flex items-center justify-between">
+                  <div className="space-y-2">
+                      <p className="text-[10px] font-black uppercase text-muted-foreground">Choice</p>
+                      <h4 className="text-5xl font-black uppercase text-primary">{selectedOption}</h4>
                   </div>
-                  <div className="text-right space-y-3">
-                      <p className="text-[12px] font-black uppercase text-muted-foreground tracking-widest">Account</p>
-                      <p className="text-4xl font-black text-foreground">₹{userProfile?.virtualBalance?.toFixed(1) || '0.0'}</p>
+                  <div className="text-right space-y-2">
+                      <p className="text-[10px] font-black uppercase text-muted-foreground">Balance</p>
+                      <p className="text-2xl font-black text-foreground">₹{userProfile?.virtualBalance?.toFixed(1) || '0.0'}</p>
                   </div>
               </div>
 
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-4 gap-2">
                   {[10, 50, 100, 500].map(amt => (
-                      <button key={amt} onClick={() => setBetAmount(amt.toString())} className={cn("h-16 rounded-2xl text-base font-black uppercase transition-all border-2", betAmount === amt.toString() ? "bg-primary text-white border-primary" : "bg-secondary text-muted-foreground border-transparent")}>₹{amt}</button>
+                      <button key={amt} onClick={() => setBetAmount(amt.toString())} className={cn("h-12 rounded-xl text-xs font-black uppercase border-2", betAmount === amt.toString() ? "bg-primary text-white border-primary" : "bg-secondary text-muted-foreground border-transparent")}>₹{amt}</button>
                   ))}
               </div>
 
-              <div className="space-y-6">
-                  <p className="text-[12px] font-black uppercase text-muted-foreground tracking-[0.3em] ml-2">Custom Stake</p>
-                  <div className="relative">
-                      <span className="absolute left-7 top-1/2 -translate-y-1/2 font-black text-muted-foreground text-2xl">₹</span>
-                      <Input type="number" placeholder="0.00" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} className="h-24 bg-secondary border-none rounded-[2.5rem] pl-14 pr-10 text-3xl font-black" />
-                  </div>
+              <div className="space-y-4">
+                  <p className="text-[10px] font-black uppercase text-muted-foreground ml-2">Custom Amount</p>
+                  <Input type="number" placeholder="0.0" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} className="h-16 bg-secondary border-none rounded-2xl text-2xl font-black px-6" />
               </div>
 
-              <div className="bg-primary/5 p-10 rounded-[3rem] flex justify-between items-center border border-primary/10">
-                  <p className="text-base font-black uppercase text-primary tracking-widest">Total Stake:</p>
-                  <p className="text-5xl font-black text-primary">₹{(parseInt(betAmount) || 0) * multiplier}</p>
+              <div className="bg-primary/5 p-6 rounded-2xl flex justify-between items-center border border-primary/10">
+                  <p className="text-xs font-black uppercase text-primary">Total Pay:</p>
+                  <p className="text-3xl font-black text-primary">₹{(parseInt(betAmount) || 0) * multiplier}</p>
               </div>
 
-              <Button onClick={handlePlaceBet} disabled={isBetting} className="w-full h-28 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-[3.5rem] shadow-xl flex items-center justify-center gap-5 active:scale-95 transition-all text-3xl">
-                  {isBetting ? <Loader2 className="animate-spin w-10 h-10" /> : <><CheckCircle2 size={40} /> Confirm Bet</>}
+              <Button onClick={handlePlaceBet} disabled={isBetting} className="w-full h-20 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-[2rem] shadow-lg flex items-center justify-center gap-4 text-xl">
+                  {isBetting ? <Loader2 className="animate-spin" /> : <><CheckCircle2 /> Confirm</>}
               </Button>
            </div>
         </DialogContent>
@@ -581,43 +494,37 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
       {/* Result Popup */}
       <Dialog open={popup.isOpen} onOpenChange={(open) => !open && setPopup(prev => ({ ...prev, isOpen: false }))}>
-        <DialogContent className={cn("max-w-[360px] p-0 border-none rounded-[3.5rem] overflow-hidden shadow-[0_50px_120px_rgba(0,0,0,0.6)] z-[2000] animate-in zoom-in duration-300", popup.isWin ? "bg-gradient-to-b from-[#2e7d32] to-[#1b5e20]" : "bg-gradient-to-b from-[#1565c0] to-[#0d47a1]")}>
-            <div className="relative p-12 flex flex-col items-center text-center text-white space-y-10">
-                <div className="relative">
-                    <div className={cn("w-32 h-32 rounded-full flex items-center justify-center shadow-2xl relative z-10", popup.isWin ? "bg-yellow-400 text-green-900" : "bg-blue-100 text-blue-900")}>
-                        {popup.isWin ? <Trophy size={64} className="animate-bounce" /> : <Frown size={64} />}
-                    </div>
-                    {popup.isWin && <div className="absolute -inset-8 bg-yellow-400/25 blur-3xl rounded-full animate-pulse" />}
+        <DialogContent className={cn("max-w-[340px] p-0 border-none rounded-[3rem] overflow-hidden shadow-2xl z-[2000] animate-in zoom-in duration-300", popup.isWin ? "bg-green-700" : "bg-blue-800")}>
+            <div className="relative p-10 flex flex-col items-center text-center text-white space-y-8">
+                <div className={cn("w-24 h-24 rounded-full flex items-center justify-center shadow-xl", popup.isWin ? "bg-yellow-400 text-green-900" : "bg-white/10 text-white")}>
+                    {popup.isWin ? <Trophy size={48} className="animate-bounce" /> : <Frown size={48} />}
                 </div>
 
-                <div className="space-y-3">
-                    <h2 className="text-6xl font-black uppercase tracking-tight">{popup.isWin ? "Winner!" : "Sorry"}</h2>
-                    <p className="text-[12px] font-black uppercase tracking-[0.4em] opacity-80">{popup.isWin ? "Congratulations" : "Try Again"}</p>
+                <div className="space-y-2">
+                    <h2 className="text-5xl font-black uppercase tracking-tight">{popup.isWin ? "WIN!" : "LOSE"}</h2>
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-70">{popup.isWin ? "Congratulations" : "Better luck next time"}</p>
                 </div>
 
-                <div className="bg-white/10 backdrop-blur-md rounded-[3rem] p-8 w-full border border-white/10 space-y-6">
-                    <p className="text-[11px] font-black uppercase tracking-widest opacity-60">Game Result</p>
-                    <div className="flex items-center justify-center gap-6">
-                        <div className={cn("w-16 h-16 rounded-full flex items-center justify-center font-black text-3xl border-2 border-white/20 shadow-lg", popup.result?.num === 0 || popup.result?.num === 5 ? "bg-purple-600" : [1,3,7,9].includes(popup.result?.num || 0) ? "bg-green-600" : "bg-red-600")}>{popup.result?.num}</div>
-                        <div className="flex flex-col items-start gap-2">
-                             <div className="flex gap-3">
-                                <span className={cn("px-5 py-2 rounded-full text-[12px] font-black uppercase border border-white/20", popup.result?.size === 'big' ? "bg-orange-500" : "bg-blue-500")}>{popup.result?.size}</span>
-                                <span className="px-5 py-2 rounded-full text-[12px] font-black uppercase bg-white/20 border border-white/20">{popup.result?.color.replace('-violet', '')}</span>
-                             </div>
-                             <p className="text-[11px] font-bold opacity-50">Period: {popup.period.slice(-4)}</p>
+                <div className="bg-white/10 backdrop-blur-md rounded-[2.5rem] p-6 w-full space-y-4">
+                    <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Result: {popup.period.slice(-4)}</p>
+                    <div className="flex items-center justify-center gap-4">
+                        <div className={cn("w-12 h-12 rounded-full flex items-center justify-center font-black text-2xl border-2 border-white/20", popup.result?.num === 0 || popup.result?.num === 5 ? "bg-purple-600" : [1,3,7,9].includes(popup.result?.num || 0) ? "bg-green-600" : "bg-red-600")}>{popup.result?.num}</div>
+                        <div className="flex gap-2">
+                            <span className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase bg-white/20">{popup.result?.size}</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="space-y-4">
-                    {popup.isWin ? (
-                        <><p className="text-[12px] font-black uppercase tracking-widest text-yellow-400">Winning Bonus</p><div className="flex items-center justify-center gap-4"><Coins className="text-yellow-400 w-10 h-10" /><h3 className="text-7xl font-black tracking-tight">₹{popup.amount?.toFixed(1)}</h3></div></>
-                    ) : (<div className="py-8"><h3 className="text-7xl font-black uppercase tracking-tight opacity-50">LOSE</h3></div>)}
-                </div>
+                {popup.isWin && (
+                    <div className="space-y-2">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-yellow-400">Winning</p>
+                        <div className="flex items-center justify-center gap-2"><Coins className="text-yellow-400" /><h3 className="text-5xl font-black">₹{popup.amount?.toFixed(1)}</h3></div>
+                    </div>
+                )}
 
-                <div className="w-full pt-8">
-                    <div className="h-2 bg-white/10 rounded-full overflow-hidden"><div className="h-full bg-white transition-all duration-1000 ease-linear" style={{ width: `${(popupTimer / 3) * 100}%` }} /></div>
-                    <p className="text-[10px] font-black uppercase tracking-widest mt-5 opacity-40">Auto Closing in {popupTimer}s</p>
+                <div className="w-full pt-4">
+                    <div className="h-1.5 bg-white/10 rounded-full overflow-hidden"><div className="h-full bg-white transition-all duration-1000 ease-linear" style={{ width: `${(popupTimer / 3) * 100}%` }} /></div>
+                    <p className="text-[8px] font-black uppercase tracking-widest mt-4 opacity-40">Closing in {popupTimer}s</p>
                 </div>
             </div>
         </DialogContent>

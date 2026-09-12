@@ -5,7 +5,7 @@ import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { Loader2, Wallet, PlusCircle, ArrowUpRight, TrendingUp, Sparkles } from 'lucide-react';
 import { BottomNav } from "@/components/bottom-nav";
 import { PredictionGame } from '@/components/prediction-game';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/models/user';
@@ -15,6 +15,7 @@ function HomeContent() {
   const { firestore } = useFirebase();
   const { toast } = useToast();
   const [isInitializing, setIsInitializing] = useState(false);
+  const initRef = useRef(false);
 
   // Fetch User Profile
   const userRef = useMemoFirebase(() => 
@@ -26,38 +27,40 @@ function HomeContent() {
 
   useEffect(() => {
     const initializeUser = async () => {
-      // अभिषेक भाई, 'v28' वाला वर्जन चेक कर रहे हैं ताकि बैलेंस बार-बार रिसेट न हो।
-      if (user && firestore && !isProfileLoading && !isInitializing) {
-        const uRef = doc(firestore, 'users', user.uid);
-        const snap = await getDoc(uRef);
-        const data = snap.data();
+      // अगर पहले ही इस सेशन में कर चुके हैं या डेटा लोड हो रहा है, तो रुकें
+      if (!user || !firestore || isProfileLoading || isInitializing || initRef.current) return;
 
-        // अगर यूजर नया है या उसका वर्जन v28 नहीं है, तभी 28 रुपये देंगे
-        const needsInitialization = !snap.exists() || data?.walletVersion !== 'v28';
-        
-        if (needsInitialization) {
-          setIsInitializing(true);
-          try {
-            await setDoc(uRef, {
-                id: user.uid,
-                username: user.displayName || user.email?.split('@')[0] || 'user',
-                email: user.email || '',
-                // अगर पहले से कुछ बैलेंस है (जैसे 100), तो उसे 28 कर देंगे, वरना 28 देंगे
-                virtualBalance: 28, 
-                walletVersion: 'v28', // यह फ्लैग दोबारा रिसेट होने से रोकेगा
-                updatedAt: serverTimestamp()
-            }, { merge: true });
-          } catch (err) {
-            console.error("Initialization error:", err);
-          } finally {
-            setIsInitializing(false);
-          }
-        }
+      const uRef = doc(firestore, 'users', user.uid);
+      const snap = await getDoc(uRef);
+      const data = snap.data();
+
+      // अगर वर्जन 'v28' पहले से है, तो कुछ नहीं करना
+      if (data?.walletVersion === 'v28') {
+        initRef.current = true;
+        return;
+      }
+
+      // वरना पहली बार 28 रुपये सेट करें
+      setIsInitializing(true);
+      try {
+        await setDoc(uRef, {
+            id: user.uid,
+            username: user.displayName || user.email?.split('@')[0] || 'user',
+            email: user.email || '',
+            virtualBalance: 28, 
+            walletVersion: 'v28',
+            updatedAt: serverTimestamp()
+        }, { merge: true });
+        initRef.current = true;
+      } catch (err) {
+        console.error("Initialization error:", err);
+      } finally {
+        setIsInitializing(false);
       }
     };
 
     initializeUser();
-  }, [user, firestore, isProfileLoading]);
+  }, [user, firestore, isProfileLoading, isInitializing]);
 
   const handleActionClick = (type: string) => {
     toast({
@@ -91,21 +94,21 @@ function HomeContent() {
         {user ? (
           <>
             <div className="w-full px-5">
-                <div className="bg-money-pattern p-12 rounded-[3.5rem] shadow-[0_30px_70px_rgba(22,163,74,0.3)] text-white relative overflow-hidden group">
+                <div className="bg-money-pattern p-10 rounded-[3rem] shadow-xl text-white relative overflow-hidden group">
                    <div className="absolute top-0 right-0 p-10 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-700">
                       <Wallet size={160} />
                    </div>
                    
-                   <div className="relative z-10 space-y-12">
+                   <div className="relative z-10 space-y-10">
                       <div className="flex items-center justify-between">
-                         <div className="space-y-3">
+                         <div className="space-y-2">
                             <p className="text-[12px] font-black uppercase tracking-[0.4em] text-white/70 flex items-center gap-2">
                               <Sparkles size={14} className="text-yellow-400" /> Virtual Balance
                             </p>
-                            <div className="flex items-baseline gap-3">
+                            <div className="flex items-baseline gap-2">
                                <span className="text-4xl font-black text-white/80">₹</span>
-                               <h2 className="text-7xl font-black tracking-tight drop-shadow-lg">
-                                  {userProfile?.virtualBalance?.toLocaleString() || '0'}
+                               <h2 className="text-7xl font-black tracking-tighter drop-shadow-lg">
+                                  {userProfile?.virtualBalance?.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) || '0.0'}
                                </h2>
                             </div>
                          </div>
@@ -114,7 +117,7 @@ function HomeContent() {
                          </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-6">
+                      <div className="grid grid-cols-2 gap-4">
                          <Button 
                             onClick={() => handleActionClick('Deposit')}
                             className="bg-white text-green-700 hover:bg-white/90 rounded-[2rem] h-20 font-black uppercase text-base flex items-center justify-center gap-3 shadow-xl shadow-black/10 active:scale-95 transition-all"
