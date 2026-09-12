@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit, doc, updateDoc, increment, setDoc, serverTimestamp, writeBatch, addDoc } from 'firebase/firestore';
 import { CheckCircle2, Loader2, X, TrendingUp, Zap, Sparkles, ShieldCheck, Target, BarChart3, Clock } from 'lucide-react';
@@ -34,8 +33,7 @@ interface Bet {
 }
 
 /**
- * A.snap Official Jalwa Algorithm
- * Optimized for Zero Offset (Same Same with Jalwa)
+ * Official Jalwa Math (WinGo Pattern)
  */
 const getJalwaResult = (period: string) => {
   let hash = 0;
@@ -68,14 +66,11 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   const [betAmount, setBetAmount] = useState('10');
   const [multiplier, setMultiplier] = useState(1);
   const [isBetting, setIsBetting] = useState(false);
-  
-  const [prediction, setPrediction] = useState<{ size: 'BIG' | 'SMALL', color: 'GREEN' | 'RED', num: number } | null>(null);
 
   const processedPeriods = useRef<Set<string>>(new Set());
 
   const generateResult = async (periodToProcess: string) => {
     if (!firestore || !user) return;
-    
     if (processedPeriods.current.has(periodToProcess)) return;
     processedPeriods.current.add(periodToProcess);
 
@@ -93,7 +88,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         }, { merge: false });
 
     } catch (e: any) {
-        // Silent fail if exists
+        // Silent fail
     }
   };
 
@@ -107,7 +102,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       const datePart = format(now, 'yyyyMMdd');
       const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
       
-      // ZERO OFFSET CALCULATION: Exactly match current round without +1 or +2
       const roundIndexInDay = (utcMinutes * 2 + Math.floor(seconds / 30));
       const periodId = `${datePart}10001${roundIndexInDay.toString().padStart(4, '0')}`;
       
@@ -116,14 +110,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             generateResult(currentPeriod);
         }
         setCurrentPeriod(periodId);
-        
-        // Predict for the EXACT current round (Same Same)
-        const pred = getJalwaResult(periodId);
-        setPrediction({
-            size: pred.size.toUpperCase() as 'BIG' | 'SMALL',
-            color: pred.color.includes('green') ? 'GREEN' : 'RED',
-            num: pred.num
-        });
       }
     };
 
@@ -137,6 +123,8 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     [firestore]
   );
   const { data: results } = useCollection<GameResult>(resultsQuery);
+
+  const latestResult = results && results.length > 0 ? results[0] : null;
 
   const myBetsQuery = useMemoFirebase(() => 
     (firestore && user) ? query(collection(firestore, 'users', user.uid, 'game_bets'), orderBy('createdAt', 'desc'), limit(50)) : null, 
@@ -259,21 +247,21 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   };
 
   return (
-    <div className="space-y-6 select-none pb-24 animate-in fade-in duration-700 w-full px-2">
+    <div className="space-y-6 select-none pb-24 animate-in fade-in duration-700 w-full px-4">
       
-      {/* AI Prediction - Same Same with Jalwa */}
+      {/* ELITE ANALYSIS - Synced with History (Same Same) */}
       <div className="relative group w-full">
         <div className="absolute -inset-1 bg-gradient-to-r from-[#ff3366] via-purple-600 to-blue-600 rounded-[2.5rem] blur opacity-30"></div>
         <div className="relative bg-white border border-primary/20 rounded-[2.5rem] p-6 shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                     <div className="h-12 w-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
-                        <TrendingUp size={28} />
+                        <BarChart3 size={28} />
                     </div>
                     <div>
-                        <h3 className="font-black italic uppercase text-xl tracking-tighter text-foreground">Elite Prediction</h3>
+                        <h3 className="font-black italic uppercase text-xl tracking-tighter text-foreground">Elite Analysis</h3>
                         <p className="text-[10px] font-black text-green-600 uppercase tracking-[0.2em]">
-                           Synced with WinGo 30S
+                           Last Result Synced
                         </p>
                     </div>
                 </div>
@@ -286,21 +274,25 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             <div className="grid grid-cols-2 gap-4">
                 <div className="bg-secondary/30 rounded-[2.5rem] p-6 border border-border/40 flex flex-col items-center justify-center gap-2">
                     <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Period</span>
-                    <p className="text-lg font-black italic tracking-tighter text-foreground">{currentPeriod.slice(-4)}</p>
+                    <p className="text-lg font-black italic tracking-tighter text-foreground">
+                        {latestResult ? latestResult.period.slice(-4) : '----'}
+                    </p>
                 </div>
                 <div className="bg-primary/5 rounded-[2.5rem] p-6 border border-primary/20 flex flex-col items-center justify-center gap-2">
-                    <span className="text-[10px] font-black text-primary uppercase tracking-widest">Next Entry</span>
+                    <span className="text-[10px] font-black text-primary uppercase tracking-widest">Last Entry</span>
                     <div className="flex items-center gap-3">
                         <p className={cn(
                             "text-3xl font-black italic uppercase tracking-tighter",
-                            prediction?.size === 'BIG' ? "text-orange-500" : "text-blue-500"
+                            latestResult?.size === 'big' ? "text-orange-500" : "text-blue-500"
                         )}>
-                            {prediction?.size || '---'}
+                            {latestResult?.size ? latestResult.size.toUpperCase() : '---'}
                         </p>
-                        <div className={cn(
-                            "w-4 h-4 rounded-full shadow-lg border-2 border-white",
-                            prediction?.color === 'GREEN' ? "bg-green-500" : "bg-red-500"
-                        )} />
+                        {latestResult && (
+                            <div className={cn(
+                                "w-4 h-4 rounded-full shadow-lg border-2 border-white",
+                                latestResult.color.includes('green') ? "bg-green-500" : "bg-red-500"
+                            )} />
+                        )}
                     </div>
                 </div>
             </div>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useFirebase, useDoc, useMemoFirebase } from '@/firebase';
@@ -28,27 +27,22 @@ function HomeContent() {
   useEffect(() => {
     const initializeUser = async () => {
       if (user && firestore && !isProfileLoading && !isInitializing) {
-        // If userProfile is missing OR virtualBalance is completely undefined
-        // We do a final check from database to ensure 0 is not overwritten with 100
         if (!userProfile || userProfile.virtualBalance === undefined) {
           setIsInitializing(true);
           try {
             const uRef = doc(firestore, 'users', user.uid);
             const snap = await getDoc(uRef);
             
-            // Critical check: if it exists AND balance is a number (even 0), do NOT reset
             if (snap.exists() && typeof snap.data()?.virtualBalance === 'number') {
-                console.log("User already initialized with balance:", snap.data()?.virtualBalance);
+                console.log("User already initialized");
             } else {
-                // Only if balance is truly missing, give 100 coins
                 await setDoc(uRef, {
                     id: user.uid,
                     username: user.displayName || user.email?.split('@')[0] || 'user',
                     email: user.email || '',
-                    virtualBalance: 100, // FREE STARTING COINS - ONLY ONCE
+                    virtualBalance: 100,
                     updatedAt: serverTimestamp()
                 }, { merge: true });
-                console.log("User initialized with 100 coins");
             }
           } catch (err) {
             console.error("Initialization error:", err);
@@ -78,7 +72,7 @@ function HomeContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20 w-full">
       <header className="p-4 bg-background sticky top-0 z-50 flex items-center justify-between border-b border-border/50 backdrop-blur-md">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center font-black italic text-white shadow-lg shadow-primary/20">A</div>
@@ -90,56 +84,58 @@ function HomeContent() {
         </div>
       </header>
 
-      <main className="w-full p-4 space-y-6">
+      <main className="w-full space-y-6 pt-4">
         {user ? (
           <>
-            {/* Premium Wallet Dashboard - Expanded */}
-            <div className="max-w-4xl mx-auto bg-money-pattern p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(22,163,74,0.3)] text-white relative overflow-hidden group">
-               <div className="absolute top-0 right-0 p-6 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-700">
-                  <Wallet size={120} />
-               </div>
-               
-               <div className="relative z-10 space-y-8">
-                  <div className="flex items-center justify-between">
-                     <div className="space-y-1">
-                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 flex items-center gap-2">
-                          <Sparkles size={10} className="text-yellow-400" /> Virtual Balance
-                        </p>
-                        <div className="flex items-baseline gap-2">
-                           <span className="text-2xl font-black text-white/80">₹</span>
-                           <h2 className="text-5xl font-black italic tracking-tighter drop-shadow-lg">
-                              {userProfile?.virtualBalance?.toLocaleString() || '0'}
-                           </h2>
-                        </div>
-                     </div>
-                     <div className="bg-white/10 p-3 rounded-2xl border border-white/10 backdrop-blur-md">
-                        <TrendingUp className="text-white" />
-                     </div>
-                  </div>
+            {/* Full Width Wallet Dashboard */}
+            <div className="w-full px-4">
+                <div className="bg-money-pattern p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(22,163,74,0.3)] text-white relative overflow-hidden group">
+                   <div className="absolute top-0 right-0 p-6 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-700">
+                      <Wallet size={120} />
+                   </div>
+                   
+                   <div className="relative z-10 space-y-8">
+                      <div className="flex items-center justify-between">
+                         <div className="space-y-1">
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 flex items-center gap-2">
+                              <Sparkles size={10} className="text-yellow-400" /> Virtual Balance
+                            </p>
+                            <div className="flex items-baseline gap-2">
+                               <span className="text-2xl font-black text-white/80">₹</span>
+                               <h2 className="text-5xl font-black italic tracking-tighter drop-shadow-lg">
+                                  {userProfile?.virtualBalance?.toLocaleString() || '0'}
+                               </h2>
+                            </div>
+                         </div>
+                         <div className="bg-white/10 p-3 rounded-2xl border border-white/10 backdrop-blur-md">
+                            <TrendingUp className="text-white" />
+                         </div>
+                      </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                     <Button 
-                        onClick={() => handleActionClick('Deposit')}
-                        className="bg-white text-green-700 hover:bg-white/90 rounded-2xl h-14 font-black uppercase text-xs flex items-center justify-center gap-2 shadow-xl shadow-black/10 active:scale-95 transition-all"
-                     >
-                        <PlusCircle size={18} /> Deposit
-                     </Button>
-                     <Button 
-                        onClick={() => handleActionClick('Withdraw')}
-                        className="bg-green-800/40 text-white hover:bg-green-800/60 border border-white/20 rounded-2xl h-14 font-black uppercase text-xs flex items-center justify-center gap-2 shadow-xl shadow-black/10 active:scale-95 transition-all backdrop-blur-sm"
-                     >
-                        <ArrowUpRight size={18} /> Withdraw
-                     </Button>
-                  </div>
-               </div>
+                      <div className="grid grid-cols-2 gap-4">
+                         <Button 
+                            onClick={() => handleActionClick('Deposit')}
+                            className="bg-white text-green-700 hover:bg-white/90 rounded-2xl h-14 font-black uppercase text-xs flex items-center justify-center gap-2 shadow-xl shadow-black/10 active:scale-95 transition-all"
+                         >
+                            <PlusCircle size={18} /> Deposit
+                         </Button>
+                         <Button 
+                            onClick={() => handleActionClick('Withdraw')}
+                            className="bg-green-800/40 text-white hover:bg-green-800/60 border border-white/20 rounded-2xl h-14 font-black uppercase text-xs flex items-center justify-center gap-2 shadow-xl shadow-black/10 active:scale-95 transition-all backdrop-blur-sm"
+                         >
+                            <ArrowUpRight size={18} /> Withdraw
+                         </Button>
+                      </div>
+                   </div>
+                </div>
             </div>
 
-            <div className="max-w-4xl mx-auto w-full">
+            <div className="w-full">
               <PredictionGame userProfile={userProfile} />
             </div>
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center h-[70vh] text-center gap-6">
+          <div className="flex flex-col items-center justify-center h-[70vh] text-center gap-6 px-4">
              <div className="w-24 h-24 bg-money-pattern rounded-3xl flex items-center justify-center animate-bounce shadow-2xl">
                 <span className="text-4xl text-white font-black italic">A</span>
              </div>
