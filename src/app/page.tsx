@@ -26,7 +26,6 @@ function HomeContent() {
 
   useEffect(() => {
     const initializeUser = async () => {
-      // Abhishek Bhai, Balance Safety Lock: v28_final
       if (!user || !firestore || isProfileLoading || isInitializing || initRef.current) return;
 
       const uRef = doc(firestore, 'users', user.uid);
@@ -35,7 +34,6 @@ function HomeContent() {
           
           if (snap.exists()) {
             const data = snap.data();
-            // Agar balance ya wallet version pehle se hai, to reset mat karo
             if (data && (typeof data.virtualBalance === 'number' || data.walletVersion)) {
               initRef.current = true;
               return;
@@ -153,17 +151,17 @@ function HomeContent() {
                <div className="flex items-center justify-center gap-2 text-primary font-black uppercase tracking-[0.4em] text-[10px]">
                   <Zap size={14} className="fill-primary" /> Instant Service
                </div>
-               <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter leading-none italic text-foreground">
+               <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter leading-none italic text-foreground drop-shadow-sm">
                  FAST WITHDRAWAL
                </h2>
-               <div className="inline-block bg-secondary px-6 py-2 rounded-full border border-border">
-                  <p className="text-muted-foreground text-sm font-black uppercase tracking-[0.2em]">
-                    WinGo BINGO GAME
-                  </p>
+               <div className="pt-4">
+                  <h3 className="text-7xl md:text-8xl font-black italic uppercase tracking-tighter animate-shimmer-text drop-shadow-[0_0_20px_rgba(255,51,102,0.4)]">
+                    WinGo
+                  </h3>
                </div>
              </div>
 
-             <a href="/login?auth=true" className="w-full max-w-[300px] mt-4">
+             <a href="/login?auth=true" className="w-full max-w-[300px] mt-6">
                 <button className="w-full bg-primary h-20 rounded-[2.5rem] text-white font-black uppercase text-xl shadow-[0_20px_50px_rgba(255,51,102,0.4)] active:scale-95 transition-all hover:bg-primary/90 flex items-center justify-center gap-3">
                    GET STARTED <ArrowUpRight size={24} />
                 </button>

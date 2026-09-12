@@ -61,6 +61,30 @@
   .bg-prediction-violet { background-color: #a78bfa; }
   .bg-prediction-big { background-color: #fbbf24; }
   .bg-prediction-small { background-color: #60a5fa; }
+
+  /* Shining Text Effect */
+  .animate-shimmer-text {
+    background: linear-gradient(
+      to right,
+      #ff3366 20%,
+      #ffffff 40%,
+      #ffffff 60%,
+      #ff3366 80%
+    );
+    background-size: 200% auto;
+    color: #ff3366;
+    background-clip: text;
+    text-fill-color: transparent;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 2.5s linear infinite;
+  }
+}
+
+@keyframes shimmer {
+  to {
+    background-position: 200% center;
+  }
 }
 
 /* Custom Scrollbar Hide */
