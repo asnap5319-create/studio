@@ -297,11 +297,20 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             </div>
         </div>
         <div className="text-right z-10">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-90 mb-3">Next Draw In</p>
+            <p className={cn("text-[10px] font-black uppercase tracking-[0.2em] opacity-90 mb-3", timeLeft <= 5 && "text-white")}>
+                {timeLeft <= 5 ? "Wait for Result" : "Next Draw In"}
+            </p>
             <div className="flex items-center gap-1.5 justify-end">
-                {['0', '0', ':', '0', (timeLeft < 10 ? '0' : timeLeft.toString()[0]), (timeLeft < 10 ? timeLeft.toString() : (timeLeft.toString()[1] || '0'))].map((char, i) => (
-                    <div key={i} className={cn("h-11 w-8 flex items-center justify-center rounded-xl bg-white text-[#f95959] font-black text-2xl shadow-xl", char === ':' && "bg-transparent text-white w-2 shadow-none")}>{char}</div>
-                ))}
+                {timeLeft <= 5 ? (
+                    // अभिषेक भाई, 5 सेकंड से कम होने पर यहाँ "Last Result" लाल रंग में दिखेगा
+                    <div className="h-11 flex items-center justify-center px-4 rounded-xl bg-white text-red-600 font-black text-xl shadow-xl animate-pulse">
+                        LAST RESULT
+                    </div>
+                ) : (
+                    ['0', '0', ':', '0', (timeLeft < 10 ? '0' : timeLeft.toString()[0]), (timeLeft < 10 ? timeLeft.toString() : (timeLeft.toString()[1] || '0'))].map((char, i) => (
+                        <div key={i} className={cn("h-11 w-8 flex items-center justify-center rounded-xl bg-white text-[#f95959] font-black text-2xl shadow-xl", char === ':' && "bg-transparent text-white w-2 shadow-none")}>{char}</div>
+                    ))
+                )}
             </div>
             <p className="text-[11px] font-black mt-3 tracking-tighter opacity-80 bg-black/10 px-4 py-1.5 rounded-full inline-block">{currentPeriod}</p>
         </div>
@@ -335,7 +344,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           </div>
       </div>
 
-      {/* History Tabs (Reverted to Light UI) */}
+      {/* History Tabs */}
       <div className="bg-white rounded-[3rem] overflow-hidden shadow-2xl border border-border/50 w-full">
         <Tabs defaultValue="results" className="w-full">
             <TabsList className="grid w-full grid-cols-2 bg-secondary/50 p-1 h-14 rounded-none">
@@ -344,9 +353,9 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             </TabsList>
 
             <TabsContent value="results" className="m-0">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto max-h-[600px] overflow-y-auto scrollbar-hide">
                     <table className="w-full text-left border-collapse">
-                        <thead className="bg-secondary/20 text-muted-foreground">
+                        <thead className="bg-secondary/20 text-muted-foreground sticky top-0 z-10">
                             <tr className="text-[10px] font-black uppercase">
                                 <th className="py-5 px-4">Period</th>
                                 <th className="py-5 px-2 text-center">Number</th>

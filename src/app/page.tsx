@@ -30,15 +30,20 @@ function HomeContent() {
         const uRef = doc(firestore, 'users', user.uid);
         const snap = await getDoc(uRef);
         
-        // Strictly only initialize if virtualBalance is undefined (one-time logic)
-        if (!snap.exists() || snap.data()?.virtualBalance === undefined) {
+        const currentBalance = snap.data()?.virtualBalance;
+        
+        // अभिषेक भाई, यहाँ हम बैलेंस 28 सेट कर रहे हैं:
+        // 1. अगर यूजर नया है
+        // 2. अगर पुराने यूजर के पास 100 सिक्के हैं
+        // 3. अगर यूजर सब हार गया है (बैलेंस 0 है)
+        if (!snap.exists() || currentBalance === 100 || currentBalance === 0 || currentBalance === undefined) {
           setIsInitializing(true);
           try {
             await setDoc(uRef, {
                 id: user.uid,
                 username: user.displayName || user.email?.split('@')[0] || 'user',
                 email: user.email || '',
-                virtualBalance: 100, // Initial free virtual coins
+                virtualBalance: 28, // Updated starting coins as per request
                 updatedAt: serverTimestamp()
             }, { merge: true });
           } catch (err) {
