@@ -44,14 +44,20 @@ interface PopupData {
     } | null;
 }
 
-// जलवा गेम का असली गणित (Deterministic Results)
+/**
+ * जलवा गेम का असली गणित (Improved Deterministic Logic)
+ * अभिषेक भाई, यह कोड हर बार अलग और रैंडम पैटर्न देगा जैसा जलवा में होता है।
+ */
 const getJalwaResult = (period: string) => {
-  let hash = 0;
+  // Use a more chaotic hash (FNV-1a style) to ensure result variety
+  let h = 2166136261 >>> 0;
   for (let i = 0; i < period.length; i++) {
-    hash = (hash << 5) - hash + period.charCodeAt(i);
-    hash |= 0; 
+    h = Math.imul(h ^ period.charCodeAt(i), 16777619);
   }
-  const num = Math.abs(hash) % 10;
+  // Extra bit shuffling for more "random" feel
+  h += h << 13; h ^= h >>> 7; h += h << 3; h ^= h >>> 17; h += h << 5;
+  
+  const num = Math.abs(h % 10);
   
   let color: 'red' | 'green' | 'violet' | 'red-violet' | 'green-violet' = 'red';
   if (num === 0) color = 'red-violet';
@@ -82,6 +88,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   });
   const [popupTimer, setPopupTimer] = useState(3);
 
+  // अभिषेक भाई, ये Locks हैं ताकि पैसे दोबारा न जुड़ें और न घटें
   const settledBetIdsRef = useRef<Set<string>>(new Set());
   const processedPeriodsRef = useRef<Set<string>>(new Set());
   const shownPopupPeriodsRef = useRef<Set<string>>(new Set());
@@ -145,9 +152,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                     await setDoc(doc(firestore, 'game_results', currentPeriod), {
                         id: currentPeriod, period: currentPeriod, number: num, color, size, createdAt: serverTimestamp()
                     }, { merge: true });
-                } catch (e) {
-                    // Ignore background errors
-                }
+                } catch (e) { /* background save failure is okay */ }
             };
             saveResult();
         }
@@ -199,7 +204,13 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                 }
                 
                 if (!shownPopupPeriodsRef.current.has(bet.period)) {
-                    setPopup({ isOpen: true, isWin: isWin, amount: isWin ? winAmt : 0, period: bet.period, result: { num: result.number, color: result.color, size: result.size } });
+                    setPopup({ 
+                        isOpen: true, 
+                        isWin: isWin, 
+                        amount: isWin ? winAmt : 0, 
+                        period: bet.period, 
+                        result: { num: result.number, color: result.color, size: result.size } 
+                    });
                     setPopupTimer(3);
                     shownPopupPeriodsRef.current.add(bet.period);
                 }
@@ -217,7 +228,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             try {
                 await batch.commit();
             } catch (error) {
-                console.error("Settlement error:", error);
+                console.error("Settlement sync error:", error);
             }
         }
     };
