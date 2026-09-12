@@ -4,23 +4,19 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogTitle, DialogHeader } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, addDoc, where } from "firebase/firestore";
-import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck, Wallet, Eye, Zap, TrendingUp, X, CreditCard, DollarSign, History, AlertCircle, CheckCircle2, Lock, Sparkles, Target, Youtube, Instagram, HelpCircle, Users2, BarChart3, Settings, Trophy, Shield } from "lucide-react";
+import { MoreVertical, LogOut, Grid3x3, Trash2, Play, BadgeCheck, Loader2, ShieldCheck, Wallet, Eye, Zap, TrendingUp, X, CreditCard, DollarSign, History, AlertCircle, CheckCircle2, Lock, Sparkles, Target, Youtube, Instagram, HelpCircle, Users2, BarChart3, Settings, Trophy, Shield, PlusCircle, ArrowUpRight } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
 import type { Post } from "@/models/post";
 import type { UserProfile } from "@/models/user";
-import type { PayoutRequest } from "@/models/payout";
 import { PostCard } from "@/components/post-card";
 import { useToast } from "@/hooks/use-toast";
 import { BottomNav } from "@/components/bottom-nav";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { Progress } from "@/components/ui/progress";
 import { SupportChat } from "@/components/support-chat";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ProfileShareSheet } from "@/components/profile-share-sheet";
@@ -77,21 +73,22 @@ export default function ProfilePage() {
         router.push('/login?auth=true');
     };
 
-    const confirmDelete = async () => {
-        if (!firestore || !postToDelete) return;
-        await deleteDoc(doc(firestore, 'users', postToDelete.userId, 'posts', postToDelete.id));
-        setIsDeleteDialogOpen(false); setPostToDelete(null);
+    const handleActionClick = (type: string) => {
+      toast({
+        title: `${type} Section`,
+        description: "भाई, यह सिर्फ एक वर्चुअल गेम है। असली डिपॉजिट या विड्रॉल अभी उपलब्ध नहीं है।",
+      });
     };
 
     if (isUserLoading || isProfileLoading) return <div className="h-screen flex items-center justify-center bg-background"><Loader2 className="animate-spin text-primary h-10 w-10" /></div>;
     
     return (
-        <div className="min-h-screen bg-background text-foreground pb-24 select-none">
-            {/* Custom Game Header */}
+        <div className="min-h-screen bg-background text-foreground pb-32 select-none">
+            {/* Header */}
             <header className="p-4 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-20 border-b border-border/50">
                 <div className="flex items-center gap-2">
-                   <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center font-black italic text-white shadow-lg shadow-primary/20">A</div>
-                   <h1 className="text-xl font-black italic tracking-tighter uppercase">Account</h1>
+                   <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center font-black text-white shadow-lg shadow-primary/20">A</div>
+                   <h1 className="text-xl font-black tracking-tighter uppercase">Account</h1>
                 </div>
                 <div className="flex items-center gap-2">
                     {isOwnProfile && (
@@ -100,154 +97,154 @@ export default function ProfilePage() {
                                 <Button variant="ghost" size="icon" className="rounded-full bg-secondary/50"><MoreVertical /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="bg-popover text-popover-foreground border-border rounded-2xl min-w-[220px] p-2 shadow-2xl z-[100]">
-                                <DropdownMenuItem onSelect={() => setIsEditSheetOpen(true)} className="font-black p-4 rounded-xl focus:bg-accent cursor-pointer">
+                                <DropdownMenuItem onSelect={() => setIsEditSheetOpen(true)} className="font-bold p-4 rounded-xl focus:bg-accent cursor-pointer">
                                     <Settings className="mr-3 h-5 w-5 text-primary" /> Edit Account
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onSelect={() => setIsShareSheetOpen(true)} className="font-black p-4 rounded-xl focus:bg-accent cursor-pointer">
+                                <DropdownMenuItem onSelect={() => setIsShareSheetOpen(true)} className="font-bold p-4 rounded-xl focus:bg-accent cursor-pointer">
                                     <Trophy className="mr-3 h-5 w-5 text-yellow-500" /> Share Profile
                                 </DropdownMenuItem>
                                 {isCurrentUserAdmin && (
-                                    <DropdownMenuItem onSelect={() => router.push('/admin')} className="font-black p-4 rounded-xl focus:bg-accent cursor-pointer">
+                                    <DropdownMenuItem onSelect={() => router.push('/admin')} className="font-bold p-4 rounded-xl focus:bg-accent cursor-pointer">
                                         <ShieldCheck className="mr-3 h-5 w-5 text-blue-600" /> Master Panel
                                     </DropdownMenuItem>
                                 )}
-                                <DropdownMenuSeparator className="bg-border my-2" />
-                                <DropdownMenuItem onSelect={handleLogout} className="text-destructive font-black p-4 rounded-xl focus:bg-destructive/10 cursor-pointer">
-                                    <LogOut className="mr-3 h-5 w-5" /> Logout
-                                </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     )}
                 </div>
             </header>
 
-            <main className="w-full space-y-8 mt-6">
-                {/* Profile Card Section */}
+            <main className="w-full space-y-6 mt-6">
+                {/* Profile Card */}
                 <div className="px-4">
-                    <div className="bg-secondary/40 border border-border p-8 rounded-[3rem] relative overflow-hidden flex flex-col items-center text-center gap-4">
-                        <div className="absolute top-0 right-0 p-6 opacity-5 rotate-12">
-                            <Shield size={140} />
+                    <div className="bg-secondary/40 border border-border p-6 rounded-[2.5rem] relative overflow-hidden flex flex-col items-center text-center gap-4">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 rotate-12">
+                            <Shield size={120} />
                         </div>
                         
                         <div className="relative">
-                            <Avatar className="h-32 w-32 border-4 border-primary shadow-2xl">
+                            <Avatar className="h-24 w-24 border-4 border-primary shadow-xl">
                                 <AvatarImage src={userProfile?.profileImageUrl} className="object-cover" />
-                                <AvatarFallback className="text-4xl font-black">{userProfile?.username?.[0]?.toUpperCase()}</AvatarFallback>
+                                <AvatarFallback className="text-3xl font-black">{userProfile?.username?.[0]?.toUpperCase()}</AvatarFallback>
                             </Avatar>
-                            <div className="absolute -bottom-2 right-0 bg-primary text-white p-2 rounded-xl shadow-lg border-2 border-background">
-                                <BadgeCheck size={20} />
+                            <div className="absolute -bottom-1 right-0 bg-primary text-white p-1.5 rounded-xl shadow-lg border-2 border-background">
+                                <BadgeCheck size={16} />
                             </div>
                         </div>
 
                         <div className="space-y-1 z-10">
-                            <h2 className="text-2xl font-black italic tracking-tighter uppercase flex items-center justify-center gap-2">
+                            <h2 className="text-xl font-black tracking-tighter uppercase flex items-center justify-center gap-2">
                                 {userProfile?.username}
-                                {isProfileAdmin && <BadgeCheck className="h-5 w-5 text-blue-400" />}
+                                {isProfileAdmin && <BadgeCheck className="h-4 w-4 text-blue-400" />}
                             </h2>
-                            <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Elite Player • Level 12</p>
-                            <p className="text-sm text-muted-foreground font-medium max-w-xs">{userProfile?.bio || "A.snap Pro Creator🎬"}</p>
+                            <p className="text-[9px] font-black text-primary uppercase tracking-[0.2em]">VIP Member • Active Status</p>
+                            <p className="text-xs text-muted-foreground font-medium max-w-xs">{userProfile?.bio || "A.snap Pro Creator🎬"}</p>
                         </div>
                     </div>
                 </div>
 
-                {/* Gaming Wallet Section */}
+                {/* Gaming Wallet Section with Top Deposit/Withdrawal */}
                 {isOwnProfile && (
                     <div className="px-4">
-                        <div className="bg-money-pattern p-8 rounded-[2.5rem] shadow-xl text-white relative overflow-hidden group">
-                           <div className="absolute top-0 right-0 p-6 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-700">
-                              <Wallet size={120} />
+                        <div className="bg-money-pattern p-6 rounded-[2.5rem] shadow-xl text-white relative overflow-hidden group border border-white/5">
+                           <div className="absolute top-0 right-0 p-4 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-700">
+                              <Wallet size={100} />
                            </div>
                            
-                           <div className="relative z-10 space-y-4">
+                           <div className="relative z-10 space-y-6">
                                 <div className="space-y-1">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 flex items-center gap-2">
-                                    <Sparkles size={10} className="text-yellow-400" /> Current Assets
+                                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/70 flex items-center gap-2">
+                                    <Sparkles size={10} className="text-yellow-400" /> Virtual Balance
                                     </p>
-                                    <div className="flex items-baseline gap-2">
-                                    <span className="text-2xl font-black text-white/80">₹</span>
-                                    <h2 className="text-5xl font-black italic tracking-tighter drop-shadow-lg">
-                                        {userProfile?.virtualBalance?.toLocaleString() || '0'}
-                                    </h2>
+                                    <div className="flex items-baseline gap-1">
+                                      <span className="text-xl font-black text-white/80">₹</span>
+                                      <h2 className="text-5xl font-black tracking-tighter drop-shadow-lg" style={{ fontStyle: 'normal' }}>
+                                          {userProfile?.virtualBalance?.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) || '0.0'}
+                                      </h2>
                                     </div>
                                 </div>
-                                <div className="flex gap-3">
-                                    <div className="bg-white/10 px-4 py-2 rounded-xl border border-white/10 backdrop-blur-md flex items-center gap-2">
-                                        <TrendingUp size={14} />
-                                        <span className="text-[10px] font-black uppercase tracking-widest">+12% Win Rate</span>
-                                    </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                  <Button 
+                                      onClick={() => handleActionClick('Deposit')}
+                                      className="bg-white text-green-700 hover:bg-white/90 rounded-2xl h-14 font-black uppercase text-xs flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"
+                                  >
+                                      <PlusCircle size={18} /> Deposit
+                                  </Button>
+                                  <Button 
+                                      onClick={() => handleActionClick('Withdraw')}
+                                      className="bg-green-800/40 text-white hover:bg-green-800/60 border border-white/20 rounded-2xl h-14 font-black uppercase text-xs flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all backdrop-blur-sm"
+                                  >
+                                      <ArrowUpRight size={18} /> Withdraw
+                                  </Button>
                                 </div>
                            </div>
                         </div>
                     </div>
                 )}
 
-                {/* Account Stats Grid */}
+                {/* Stats */}
                 <div className="px-4 grid grid-cols-2 gap-4">
-                    <div className="bg-secondary/30 p-6 rounded-[2.5rem] border border-border flex flex-col items-center text-center gap-2">
-                        <p className="text-2xl font-black text-foreground italic">{followers?.length || 0}</p>
-                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Active Fans</p>
+                    <div className="bg-secondary/30 p-4 rounded-3xl border border-border flex flex-col items-center text-center gap-1">
+                        <p className="text-xl font-black text-foreground" style={{ fontStyle: 'normal' }}>{followers?.length || 0}</p>
+                        <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">Followers</p>
                     </div>
-                    <div className="bg-secondary/30 p-6 rounded-[2.5rem] border border-border flex flex-col items-center text-center gap-2">
-                        <p className="text-2xl font-black text-foreground italic">{posts?.length || 0}</p>
-                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Reel Content</p>
+                    <div className="bg-secondary/30 p-4 rounded-3xl border border-border flex flex-col items-center text-center gap-1">
+                        <p className="text-xl font-black text-foreground" style={{ fontStyle: 'normal' }}>{posts?.length || 0}</p>
+                        <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">Total Reels</p>
                     </div>
                 </div>
 
-                {/* Gaming Features List */}
+                {/* Feature List */}
                 <div className="px-4 space-y-3">
-                    <button 
-                        onClick={() => setIsMonetizationOpen(true)}
-                        className="w-full p-6 bg-secondary/50 hover:bg-secondary rounded-3xl border border-border transition-all flex items-center justify-between group"
-                    >
+                    <button onClick={() => setIsMonetizationOpen(true)} className="w-full p-5 bg-secondary/50 hover:bg-secondary rounded-2xl border border-border transition-all flex items-center justify-between group">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-blue-600/10 rounded-2xl text-blue-600 group-hover:scale-110 transition-transform">
-                                <Target size={24} />
-                            </div>
+                            <div className="p-2.5 bg-blue-600/10 rounded-xl text-blue-600 group-hover:scale-110 transition-transform"><Target size={20} /></div>
                             <div className="text-left">
-                                <p className="text-sm font-black uppercase italic text-foreground tracking-tighter">Monetization</p>
-                                <p className="text-[10px] text-muted-foreground font-bold uppercase">Check Rewards Eligibility</p>
+                                <p className="text-xs font-black uppercase text-foreground tracking-tighter">Monetization</p>
+                                <p className="text-[8px] text-muted-foreground font-bold uppercase">Eligibility & Rewards</p>
                             </div>
                         </div>
-                        <div className="w-8 h-8 bg-background rounded-full flex items-center justify-center border border-border text-muted-foreground group-hover:text-primary transition-colors">
-                             <Play size={12} className="ml-0.5" />
-                        </div>
+                        <Play size={10} className="text-muted-foreground group-hover:text-primary transition-colors" />
                     </button>
 
-                    <button 
-                        onClick={() => setIsEarningsOpen(true)}
-                        className="w-full p-6 bg-secondary/50 hover:bg-secondary rounded-3xl border border-border transition-all flex items-center justify-between group"
-                    >
+                    <button onClick={() => setIsEarningsOpen(true)} className="w-full p-5 bg-secondary/50 hover:bg-secondary rounded-2xl border border-border transition-all flex items-center justify-between group">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-green-600/10 rounded-2xl text-green-600 group-hover:scale-110 transition-transform">
-                                <Zap size={24} />
-                            </div>
+                            <div className="p-2.5 bg-green-600/10 rounded-xl text-green-600 group-hover:scale-110 transition-transform"><Zap size={20} /></div>
                             <div className="text-left">
-                                <p className="text-sm font-black uppercase italic text-foreground tracking-tighter">Creator Studio</p>
-                                <p className="text-[10px] text-muted-foreground font-bold uppercase">Analyze Content Performance</p>
+                                <p className="text-xs font-black uppercase text-foreground tracking-tighter">Creator Studio</p>
+                                <p className="text-[8px] text-muted-foreground font-bold uppercase">Analytics & Performance</p>
                             </div>
                         </div>
-                        <div className="w-8 h-8 bg-background rounded-full flex items-center justify-center border border-border text-muted-foreground group-hover:text-primary transition-colors">
-                             <Play size={12} className="ml-0.5" />
-                        </div>
+                        <Play size={10} className="text-muted-foreground group-hover:text-primary transition-colors" />
                     </button>
 
-                    <button 
-                        onClick={() => setIsSupportOpen(true)}
-                        className="w-full p-6 bg-secondary/50 hover:bg-secondary rounded-3xl border border-border transition-all flex items-center justify-between group"
-                    >
+                    <button onClick={() => setIsSupportOpen(true)} className="w-full p-5 bg-secondary/50 hover:bg-secondary rounded-2xl border border-border transition-all flex items-center justify-between group">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-purple-600/10 rounded-2xl text-purple-600 group-hover:scale-110 transition-transform">
-                                <HelpCircle size={24} />
-                            </div>
+                            <div className="p-2.5 bg-purple-600/10 rounded-xl text-purple-600 group-hover:scale-110 transition-transform"><HelpCircle size={20} /></div>
                             <div className="text-left">
-                                <p className="text-sm font-black uppercase italic text-foreground tracking-tighter">Support Center</p>
-                                <p className="text-[10px] text-muted-foreground font-bold uppercase">Help & Admin Chat</p>
+                                <p className="text-xs font-black uppercase text-foreground tracking-tighter">Support Center</p>
+                                <p className="text-[8px] text-muted-foreground font-bold uppercase">Help & Admin Chat</p>
                             </div>
                         </div>
-                        <div className="w-8 h-8 bg-background rounded-full flex items-center justify-center border border-border text-muted-foreground group-hover:text-primary transition-colors">
-                             <Play size={12} className="ml-0.5" />
-                        </div>
+                        <Play size={10} className="text-muted-foreground group-hover:text-primary transition-colors" />
                     </button>
+
+                    {/* Dedicated Logout Button at Bottom */}
+                    {isOwnProfile && (
+                      <button 
+                        onClick={handleLogout} 
+                        className="w-full p-5 bg-destructive/5 hover:bg-destructive/10 rounded-2xl border border-destructive/10 transition-all flex items-center justify-between group mt-4"
+                      >
+                          <div className="flex items-center gap-4">
+                              <div className="p-2.5 bg-destructive/10 rounded-xl text-destructive group-hover:scale-110 transition-transform"><LogOut size={20} /></div>
+                              <div className="text-left">
+                                  <p className="text-xs font-black uppercase text-destructive tracking-tighter">Logout</p>
+                                  <p className="text-[8px] text-muted-foreground font-bold uppercase">Securely sign out</p>
+                              </div>
+                          </div>
+                      </button>
+                    )}
                 </div>
             </main>
 
@@ -286,3 +283,4 @@ export default function ProfilePage() {
         </div>
     );
 }
+
