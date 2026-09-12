@@ -6,7 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogTitle, DialogHeader } from "@/components/ui/dialog";
 import { useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, query, orderBy, where, limit } from "firebase/firestore";
-import { MoreVertical, LogOut, BadgeCheck, Loader2, Wallet, Zap, Settings, Trophy, Shield, PlusCircle, ArrowUpRight, HelpCircle, Target, History, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { MoreVertical, LogOut, BadgeCheck, Loader2, Wallet, Zap, Settings, Trophy, Shield, PlusCircle, ArrowUpRight, HelpCircle, Target, History, Clock, CheckCircle2, XCircle, ShieldCheck, AlertCircle } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { EditProfileSheet } from "@/components/edit-profile";
@@ -165,7 +165,7 @@ export default function ProfilePage() {
                     </div>
                 )}
 
-                {/* History Grid - Replaced Stats */}
+                {/* History Grid - Optimized for User Clarity */}
                 <div className="px-4 grid grid-cols-2 gap-4">
                     <button 
                         onClick={() => setHistoryType('deposit')}
@@ -240,29 +240,39 @@ export default function ProfilePage() {
                 </SheetContent>
             </Sheet>
 
-            {/* History Sheet */}
+            {/* History Sheet - Custom Status Display */}
             <Sheet open={historyType !== null} onOpenChange={(open) => !open && setHistoryType(null)}>
-                <SheetContent side="bottom" className="h-[70vh] p-0 rounded-t-[3rem] overflow-hidden bg-background border-none shadow-2xl z-[200]">
+                <SheetContent side="bottom" className="h-[80vh] p-0 rounded-t-[3rem] overflow-hidden bg-background border-none shadow-2xl z-[200]">
                     <SheetHeader className="p-6 border-b border-white/5 bg-secondary/20">
-                        <SheetTitle className="text-xl font-black uppercase italic tracking-tighter text-center">
+                        <SheetTitle className="text-xl font-black uppercase italic tracking-tighter text-center flex items-center justify-center gap-3">
+                            <History className="text-primary" />
                             {historyType === 'deposit' ? 'Deposit History' : 'Withdrawal History'}
                         </SheetTitle>
                     </SheetHeader>
-                    <div className="p-4 space-y-4 overflow-y-auto h-full pb-24 scrollbar-hide">
+                    <div className="p-4 space-y-4 overflow-y-auto h-full pb-32 scrollbar-hide">
                         {historyType === 'deposit' ? (
                             deposits && deposits.length > 0 ? (
                                 deposits.map((d: any) => (
-                                    <div key={d.id} className="bg-secondary/40 p-5 rounded-2xl border border-white/5 flex items-center justify-between">
+                                    <div key={d.id} className="bg-secondary/40 p-5 rounded-3xl border border-white/5 flex items-center justify-between group hover:bg-secondary/60 transition-all">
                                         <div className="space-y-1">
-                                            <p className="text-lg font-black text-white" style={{ fontStyle: 'normal' }}>₹{d.amount}</p>
-                                            <p className="text-[9px] font-bold text-muted-foreground uppercase">{d.createdAt ? format(d.createdAt.toDate(), 'dd MMM, HH:mm') : 'Recently'}</p>
+                                            <p className="text-2xl font-black text-white" style={{ fontStyle: 'normal' }}>₹{d.amount}</p>
+                                            <p className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1.5">
+                                                <Clock size={10} /> {d.createdAt ? format(d.createdAt.toDate(), 'dd MMM, HH:mm') : 'Recently'}
+                                            </p>
                                         </div>
                                         <div className={cn(
-                                            "flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase",
-                                            d.status === 'approved' ? "bg-green-500/10 text-green-500" : "bg-yellow-500/10 text-yellow-500"
+                                            "flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] font-black uppercase shadow-lg",
+                                            d.status === 'approved' ? "bg-green-500/10 text-green-500 border border-green-500/20" : 
+                                            d.status === 'rejected' ? "bg-red-500/10 text-red-500 border border-red-500/20" :
+                                            "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20"
                                         )}>
-                                            {d.status === 'approved' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
-                                            {d.status}
+                                            {d.status === 'approved' ? (
+                                                <><CheckCircle2 size={12} /> COMPLETE</>
+                                            ) : d.status === 'rejected' ? (
+                                                <><XCircle size={12} /> FAILED</>
+                                            ) : (
+                                                <><Clock size={12} className="animate-pulse" /> PENDING</>
+                                            )}
                                         </div>
                                     </div>
                                 ))
@@ -270,17 +280,26 @@ export default function ProfilePage() {
                         ) : (
                             withdraws && withdraws.length > 0 ? (
                                 withdraws.map((w: any) => (
-                                    <div key={w.id} className="bg-secondary/40 p-5 rounded-2xl border border-white/5 flex items-center justify-between">
+                                    <div key={w.id} className="bg-secondary/40 p-5 rounded-3xl border border-white/5 flex items-center justify-between group hover:bg-secondary/60 transition-all">
                                         <div className="space-y-1">
-                                            <p className="text-lg font-black text-red-500" style={{ fontStyle: 'normal' }}>-₹{w.amount}</p>
-                                            <p className="text-[9px] font-bold text-muted-foreground uppercase">{w.createdAt ? format(w.createdAt.toDate(), 'dd MMM, HH:mm') : 'Recently'}</p>
+                                            <p className="text-2xl font-black text-red-500" style={{ fontStyle: 'normal' }}>-₹{w.amount}</p>
+                                            <p className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1.5">
+                                                <Clock size={10} /> {w.createdAt ? format(w.createdAt.toDate(), 'dd MMM, HH:mm') : 'Recently'}
+                                            </p>
                                         </div>
                                         <div className={cn(
-                                            "flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase",
-                                            w.status === 'approved' ? "bg-blue-500/10 text-blue-500" : "bg-yellow-500/10 text-yellow-500"
+                                            "flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] font-black uppercase shadow-lg",
+                                            w.status === 'approved' ? "bg-blue-500/10 text-blue-500 border border-blue-500/20" : 
+                                            w.status === 'rejected' ? "bg-red-500/10 text-red-500 border border-red-500/20" :
+                                            "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20"
                                         )}>
-                                            {w.status === 'approved' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
-                                            {w.status === 'approved' ? 'PAID' : 'PENDING'}
+                                            {w.status === 'approved' ? (
+                                                <><Zap size={12} /> PAID</>
+                                            ) : w.status === 'rejected' ? (
+                                                <><XCircle size={12} /> FAILED</>
+                                            ) : (
+                                                <><Clock size={12} className="animate-pulse" /> PENDING</>
+                                            )}
                                         </div>
                                     </div>
                                 ))
