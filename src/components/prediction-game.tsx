@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit, doc, updateDoc, increment, setDoc, serverTimestamp, writeBatch, addDoc } from 'firebase/firestore';
-import { CheckCircle2, Loader2, X, TrendingUp, Zap, Sparkles, ShieldCheck, Target, BarChart3, Clock } from 'lucide-react';
+import { CheckCircle2, Loader2, X, TrendingUp, Zap, Sparkles, ShieldCheck, Target, BarChart3, Clock, Trophy, Frown, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,8 +32,21 @@ interface Bet {
   createdAt: any;
 }
 
+interface PopupData {
+    isOpen: boolean;
+    isWin: boolean;
+    amount: number;
+    period: string;
+    result: {
+        num: number;
+        color: string;
+        size: string;
+    } | null;
+}
+
 /**
  * Official Jalwa Math (WinGo Pattern)
+ * This logic ensures same results for all users based on Period ID
  */
 const getJalwaResult = (period: string) => {
   let hash = 0;
@@ -66,6 +79,13 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   const [betAmount, setBetAmount] = useState('10');
   const [multiplier, setMultiplier] = useState(1);
   const [isBetting, setIsBetting] = useState(false);
+  
+  // Popup State
+  const [popup, setPopup] = useState<PopupData>({ 
+    isOpen: false, isWin: false, amount: 0, period: '', result: null 
+  });
+  const [popupTimer, setPopupTimer] = useState(3);
+  const shownPeriodsRef = useRef<Set<string>>(new Set());
 
   const processedPeriods = useRef<Set<string>>(new Set());
 
@@ -88,7 +108,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         }, { merge: false });
 
     } catch (e: any) {
-        // Silent fail
+        // Silent fail if result already exists (global sync)
     }
   };
 
@@ -123,7 +143,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     [firestore]
   );
   const { data: results } = useCollection<GameResult>(resultsQuery);
-
   const latestResult = results && results.length > 0 ? results[0] : null;
 
   const myBetsQuery = useMemoFirebase(() => 
@@ -132,58 +151,102 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   );
   const { data: myBets } = useCollection<Bet>(myBetsQuery);
 
+  // Settlement and Popup Trigger Logic
   useEffect(() => {
     if (!firestore || !user || !results || results.length === 0 || !myBets) return;
 
     const pendingBets = myBets.filter(b => b.status === 'pending');
     if (pendingBets.length === 0) return;
 
-    const batch = writeBatch(firestore);
-    let totalWinDelta = 0;
-    let updatedCount = 0;
+    const processSettlement = async () => {
+        const batch = writeBatch(firestore);
+        let totalWinDelta = 0;
+        let updatedCount = 0;
+        let latestSettle: { win: boolean; amount: number; period: string; result: any } | null = null;
 
-    pendingBets.forEach(bet => {
-        const matchedResult = results.find(r => r.period === bet.period);
-        if (matchedResult) {
-            let isWin = false;
-            let mult = 2;
+        pendingBets.forEach(bet => {
+            const matchedResult = results.find(r => r.period === bet.period);
+            if (matchedResult) {
+                let isWin = false;
+                let mult = 2;
 
-            if (typeof bet.selection === 'number') {
-                isWin = bet.selection === matchedResult.number;
-                mult = 9;
-            } else if (bet.selection === 'big' || bet.selection === 'small') {
-                isWin = bet.selection === matchedResult.size;
-                mult = 1.99;
-            } else {
-                isWin = matchedResult.color.includes(bet.selection as string);
-                if (matchedResult.color.includes('violet') && (bet.selection === 'red' || bet.selection === 'green')) {
-                    mult = 1.5;
+                if (typeof bet.selection === 'number') {
+                    isWin = bet.selection === matchedResult.number;
+                    mult = 9;
+                } else if (bet.selection === 'big' || bet.selection === 'small') {
+                    isWin = bet.selection === matchedResult.size;
+                    mult = 1.99;
+                } else {
+                    isWin = matchedResult.color.includes(bet.selection as string);
+                    if (matchedResult.color.includes('violet') && (bet.selection === 'red' || bet.selection === 'green')) {
+                        mult = 1.5;
+                    }
+                    if (bet.selection === 'violet') mult = 4.5;
                 }
-                if (bet.selection === 'violet') mult = 4.5;
-            }
 
-            const betRef = doc(firestore, 'users', user.uid, 'game_bets', bet.id);
-            if (isWin) {
-                const winAmt = bet.amount * mult;
-                totalWinDelta += winAmt;
-                batch.update(betRef, { status: 'win', winAmount: Math.floor(winAmt) });
-            } else {
-                batch.update(betRef, { status: 'loss' });
+                const betRef = doc(firestore, 'users', user.uid, 'game_bets', bet.id);
+                const winAmt = Math.floor(bet.amount * mult);
+                
+                if (isWin) {
+                    totalWinDelta += winAmt;
+                    batch.update(betRef, { status: 'win', winAmount: winAmt });
+                } else {
+                    batch.update(betRef, { status: 'loss' });
+                }
+                
+                updatedCount++;
+                
+                // Track for popup (only if not shown for this period)
+                if (!shownPeriodsRef.current.has(bet.period)) {
+                    latestSettle = {
+                        win: isWin,
+                        amount: isWin ? winAmt : 0,
+                        period: bet.period,
+                        result: matchedResult
+                    };
+                    shownPeriodsRef.current.add(bet.period);
+                }
             }
-            updatedCount++;
-        }
-    });
+        });
 
-    if (updatedCount > 0) {
-        if (totalWinDelta > 0) {
-            batch.update(doc(firestore, 'users', user.uid), {
-                virtualBalance: increment(Math.floor(totalWinDelta))
-            });
-            toast({ title: "Winner! 🏆", description: `You won ₹${totalWinDelta.toFixed(0)} coins!` });
+        if (updatedCount > 0) {
+            if (totalWinDelta > 0) {
+                batch.update(doc(firestore, 'users', user.uid), {
+                    virtualBalance: increment(totalWinDelta)
+                });
+            }
+            await batch.commit();
+
+            // Show Popup if a bet was just settled
+            if (latestSettle) {
+                setPopup({
+                    isOpen: true,
+                    isWin: latestSettle.win,
+                    amount: latestSettle.amount,
+                    period: latestSettle.period,
+                    result: {
+                        num: latestSettle.result.number,
+                        color: latestSettle.result.color,
+                        size: latestSettle.result.size
+                    }
+                });
+                setPopupTimer(3);
+            }
         }
-        batch.commit().catch(err => console.error("Settlement error:", err));
+    };
+
+    processSettlement();
+  }, [results, myBets, firestore, user]);
+
+  // Popup Auto-close Timer
+  useEffect(() => {
+    if (popup.isOpen && popupTimer > 0) {
+      const t = setTimeout(() => setPopupTimer(prev => prev - 1), 1000);
+      return () => clearTimeout(t);
+    } else if (popup.isOpen && popupTimer === 0) {
+      setPopup(prev => ({ ...prev, isOpen: false }));
     }
-  }, [results, myBets, firestore, user, toast]);
+  }, [popup.isOpen, popupTimer]);
 
   const handleOpenBetPanel = (option: string | number) => {
     if (timeLeft < 5) {
@@ -249,7 +312,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   return (
     <div className="space-y-6 select-none pb-24 animate-in fade-in duration-700 w-full px-4">
       
-      {/* ELITE ANALYSIS - Synced with History (Same Same) */}
+      {/* ELITE ANALYSIS - Synced with History */}
       <div className="relative group w-full">
         <div className="absolute -inset-1 bg-gradient-to-r from-[#ff3366] via-purple-600 to-blue-600 rounded-[2.5rem] blur opacity-30"></div>
         <div className="relative bg-white border border-primary/20 rounded-[2.5rem] p-6 shadow-2xl overflow-hidden">
@@ -436,6 +499,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </Tabs>
       </div>
 
+      {/* Bet Confirmation Dialog */}
       <Dialog open={isBetPanelOpen} onOpenChange={setIsBetPanelOpen}>
         <DialogContent className="max-w-[420px] bg-background border-border rounded-[3.5rem] p-0 overflow-hidden z-[1000] shadow-2xl">
            <DialogHeader className="p-10 pb-0">
@@ -455,6 +519,21 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                       <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Wallet</p>
                       <p className="text-2xl font-black text-foreground">₹{userProfile?.virtualBalance || 0}</p>
                   </div>
+              </div>
+
+              <div className="grid grid-cols-4 gap-2">
+                  {[10, 50, 100, 500].map(amt => (
+                      <button 
+                        key={amt} 
+                        onClick={() => setBetAmount(amt.toString())}
+                        className={cn(
+                            "h-12 rounded-xl text-xs font-black uppercase transition-all border",
+                            betAmount === amt.toString() ? "bg-primary text-white border-primary" : "bg-[#f1f3ff] text-muted-foreground border-transparent"
+                        )}
+                      >
+                          ₹{amt}
+                      </button>
+                  ))}
               </div>
 
               <div className="space-y-4">
@@ -484,6 +563,94 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                   {isBetting ? <Loader2 className="animate-spin" /> : <><CheckCircle2 size={24} /> Confirm Prediction</>}
               </Button>
            </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* WIN / LOSE POPUP */}
+      <Dialog open={popup.isOpen} onOpenChange={(open) => !open && setPopup(prev => ({ ...prev, isOpen: false }))}>
+        <DialogContent className={cn(
+            "max-w-[340px] p-0 border-none rounded-[2.5rem] overflow-hidden shadow-[0_30px_70px_rgba(0,0,0,0.5)] z-[2000] animate-in zoom-in duration-300",
+            popup.isWin ? "bg-gradient-to-b from-[#2e7d32] to-[#1b5e20]" : "bg-gradient-to-b from-[#1565c0] to-[#0d47a1]"
+        )}>
+            <div className="relative p-8 flex flex-col items-center text-center text-white space-y-6">
+                {/* Top Icon */}
+                <div className="relative">
+                    <div className={cn(
+                        "w-24 h-24 rounded-full flex items-center justify-center shadow-2xl relative z-10",
+                        popup.isWin ? "bg-yellow-400 text-green-900" : "bg-blue-100 text-blue-900"
+                    )}>
+                        {popup.isWin ? <Trophy size={48} className="animate-bounce" /> : <Frown size={48} />}
+                    </div>
+                    {popup.isWin && (
+                        <div className="absolute -inset-4 bg-yellow-400/20 blur-2xl rounded-full animate-pulse" />
+                    )}
+                </div>
+
+                {/* Header Text */}
+                <div className="space-y-1">
+                    <h2 className="text-4xl font-black italic uppercase tracking-tighter">
+                        {popup.isWin ? "Congratulations!" : "Sorry!"}
+                    </h2>
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-70">
+                        {popup.isWin ? "You are a winner" : "Better luck next time"}
+                    </p>
+                </div>
+
+                {/* Lottery Result Circle */}
+                <div className="bg-white/10 backdrop-blur-md rounded-3xl p-5 w-full border border-white/10 space-y-4">
+                    <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Lottery Result</p>
+                    <div className="flex items-center justify-center gap-4">
+                        <div className={cn(
+                            "w-12 h-12 rounded-full flex items-center justify-center font-black text-xl border-2 border-white/20 shadow-lg",
+                            getNumberBgClass(popup.result?.num || 0)
+                        )}>
+                            {popup.result?.num}
+                        </div>
+                        <div className="flex flex-col items-start gap-1">
+                             <div className="flex gap-2">
+                                <span className={cn(
+                                    "px-3 py-1 rounded-full text-[10px] font-black uppercase border border-white/20",
+                                    popup.result?.size === 'big' ? "bg-orange-500" : "bg-blue-500"
+                                )}>{popup.result?.size}</span>
+                                <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-white/20 border border-white/20">
+                                    {popup.result?.color.replace('-violet', '')}
+                                </span>
+                             </div>
+                             <p className="text-[9px] font-bold opacity-40">Period: {popup.period.slice(-4)}</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Prize / Status */}
+                <div className="space-y-2">
+                    {popup.isWin ? (
+                        <>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-yellow-400">Bonus Won</p>
+                            <div className="flex items-center justify-center gap-2">
+                                <Coins className="text-yellow-400" />
+                                <h3 className="text-5xl font-black italic tracking-tighter">₹{popup.amount}</h3>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="py-4">
+                             <h3 className="text-5xl font-black italic uppercase tracking-tighter opacity-50">Lose</h3>
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer Auto Close */}
+                <div className="w-full pt-4">
+                    <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                        <div 
+                            className="h-full bg-white transition-all duration-1000 ease-linear"
+                            style={{ width: `${(popupTimer / 3) * 100}%` }}
+                        />
+                    </div>
+                    <p className="text-[8px] font-black uppercase tracking-widest mt-3 opacity-40">
+                        Closing in {popupTimer} seconds
+                    </p>
+                </div>
+            </div>
         </DialogContent>
       </Dialog>
     </div>
