@@ -75,57 +75,57 @@ function HomeContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20 w-full">
-      <header className="p-4 bg-background sticky top-0 z-50 flex items-center justify-between border-b border-border/50 backdrop-blur-md">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center font-black italic text-white shadow-lg shadow-primary/20">A</div>
-          <h1 className="text-xl font-black italic tracking-tighter uppercase">A.Snap Game</h1>
+    <div className="min-h-screen bg-background pb-20 w-full max-w-none">
+      <header className="p-5 bg-background sticky top-0 z-50 flex items-center justify-between border-b border-border/50 backdrop-blur-md">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center font-black text-white shadow-lg shadow-primary/20 text-xl">A</div>
+          <h1 className="text-2xl font-black tracking-tight uppercase">A.Snap Game</h1>
         </div>
-        <div className="flex items-center gap-1 bg-secondary/50 px-3 py-1.5 rounded-full border border-border">
-          <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Server Live</span>
+        <div className="flex items-center gap-1.5 bg-secondary/50 px-4 py-2 rounded-full border border-border">
+          <div className="h-2.5 w-2.5 bg-green-500 rounded-full animate-pulse" />
+          <span className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Server Live</span>
         </div>
       </header>
 
-      <main className="w-full space-y-6 pt-4">
+      <main className="w-full space-y-8 pt-6">
         {user ? (
           <>
-            <div className="w-full px-4">
-                <div className="bg-money-pattern p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(22,163,74,0.3)] text-white relative overflow-hidden group">
-                   <div className="absolute top-0 right-0 p-6 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-700">
-                      <Wallet size={120} />
+            <div className="w-full px-5">
+                <div className="bg-money-pattern p-10 rounded-[3rem] shadow-[0_25px_60px_rgba(22,163,74,0.3)] text-white relative overflow-hidden group">
+                   <div className="absolute top-0 right-0 p-8 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-700">
+                      <Wallet size={140} />
                    </div>
                    
-                   <div className="relative z-10 space-y-8">
+                   <div className="relative z-10 space-y-10">
                       <div className="flex items-center justify-between">
-                         <div className="space-y-1">
-                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 flex items-center gap-2">
-                              <Sparkles size={10} className="text-yellow-400" /> Virtual Balance
+                         <div className="space-y-2">
+                            <p className="text-[11px] font-black uppercase tracking-[0.4em] text-white/70 flex items-center gap-2">
+                              <Sparkles size={12} className="text-yellow-400" /> Virtual Balance
                             </p>
-                            <div className="flex items-baseline gap-2">
-                               <span className="text-2xl font-black text-white/80">₹</span>
-                               <h2 className="text-5xl font-black italic tracking-tighter drop-shadow-lg">
+                            <div className="flex items-baseline gap-2.5">
+                               <span className="text-3xl font-black text-white/80">₹</span>
+                               <h2 className="text-6xl font-black tracking-tight drop-shadow-lg">
                                   {userProfile?.virtualBalance?.toLocaleString() || '0'}
                                </h2>
                             </div>
                          </div>
-                         <div className="bg-white/10 p-3 rounded-2xl border border-white/10 backdrop-blur-md">
-                            <TrendingUp className="text-white" />
+                         <div className="bg-white/10 p-4 rounded-2xl border border-white/10 backdrop-blur-md">
+                            <TrendingUp className="text-white w-7 h-7" />
                          </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 gap-5">
                          <Button 
                             onClick={() => handleActionClick('Deposit')}
-                            className="bg-white text-green-700 hover:bg-white/90 rounded-2xl h-14 font-black uppercase text-xs flex items-center justify-center gap-2 shadow-xl shadow-black/10 active:scale-95 transition-all"
+                            className="bg-white text-green-700 hover:bg-white/90 rounded-[1.5rem] h-16 font-black uppercase text-sm flex items-center justify-center gap-3 shadow-xl shadow-black/10 active:scale-95 transition-all"
                          >
-                            <PlusCircle size={18} /> Deposit
+                            <PlusCircle size={20} /> Deposit
                          </Button>
                          <Button 
                             onClick={() => handleActionClick('Withdraw')}
-                            className="bg-green-800/40 text-white hover:bg-green-800/60 border border-white/20 rounded-2xl h-14 font-black uppercase text-xs flex items-center justify-center gap-2 shadow-xl shadow-black/10 active:scale-95 transition-all backdrop-blur-sm"
+                            className="bg-green-800/40 text-white hover:bg-green-800/60 border border-white/20 rounded-[1.5rem] h-16 font-black uppercase text-sm flex items-center justify-center gap-3 shadow-xl shadow-black/10 active:scale-95 transition-all backdrop-blur-sm"
                          >
-                            <ArrowUpRight size={18} /> Withdraw
+                            <ArrowUpRight size={20} /> Withdraw
                          </Button>
                       </div>
                    </div>
@@ -137,16 +137,16 @@ function HomeContent() {
             </div>
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center h-[70vh] text-center gap-6 px-4">
-             <div className="w-24 h-24 bg-money-pattern rounded-3xl flex items-center justify-center animate-bounce shadow-2xl">
-                <span className="text-4xl text-white font-black italic">A</span>
+          <div className="flex flex-col items-center justify-center h-[70vh] text-center gap-8 px-6">
+             <div className="w-28 h-28 bg-money-pattern rounded-[2.5rem] flex items-center justify-center animate-bounce shadow-2xl">
+                <span className="text-5xl text-white font-black">A</span>
              </div>
-             <div className="space-y-2">
-               <h2 className="text-2xl font-black uppercase italic tracking-tighter">Welcome to A.snap</h2>
-               <p className="text-muted-foreground text-sm max-w-xs mx-auto">Login now to start your virtual coin prediction journey and compete with friends.</p>
+             <div className="space-y-3">
+               <h2 className="text-3xl font-black uppercase tracking-tight">Welcome to A.snap</h2>
+               <p className="text-muted-foreground text-base max-w-xs mx-auto">Login now to start your virtual coin prediction journey and compete with friends.</p>
              </div>
-             <a href="/login?auth=true" className="w-full max-w-[200px]">
-                <button className="w-full bg-primary h-14 rounded-2xl text-white font-black uppercase shadow-xl active:scale-95 transition-all">Get Started</button>
+             <a href="/login?auth=true" className="w-full max-w-[250px]">
+                <button className="w-full bg-primary h-16 rounded-[1.5rem] text-white font-black uppercase text-lg shadow-xl active:scale-95 transition-all">Get Started</button>
              </a>
           </div>
         )}
