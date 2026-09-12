@@ -31,8 +31,7 @@ function HomeContent() {
         const snap = await getDoc(uRef);
         const data = snap.data();
 
-        // अभिषेक भाई, यहाँ हम चेक कर रहे हैं कि क्या 'v28' वाला वर्जन पहले से है?
-        // अगर नहीं है, तभी 28 रुपये देंगे। इससे जीतने पर पैसे ओवरराइट (Overwrite) नहीं होंगे।
+        // अभिषेक भाई, 'v28' वाला वर्जन चेक कर रहे हैं ताकि बैलेंस बार-बार रिसेट न हो।
         const needsInitialization = !snap.exists() || data?.walletVersion !== 'v28';
         
         if (needsInitialization) {
@@ -42,8 +41,8 @@ function HomeContent() {
                 id: user.uid,
                 username: user.displayName || user.email?.split('@')[0] || 'user',
                 email: user.email || '',
-                virtualBalance: 28, 
-                walletVersion: 'v28', // पक्का फ्लैग ताकि दोबारा रिसेट न हो
+                virtualBalance: snap.exists() ? (data?.virtualBalance ?? 28) : 28, 
+                walletVersion: 'v28', // पक्का फ्लैग
                 updatedAt: serverTimestamp()
             }, { merge: true });
           } catch (err) {
@@ -56,7 +55,7 @@ function HomeContent() {
     };
 
     initializeUser();
-  }, [user, firestore, isProfileLoading]); // dependency से userProfile हटाया ताकि लूप न बने
+  }, [user, firestore, isProfileLoading]);
 
   const handleActionClick = (type: string) => {
     toast({

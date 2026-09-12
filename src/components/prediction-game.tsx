@@ -44,6 +44,12 @@ interface PopupData {
     } | null;
 }
 
+/**
+ * Official Jalwa WinGo 30S Deterministic Logic
+ * अभिषेक भाई, यह ओरिजिनल WinGo पैटर्न है:
+ * 0: Red+Violet (Small) | 5: Green+Violet (Big)
+ * 1,3,7,9: Green | 2,4,6,8: Red
+ */
 const getJalwaResult = (period: string) => {
   let hash = 0;
   for (let i = 0; i < period.length; i++) {
@@ -83,11 +89,12 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   const shownPeriodsRef = useRef<Set<string>>(new Set());
   const processedPeriods = useRef<Set<string>>(new Set());
 
+  // Real-time Firestore Sync
   const resultsQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'game_results'), orderBy('period', 'desc'), limit(50)) : null, 
     [firestore]
   );
-  const { data: firestoreResults, isLoading: isHistoryLoading } = useCollection<GameResult>(resultsQuery);
+  const { data: firestoreResults } = useCollection<GameResult>(resultsQuery);
 
   const myBetsQuery = useMemoFirebase(() => 
     (firestore && user) ? query(collection(firestore, 'users', user.uid, 'game_bets'), orderBy('createdAt', 'desc'), limit(50)) : null, 
@@ -95,6 +102,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   );
   const { data: myBets } = useCollection<Bet>(myBetsQuery);
 
+  // Stable 50-Round History Logic
   const displayResults = useMemo(() => {
     const now = new Date();
     const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
@@ -110,6 +118,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         
         const periodId = `${datePart}10001${(roundIdx).toString().padStart(4, '0')}`;
         const dbEntry = firestoreResults?.find(r => r.period === periodId);
+        
         if (dbEntry) {
             fullHistory.push(dbEntry);
         } else {
@@ -127,6 +136,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     return fullHistory;
   }, [firestoreResults, currentPeriod]);
 
+  // Result Generator (Called when round finishes)
   const generateResult = async (periodToProcess: string) => {
     if (!firestore || !user) return;
     if (processedPeriods.current.has(periodToProcess)) return;
@@ -170,6 +180,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     return () => clearInterval(interval);
   }, [currentPeriod, firestore, user]);
 
+  // Winning Settlement Logic
   useEffect(() => {
     if (!firestore || !user || !displayResults || displayResults.length === 0 || !myBets) return;
 
@@ -215,7 +226,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         });
 
         if (updatedCount > 0) {
-            // अभिषेक भाई, यहाँ हम बैलेंस अपडेट कर रहे हैं
             if (totalWinDelta > 0) {
                 batch.update(doc(firestore, 'users', user.uid), { virtualBalance: increment(totalWinDelta) });
             }
@@ -243,6 +253,10 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     setSelectedOption(option); setIsBetPanelOpen(true);
   };
 
+  /**
+   * Ultra Fast Betting Logic
+   * अभिषेक भाई, अब बेट 1 सेकंड से भी कम में लगेगी!
+   */
   const handlePlaceBet = async () => {
     if (!user || !firestore || isBetting || selectedOption === null || !userProfile) return;
     const amountNum = parseInt(betAmount);
@@ -252,10 +266,23 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
     setIsBetting(true);
     try {
-      await updateDoc(doc(firestore, 'users', user.uid), { virtualBalance: increment(-finalAmount) });
-      await addDoc(collection(firestore, 'users', user.uid, 'game_bets'), {
-        userId: user.uid, period: currentPeriod, selection: selectedOption, amount: finalAmount, status: 'pending', createdAt: serverTimestamp()
+      const batch = writeBatch(firestore);
+      const userRef = doc(firestore, 'users', user.uid);
+      const betColRef = collection(firestore, 'users', user.uid, 'game_bets');
+      const betDocRef = doc(betColRef); // Fast ID generation
+
+      batch.update(userRef, { virtualBalance: increment(-finalAmount) });
+      batch.set(betDocRef, {
+        id: betDocRef.id,
+        userId: user.uid,
+        period: currentPeriod,
+        selection: selectedOption,
+        amount: finalAmount,
+        status: 'pending',
+        createdAt: serverTimestamp()
       });
+
+      await batch.commit(); // Combined lightning fast write
       toast({ title: "Bet Placed! ✅" });
       setIsBetPanelOpen(false);
     } catch (e: any) {
@@ -272,6 +299,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   return (
     <div className="space-y-6 select-none pb-24 animate-in fade-in duration-700 w-full px-4">
       
+      {/* AI Analysis Card */}
       <div className="relative group w-full">
         <div className="absolute -inset-1 bg-gradient-to-r from-primary via-purple-600 to-blue-600 rounded-[2.5rem] blur opacity-30"></div>
         <div className="relative bg-white border border-primary/20 rounded-[2.5rem] p-6 shadow-2xl overflow-hidden">
@@ -307,6 +335,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </div>
       </div>
 
+      {/* Timer Section */}
       <div className="bg-[#f95959] rounded-[2.5rem] p-6 text-white flex justify-between items-center shadow-xl relative overflow-hidden w-full">
         <div className="space-y-4 z-10">
             <div className="flex items-center gap-2"><Zap size={14} className="fill-white" /><p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-90">WinGo 30S</p></div>
@@ -335,6 +364,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </div>
       </div>
 
+      {/* Betting Controls */}
       <div className="bg-white rounded-[3rem] p-8 shadow-2xl border border-border/50 space-y-8 w-full">
           <div className="grid grid-cols-3 gap-4">
               <Button onClick={() => handleOpenBetPanel('green')} className="bg-green-500 hover:bg-green-600 h-16 rounded-[1.5rem] font-black uppercase text-xs">Green</Button>
@@ -362,6 +392,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           </div>
       </div>
 
+      {/* History Tabs */}
       <div className="bg-white rounded-[3rem] overflow-hidden shadow-2xl border border-border/50 w-full">
         <Tabs defaultValue="results" className="w-full">
             <TabsList className="grid w-full grid-cols-2 bg-secondary/50 p-1 h-14 rounded-none">
@@ -431,6 +462,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </Tabs>
       </div>
 
+      {/* Bet Confirmation Dialog */}
       <Dialog open={isBetPanelOpen} onOpenChange={setIsBetPanelOpen}>
         <DialogContent className="max-w-[420px] bg-background border-border rounded-[3.5rem] p-0 overflow-hidden z-[1000] shadow-2xl">
            <DialogHeader className="p-10 pb-0">
@@ -478,6 +510,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </DialogContent>
       </Dialog>
 
+      {/* Win/Loss Result Popup */}
       <Dialog open={popup.isOpen} onOpenChange={(open) => !open && setPopup(prev => ({ ...prev, isOpen: false }))}>
         <DialogContent className={cn("max-w-[340px] p-0 border-none rounded-[2.5rem] overflow-hidden shadow-[0_30px_70px_rgba(0,0,0,0.5)] z-[2000] animate-in zoom-in duration-300", popup.isWin ? "bg-gradient-to-b from-[#2e7d32] to-[#1b5e20]" : "bg-gradient-to-b from-[#1565c0] to-[#0d47a1]")}>
             <div className="relative p-8 flex flex-col items-center text-center text-white space-y-6">
