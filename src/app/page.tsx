@@ -34,7 +34,8 @@ function HomeContent() {
           
           if (snap.exists()) {
             const data = snap.data();
-            if (data && (typeof data.virtualBalance === 'number' || data.walletVersion)) {
+            // अभिषेक भाई, अगर यूजर के पास पहले से पैसे हैं, तो यह कोड उन्हें ओवरराइट नहीं करेगा।
+            if (data && (typeof data.virtualBalance === 'number' || data.walletVersion === 'v28_final')) {
               initRef.current = true;
               return;
             }
@@ -77,15 +78,15 @@ function HomeContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20 w-full max-w-none">
-      <header className="p-5 bg-background sticky top-0 z-50 flex items-center justify-between border-b border-border/50 backdrop-blur-md">
+    <div className="min-h-screen bg-background pb-20 w-full max-w-none text-foreground">
+      <header className="p-5 bg-background/80 sticky top-0 z-50 flex items-center justify-between border-b border-white/5 backdrop-blur-xl">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center font-black text-white shadow-lg shadow-primary/20 text-2xl">A</div>
-          <h1 className="text-3xl font-black tracking-tight uppercase">A.Snap Game</h1>
+          <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center font-black text-white shadow-[0_10px_20px_rgba(255,51,102,0.3)] text-2xl">A</div>
+          <h1 className="text-3xl font-black tracking-tight uppercase italic text-white drop-shadow-md">WinGo</h1>
         </div>
-        <div className="flex items-center gap-1.5 bg-secondary/50 px-5 py-2.5 rounded-full border border-border">
-          <div className="h-2.5 w-2.5 bg-green-500 rounded-full animate-pulse" />
-          <span className="text-[12px] font-black uppercase tracking-widest text-muted-foreground">Server Live</span>
+        <div className="flex items-center gap-1.5 bg-white/5 px-5 py-2.5 rounded-full border border-white/10">
+          <div className="h-2.5 w-2.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
+          <span className="text-[12px] font-black uppercase tracking-widest text-white/60">Server Live</span>
         </div>
       </header>
 
@@ -93,7 +94,7 @@ function HomeContent() {
         {user ? (
           <>
             <div className="w-full px-5">
-                <div className="bg-money-pattern p-10 rounded-[3rem] shadow-xl text-white relative overflow-hidden group">
+                <div className="bg-money-pattern p-10 rounded-[3rem] shadow-2xl text-white relative overflow-hidden group border border-white/10">
                    <div className="absolute top-0 right-0 p-10 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-700">
                       <Wallet size={160} />
                    </div>
@@ -106,12 +107,12 @@ function HomeContent() {
                             </p>
                             <div className="flex items-baseline gap-2">
                                <span className="text-4xl font-black text-white/80">₹</span>
-                               <h2 className="text-7xl font-black tracking-tighter drop-shadow-lg" style={{ fontStyle: 'normal' }}>
+                               <h2 className="text-7xl font-black tracking-tighter drop-shadow-2xl" style={{ fontStyle: 'normal' }}>
                                   {userProfile?.virtualBalance?.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) || '0.0'}
                                </h2>
                             </div>
                          </div>
-                         <div className="bg-white/10 p-5 rounded-3xl border border-white/10 backdrop-blur-md">
+                         <div className="bg-white/10 p-5 rounded-3xl border border-white/10 backdrop-blur-md shadow-inner">
                             <TrendingUp className="text-white w-8 h-8" />
                          </div>
                       </div>
@@ -119,13 +120,13 @@ function HomeContent() {
                       <div className="grid grid-cols-2 gap-4">
                          <Button 
                             onClick={() => handleActionClick('Deposit')}
-                            className="bg-white text-green-700 hover:bg-white/90 rounded-[2rem] h-20 font-black uppercase text-base flex items-center justify-center gap-3 shadow-xl shadow-black/10 active:scale-95 transition-all"
+                            className="bg-white text-green-700 hover:bg-white/90 rounded-[2rem] h-20 font-black uppercase text-base flex items-center justify-center gap-3 shadow-2xl active:scale-95 transition-all"
                          >
                             <PlusCircle size={24} /> Deposit
                          </Button>
                          <Button 
                             onClick={() => handleActionClick('Withdraw')}
-                            className="bg-green-800/40 text-white hover:bg-green-800/60 border border-white/20 rounded-[2rem] h-20 font-black uppercase text-base flex items-center justify-center gap-3 shadow-xl shadow-black/10 active:scale-95 transition-all backdrop-blur-sm"
+                            className="bg-green-800/40 text-white hover:bg-green-800/60 border border-white/20 rounded-[2rem] h-20 font-black uppercase text-base flex items-center justify-center gap-3 shadow-2xl active:scale-95 transition-all backdrop-blur-sm"
                          >
                             <ArrowUpRight size={24} /> Withdraw
                          </Button>
@@ -151,11 +152,11 @@ function HomeContent() {
                <div className="flex items-center justify-center gap-2 text-primary font-black uppercase tracking-[0.4em] text-[10px]">
                   <Zap size={14} className="fill-primary" /> Instant Service
                </div>
-               <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter leading-none italic text-foreground drop-shadow-sm">
+               <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter leading-none italic text-white drop-shadow-2xl">
                  FAST WITHDRAWAL
                </h2>
                <div className="pt-4">
-                  <h3 className="text-7xl md:text-8xl font-black italic uppercase tracking-tighter animate-shimmer-text drop-shadow-[0_0_20px_rgba(255,51,102,0.4)]">
+                  <h3 className="text-7xl md:text-8xl font-black italic uppercase tracking-tighter animate-shimmer-text drop-shadow-[0_0_30px_rgba(255,51,102,0.5)]">
                     WinGo
                   </h3>
                </div>
@@ -167,7 +168,7 @@ function HomeContent() {
                 </button>
              </a>
 
-             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest opacity-60">
+             <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest opacity-60">
                 Premium Virtual Gaming Protocol
              </p>
           </div>

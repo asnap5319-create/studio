@@ -27,7 +27,7 @@ export function BottomNav() {
   const { data: userProfile } = useDoc<UserProfile>(userRef);
 
   return (
-    <nav className="fixed bottom-0 left-0 z-50 w-full border-t bg-background shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+    <nav className="fixed bottom-0 left-0 z-50 w-full border-t border-white/5 bg-background/95 backdrop-blur-xl shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
       <div className="grid h-16 grid-cols-2 max-w-lg mx-auto">
         {navItems.map((item) => {
           const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
@@ -37,12 +37,12 @@ export function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className="inline-flex flex-col items-center justify-center px-2 hover:bg-secondary/50 group"
+              className="inline-flex flex-col items-center justify-center px-2 hover:bg-white/5 group"
             >
               {isProfile && user && userProfile?.profileImageUrl ? (
                 <div className={cn(
                   "w-8 h-8 rounded-full overflow-hidden border-2 transition-all duration-300",
-                  isActive ? "border-primary scale-110 shadow-[0_0_15px_rgba(255,51,102,0.4)]" : "border-transparent"
+                  isActive ? "border-primary scale-110 shadow-[0_0_15px_rgba(255,51,102,0.6)]" : "border-transparent opacity-60"
                 )}>
                     <Avatar className="w-full h-full">
                         <AvatarImage src={userProfile.profileImageUrl} className="object-cover" />
@@ -54,14 +54,14 @@ export function BottomNav() {
               ) : (
                 <item.icon
                   className={cn(
-                    "w-7 h-7 text-muted-foreground group-hover:text-primary transition-all duration-300",
-                    isActive && "text-primary scale-110"
+                    "w-7 h-7 transition-all duration-300",
+                    isActive ? "text-primary scale-110 drop-shadow-[0_0_10px_rgba(255,51,102,0.4)]" : "text-white/40 group-hover:text-white"
                   )}
                 />
               )}
               <span className={cn(
                 "text-[10px] font-black uppercase mt-1 tracking-widest transition-colors",
-                isActive ? "text-primary" : "text-muted-foreground"
+                isActive ? "text-primary" : "text-white/30"
               )}>
                 {item.label}
               </span>

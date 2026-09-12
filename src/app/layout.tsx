@@ -13,6 +13,7 @@ import { useFCM } from "@/hooks/use-fcm";
 
 /**
  * Instagram-style Splash Screen with Glowing WinGo
+ * अभिषेक भाई, बैकग्राउंड को काला कर दिया है ताकि लोगो और WinGo चमके
  */
 function SplashScreen() {
   const [hasMounted, setHasMounted] = useState(false);
@@ -28,20 +29,20 @@ function SplashScreen() {
   if (!hasMounted || !isVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-white flex flex-col items-center justify-center animate-in fade-in duration-300">
-        <div className="relative w-24 h-24 bg-[#16a34a] bg-money-pattern rounded-[2rem] flex items-center justify-center border border-black/5 shadow-2xl overflow-hidden scale-110 mb-6">
-            <Logo className="w-16 h-16 drop-shadow-lg" />
+    <div className="fixed inset-0 z-[9999] bg-[#0a0a0a] flex flex-col items-center justify-center animate-in fade-in duration-300">
+        <div className="relative w-28 h-28 bg-[#16a34a] bg-money-pattern rounded-[2.5rem] flex items-center justify-center border border-white/10 shadow-[0_0_50px_rgba(22,163,74,0.2)] overflow-hidden scale-110 mb-8">
+            <Logo className="w-18 h-18 drop-shadow-2xl" />
         </div>
         
         <div className="mt-4">
-             <h2 className="text-4xl font-black italic tracking-tighter animate-shimmer-text drop-shadow-[0_0_15px_rgba(255,51,102,0.3)]">
+             <h2 className="text-6xl font-black italic tracking-tighter animate-shimmer-text drop-shadow-[0_0_20px_rgba(255,51,102,0.4)]">
                 WinGo
              </h2>
         </div>
 
         <div className="absolute bottom-16 flex flex-col items-center gap-1.5">
-             <p className="text-[10px] font-black uppercase tracking-[0.5em] text-black/30">from</p>
-             <h2 className="text-xl font-black italic tracking-tighter text-black drop-shadow-md">A.S</h2>
+             <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/30">from</p>
+             <h2 className="text-xl font-black italic tracking-tighter text-white drop-shadow-md">A.S</h2>
         </div>
     </div>
   );
@@ -58,7 +59,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <head>
         <title>A.snap | Premium Visual Sharing</title>
         <meta name="description" content="A.snap - The premium short video sharing platform. Watch, share, and chat in real-time." />
@@ -75,9 +76,9 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="A.snap" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="msapplication-TileColor" content="#ffffff" />
+        <meta name="msapplication-TileColor" content="#0a0a0a" />
         <meta name="msapplication-tap-highlight" content="no" />
-        <meta name="theme-color" content="#ffffff" />
+        <meta name="theme-color" content="#0a0a0a" />
         
         <link rel="manifest" href="/manifest.webmanifest?v=20" />
         <link rel="apple-touch-icon" href="/logo.svg?v=20" />
@@ -90,7 +91,7 @@ export default function RootLayout({
           src="https://pl29453309.effectivecpmnetwork.com/e9/15/f8/e915f8c7cce368f440d031fe8ec12184.js"
         />
       </head>
-      <body className={cn("min-h-screen bg-background font-sans antialiased overflow-x-hidden")}>
+      <body className={cn("min-h-screen bg-background font-sans antialiased overflow-x-hidden text-foreground")}>
         <FirebaseClientProvider>
           <FCMHandler>
             <SplashScreen />
