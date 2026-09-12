@@ -71,13 +71,6 @@ export default function ProfilePage() {
         router.push('/login?auth=true');
     };
 
-    const handleWithdrawClick = () => {
-      toast({
-        title: "Withdrawal Section",
-        description: "भाई, विड्रॉल अभी उपलब्ध नहीं है। गेम खेलकर बैलेंस बढ़ाओ!",
-      });
-    };
-
     if (isUserLoading || isProfileLoading) return <div className="h-screen flex items-center justify-center bg-background"><Loader2 className="animate-spin text-primary h-10 w-10" /></div>;
     
     return (
@@ -170,12 +163,13 @@ export default function ProfilePage() {
                                         <PlusCircle size={18} /> Deposit
                                     </Button>
                                   </Link>
-                                  <Button 
-                                      onClick={handleWithdrawClick}
-                                      className="bg-green-800/40 text-white hover:bg-green-800/60 border border-white/20 rounded-2xl h-14 font-black uppercase text-xs flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all backdrop-blur-sm"
-                                  >
-                                      <ArrowUpRight size={18} /> Withdraw
-                                  </Button>
+                                  <Link href="/withdraw" className="flex-1">
+                                    <Button 
+                                        className="w-full bg-green-800/40 text-white hover:bg-green-800/60 border border-white/20 rounded-2xl h-14 font-black uppercase text-xs flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all backdrop-blur-sm"
+                                    >
+                                        <ArrowUpRight size={18} /> Withdraw
+                                    </Button>
+                                  </Link>
                                 </div>
                            </div>
                         </div>

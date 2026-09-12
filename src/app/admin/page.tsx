@@ -2,19 +2,17 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, collectionGroup, query, orderBy, doc, limit, deleteDoc, updateDoc, serverTimestamp, where, increment, writeBatch } from 'firebase/firestore';
+import { collection, query, orderBy, doc, limit, writeBatch, serverTimestamp, increment } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Trash2, Users, FileVideo, ArrowLeft, Search, ShieldCheck, Loader2, Play, Banknote, Landmark, TrendingUp, Flag, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { ShieldAlert, Users, ArrowLeft, Search, ShieldCheck, Loader2, Play, Banknote, CheckCircle2, XCircle, Clock, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/models/user';
-import type { Post } from '@/models/post';
 import { BottomNav } from "@/components/bottom-nav";
 import { cn } from '@/lib/utils';
-import Link from 'next/link';
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
@@ -24,6 +22,17 @@ interface DepositRequest {
     username: string;
     amount: number;
     utr: string;
+    status: 'pending' | 'approved' | 'rejected';
+    createdAt: any;
+}
+
+interface WithdrawRequest {
+    id: string;
+    userId: string;
+    username: string;
+    holderName: string;
+    amount: number;
+    upiId: string;
     status: 'pending' | 'approved' | 'rejected';
     createdAt: any;
 }
@@ -47,12 +56,17 @@ export default function AdminPage() {
         firestore ? query(collection(firestore, 'deposit_requests'), orderBy('createdAt', 'desc'), limit(50)) : null, 
     [firestore]);
 
+    const withdrawsQuery = useMemoFirebase(() => 
+        firestore ? query(collection(firestore, 'withdraw_requests'), orderBy('createdAt', 'desc'), limit(50)) : null, 
+    [firestore]);
+
     const usersQuery = useMemoFirebase(() => 
         firestore ? query(collection(firestore, 'users'), orderBy('createdAt', 'desc'), limit(100)) : null, 
     [firestore]);
 
-    const { data: deposits, isLoading: isDepositsLoading } = useCollection<DepositRequest>(depositsQuery);
-    const { data: users } = useCollection<UserProfile>(usersQuery);
+    const { data: deposits } = useCollection<DepositRequest>(depositsQuery);
+    const { data: withdraws } = useCollection<WithdrawRequest>(withdrawsQuery);
+    const { data: users } = useCollection<UserProfile & { virtualBalance?: number }>(usersQuery);
 
     const handleApproveDeposit = async (req: DepositRequest) => {
         if (!firestore || !isAdmin) return;
@@ -60,20 +74,30 @@ export default function AdminPage() {
 
         try {
             const batch = writeBatch(firestore);
-            
-            // 1. Update user balance
             const userRef = doc(firestore, 'users', req.userId);
             batch.update(userRef, { 
                 virtualBalance: increment(req.amount),
                 updatedAt: serverTimestamp() 
             });
-
-            // 2. Mark request as approved
             const reqRef = doc(firestore, 'deposit_requests', req.id);
             batch.update(reqRef, { status: 'approved' });
-
             await batch.commit();
-            toast({ title: "Approved! ✅", description: `₹${req.amount} added to @${req.username}` });
+            toast({ title: "Approved! ✅", description: `₹${req.amount} added.` });
+        } catch (e) {
+            toast({ variant: 'destructive', title: "Error" });
+        }
+    };
+
+    const handleApproveWithdraw = async (req: WithdrawRequest) => {
+        if (!firestore || !isAdmin) return;
+        if (!confirm(`Mark ₹${req.amount} as PAID to ${req.holderName}?`)) return;
+
+        try {
+            const reqRef = doc(firestore, 'withdraw_requests', req.id);
+            const batch = writeBatch(firestore);
+            batch.update(reqRef, { status: 'approved' });
+            await batch.commit();
+            toast({ title: "Marked as Paid! 💸" });
         } catch (e) {
             toast({ variant: 'destructive', title: "Error" });
         }
@@ -99,60 +123,58 @@ export default function AdminPage() {
                     <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-xl"><ArrowLeft /></Button>
                     <h1 className="text-2xl font-black flex items-center gap-2 text-primary uppercase italic"><ShieldCheck /> Master Panel</h1>
                 </div>
-                <div className="relative w-full md:w-72">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Search Requests..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 bg-secondary border-none rounded-xl" />
-                </div>
             </header>
 
             <Tabs defaultValue="deposits" className="w-full">
                 <TabsList className="grid w-full grid-cols-3 bg-secondary p-1 rounded-2xl mb-8 h-14">
                     <TabsTrigger value="deposits" className="rounded-xl font-bold text-[10px] uppercase">Deposits</TabsTrigger>
+                    <TabsTrigger value="withdraws" className="rounded-xl font-bold text-[10px] uppercase">Withdrawals</TabsTrigger>
                     <TabsTrigger value="users" className="rounded-xl font-bold text-[10px] uppercase">Users</TabsTrigger>
-                    <TabsTrigger value="payouts" className="rounded-xl font-bold text-[10px] uppercase">Withdrawals</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="deposits">
                     <div className="space-y-4">
-                        {deposits?.length === 0 && <div className="text-center py-20 text-muted-foreground italic">No requests yet.</div>}
                         {deposits?.map(req => (
-                            <div key={req.id} className={cn(
-                                "p-6 rounded-[2rem] border flex items-center justify-between gap-4 transition-all",
-                                req.status === 'approved' ? "bg-green-500/5 border-green-500/20 opacity-60" : "bg-secondary/40 border-border"
-                            )}>
+                            <div key={req.id} className={cn("p-6 rounded-[2rem] border flex items-center justify-between gap-4", req.status === 'approved' ? "bg-green-500/5 opacity-60" : "bg-secondary/40")}>
                                 <div className="flex-1 space-y-1">
-                                    <div className="flex items-center gap-2">
-                                        <p className="text-2xl font-black text-white">₹{req.amount}</p>
-                                        {req.status === 'approved' && <CheckCircle2 size={16} className="text-green-500" />}
-                                    </div>
+                                    <p className="text-2xl font-black text-white">₹{req.amount}</p>
                                     <p className="text-sm font-bold text-primary">@{req.username}</p>
-                                    <div className="flex items-center gap-2 bg-black/20 p-2 rounded-lg mt-2">
-                                        <p className="text-[10px] font-black uppercase text-white/40">UTR:</p>
-                                        <p className="text-xs font-black text-yellow-500 tracking-widest" style={{ fontStyle: 'normal' }}>{req.utr}</p>
-                                    </div>
+                                    <p className="text-[10px] font-black uppercase text-white/40">UTR: {req.utr}</p>
                                 </div>
-                                <div>
-                                    {req.status === 'pending' && (
-                                        <Button 
-                                            onClick={() => handleApproveDeposit(req)}
-                                            className="bg-green-600 hover:bg-green-700 text-white font-black uppercase text-[10px] h-12 px-6 rounded-xl shadow-lg"
-                                        >
-                                            Approve
-                                        </Button>
-                                    )}
-                                    {req.status === 'approved' && (
-                                        <span className="text-[10px] font-black text-green-500 uppercase tracking-widest">Completed</span>
-                                    )}
-                                </div>
+                                {req.status === 'pending' && (
+                                    <Button onClick={() => handleApproveDeposit(req)} className="bg-green-600 text-white font-black uppercase text-[10px] h-10 px-6 rounded-xl">Approve</Button>
+                                )}
                             </div>
                         ))}
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="withdraws">
+                    <div className="space-y-4">
+                        {withdraws?.map(req => (
+                            <div key={req.id} className={cn("p-6 rounded-[2rem] border flex items-center justify-between gap-4", req.status === 'approved' ? "bg-blue-500/5 opacity-60" : "bg-secondary/40")}>
+                                <div className="flex-1 space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-2xl font-black text-red-500">₹{req.amount}</p>
+                                        {req.status === 'approved' && <CheckCircle2 size={16} className="text-blue-500" />}
+                                    </div>
+                                    <p className="text-sm font-bold text-white">{req.holderName}</p>
+                                    <p className="text-[11px] font-black text-primary uppercase tracking-widest">{req.upiId}</p>
+                                    <p className="text-[8px] font-bold text-muted-foreground uppercase">{req.username} | {req.email}</p>
+                                </div>
+                                {req.status === 'pending' && (
+                                    <Button onClick={() => handleApproveWithdraw(req)} className="bg-blue-600 text-white font-black uppercase text-[10px] h-10 px-6 rounded-xl">Mark Paid</Button>
+                                )}
+                            </div>
+                        ))}
+                        {withdraws?.length === 0 && <div className="text-center py-20 text-muted-foreground italic">No withdraw requests.</div>}
                     </div>
                 </TabsContent>
 
                 <TabsContent value="users">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {users?.map(u => (
-                            <div key={u.id} className="flex items-center justify-between p-4 rounded-2xl border bg-secondary/40 border-border">
+                            <div key={u.id} className="flex items-center justify-between p-4 rounded-2xl border bg-secondary/40">
                                 <div className="flex items-center gap-3">
                                     <Avatar className="h-12 w-12 border border-border">
                                         <AvatarImage src={u.profileImageUrl} className="object-cover" />

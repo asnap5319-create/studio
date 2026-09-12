@@ -10,11 +10,13 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/models/user';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 function HomeContent() {
   const { user, isUserLoading } = useUser();
   const { firestore } = useFirebase();
   const { toast } = useToast();
+  const router = useRouter();
   const [isInitializing, setIsInitializing] = useState(false);
   const initRef = useRef(false);
 
@@ -35,7 +37,7 @@ function HomeContent() {
           
           if (snap.exists()) {
             const data = snap.data();
-            if (data && (typeof data.virtualBalance === 'number' || data.walletVersion === 'v28_final')) {
+            if (data && typeof data.virtualBalance === 'number') {
               initRef.current = true;
               return;
             }
@@ -47,7 +49,6 @@ function HomeContent() {
               username: user.displayName || user.email?.split('@')[0] || `user_${user.uid.slice(0, 4)}`,
               email: user.email || '',
               virtualBalance: 28, 
-              walletVersion: 'v28_final',
               updatedAt: serverTimestamp()
           }, { merge: true });
           
@@ -61,13 +62,6 @@ function HomeContent() {
 
     initializeUser();
   }, [user, firestore, isProfileLoading, isInitializing]);
-
-  const handleWithdrawClick = () => {
-    toast({
-      title: "Withdrawal System",
-      description: "भाई, यह अभी उपलब्ध नहीं है। गेम खेलो और बैलेंस बनाओ!",
-    });
-  };
 
   if (isUserLoading || isProfileLoading || isInitializing) {
     return (
@@ -125,12 +119,13 @@ function HomeContent() {
                                 <PlusCircle size={20} /> Deposit
                             </Button>
                          </Link>
-                         <Button 
-                            onClick={handleWithdrawClick}
-                            className="bg-green-800/40 text-white hover:bg-green-800/60 border border-white/20 rounded-2xl h-14 font-black uppercase text-sm flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all backdrop-blur-sm"
-                         >
-                            <ArrowUpRight size={20} /> Withdraw
-                         </Button>
+                         <Link href="/withdraw" className="flex-1">
+                            <Button 
+                                className="w-full bg-green-800/40 text-white hover:bg-green-800/60 border border-white/20 rounded-2xl h-14 font-black uppercase text-sm flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all backdrop-blur-sm"
+                            >
+                                <ArrowUpRight size={20} /> Withdraw
+                            </Button>
+                         </Link>
                       </div>
                    </div>
                 </div>
