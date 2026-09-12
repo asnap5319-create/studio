@@ -27,23 +27,20 @@ function HomeContent() {
   useEffect(() => {
     const initializeUser = async () => {
       if (user && firestore && !isProfileLoading && !isInitializing) {
-        if (!userProfile || userProfile.virtualBalance === undefined) {
+        const uRef = doc(firestore, 'users', user.uid);
+        const snap = await getDoc(uRef);
+        
+        // Strictly only initialize if balance does not exist at all
+        if (!snap.exists() || snap.data()?.virtualBalance === undefined) {
           setIsInitializing(true);
           try {
-            const uRef = doc(firestore, 'users', user.uid);
-            const snap = await getDoc(uRef);
-            
-            if (snap.exists() && typeof snap.data()?.virtualBalance === 'number') {
-                console.log("User already initialized");
-            } else {
-                await setDoc(uRef, {
-                    id: user.uid,
-                    username: user.displayName || user.email?.split('@')[0] || 'user',
-                    email: user.email || '',
-                    virtualBalance: 100,
-                    updatedAt: serverTimestamp()
-                }, { merge: true });
-            }
+            await setDoc(uRef, {
+                id: user.uid,
+                username: user.displayName || user.email?.split('@')[0] || 'user',
+                email: user.email || '',
+                virtualBalance: 100,
+                updatedAt: serverTimestamp()
+            }, { merge: true });
           } catch (err) {
             console.error("Initialization error:", err);
           } finally {
@@ -87,7 +84,6 @@ function HomeContent() {
       <main className="w-full space-y-6 pt-4">
         {user ? (
           <>
-            {/* Full Width Wallet Dashboard */}
             <div className="w-full px-4">
                 <div className="bg-money-pattern p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(22,163,74,0.3)] text-white relative overflow-hidden group">
                    <div className="absolute top-0 right-0 p-6 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-700">
