@@ -192,12 +192,12 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                     batch.update(betRef, { status: 'loss' });
                 }
 
-                // Show popup for BOTH Win and Loss as requested
-                if (!shownPopupPeriodsRef.current.has(bet.period)) {
+                // Show popup ONLY for Loss as requested
+                if (!isWin && !shownPopupPeriodsRef.current.has(bet.period)) {
                     setPopup({ 
                         isOpen: true, 
-                        isWin: isWin, 
-                        amount: winAmt, 
+                        isWin: false, 
+                        amount: 0, 
                         period: bet.period, 
                         result: { num: result.number, color: result.color, size: result.size } 
                     });
@@ -218,16 +218,16 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
   useEffect(() => {
     if (popup.isOpen) {
-      const autoCloseTimeout = setTimeout(() => {
+      const timerId = setTimeout(() => {
         setPopup(prev => ({ ...prev, isOpen: false }));
       }, 3000);
       setPopupTimer(3);
-      const countdownInterval = setInterval(() => {
+      const countdown = setInterval(() => {
         setPopupTimer(prev => Math.max(0, prev - 1));
       }, 1000);
       return () => {
-        clearTimeout(autoCloseTimeout);
-        clearInterval(countdownInterval);
+        clearTimeout(timerId);
+        clearInterval(countdown);
       };
     }
   }, [popup.isOpen]);
@@ -422,7 +422,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </SheetContent>
       </Sheet>
 
-      {/* Result Popup - Now triggers for Win and Loss identically as requested */}
       <Dialog open={popup.isOpen} onOpenChange={(open) => !open && setPopup(prev => ({ ...prev, isOpen: false }))}>
         <DialogContent className={cn("max-w-[300px] p-0 border-none rounded-[2.5rem] overflow-hidden shadow-2xl z-[2000] animate-in zoom-in duration-300", popup.isWin ? "bg-red-600 animate-win-glow" : "bg-blue-600")}>
             <DialogHeader className="sr-only">
