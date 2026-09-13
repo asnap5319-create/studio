@@ -45,13 +45,11 @@ interface PopupData {
     } | null;
 }
 
-// अभिषेक भाई, यह लॉजिक पीरियड आईडी के आधार पर पक्का रिजल्ट निकालता है
 const getJalwaResult = (period: string) => {
   let h = 0;
   for (let i = 0; i < period.length; i++) {
     h = Math.imul(31, h) + period.charCodeAt(i) | 0;
   }
-  
   h ^= h >>> 16;
   h = Math.imul(h, 0x85ebca6b);
   h ^= h >>> 13;
@@ -59,15 +57,12 @@ const getJalwaResult = (period: string) => {
   h ^= h >>> 16;
 
   const num = Math.abs(h % 10);
-  
   let color: 'red' | 'green' | 'violet' | 'red-violet' | 'green-violet' = 'red';
   if (num === 0) color = 'red-violet';
   else if (num === 5) color = 'green-violet';
   else if ([1, 3, 7, 9].includes(num)) color = 'green';
   else color = 'red';
-
   const size = num >= 5 ? 'big' : 'small';
-
   return { num, color, size };
 };
 
@@ -93,7 +88,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   const processedPeriodsRef = useRef<Set<string>>(new Set());
   const shownPopupPeriodsRef = useRef<Set<string>>(new Set());
 
-  // Firestore results for manual overrides if needed
   const resultsQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'game_results'), orderBy('period', 'desc'), limit(60)) : null, 
     [firestore]
@@ -106,21 +100,16 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   );
   const { data: myBets } = useCollection<Bet>(myBetsQuery);
 
-  // अभिषेक भाई, यहाँ हमने ऊपर और नीचे के नंबर्स को एकदम Sync कर दिया है
   const displayResults = useMemo(() => {
     if (!currentPeriod) return [];
-    
     const datePart = currentPeriod.slice(0, 8);
-    const basePart = currentPeriod.slice(8, 13); // "10001"
+    const basePart = currentPeriod.slice(8, 13);
     const currentRoundIndex = parseInt(currentPeriod.slice(-4));
-
     const fullHistory: GameResult[] = [];
-    // करंट पीरियड से ठीक पहले वाले 60 राउंड्स दिखाओ
     for (let i = 1; i <= 60; i++) {
         const roundIdx = currentRoundIndex - i;
         if (roundIdx < 0) continue; 
         const periodId = `${datePart}${basePart}${roundIdx.toString().padStart(4, '0')}`;
-        
         const dbEntry = firestoreResults?.find(r => r.period === periodId);
         if (dbEntry) {
             fullHistory.push(dbEntry);
@@ -140,13 +129,10 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       const seconds = now.getUTCSeconds();
       const remaining = 30 - (seconds % 30);
       setTimeLeft(remaining);
-
       const datePart = format(now, 'yyyyMMdd');
       const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
-      // 30 second round logic
       const roundIndexInDay = (utcMinutes * 2 + Math.floor(seconds / 30));
       const periodId = `${datePart}10001${(roundIndexInDay).toString().padStart(4, '0')}`;
-      
       if (periodId !== currentPeriod) {
         if (currentPeriod && firestore && user) {
             const saveResult = async () => {
@@ -171,24 +157,19 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
   useEffect(() => {
     if (!firestore || !user || !displayResults.length || !myBets) return;
-
     const pendingBets = myBets.filter(b => b.status === 'pending' && !processedBetIdsRef.current.has(b.id));
     if (pendingBets.length === 0) return;
-
     const processSettlement = async () => {
         const batch = writeBatch(firestore);
         let totalWinDelta = 0;
         let updateTriggered = false;
-
         pendingBets.forEach(bet => {
             const result = displayResults.find(r => r.period === bet.period);
             if (result) {
                 processedBetIdsRef.current.add(bet.id);
                 updateTriggered = true;
-                
                 let isWin = false;
                 let mult = 1.99;
-
                 if (bet.selection === 'big') isWin = result.number >= 5;
                 else if (bet.selection === 'small') isWin = result.number < 5;
                 else if (typeof bet.selection === 'number') { isWin = bet.selection === result.number; mult = 9.0; }
@@ -197,7 +178,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                     if (result.color.includes('violet') && (bet.selection === 'red' || bet.selection === 'green')) mult = 1.5;
                     if (bet.selection === 'violet') mult = 4.5;
                 }
-
                 const betRef = doc(firestore, 'users', user.uid, 'game_bets', bet.id);
                 if (isWin) {
                     const winAmt = parseFloat((bet.amount * mult).toFixed(2));
@@ -206,18 +186,15 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                 } else {
                     batch.update(betRef, { status: 'loss' });
                 }
-                
                 if (!shownPopupPeriodsRef.current.has(bet.period)) {
                     setPopup({ 
                         isOpen: true, isWin, amount: isWin ? parseFloat((bet.amount * mult).toFixed(1)) : 0, 
                         period: bet.period, result: { num: result.number, color: result.color, size: result.size } 
                     });
-                    setPopupTimer(3);
                     shownPopupPeriodsRef.current.add(bet.period);
                 }
             }
         });
-
         if (updateTriggered) {
             if (totalWinDelta > 0) {
                 batch.update(doc(firestore, 'users', user.uid), { virtualBalance: increment(totalWinDelta), updatedAt: serverTimestamp() });
@@ -228,14 +205,24 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     processSettlement();
   }, [displayResults, myBets, firestore, user]);
 
+  // मजबूत टाइमर लॉजिक: पॉपअप को 3 सेकंड बाद पक्का बंद करेगा
   useEffect(() => {
-    if (popup.isOpen && popupTimer > 0) {
-      const t = setTimeout(() => setPopupTimer(prev => prev - 1), 1000);
-      return () => clearTimeout(t);
-    } else if (popup.isOpen && popupTimer === 0) {
-      setPopup(prev => ({ ...prev, isOpen: false }));
+    let timer: NodeJS.Timeout;
+    if (popup.isOpen) {
+      setPopupTimer(3);
+      timer = setInterval(() => {
+        setPopupTimer((prev) => {
+          if (prev <= 1) {
+            setPopup((p) => ({ ...p, isOpen: false }));
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
     }
-  }, [popup.isOpen, popupTimer]);
+    return () => clearInterval(timer);
+  }, [popup.isOpen]);
 
   const handleOpenBetPanel = (option: string | number) => {
     if (timeLeft <= 5) { toast({ variant: 'destructive', title: "Round Locked" }); return; }
@@ -245,22 +232,15 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
   const handlePlaceBet = async () => {
     if (!user || !firestore || isBetting || selectedOption === null || !userProfile) return;
-
     if (userProfile.hasDeposited === false) {
-      toast({ 
-        variant: 'destructive', 
-        title: "Bet Locked! 🔒", 
-        description: "बेट लगाने के लिए पहले कम से कम एक बार रिचार्ज (Deposit) करें भाई। ✅" 
-      });
+      toast({ variant: 'destructive', title: "Bet Locked! 🔒", description: "बेट लगाने के लिए पहले कम से कम एक बार रिचार्ज (Deposit) करें भाई। ✅" });
       setIsBetPanelOpen(false);
       return;
     }
-
     const amountNum = parseInt(betAmount);
     if (isNaN(amountNum) || amountNum < 1) { toast({ variant: 'destructive', title: "Invalid Amount" }); return; }
     const finalAmount = amountNum * multiplier;
     if (finalAmount > (userProfile.virtualBalance || 0)) { toast({ variant: 'destructive', title: "Low Balance" }); return; }
-
     setIsBetting(true);
     try {
       const batch = writeBatch(firestore);
@@ -278,7 +258,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
   return (
     <div className="space-y-6 select-none pb-24 w-full px-4">
-      {/* Analysis Card */}
       <div className="bg-secondary/40 border border-white/5 rounded-[2.5rem] p-5 shadow-2xl backdrop-blur-md">
           <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -293,11 +272,9 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                   <span className="text-[8px] font-black uppercase text-white/60">Fair Play</span>
               </div>
           </div>
-
           <div className="grid grid-cols-2 gap-3">
               <div className="bg-background/40 rounded-2xl p-4 border border-white/5 flex flex-col items-center justify-center gap-1 shadow-inner">
                   <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">Period</span>
-                  {/* अभिषेक भाई, यहाँ हम करंट पीरियड को एकदम साफ़ दिखा रहे हैं */}
                   <p className="text-xl font-black text-white" style={{ fontStyle: 'normal' }}>{currentPeriod.slice(-4)}</p>
               </div>
               <div className="bg-primary/10 rounded-2xl p-4 border border-primary/20 flex flex-col items-center justify-center gap-1 shadow-inner">
@@ -312,7 +289,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           </div>
       </div>
 
-      {/* Locked Alert if New User */}
       {userProfile?.hasDeposited === false && (
           <div className="bg-yellow-500/10 border border-yellow-500/30 p-4 rounded-2xl flex items-center gap-3 animate-pulse">
               <Lock className="text-yellow-500 h-5 w-5 shrink-0" />
@@ -322,7 +298,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           </div>
       )}
 
-      {/* Timer Section */}
       <div className="bg-[#f95959] rounded-[2.5rem] p-6 text-white flex justify-between items-center shadow-xl relative overflow-hidden">
         <div className="space-y-3 z-10">
             <div className="flex items-center gap-1.5"><Zap size={14} className="fill-white" /><p className="text-[9px] font-black uppercase tracking-[0.2em]">WinGo 30S</p></div>
@@ -346,7 +321,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </div>
       </div>
 
-      {/* Main Game Interface */}
       <div className="bg-secondary/40 rounded-[3rem] p-6 shadow-2xl border border-white/5 space-y-6 backdrop-blur-xl">
           <div className="grid grid-cols-3 gap-3">
               <Button onClick={() => handleOpenBetPanel('green')} className="bg-green-500 hover:bg-green-600 h-14 rounded-2xl font-black uppercase text-xs shadow-lg">Green</Button>
@@ -371,7 +345,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           </div>
       </div>
 
-      {/* History Tabs */}
       <div className="bg-secondary/40 rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/5">
         <Tabs defaultValue="results" className="w-full">
             <TabsList className="grid w-full grid-cols-2 bg-background/50 p-1 h-12 rounded-none border-b border-white/5">
@@ -433,7 +406,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </Tabs>
       </div>
 
-      {/* BET PANEL */}
       <Sheet open={isBetPanelOpen} onOpenChange={setIsBetPanelOpen}>
         <SheetContent side="bottom" className="h-[75vh] bg-background border-white/5 rounded-t-[2.5rem] p-0 overflow-hidden z-[1000] text-white outline-none">
            <SheetHeader className="p-6 pb-2 flex flex-row items-center justify-between border-b border-white/5">
@@ -442,99 +414,42 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                     <X size={20} />
                 </button>
            </SheetHeader>
-           
            <div className="p-6 space-y-6 overflow-y-auto h-full pb-24 scrollbar-hide">
-              {/* Choice & Balance Hero */}
               <div className="bg-secondary/60 p-6 rounded-3xl flex items-center justify-between border border-white/5 shadow-2xl relative overflow-hidden group">
                   <div className="space-y-1 relative z-10">
                       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">CHOICE</p>
-                      <h4 className={cn(
-                          "text-5xl font-black uppercase",
-                          typeof selectedOption === 'string' && selectedOption === 'big' ? "text-orange-400" :
-                          typeof selectedOption === 'string' && selectedOption === 'small' ? "text-blue-400" : "text-primary"
-                      )} style={{ fontStyle: 'normal' }}>
-                          {selectedOption}
-                      </h4>
+                      <h4 className={cn("text-5xl font-black uppercase", typeof selectedOption === 'string' && selectedOption === 'big' ? "text-orange-400" : typeof selectedOption === 'string' && selectedOption === 'small' ? "text-blue-400" : "text-primary")} style={{ fontStyle: 'normal' }}>{selectedOption}</h4>
                   </div>
                   <div className="text-right space-y-1 relative z-10">
                       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">BALANCE</p>
                       <p className="text-2xl font-black text-white" style={{ fontStyle: 'normal' }}>₹{userProfile?.virtualBalance?.toFixed(1) || '0.0'}</p>
                   </div>
               </div>
-
-              {/* Preset Amounts Grid */}
               <div className="grid grid-cols-4 gap-2">
                   {[10, 50, 100, 500].map(amt => (
-                      <button 
-                        key={amt} 
-                        onClick={() => setBetAmount(amt.toString())} 
-                        className={cn(
-                            "h-12 rounded-xl text-xs font-black uppercase border-2 transition-all active:scale-90", 
-                            betAmount === amt.toString() ? "bg-primary text-white border-primary" : "bg-white/5 text-white/60 border-transparent"
-                        )}
-                      >
-                        ₹{amt}
-                      </button>
+                      <button key={amt} onClick={() => setBetAmount(amt.toString())} className={cn("h-12 rounded-xl text-xs font-black uppercase border-2 transition-all active:scale-90", betAmount === amt.toString() ? "bg-primary text-white border-primary" : "bg-white/5 text-white/60 border-transparent")}>₹{amt}</button>
                   ))}
               </div>
-
-              {/* Custom Input */}
               <div className="space-y-2">
                   <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 ml-2">CUSTOM AMOUNT</p>
-                  <div className="relative">
-                      <Input 
-                        type="number" 
-                        placeholder="Amount..." 
-                        value={betAmount} 
-                        onChange={(e) => setBetAmount(e.target.value)} 
-                        className="h-16 bg-white/5 border-white/10 rounded-2xl text-2xl font-black px-6 text-white focus:ring-primary" 
-                        style={{ fontStyle: 'normal' }} 
-                      />
-                  </div>
+                  <Input type="number" placeholder="Amount..." value={betAmount} onChange={(e) => setBetAmount(e.target.value)} className="h-16 bg-white/5 border-white/10 rounded-2xl text-2xl font-black px-6 text-white focus:ring-primary" style={{ fontStyle: 'normal' }} />
               </div>
-
-              {/* Final Summary Card */}
               <div className="bg-primary/10 p-5 rounded-2xl flex justify-between items-center border border-primary/20 shadow-inner">
                   <p className="text-[10px] font-black uppercase tracking-widest text-primary">TOTAL PAY:</p>
                   <p className="text-4xl font-black text-primary" style={{ fontStyle: 'normal' }}>₹{(parseInt(betAmount) || 0) * multiplier}</p>
               </div>
-
-              {/* Confirm Button */}
-              <Button 
-                onClick={handlePlaceBet} 
-                disabled={isBetting} 
-                className="w-full h-16 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-2xl shadow-xl flex items-center justify-center gap-3 text-lg active:scale-95 transition-all mb-6"
-              >
-                  {isBetting ? (
-                    <div className="flex items-center gap-2">
-                        <Loader2 className="animate-spin h-6 w-6" />
-                        <span>BETTING...</span>
-                    </div>
-                  ) : (
-                    <><CheckCircle2 size={24} /> CONFIRM BET</>
-                  )}
+              <Button onClick={handlePlaceBet} disabled={isBetting} className="w-full h-16 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-2xl shadow-xl flex items-center justify-center gap-3 text-lg active:scale-95 transition-all mb-6">
+                  {isBetting ? <div className="flex items-center gap-2"><Loader2 className="animate-spin h-6 w-6" /><span>BETTING...</span></div> : <><CheckCircle2 size={24} /> CONFIRM BET</>}
               </Button>
            </div>
         </SheetContent>
       </Sheet>
 
-      {/* Win/Loss Popup Dialog */}
       <Dialog open={popup.isOpen} onOpenChange={(open) => !open && setPopup(prev => ({ ...prev, isOpen: false }))}>
-        <DialogContent className={cn(
-            "max-w-[300px] p-0 border-none rounded-[2.5rem] overflow-hidden shadow-2xl z-[2000] animate-in zoom-in duration-300", 
-            popup.isWin ? "bg-red-600 animate-win-glow" : "bg-blue-600"
-        )}>
-            {/* Shimmer Effect for Win */}
+        <DialogContent className={cn("max-w-[300px] p-0 border-none rounded-[2.5rem] overflow-hidden shadow-2xl z-[2000] animate-in zoom-in duration-300", popup.isWin ? "bg-red-600 animate-win-glow" : "bg-blue-600")}>
             {popup.isWin && <div className="absolute inset-0 animate-shimmer-overlay pointer-events-none z-0" />}
-
             <div className="relative p-8 flex flex-col items-center text-center text-white space-y-6 z-10">
-                <button 
-                  onClick={() => setPopup(prev => ({ ...prev, isOpen: false }))} 
-                  className="absolute top-4 right-4 p-1.5 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
-                >
-                  <X size={16} />
-                </button>
-
+                <button onClick={() => setPopup(prev => ({ ...prev, isOpen: false }))} className="absolute top-4 right-4 p-1.5 bg-white/10 rounded-full hover:bg-white/20 transition-colors"><X size={16} /></button>
                 <div className={cn("w-20 h-20 rounded-full flex items-center justify-center shadow-2xl", popup.isWin ? "bg-yellow-400 text-red-900" : "bg-white/10 text-white")}>
                     {popup.isWin ? <Trophy size={40} /> : <Frown size={40} />}
                 </div>
