@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/models/user';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Logo } from '@/components/pwa-install-prompt';
 
 function HomeContent() {
   const { user, isUserLoading } = useUser();
@@ -75,7 +76,9 @@ function HomeContent() {
     <div className="min-h-screen bg-background pb-20 w-full max-w-none text-foreground">
       <header className="p-4 bg-background/80 sticky top-0 z-50 flex items-center justify-between border-b border-white/5 backdrop-blur-xl">
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center font-black text-white shadow-[0_5px_15px_rgba(255,51,102,0.3)] text-xl">A</div>
+          <div className="w-10 h-10 rounded-xl overflow-hidden shadow-[0_5px_15px_rgba(255,51,102,0.3)]">
+             <Logo className="w-full h-full" />
+          </div>
           <h1 className="text-2xl font-black tracking-tight uppercase italic text-white drop-shadow-md">WinGo</h1>
         </div>
         <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
@@ -137,10 +140,13 @@ function HomeContent() {
           </>
         ) : (
           <div className="flex flex-col items-center justify-center h-[70vh] text-center gap-6 px-8">
-             <div className="relative">
-                <div className="absolute inset-0 bg-green-500/20 blur-3xl rounded-full animate-pulse" />
-                <div className="w-32 h-28 bg-money-pattern rounded-[2.5rem] flex items-center justify-center relative z-10 shadow-2xl border-4 border-white/10">
-                    <span className="text-6xl text-white font-black">A</span>
+             <div className="relative animate-float">
+                <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse" />
+                <div className="w-32 h-32 rounded-[2.5rem] flex items-center justify-center relative z-10 shadow-2xl overflow-hidden border-2 border-white/10">
+                    <Logo className="w-full h-full scale-110" />
+                </div>
+                <div className="absolute -top-4 -right-4 text-yellow-400 animate-pulse">
+                   <Sparkles size={24} />
                 </div>
              </div>
              

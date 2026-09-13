@@ -30,8 +30,9 @@ function SplashScreen() {
 
   return (
     <div className="fixed inset-0 z-[9999] bg-[#0a0a0a] flex flex-col items-center justify-center animate-in fade-in duration-300">
-        <div className="relative w-28 h-28 bg-[#16a34a] bg-money-pattern rounded-[2.5rem] flex items-center justify-center border border-white/10 shadow-[0_0_50px_rgba(22,163,74,0.2)] overflow-hidden scale-110 mb-8">
-            <Logo className="w-18 h-18 drop-shadow-2xl" />
+        <div className="relative w-32 h-32 rounded-[2.5rem] flex items-center justify-center shadow-[0_0_50px_rgba(255,51,102,0.2)] overflow-hidden scale-110 mb-8 animate-float">
+            <Logo className="w-full h-full drop-shadow-2xl" />
+            <div className="absolute inset-0 border-2 border-white/10 rounded-[2.5rem] pointer-events-none" />
         </div>
         
         <div className="mt-4">

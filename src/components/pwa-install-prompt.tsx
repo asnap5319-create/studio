@@ -6,20 +6,32 @@ import { Download, X, Sparkles } from 'lucide-react';
 
 /**
  * The official high-quality logo component for A.snap.
- * Features a Pink 'A' on a transparent path, designed to sit on green background.
+ * अभिषेक भाई, अब यह 'A' नहीं बल्कि '0' नंबर वाली गेंद है।
  */
 export function Logo({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-      <path 
-        d="M150 400 L256 100 L362 400 M210 320 L302 320" 
-        stroke="#ff3366" 
-        strokeWidth="64" 
-        fill="none" 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-      />
-      <circle cx="390" cy="120" r="42" fill="#ff3366" />
+      <defs>
+        <linearGradient id="ballGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#a78bfa" />
+          <stop offset="100%" stopColor="#f87171" />
+        </linearGradient>
+      </defs>
+      <circle cx="256" cy="256" r="240" fill="url(#ballGradient)" />
+      <circle cx="256" cy="256" r="230" stroke="white" strokeWidth="10" strokeOpacity="0.2" />
+      <text 
+        x="50%" 
+        y="50%" 
+        dominantBaseline="central" 
+        textAnchor="middle" 
+        fill="white" 
+        fontSize="280" 
+        fontWeight="900"
+        fontFamily="Arial, sans-serif"
+        style={{ filter: 'drop-shadow(0px 10px 20px rgba(0,0,0,0.5))' }}
+      >
+        0
+      </text>
     </svg>
   );
 }

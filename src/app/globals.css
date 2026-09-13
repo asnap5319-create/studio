@@ -80,6 +80,16 @@
     -webkit-text-fill-color: transparent;
     animation: shimmer 2.5s linear infinite;
   }
+
+  /* Floating Animation - अभिषेक भाई, यह गेंद को तैराएगा */
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
+  }
 }
 
 @keyframes shimmer {
