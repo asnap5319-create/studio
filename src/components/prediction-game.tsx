@@ -183,25 +183,24 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                 }
 
                 const betRef = doc(firestore, 'users', user.uid, 'game_bets', bet.id);
+                const winAmt = isWin ? parseFloat((bet.amount * mult).toFixed(2)) : 0;
+                
                 if (isWin) {
-                    const winAmt = parseFloat((bet.amount * mult).toFixed(2));
                     totalWinDelta += winAmt;
                     batch.update(betRef, { status: 'win', winAmount: winAmt });
                 } else {
                     batch.update(betRef, { status: 'loss' });
                 }
 
-                // Show popup ONLY for LOSS as per user's latest request
+                // Show popup for BOTH Win and Loss as requested
                 if (!shownPopupPeriodsRef.current.has(bet.period)) {
-                    if (!isWin) {
-                        setPopup({ 
-                            isOpen: true, 
-                            isWin: false, 
-                            amount: 0, 
-                            period: bet.period, 
-                            result: { num: result.number, color: result.color, size: result.size } 
-                        });
-                    }
+                    setPopup({ 
+                        isOpen: true, 
+                        isWin: isWin, 
+                        amount: winAmt, 
+                        period: bet.period, 
+                        result: { num: result.number, color: result.color, size: result.size } 
+                    });
                     shownPopupPeriodsRef.current.add(bet.period);
                 }
             }
@@ -423,7 +422,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </SheetContent>
       </Sheet>
 
-      {/* Result Popup - Only triggers on Loss as requested */}
+      {/* Result Popup - Now triggers for Win and Loss identically as requested */}
       <Dialog open={popup.isOpen} onOpenChange={(open) => !open && setPopup(prev => ({ ...prev, isOpen: false }))}>
         <DialogContent className={cn("max-w-[300px] p-0 border-none rounded-[2.5rem] overflow-hidden shadow-2xl z-[2000] animate-in zoom-in duration-300", popup.isWin ? "bg-red-600 animate-win-glow" : "bg-blue-600")}>
             <DialogHeader className="sr-only">
