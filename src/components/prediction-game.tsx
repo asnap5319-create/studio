@@ -279,11 +279,11 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                   <div className="h-10 w-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary"><BarChart3 size={20} /></div>
                   <div>
                       <h3 className="font-black uppercase text-lg tracking-tight text-white">Analysis</h3>
-                      <p className="text-[8px] font-black text-green-500 uppercase tracking-[0.2em]">Independent</p>
+                      <p className="text-[8px] font-black text-blue-500 uppercase tracking-[0.2em]">Independent</p>
                   </div>
               </div>
               <div className="bg-white/5 px-3 py-1 rounded-full border border-white/10 flex items-center gap-1.5">
-                  <div className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse" />
+                  <div className="h-1.5 w-1.5 bg-blue-500 rounded-full animate-pulse" />
                   <span className="text-[8px] font-black uppercase text-white/60">Fair Play</span>
               </div>
           </div>
@@ -511,11 +511,11 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </SheetContent>
       </Sheet>
 
-      {/* Win/Loss Popup Dialog - अभिषेक भाई, यहाँ विन-रेड (लाल) और लॉस-ग्रीन (हरा) सेट किया है */}
+      {/* Win/Loss Popup Dialog - अभिषेक भाई, यहाँ विन-रेड (लाल) और लॉस-नीला कर दिया है */}
       <Dialog open={popup.isOpen} onOpenChange={(open) => !open && setPopup(prev => ({ ...prev, isOpen: false }))}>
         <DialogContent className={cn(
             "max-w-[300px] p-0 border-none rounded-[2.5rem] overflow-hidden shadow-2xl z-[2000] animate-in zoom-in duration-300", 
-            popup.isWin ? "bg-red-600 animate-win-glow" : "bg-green-700"
+            popup.isWin ? "bg-red-600 animate-win-glow" : "bg-blue-600"
         )}>
             <div className="relative p-8 flex flex-col items-center text-center text-white space-y-6">
                 <div className={cn("w-20 h-20 rounded-full flex items-center justify-center shadow-2xl", popup.isWin ? "bg-yellow-400 text-red-900" : "bg-white/10 text-white")}>
@@ -535,7 +535,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                 {popup.isWin && (
                     <div className="space-y-1">
                         <p className="text-[9px] font-black uppercase tracking-widest text-yellow-400">Winning</p>
-                        <div className="flex items-center justify-center gap-1.5"><Coins size={16} className="text-yellow-400" /><h3 className="text-4xl font-black" style={{ fontStyle: 'normal' }}>₹{popup.amount?.toFixed(1)}</h3></div>
+                        <div className="flex items-center justify-center gap-1.5"><Coins size={16} className="text-yellow-400" /><h3 className="text-4xl font-black" style={{ fontStyle: 'normal' }}>₹{popup.amount?.toFixed(1) || '0.0'}</h3></div>
                     </div>
                 )}
                 <div className="w-full pt-2">

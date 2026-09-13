@@ -106,7 +106,7 @@ function HomeContent() {
                             </p>
                             <div className="flex items-baseline gap-1.5">
                                <span className="text-2xl font-black text-white/80">₹</span>
-                               <h2 className="text-5xl font-black tracking-tighter drop-shadow-2xl" style={{ fontStyle: 'normal' }}>
+                               <h2 className="text-4xl font-black tracking-tighter drop-shadow-2xl" style={{ fontStyle: 'normal' }}>
                                   {userProfile?.virtualBalance?.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) || '0.0'}
                                </h2>
                             </div>
@@ -119,14 +119,14 @@ function HomeContent() {
                       <div className="grid grid-cols-2 gap-3">
                          <Link href="/deposit" className="flex-1">
                             <Button 
-                                className="w-full bg-white text-green-700 hover:bg-white/90 rounded-2xl h-14 font-black uppercase text-sm flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all"
+                                className="w-full bg-white text-blue-700 hover:bg-white/90 rounded-2xl h-14 font-black uppercase text-sm flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all"
                             >
                                 <PlusCircle size={20} /> Deposit
                             </Button>
                          </Link>
                          <Link href="/withdraw" className="flex-1">
                             <Button 
-                                className="w-full bg-green-800/40 text-white hover:bg-green-800/60 border border-white/20 rounded-2xl h-14 font-black uppercase text-sm flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all backdrop-blur-sm"
+                                className="w-full bg-blue-800/40 text-white hover:bg-blue-800/60 border border-white/20 rounded-2xl h-14 font-black uppercase text-sm flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all backdrop-blur-sm"
                             >
                                 <ArrowUpRight size={20} /> Withdraw
                             </Button>

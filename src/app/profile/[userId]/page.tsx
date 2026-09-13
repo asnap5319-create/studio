@@ -138,7 +138,7 @@ export default function ProfilePage() {
                                     </p>
                                     <div className="flex items-baseline gap-1.5">
                                       <span className="text-2xl font-black text-white/80">₹</span>
-                                      <h2 className="text-6xl font-black tracking-tighter drop-shadow-2xl" style={{ fontStyle: 'normal' }}>
+                                      <h2 className="text-5xl font-black tracking-tighter drop-shadow-2xl" style={{ fontStyle: 'normal' }}>
                                           {userProfile?.virtualBalance?.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) || '0.0'}
                                       </h2>
                                     </div>
@@ -147,14 +147,14 @@ export default function ProfilePage() {
                                 <div className="grid grid-cols-2 gap-3">
                                   <Link href="/deposit" className="flex-1">
                                     <Button 
-                                        className="w-full bg-white text-green-700 hover:bg-white/90 rounded-2xl h-14 font-black uppercase text-xs flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all"
+                                        className="w-full bg-white text-blue-700 hover:bg-white/90 rounded-2xl h-14 font-black uppercase text-xs flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all"
                                     >
                                         <PlusCircle size={18} /> Deposit
                                     </Button>
                                   </Link>
                                   <Link href="/withdraw" className="flex-1">
                                     <Button 
-                                        className="w-full bg-green-800/40 text-white hover:bg-green-800/60 border border-white/20 rounded-2xl h-14 font-black uppercase text-xs flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all backdrop-blur-sm"
+                                        className="w-full bg-blue-800/40 text-white hover:bg-blue-800/60 border border-white/20 rounded-2xl h-14 font-black uppercase text-xs flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all backdrop-blur-sm"
                                     >
                                         <ArrowUpRight size={18} /> Withdraw
                                     </Button>
@@ -171,7 +171,7 @@ export default function ProfilePage() {
                         onClick={() => setHistoryType('deposit')}
                         className="bg-secondary/30 p-5 rounded-[2rem] border border-border flex flex-col items-center text-center gap-2 hover:bg-secondary/50 transition-all active:scale-95"
                     >
-                        <div className="p-2 bg-green-500/10 rounded-xl text-green-500"><History size={20} /></div>
+                        <div className="p-2 bg-blue-500/10 rounded-xl text-blue-500"><History size={20} /></div>
                         <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Deposit History</p>
                     </button>
                     <button 
@@ -262,7 +262,7 @@ export default function ProfilePage() {
                                         </div>
                                         <div className={cn(
                                             "flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] font-black uppercase shadow-lg",
-                                            d.status === 'approved' ? "bg-green-500/10 text-green-500 border border-green-500/20" : 
+                                            d.status === 'approved' ? "bg-blue-500/10 text-blue-500 border border-blue-500/20" : 
                                             d.status === 'rejected' ? "bg-red-500/10 text-red-500 border border-red-500/20" :
                                             "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20"
                                         )}>
