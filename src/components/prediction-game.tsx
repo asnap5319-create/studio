@@ -45,6 +45,7 @@ interface PopupData {
     } | null;
 }
 
+// अभिषेक भाई, यह लॉजिक पीरियड आईडी के आधार पर पक्का रिजल्ट निकालता है
 const getJalwaResult = (period: string) => {
   let h = 0;
   for (let i = 0; i < period.length; i++) {
@@ -92,6 +93,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   const processedPeriodsRef = useRef<Set<string>>(new Set());
   const shownPopupPeriodsRef = useRef<Set<string>>(new Set());
 
+  // Firestore results for manual overrides if needed
   const resultsQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'game_results'), orderBy('period', 'desc'), limit(60)) : null, 
     [firestore]
@@ -104,18 +106,21 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   );
   const { data: myBets } = useCollection<Bet>(myBetsQuery);
 
+  // अभिषेक भाई, यहाँ हमने ऊपर और नीचे के नंबर्स को एकदम Sync कर दिया है
   const displayResults = useMemo(() => {
-    const now = new Date();
-    const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
-    const currentSeconds = now.getUTCSeconds();
-    const currentRoundIndex = (utcMinutes * 2 + Math.floor(currentSeconds / 30));
-    const datePart = format(now, 'yyyyMMdd');
+    if (!currentPeriod) return [];
+    
+    const datePart = currentPeriod.slice(0, 8);
+    const basePart = currentPeriod.slice(8, 13); // "10001"
+    const currentRoundIndex = parseInt(currentPeriod.slice(-4));
 
     const fullHistory: GameResult[] = [];
+    // करंट पीरियड से ठीक पहले वाले 60 राउंड्स दिखाओ
     for (let i = 1; i <= 60; i++) {
         const roundIdx = currentRoundIndex - i;
         if (roundIdx < 0) continue; 
-        const periodId = `${datePart}10001${(roundIdx).toString().padStart(4, '0')}`;
+        const periodId = `${datePart}${basePart}${roundIdx.toString().padStart(4, '0')}`;
+        
         const dbEntry = firestoreResults?.find(r => r.period === periodId);
         if (dbEntry) {
             fullHistory.push(dbEntry);
@@ -138,6 +143,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
       const datePart = format(now, 'yyyyMMdd');
       const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+      // 30 second round logic
       const roundIndexInDay = (utcMinutes * 2 + Math.floor(seconds / 30));
       const periodId = `${datePart}10001${(roundIndexInDay).toString().padStart(4, '0')}`;
       
@@ -206,7 +212,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                         isOpen: true, isWin, amount: isWin ? parseFloat((bet.amount * mult).toFixed(1)) : 0, 
                         period: bet.period, result: { num: result.number, color: result.color, size: result.size } 
                     });
-                    setPopupTimer(3); // अभिषेक भाई, यहाँ टाइमर को 3 सेकंड पर सेट किया है
+                    setPopupTimer(3);
                     shownPopupPeriodsRef.current.add(bet.period);
                 }
             }
@@ -291,6 +297,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           <div className="grid grid-cols-2 gap-3">
               <div className="bg-background/40 rounded-2xl p-4 border border-white/5 flex flex-col items-center justify-center gap-1 shadow-inner">
                   <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">Period</span>
+                  {/* अभिषेक भाई, यहाँ हम करंट पीरियड को एकदम साफ़ दिखा रहे हैं */}
                   <p className="text-xl font-black text-white" style={{ fontStyle: 'normal' }}>{currentPeriod.slice(-4)}</p>
               </div>
               <div className="bg-primary/10 rounded-2xl p-4 border border-primary/20 flex flex-col items-center justify-center gap-1 shadow-inner">
@@ -511,7 +518,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </SheetContent>
       </Sheet>
 
-      {/* Win/Loss Popup Dialog - अभिषेक भाई, यहाँ विन-रेड (लाल) और लॉस-नीला कर दिया है */}
+      {/* Win/Loss Popup Dialog */}
       <Dialog open={popup.isOpen} onOpenChange={(open) => !open && setPopup(prev => ({ ...prev, isOpen: false }))}>
         <DialogContent className={cn(
             "max-w-[300px] p-0 border-none rounded-[2.5rem] overflow-hidden shadow-2xl z-[2000] animate-in zoom-in duration-300", 
@@ -521,7 +528,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             {popup.isWin && <div className="absolute inset-0 animate-shimmer-overlay pointer-events-none z-0" />}
 
             <div className="relative p-8 flex flex-col items-center text-center text-white space-y-6 z-10">
-                {/* Manual Close Button */}
                 <button 
                   onClick={() => setPopup(prev => ({ ...prev, isOpen: false }))} 
                   className="absolute top-4 right-4 p-1.5 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
