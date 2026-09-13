@@ -205,20 +205,15 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     processSettlement();
   }, [displayResults, myBets, firestore, user]);
 
-  // Robust Auto-close Logic for Popup
   useEffect(() => {
     if (popup.isOpen) {
-      // Step 1: Set a reliable 3-second auto-close
       const autoCloseTimeout = setTimeout(() => {
         setPopup(prev => ({ ...prev, isOpen: false }));
       }, 3000);
-
-      // Step 2: Handle the visual countdown separately
       setPopupTimer(3);
       const countdownInterval = setInterval(() => {
         setPopupTimer(prev => Math.max(0, prev - 1));
       }, 1000);
-
       return () => {
         clearTimeout(autoCloseTimeout);
         clearInterval(countdownInterval);
@@ -418,6 +413,9 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
       <Dialog open={popup.isOpen} onOpenChange={(open) => !open && setPopup(prev => ({ ...prev, isOpen: false }))}>
         <DialogContent className={cn("max-w-[300px] p-0 border-none rounded-[2.5rem] overflow-hidden shadow-2xl z-[2000] animate-in zoom-in duration-300", popup.isWin ? "bg-red-600 animate-win-glow" : "bg-blue-600")}>
+            <DialogHeader className="sr-only">
+                <DialogTitle>Game Result</DialogTitle>
+            </DialogHeader>
             {popup.isWin && <div className="absolute inset-0 animate-shimmer-overlay pointer-events-none z-0" />}
             <div className="relative p-8 flex flex-col items-center text-center text-white space-y-6 z-10">
                 <button onClick={() => setPopup(prev => ({ ...prev, isOpen: false }))} className="absolute top-4 right-4 p-1.5 bg-white/10 rounded-full hover:bg-white/20 transition-colors"><X size={16} /></button>
