@@ -158,11 +158,12 @@ function HomeContent() {
                </div>
              </div>
 
-             <a href="/login?auth=true" className="w-full max-w-[280px] mt-4">
+             {/* Updated Link to /signup as requested */}
+             <Link href="/signup" className="w-full max-w-[280px] mt-4">
                 <button className="w-full bg-primary h-16 rounded-2xl text-white font-black uppercase text-lg shadow-[0_15px_40px_rgba(255,51,102,0.4)] active:scale-95 transition-all hover:bg-primary/90 flex items-center justify-center gap-3">
                    GET STARTED <ArrowUpRight size={20} />
                 </button>
-             </a>
+             </Link>
 
              <p className="text-[9px] text-white/40 font-bold uppercase tracking-widest opacity-60">
                 Premium Virtual Gaming Protocol

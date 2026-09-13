@@ -5,11 +5,26 @@ import { Input } from "@/components/ui/input";
 import { useFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { doc, serverTimestamp, setDoc, getDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword, UserCredential, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { Camera, Loader2, ShieldCheck } from "lucide-react";
+import { Camera, Loader2, ShieldCheck, Zap } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, ChangeEvent } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+
+/**
+ * Game Balls Decoration Component
+ */
+function GameBallsHeader() {
+    return (
+        <div className="flex gap-2 justify-center mb-4">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-red-500 border border-white/20 flex items-center justify-center text-[10px] font-black text-white shadow-lg">0</div>
+            <div className="w-8 h-8 rounded-full bg-green-500 border border-white/20 flex items-center justify-center text-[10px] font-black text-white shadow-lg">7</div>
+            <div className="w-8 h-8 rounded-full bg-red-500 border border-white/20 flex items-center justify-center text-[10px] font-black text-white shadow-lg">8</div>
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-green-500 border border-white/20 flex items-center justify-center text-[10px] font-black text-white shadow-lg">5</div>
+        </div>
+    );
+}
 
 export default function SignupPage() {
   const [name, setName] = useState('');
@@ -20,7 +35,7 @@ export default function SignupPage() {
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [statusMessage, setStatusMessage] = useState('Sign Up');
+  const [statusMessage, setStatusMessage] = useState('Create Account');
 
   const router = useRouter();
   const { auth, firestore } = useFirebase();
@@ -105,7 +120,7 @@ export default function SignupPage() {
       }
       toast({ title: "Signup Failed", description: errorMessage, variant: "destructive" });
       setIsLoading(false);
-      setStatusMessage('Sign Up');
+      setStatusMessage('Create Account');
       return;
     }
 
@@ -132,7 +147,7 @@ export default function SignupPage() {
         console.error('Cloudinary upload error:', uploadError);
         toast({ title: "Signup Failed", description: `Photo upload failed: ${uploadError.message}. Profile not saved.`, variant: "destructive" });
         setIsLoading(false);
-        setStatusMessage('Sign Up');
+        setStatusMessage('Create Account');
         return;
       }
     }
@@ -166,18 +181,23 @@ export default function SignupPage() {
         
         toast({ title: "Signup Failed", description: "Failed to save profile due to a database error.", variant: "destructive" });
         setIsLoading(false);
-        setStatusMessage('Sign Up');
+        setStatusMessage('Create Account');
       });
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-      <div className="w-full max-w-sm space-y-4 text-center">
-        <h1 className="text-5xl font-black italic text-primary [filter:drop-shadow(0_0_4px_rgba(255,51,102,0.2))]">
-          Join A.snap
-        </h1>
-        <p className="text-muted-foreground font-medium uppercase text-[10px] tracking-[0.3em]">Premium Visual Sharing</p>
-        
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4 overflow-y-auto scrollbar-hide">
+      <div className="w-full max-w-sm space-y-6 text-center py-8">
+        <div className="space-y-2">
+            <GameBallsHeader />
+            <h1 className="text-6xl font-black italic animate-shimmer-text tracking-tighter drop-shadow-[0_0_20px_rgba(255,51,102,0.4)]">
+                WinGo
+            </h1>
+            <div className="flex items-center justify-center gap-2 text-primary font-black uppercase tracking-[0.3em] text-[10px] bg-primary/10 py-2 rounded-xl border border-primary/20">
+                <Zap size={14} className="fill-primary" /> FAST WITHDRAWAL
+            </div>
+        </div>
+
         <div className="pt-4 space-y-4">
           <Button 
             variant="outline" 
@@ -205,7 +225,7 @@ export default function SignupPage() {
               <span className="w-full border-t border-border"></span>
             </div>
             <div className="relative flex justify-center text-[10px] uppercase">
-              <span className="bg-background px-4 text-muted-foreground font-bold tracking-widest">or email signup</span>
+              <span className="bg-background px-4 text-muted-foreground font-bold tracking-widest">or create account</span>
             </div>
           </div>
         </div>
@@ -213,10 +233,10 @@ export default function SignupPage() {
         <div className="flex justify-center">
             <div className="relative">
                 <label htmlFor="photo-upload" className="cursor-pointer">
-                    <Avatar className="h-24 w-24 border-2 border-dashed border-primary/50 hover:border-primary transition-colors">
+                    <Avatar className="h-24 w-24 border-2 border-dashed border-primary/50 hover:border-primary transition-colors bg-secondary/20">
                         <AvatarImage src={imagePreviewUrl} className="object-cover" />
-                        <AvatarFallback className="bg-secondary/50">
-                            <Camera className="h-8 w-8 text-primary" />
+                        <AvatarFallback className="bg-transparent">
+                            <Camera className="h-8 w-8 text-primary opacity-50" />
                         </AvatarFallback>
                     </Avatar>
                 </label>
@@ -227,8 +247,8 @@ export default function SignupPage() {
         <form onSubmit={handleSignup} className="w-full space-y-3">
           <Input 
             type="email" 
-            placeholder="Email" 
-            className="h-12 bg-secondary/10 border-border rounded-xl" 
+            placeholder="Email Address" 
+            className="h-12 bg-secondary/30 border-white/5 rounded-xl px-4" 
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -237,7 +257,7 @@ export default function SignupPage() {
           <Input 
             type="password" 
             placeholder="Password (min. 6 characters)" 
-            className="h-12 bg-secondary/10 border-border rounded-xl" 
+            className="h-12 bg-secondary/30 border-white/5 rounded-xl px-4" 
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -246,7 +266,7 @@ export default function SignupPage() {
           <Input 
             type="text" 
             placeholder="Full Name" 
-            className="h-12 bg-secondary/10 border-border rounded-xl" 
+            className="h-12 bg-secondary/30 border-white/5 rounded-xl px-4" 
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
@@ -254,29 +274,29 @@ export default function SignupPage() {
             />
           <Input 
             type="text" 
-            placeholder="Username" 
-            className="h-12 bg-secondary/10 border-border rounded-xl" 
+            placeholder="Choose Username" 
+            className="h-12 bg-secondary/30 border-white/5 rounded-xl px-4" 
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
             disabled={isLoading || isGoogleLoading}
           />
-          <Button type="submit" className="w-full h-14 text-lg font-black uppercase rounded-2xl bg-primary text-white shadow-lg shadow-primary/20" disabled={isLoading || isGoogleLoading}>
+          <Button type="submit" className="w-full h-14 text-lg font-black uppercase rounded-2xl bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all mt-4" disabled={isLoading || isGoogleLoading}>
             {isLoading ? <Loader2 className="animate-spin" /> : statusMessage}
           </Button>
         </form>
 
-        <p className="px-8 text-center text-[10px] text-muted-foreground uppercase font-bold tracking-widest leading-relaxed">
-            By signing up, you agree to our <Link href="/terms" className="text-foreground underline">Terms</Link>, <Link href="/privacy" className="text-foreground underline">Privacy Policy</Link> and Cookies Policy.
-        </p>
-
-        <div className="border-t border-border mt-4 pt-4">
+        <div className="border-t border-border mt-6 pt-6">
           <p className="text-sm text-muted-foreground font-medium">
             Already have an account?{' '}
-            <Link href="/login" className="font-black text-primary hover:underline underline-offset-4">
+            <Link href="/login?auth=true" className="font-black text-primary hover:underline underline-offset-4">
               Log in
             </Link>
           </p>
+          <div className="flex items-center justify-center gap-2 pt-6 opacity-30">
+             <ShieldCheck size={14} className="text-primary" />
+             <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Secure Cloud Sync</span>
+          </div>
         </div>
       </div>
     </div>

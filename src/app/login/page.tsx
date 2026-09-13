@@ -9,27 +9,21 @@ import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useFirebase, useUser } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Loader2, ShieldCheck, Zap } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 /**
- * Premium Logo for A.snap login page.
+ * Game Balls Decoration Component
  */
-function BrandLogo() {
-  return (
-    <div className="w-24 h-24 bg-[#16a34a] bg-money-pattern rounded-3xl flex items-center justify-center border border-black/5 shadow-[0_0_50px_rgba(22,163,74,0.1)] overflow-hidden animate-in zoom-in duration-500">
-        <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-16 h-16">
-          <path 
-            d="M150 400 L256 100 L362 400 M210 320 L302 320" 
-            stroke="#ff3366" 
-            strokeWidth="64" 
-            fill="none" 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
-          />
-          <circle cx="390" cy="120" r="42" fill="#ff3366" />
-        </svg>
-    </div>
-  );
+function GameBallsHeader() {
+    return (
+        <div className="flex gap-2 justify-center mb-4">
+            <div className="w-8 h-8 rounded-full bg-green-500 border border-white/20 flex items-center justify-center text-[10px] font-black text-white shadow-lg">1</div>
+            <div className="w-8 h-8 rounded-full bg-red-500 border border-white/20 flex items-center justify-center text-[10px] font-black text-white shadow-lg">4</div>
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-red-500 border border-white/20 flex items-center justify-center text-[10px] font-black text-white shadow-lg">0</div>
+            <div className="w-8 h-8 rounded-full bg-blue-500 border border-white/20 flex items-center justify-center text-[10px] font-black text-white shadow-lg">9</div>
+        </div>
+    );
 }
 
 function LoginForm() {
@@ -130,17 +124,17 @@ function LoginForm() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm space-y-8 text-center">
-        <div className="flex flex-col items-center gap-4">
-            <BrandLogo />
-            <div className="space-y-1">
-                <h1 className="text-5xl font-black text-[#ff3366] italic tracking-tighter drop-shadow-sm">
-                  A.snap
-                </h1>
-                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground opacity-70">Premium Visual Sharing</p>
+        <div className="space-y-3">
+            <GameBallsHeader />
+            <h1 className="text-6xl font-black italic animate-shimmer-text tracking-tighter drop-shadow-[0_0_20px_rgba(255,51,102,0.4)]">
+                WinGo
+            </h1>
+            <div className="flex items-center justify-center gap-2 text-primary font-black uppercase tracking-[0.3em] text-[10px] bg-primary/10 py-2 rounded-xl border border-primary/20">
+                <Zap size={14} className="fill-primary" /> FAST WITHDRAWAL
             </div>
         </div>
 
-        <div className="w-full space-y-4 pt-6">
+        <div className="w-full space-y-4 pt-4">
           <Button 
             variant="outline" 
             className="w-full h-14 text-base font-bold rounded-2xl border-border bg-secondary/20 hover:bg-secondary/40 transition-all flex items-center justify-center gap-3"
@@ -179,7 +173,7 @@ function LoginForm() {
               <span className="w-full border-t border-border"></span>
             </div>
             <div className="relative flex justify-center text-[10px] uppercase">
-              <span className="bg-background px-4 text-muted-foreground font-bold tracking-widest">or email login</span>
+              <span className="bg-background px-4 text-muted-foreground font-bold tracking-widest">or member login</span>
             </div>
           </div>
 
@@ -187,7 +181,7 @@ function LoginForm() {
             <Input 
               type="email" 
               placeholder="Email Address" 
-              className="h-14 text-base bg-secondary/10 border-border rounded-2xl text-foreground focus:ring-primary" 
+              className="h-14 text-base bg-secondary/30 border-white/5 rounded-2xl text-foreground focus:ring-primary px-6" 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -197,7 +191,7 @@ function LoginForm() {
               <Input 
                 type="password" 
                 placeholder="Password" 
-                className="h-14 text-base bg-secondary/10 border-border rounded-2xl text-foreground focus:ring-primary" 
+                className="h-14 text-base bg-secondary/30 border-white/5 rounded-2xl text-foreground focus:ring-primary px-6" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -209,7 +203,7 @@ function LoginForm() {
                 </Link>
               </div>
             </div>
-            <Button type="submit" className="w-full h-14 text-lg font-black uppercase rounded-2xl bg-[#ff3366] text-white shadow-lg shadow-[#ff3366]/20 hover:scale-[1.02] active:scale-95 transition-all" disabled={isLoggingIn || isGoogleLoading}>
+            <Button type="submit" className="w-full h-14 text-lg font-black uppercase rounded-2xl bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all mt-2" disabled={isLoggingIn || isGoogleLoading}>
               {isLoggingIn ? (
                   <span className="flex items-center gap-2"><Loader2 className="animate-spin h-5 w-5" /> Authenticating...</span>
               ) : "Unlock Feed"}
@@ -220,13 +214,13 @@ function LoginForm() {
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground font-medium">
             New here?{' '}
-            <Link href="/signup" className="font-black text-[#ff3366] hover:underline underline-offset-4">
+            <Link href="/signup" className="font-black text-primary hover:underline underline-offset-4">
               Create Account
             </Link>
           </p>
-          <div className="flex items-center justify-center gap-2 pt-4 opacity-70">
-             <ShieldCheck size={14} className="text-[#ff3366]" />
-             <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Secure Cloud Authentication</span>
+          <div className="flex items-center justify-center gap-2 pt-4 opacity-30">
+             <ShieldCheck size={14} className="text-primary" />
+             <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Secure Encryption Protocol</span>
           </div>
         </div>
       </div>
