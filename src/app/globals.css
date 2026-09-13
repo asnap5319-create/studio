@@ -86,6 +86,22 @@
     animation: float 3s ease-in-out infinite;
   }
 
+  /* Win Glow Animation - अभिषेक भाई, यह जीतने पर पॉपअप को चमकाएगा */
+  .animate-win-glow {
+    animation: win-glow 1.5s ease-in-out infinite alternate;
+  }
+
+  @keyframes win-glow {
+    from {
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.4), inset 0 0 10px rgba(255, 255, 255, 0.1);
+      filter: brightness(1);
+    }
+    to {
+      box-shadow: 0 0 40px rgba(239, 68, 68, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.3);
+      filter: brightness(1.2);
+    }
+  }
+
   @keyframes float {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-15px); }

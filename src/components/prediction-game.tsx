@@ -240,7 +240,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   const handlePlaceBet = async () => {
     if (!user || !firestore || isBetting || selectedOption === null || !userProfile) return;
 
-    // अभिषेक भाई, यहाँ चेक किया जा रहा है कि यूजर ने कम से कम एक बार डिपॉजिट किया है या नहीं
     if (userProfile.hasDeposited === false) {
       toast({ 
         variant: 'destructive', 
@@ -512,11 +511,14 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </SheetContent>
       </Sheet>
 
-      {/* Win/Loss Popup Dialog */}
+      {/* Win/Loss Popup Dialog - अभिषेक भाई, यहाँ विन-रेड (लाल) और लॉस-ग्रीन (हरा) सेट किया है */}
       <Dialog open={popup.isOpen} onOpenChange={(open) => !open && setPopup(prev => ({ ...prev, isOpen: false }))}>
-        <DialogContent className={cn("max-w-[300px] p-0 border-none rounded-[2.5rem] overflow-hidden shadow-2xl z-[2000] animate-in zoom-in duration-300", popup.isWin ? "bg-green-700" : "bg-blue-900")}>
+        <DialogContent className={cn(
+            "max-w-[300px] p-0 border-none rounded-[2.5rem] overflow-hidden shadow-2xl z-[2000] animate-in zoom-in duration-300", 
+            popup.isWin ? "bg-red-600 animate-win-glow" : "bg-green-700"
+        )}>
             <div className="relative p-8 flex flex-col items-center text-center text-white space-y-6">
-                <div className={cn("w-20 h-20 rounded-full flex items-center justify-center shadow-2xl", popup.isWin ? "bg-yellow-400 text-green-900" : "bg-white/10 text-white")}>
+                <div className={cn("w-20 h-20 rounded-full flex items-center justify-center shadow-2xl", popup.isWin ? "bg-yellow-400 text-red-900" : "bg-white/10 text-white")}>
                     {popup.isWin ? <Trophy size={40} className="animate-bounce" /> : <Frown size={40} />}
                 </div>
                 <div className="space-y-1">
