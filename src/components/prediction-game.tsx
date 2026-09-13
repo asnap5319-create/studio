@@ -206,7 +206,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                         isOpen: true, isWin, amount: isWin ? parseFloat((bet.amount * mult).toFixed(1)) : 0, 
                         period: bet.period, result: { num: result.number, color: result.color, size: result.size } 
                     });
-                    setPopupTimer(3);
+                    setPopupTimer(3); // अभिषेक भाई, यहाँ टाइमर को 3 सेकंड पर सेट किया है
                     shownPopupPeriodsRef.current.add(bet.period);
                 }
             }
@@ -517,9 +517,20 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             "max-w-[300px] p-0 border-none rounded-[2.5rem] overflow-hidden shadow-2xl z-[2000] animate-in zoom-in duration-300", 
             popup.isWin ? "bg-red-600 animate-win-glow" : "bg-blue-600"
         )}>
-            <div className="relative p-8 flex flex-col items-center text-center text-white space-y-6">
+            {/* Shimmer Effect for Win */}
+            {popup.isWin && <div className="absolute inset-0 animate-shimmer-overlay pointer-events-none z-0" />}
+
+            <div className="relative p-8 flex flex-col items-center text-center text-white space-y-6 z-10">
+                {/* Manual Close Button */}
+                <button 
+                  onClick={() => setPopup(prev => ({ ...prev, isOpen: false }))} 
+                  className="absolute top-4 right-4 p-1.5 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
+                >
+                  <X size={16} />
+                </button>
+
                 <div className={cn("w-20 h-20 rounded-full flex items-center justify-center shadow-2xl", popup.isWin ? "bg-yellow-400 text-red-900" : "bg-white/10 text-white")}>
-                    {popup.isWin ? <Trophy size={40} className="animate-bounce" /> : <Frown size={40} />}
+                    {popup.isWin ? <Trophy size={40} /> : <Frown size={40} />}
                 </div>
                 <div className="space-y-1">
                     <h2 className="text-5xl font-black uppercase tracking-tight">{popup.isWin ? "WIN!" : "LOSE"}</h2>

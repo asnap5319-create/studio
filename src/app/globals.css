@@ -5,7 +5,7 @@
 @layer base {
   :root {
     /* अभिषेक भाई, यहाँ 'हल्का काला' बैकग्राउंड सेट किया है */
-    --background: 0 0% 7%;
+    --background: 0 0% {7%};
     --foreground: 0 0% 98%;
 
     --card: 0 0% 10%;
@@ -92,14 +92,31 @@
     animation: win-glow 1.5s ease-in-out infinite alternate;
   }
 
+  /* Shining Overlay Effect */
+  .animate-shimmer-overlay {
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer-sweep 2s infinite;
+  }
+
+  @keyframes shimmer-sweep {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
   @keyframes win-glow {
     from {
       box-shadow: 0 0 20px rgba(239, 68, 68, 0.4), inset 0 0 10px rgba(255, 255, 255, 0.1);
       filter: brightness(1);
     }
     to {
-      box-shadow: 0 0 40px rgba(239, 68, 68, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.3);
-      filter: brightness(1.2);
+      box-shadow: 0 0 50px rgba(239, 68, 68, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.3);
+      filter: brightness(1.15);
     }
   }
 
