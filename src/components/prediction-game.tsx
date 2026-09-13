@@ -159,10 +159,12 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     if (!firestore || !user || !displayResults.length || !myBets) return;
     const pendingBets = myBets.filter(b => b.status === 'pending' && !processedBetIdsRef.current.has(b.id));
     if (pendingBets.length === 0) return;
+
     const processSettlement = async () => {
         const batch = writeBatch(firestore);
         let totalWinDelta = 0;
         let updateTriggered = false;
+
         pendingBets.forEach(bet => {
             const result = displayResults.find(r => r.period === bet.period);
             if (result) {
@@ -170,6 +172,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                 updateTriggered = true;
                 let isWin = false;
                 let mult = 1.99;
+
                 if (bet.selection === 'big') isWin = result.number >= 5;
                 else if (bet.selection === 'small') isWin = result.number < 5;
                 else if (typeof bet.selection === 'number') { isWin = bet.selection === result.number; mult = 9.0; }
@@ -178,6 +181,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                     if (result.color.includes('violet') && (bet.selection === 'red' || bet.selection === 'green')) mult = 1.5;
                     if (bet.selection === 'violet') mult = 4.5;
                 }
+
                 const betRef = doc(firestore, 'users', user.uid, 'game_bets', bet.id);
                 if (isWin) {
                     const winAmt = parseFloat((bet.amount * mult).toFixed(2));
@@ -186,15 +190,23 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                 } else {
                     batch.update(betRef, { status: 'loss' });
                 }
+
+                // Show popup ONLY for LOSS as per user's latest request
                 if (!shownPopupPeriodsRef.current.has(bet.period)) {
-                    setPopup({ 
-                        isOpen: true, isWin, amount: isWin ? parseFloat((bet.amount * mult).toFixed(1)) : 0, 
-                        period: bet.period, result: { num: result.number, color: result.color, size: result.size } 
-                    });
+                    if (!isWin) {
+                        setPopup({ 
+                            isOpen: true, 
+                            isWin: false, 
+                            amount: 0, 
+                            period: bet.period, 
+                            result: { num: result.number, color: result.color, size: result.size } 
+                        });
+                    }
                     shownPopupPeriodsRef.current.add(bet.period);
                 }
             }
         });
+
         if (updateTriggered) {
             if (totalWinDelta > 0) {
                 batch.update(doc(firestore, 'users', user.uid), { virtualBalance: increment(totalWinDelta), updatedAt: serverTimestamp() });
@@ -411,6 +423,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </SheetContent>
       </Sheet>
 
+      {/* Result Popup - Only triggers on Loss as requested */}
       <Dialog open={popup.isOpen} onOpenChange={(open) => !open && setPopup(prev => ({ ...prev, isOpen: false }))}>
         <DialogContent className={cn("max-w-[300px] p-0 border-none rounded-[2.5rem] overflow-hidden shadow-2xl z-[2000] animate-in zoom-in duration-300", popup.isWin ? "bg-red-600 animate-win-glow" : "bg-blue-600")}>
             <DialogHeader className="sr-only">
