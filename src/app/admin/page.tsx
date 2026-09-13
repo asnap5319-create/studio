@@ -75,14 +75,18 @@ export default function AdminPage() {
         try {
             const batch = writeBatch(firestore);
             const userRef = doc(firestore, 'users', req.userId);
+            
+            // अभिषेक भाई, डिपॉजिट अप्रूव होते ही 'hasDeposited: true' कर दिया है ताकि यूजर बेट लगा सके
             batch.update(userRef, { 
                 virtualBalance: increment(req.amount),
+                hasDeposited: true,
                 updatedAt: serverTimestamp() 
             });
+
             const reqRef = doc(firestore, 'deposit_requests', req.id);
             batch.update(reqRef, { status: 'approved' });
             await batch.commit();
-            toast({ title: "Approved! ✅", description: `₹${req.amount} added.` });
+            toast({ title: "Approved! ✅", description: `₹${req.amount} added. Bet unlocked!` });
         } catch (e) {
             toast({ variant: 'destructive', title: "Error" });
         }
@@ -182,7 +186,14 @@ export default function AdminPage() {
                                     </Avatar>
                                     <div>
                                         <p className="font-bold text-sm text-foreground">{u.username}</p>
-                                        <p className="text-[10px] text-green-500 font-bold uppercase tracking-widest">₹{u.virtualBalance?.toFixed(1) || '0.0'}</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-[10px] text-green-500 font-bold uppercase tracking-widest">₹{u.virtualBalance?.toFixed(1) || '0.0'}</p>
+                                            {(u as any).hasDeposited ? (
+                                                <Zap size={10} className="text-yellow-400 fill-yellow-400" />
+                                            ) : (
+                                                <Lock size={10} className="text-white/30" />
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                                 <Button variant="ghost" size="icon" onClick={() => router.push(`/profile/${u.id}`)} className="rounded-full"><Play size={16} /></Button>

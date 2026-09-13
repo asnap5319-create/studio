@@ -26,7 +26,7 @@ function HomeContent() {
     [firestore, user]
   );
   
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile & { virtualBalance?: number }>(userRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile & { virtualBalance?: number, hasDeposited?: boolean }>(userRef);
 
   useEffect(() => {
     const initializeUser = async () => {
@@ -45,11 +45,13 @@ function HomeContent() {
           }
 
           setIsInitializing(true);
+          // अभिषेक भाई, यहाँ ₹28 बोनस और डिपॉजिट स्टेटस (hasDeposited: false) सेट कर दिया है
           await setDoc(uRef, {
               id: user.uid,
               username: user.displayName || user.email?.split('@')[0] || `user_${user.uid.slice(0, 4)}`,
               email: user.email || '',
               virtualBalance: 28, 
+              hasDeposited: false,
               updatedAt: serverTimestamp()
           }, { merge: true });
           
@@ -164,7 +166,6 @@ function HomeContent() {
                </div>
              </div>
 
-             {/* Updated Link to /signup as requested */}
              <Link href="/signup" className="w-full max-w-[280px] mt-4">
                 <button className="w-full bg-primary h-16 rounded-2xl text-white font-black uppercase text-lg shadow-[0_15px_40px_rgba(255,51,102,0.4)] active:scale-95 transition-all hover:bg-primary/90 flex items-center justify-center gap-3">
                    GET STARTED <ArrowUpRight size={20} />

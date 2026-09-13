@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit, doc, setDoc, serverTimestamp, writeBatch, increment } from 'firebase/firestore';
-import { CheckCircle2, Loader2, X, Zap, BarChart3, Trophy, Frown, Coins } from 'lucide-react';
+import { CheckCircle2, Loader2, X, Zap, BarChart3, Trophy, Frown, Coins, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -45,9 +45,6 @@ interface PopupData {
     } | null;
 }
 
-/**
- * Jalwa Game Result Logic (Chaos Hash)
- */
 const getJalwaResult = (period: string) => {
   let h = 0;
   for (let i = 0; i < period.length; i++) {
@@ -242,6 +239,18 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
   const handlePlaceBet = async () => {
     if (!user || !firestore || isBetting || selectedOption === null || !userProfile) return;
+
+    // अभिषेक भाई, यहाँ चेक किया जा रहा है कि यूजर ने कम से कम एक बार डिपॉजिट किया है या नहीं
+    if (userProfile.hasDeposited === false) {
+      toast({ 
+        variant: 'destructive', 
+        title: "Bet Locked! 🔒", 
+        description: "बेट लगाने के लिए पहले कम से कम एक बार रिचार्ज (Deposit) करें भाई। ✅" 
+      });
+      setIsBetPanelOpen(false);
+      return;
+    }
+
     const amountNum = parseInt(betAmount);
     if (isNaN(amountNum) || amountNum < 1) { toast({ variant: 'destructive', title: "Invalid Amount" }); return; }
     const finalAmount = amountNum * multiplier;
@@ -264,7 +273,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
   return (
     <div className="space-y-6 select-none pb-24 w-full px-4">
-      {/* Analysis Card - Compact */}
+      {/* Analysis Card */}
       <div className="bg-secondary/40 border border-white/5 rounded-[2.5rem] p-5 shadow-2xl backdrop-blur-md">
           <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -297,7 +306,17 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           </div>
       </div>
 
-      {/* Timer Section - Slanted & Compact */}
+      {/* Locked Alert if New User */}
+      {userProfile?.hasDeposited === false && (
+          <div className="bg-yellow-500/10 border border-yellow-500/30 p-4 rounded-2xl flex items-center gap-3 animate-pulse">
+              <Lock className="text-yellow-500 h-5 w-5 shrink-0" />
+              <p className="text-[10px] font-black text-yellow-500 uppercase leading-tight">
+                  Betting is locked! Recharge once to unlock your ₹28 bonus and start playing.
+              </p>
+          </div>
+      )}
+
+      {/* Timer Section */}
       <div className="bg-[#f95959] rounded-[2.5rem] p-6 text-white flex justify-between items-center shadow-xl relative overflow-hidden">
         <div className="space-y-3 z-10">
             <div className="flex items-center gap-1.5"><Zap size={14} className="fill-white" /><p className="text-[9px] font-black uppercase tracking-[0.2em]">WinGo 30S</p></div>
@@ -321,7 +340,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </div>
       </div>
 
-      {/* Main Game Interface - Compact */}
+      {/* Main Game Interface */}
       <div className="bg-secondary/40 rounded-[3rem] p-6 shadow-2xl border border-white/5 space-y-6 backdrop-blur-xl">
           <div className="grid grid-cols-3 gap-3">
               <Button onClick={() => handleOpenBetPanel('green')} className="bg-green-500 hover:bg-green-600 h-14 rounded-2xl font-black uppercase text-xs shadow-lg">Green</Button>
@@ -346,7 +365,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           </div>
       </div>
 
-      {/* History Tabs - Compact */}
+      {/* History Tabs */}
       <div className="bg-secondary/40 rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/5">
         <Tabs defaultValue="results" className="w-full">
             <TabsList className="grid w-full grid-cols-2 bg-background/50 p-1 h-12 rounded-none border-b border-white/5">
@@ -408,7 +427,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         </Tabs>
       </div>
 
-      {/* BET PANEL: Compact Bottom Sheet */}
+      {/* BET PANEL */}
       <Sheet open={isBetPanelOpen} onOpenChange={setIsBetPanelOpen}>
         <SheetContent side="bottom" className="h-[75vh] bg-background border-white/5 rounded-t-[2.5rem] p-0 overflow-hidden z-[1000] text-white outline-none">
            <SheetHeader className="p-6 pb-2 flex flex-row items-center justify-between border-b border-white/5">
