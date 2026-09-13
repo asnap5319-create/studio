@@ -205,7 +205,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     processSettlement();
   }, [displayResults, myBets, firestore, user]);
 
-  // मजबूत टाइमर लॉजिक: पॉपअप को 3 सेकंड बाद पक्का बंद करेगा
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (popup.isOpen) {
@@ -258,37 +257,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
   return (
     <div className="space-y-6 select-none pb-24 w-full px-4">
-      <div className="bg-secondary/40 border border-white/5 rounded-[2.5rem] p-5 shadow-2xl backdrop-blur-md">
-          <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary"><BarChart3 size={20} /></div>
-                  <div>
-                      <h3 className="font-black uppercase text-lg tracking-tight text-white">Analysis</h3>
-                      <p className="text-[8px] font-black text-blue-500 uppercase tracking-[0.2em]">Independent</p>
-                  </div>
-              </div>
-              <div className="bg-white/5 px-3 py-1 rounded-full border border-white/10 flex items-center gap-1.5">
-                  <div className="h-1.5 w-1.5 bg-blue-500 rounded-full animate-pulse" />
-                  <span className="text-[8px] font-black uppercase text-white/60">Fair Play</span>
-              </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-              <div className="bg-background/40 rounded-2xl p-4 border border-white/5 flex flex-col items-center justify-center gap-1 shadow-inner">
-                  <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">Period</span>
-                  <p className="text-xl font-black text-white" style={{ fontStyle: 'normal' }}>{currentPeriod.slice(-4)}</p>
-              </div>
-              <div className="bg-primary/10 rounded-2xl p-4 border border-primary/20 flex flex-col items-center justify-center gap-1 shadow-inner">
-                  <span className="text-[8px] font-black text-primary uppercase tracking-widest">Last Result</span>
-                  <div className="flex items-center gap-2">
-                      <p className={cn("text-xl font-black uppercase", displayResults[0]?.size === 'big' ? "text-orange-400" : "text-blue-400")} style={{ fontStyle: 'normal' }}>
-                          {displayResults[0]?.size || '---'}
-                      </p>
-                      {displayResults[0] && <div className={cn("w-4 h-4 rounded-full shadow-lg", displayResults[0].color.includes('green') ? "bg-green-500" : "bg-red-500")} />}
-                  </div>
-              </div>
-          </div>
-      </div>
-
       {userProfile?.hasDeposited === false && (
           <div className="bg-yellow-500/10 border border-yellow-500/30 p-4 rounded-2xl flex items-center gap-3 animate-pulse">
               <Lock className="text-yellow-500 h-5 w-5 shrink-0" />
