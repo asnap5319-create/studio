@@ -205,22 +205,25 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
     processSettlement();
   }, [displayResults, myBets, firestore, user]);
 
+  // Robust Auto-close Logic for Popup
   useEffect(() => {
-    let timer: NodeJS.Timeout;
     if (popup.isOpen) {
+      // Step 1: Set a reliable 3-second auto-close
+      const autoCloseTimeout = setTimeout(() => {
+        setPopup(prev => ({ ...prev, isOpen: false }));
+      }, 3000);
+
+      // Step 2: Handle the visual countdown separately
       setPopupTimer(3);
-      timer = setInterval(() => {
-        setPopupTimer((prev) => {
-          if (prev <= 1) {
-            setPopup((p) => ({ ...p, isOpen: false }));
-            clearInterval(timer);
-            return 0;
-          }
-          return prev - 1;
-        });
+      const countdownInterval = setInterval(() => {
+        setPopupTimer(prev => Math.max(0, prev - 1));
       }, 1000);
+
+      return () => {
+        clearTimeout(autoCloseTimeout);
+        clearInterval(countdownInterval);
+      };
     }
-    return () => clearInterval(timer);
   }, [popup.isOpen]);
 
   const handleOpenBetPanel = (option: string | number) => {
