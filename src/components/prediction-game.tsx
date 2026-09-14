@@ -193,8 +193,16 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                 }
 
                 if (!shownPopupPeriodsRef.current.has(bet.period)) {
-                    // Only show popup if it's a loss as requested
-                    if (!isWin) {
+                    if (isWin) {
+                        setPopup({ 
+                            isOpen: true, 
+                            isWin: true, 
+                            amount: winAmt, 
+                            period: bet.period, 
+                            result: { num: result.number, color: result.color, size: result.size } 
+                        });
+                        shownPopupPeriodsRef.current.add(bet.period);
+                    } else {
                         setPopup({ 
                             isOpen: true, 
                             isWin: false, 
@@ -333,7 +341,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                 <TabsTrigger value="my" className="rounded-none font-black text-[10px] uppercase data-[state=active]:bg-primary/20 data-[state=active]:text-primary">My Bets</TabsTrigger>
             </TabsList>
             <TabsContent value="results" className="m-0">
-                <div className="overflow-x-auto max-h-[400px] overflow-y-auto scrollbar-hide">
+                <div className="overflow-x-auto max-h-[700px] overflow-y-auto scrollbar-hide">
                     <table className="w-full text-left border-collapse">
                         <thead className="bg-background/80 text-white/40 sticky top-0 z-10 backdrop-blur-md">
                             <tr className="text-[8px] font-black uppercase">
@@ -426,22 +434,22 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       <Dialog open={popup.isOpen} onOpenChange={(open) => !open && setPopup(prev => ({ ...prev, isOpen: false }))}>
         <DialogContent className={cn(
             "max-w-[310px] p-0 border-none rounded-[3rem] overflow-hidden shadow-[0_20px_80px_rgba(0,0,0,0.6)] z-[2000] animate-in zoom-in duration-300", 
-            "bg-blue-600"
+            popup.isWin ? "bg-[#f95959]" : "bg-blue-600"
         )}>
             <DialogHeader className="sr-only">
-                <DialogTitle>LOSE</DialogTitle>
+                <DialogTitle>{popup.isWin ? 'WIN!' : 'LOSE'}</DialogTitle>
             </DialogHeader>
             <div className={cn("relative p-8 flex flex-col items-center text-center space-y-6 z-10", "text-white")}>
                 <div className={cn("w-24 h-24 rounded-3xl flex items-center justify-center shadow-2xl rotate-3 transform transition-transform hover:rotate-0", "bg-white/10 text-white")}>
-                    <Frown size={50} />
+                    {popup.isWin ? <Coins size={50} className="animate-bounce" /> : <Frown size={50} />}
                 </div>
 
                 <div className="space-y-1">
                     <h2 className="text-5xl font-black uppercase tracking-tighter italic">
-                        LOSE
+                        {popup.isWin ? 'WIN!' : 'LOSE'}
                     </h2>
                     <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">
-                        Try Again Next Round
+                        {popup.isWin ? `You Won ₹${popup.amount.toFixed(1)}` : 'Try Again Next Round'}
                     </p>
                 </div>
 
