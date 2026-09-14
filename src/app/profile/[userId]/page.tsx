@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -123,22 +124,22 @@ export default function ProfilePage() {
                     </div>
                 </div>
 
-                {/* Gaming Wallet Section */}
+                {/* Gaming Wallet Section - Smaller size as requested */}
                 {isOwnProfile && (
                     <div className="px-4">
-                        <div className="bg-money-pattern p-6 rounded-[2.5rem] shadow-2xl text-white relative overflow-hidden group border border-white/5">
+                        <div className="bg-money-pattern p-5 rounded-[2rem] shadow-2xl text-white relative overflow-hidden group border border-white/5">
                            <div className="absolute top-0 right-0 p-4 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-700">
-                              <Wallet size={120} />
+                              <Wallet size={90} />
                            </div>
                            
-                           <div className="relative z-10 space-y-6">
-                                <div className="space-y-1">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/70 flex items-center gap-2">
+                           <div className="relative z-10 space-y-4">
+                                <div className="space-y-0.5">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 flex items-center gap-2">
                                         Virtual Balance
                                     </p>
                                     <div className="flex items-baseline gap-1.5">
-                                      <span className="text-2xl font-black text-white/80">₹</span>
-                                      <h2 className="text-5xl font-black tracking-tighter drop-shadow-2xl" style={{ fontStyle: 'normal' }}>
+                                      <span className="text-xl font-black text-white/80">₹</span>
+                                      <h2 className="text-3xl font-black tracking-tighter drop-shadow-2xl" style={{ fontStyle: 'normal' }}>
                                           {userProfile?.virtualBalance?.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) || '0.0'}
                                       </h2>
                                     </div>
@@ -147,16 +148,16 @@ export default function ProfilePage() {
                                 <div className="grid grid-cols-2 gap-3">
                                   <Link href="/deposit" className="flex-1">
                                     <Button 
-                                        className="w-full bg-white text-blue-700 hover:bg-white/90 rounded-2xl h-14 font-black uppercase text-xs flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all"
+                                        className="w-full bg-white text-blue-700 hover:bg-white/90 rounded-xl h-12 font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all"
                                     >
-                                        <PlusCircle size={18} /> Deposit
+                                        <PlusCircle size={16} /> Deposit
                                     </Button>
                                   </Link>
                                   <Link href="/withdraw" className="flex-1">
                                     <Button 
-                                        className="w-full bg-blue-800/40 text-white hover:bg-blue-800/60 border border-white/20 rounded-2xl h-14 font-black uppercase text-xs flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all backdrop-blur-sm"
+                                        className="w-full bg-blue-800/40 text-white hover:bg-blue-800/60 border border-white/20 rounded-xl h-12 font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all backdrop-blur-sm"
                                     >
-                                        <ArrowUpRight size={18} /> Withdraw
+                                        <ArrowUpRight size={16} /> Withdraw
                                     </Button>
                                   </Link>
                                 </div>
