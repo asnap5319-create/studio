@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 const PRESET_AMOUNTS = [100, 200, 300, 400, 500, 1000];
 const UPI_ID = "ak63315561338@okicici"; 
 
-// अभिषेक भाई, यहाँ 35 से ज्यादा नाम जोड़ दिए हैं ताकि 'Abhishek Kumar' बहुत कम बार आए
+// अभिषेक भाई, यहाँ 50 से ज्यादा नाम हैं और 'Abhishek Kumar' को हटा दिया गया है
 const PAYEE_NAMES = [
     "Ajay Kumar", "Ravi Kumar", "Aditya Singh", "Vivek Sharma", "Rahul Gupta",
     "Manoj Yadav", "Vikram Singh", "Sandeep Mishra", "Deepak Verma", "Amit Sharma",
@@ -22,8 +22,13 @@ const PAYEE_NAMES = [
     "Sunil Grover", "Anil Saxena", "Suresh Prabhu", "Rohit Mehra", "Yash Pal",
     "Karan Johar", "Arjun Kapoor", "Sanjay Dutt", "Harish Rawat", "Prashant Bhushan",
     "Alok Nath", "Ritesh Deshmukh", "Varun Dhawan", "Ishaan Khattar", "Piyush Goyal",
-    "Nitin Gadkari", "Yogesh Meena", "Manish Sisodia", "Abhishek Kumar", "Siddharth Malhotra",
-    "Vicky Kaushal", "Ranbir Kapoor", "Kartik Aaryan", "Ayushmann Khurrana"
+    "Nitin Gadkari", "Yogesh Meena", "Manish Sisodia", "Siddharth Malhotra",
+    "Vicky Kaushal", "Ranbir Kapoor", "Kartik Aaryan", "Ayushmann Khurrana",
+    "Amit Singh", "Rajesh Kumar", "Sanjay Verma", "Sunil Yadav", "Vijay Sharma", 
+    "Anil Gupta", "Pankaj Mishra", "Deepak Lodhi", "Sandeep Saini", "Manoj Pandey", 
+    "Vikram Rathore", "Ajay Meena", "Rahul Chauhan", "Vivek Maurya", "Aditya Dixit", 
+    "Ravi Solanki", "Sumit Rawat", "Neeraj Tiwari", "Surendra Pal", "Dharmendra Singh", 
+    "Jitendra Kumar", "Mahendra Prasad", "Rakesh Sharma", "Mohit Suri", "Rohit Shetty"
 ];
 
 function DepositContent() {
@@ -39,9 +44,9 @@ function DepositContent() {
     const [timeLeft, setTimeLeft] = useState(540); // 9 minutes in seconds
     const [selectedPayee, setSelectedPayee] = useState(PAYEE_NAMES[0]);
 
-    // Initial Random Name to avoid "Abhishek Kumar" being default on mount
+    // Initial Random Name selection on mount
     useEffect(() => {
-        const randomIndex = Math.floor(Math.random() * (PAYEE_NAMES.length - 1)); // -1 to avoid last index (Abhishek) initially
+        const randomIndex = Math.floor(Math.random() * PAYEE_NAMES.length);
         setSelectedPayee(PAYEE_NAMES[randomIndex]);
     }, []);
 
@@ -71,7 +76,8 @@ function DepositContent() {
     };
 
     const qrCodeUrl = useMemo(() => {
-        const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(selectedPayee)}&am=${payableAmount}&cu=INR&tn=Deposit%20to%20Asnap`;
+        // dynamic name and amount in UPI link
+        const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(selectedPayee)}&am=${payableAmount}&cu=INR&tn=Recharge%20Asnap`;
         return `https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(upiLink)}`;
     }, [payableAmount, selectedPayee]);
 
@@ -82,7 +88,7 @@ function DepositContent() {
             return;
         }
         
-        // रैंडम नाम चुनें जब यूजर पे बटन दबाए (पूरी लिस्ट में से)
+        // रैंडम नाम फिर से चुनें जब यूजर पे बटन दबाए
         const randomIndex = Math.floor(Math.random() * PAYEE_NAMES.length);
         setSelectedPayee(PAYEE_NAMES[randomIndex]);
         
@@ -90,7 +96,7 @@ function DepositContent() {
     };
 
     const handleOpenUpiApp = () => {
-        const upiUrl = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(selectedPayee)}&am=${payableAmount}&cu=INR&tn=Deposit%20to%20Asnap`;
+        const upiUrl = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(selectedPayee)}&am=${payableAmount}&cu=INR&tn=Recharge%20Asnap`;
         window.location.href = upiUrl;
     };
 
@@ -142,7 +148,7 @@ function DepositContent() {
                         <div className="bg-secondary/40 border border-white/5 p-8 rounded-[2.5rem] relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-4 opacity-5 rotate-12"><CreditCard size={120} /></div>
                             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-2">Deposit Amount</p>
-                            <h2 className="text-8xl font-black text-white" style={{ fontStyle: 'normal' }}>₹{amount}</h2>
+                            <h2 className="text-7xl font-black text-white" style={{ fontStyle: 'normal' }}>₹{amount}</h2>
                             {amount === '500' && (
                                 <div className="mt-4 inline-flex items-center gap-2 bg-green-500/20 text-green-400 px-3 py-1 rounded-full border border-green-500/30">
                                     <Sparkles size={12} />
@@ -205,11 +211,11 @@ function DepositContent() {
                         <div className="text-center space-y-1">
                              <h3 className="text-3xl font-black uppercase italic tracking-tighter">Scan & Pay</h3>
                              <p className="text-sm font-black text-primary uppercase">Amount: ₹{payableAmount}</p>
-                             <p className="text-[10px] font-bold text-white/60 uppercase">To: {selectedPayee}</p>
+                             <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest">To: {selectedPayee}</p>
                              {amount === '500' && <p className="text-[8px] font-bold text-green-500 uppercase">You selected ₹500, but pay only ₹450!</p>}
                         </div>
 
-                        <div className="relative mx-auto w-80 h-80 bg-white p-4 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-4 border-primary/20">
+                        <div className="relative mx-auto w-72 h-72 bg-white p-4 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-4 border-primary/20">
                              <img 
                                 src={qrCodeUrl} 
                                 alt="UPI QR Code" 
