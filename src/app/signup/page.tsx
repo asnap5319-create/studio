@@ -39,28 +39,32 @@ export default function SignupPage() {
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      const user = result.user;
+      const googleUser = result.user;
       
-      const userDocRef = doc(firestore, "users", user.uid);
+      const userDocRef = doc(firestore, "users", googleUser.uid);
       const userDoc = await getDoc(userDocRef);
       
-      if (!userDoc.exists()) {
-        const generatedUsername = user.email?.split('@')[0] || `user_${user.uid.slice(0, 5)}`;
-        await setDoc(userDocRef, {
-          id: user.uid,
-          name: user.displayName || generatedUsername,
-          username: generatedUsername,
-          username_lowercase: generatedUsername.toLowerCase(),
-          email: user.email,
-          profileImageUrl: user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`,
+      // अभिषेक भाई, साइनअप में भी हम Google वाली फोटो और नाम को 'Overwrite' करेंगे
+      const generatedUsername = googleUser.email?.split('@')[0] || `user_${googleUser.uid.slice(0, 5)}`;
+      
+      await setDoc(userDocRef, {
+        id: googleUser.uid,
+        name: googleUser.displayName || generatedUsername,
+        username: userDoc.exists() ? userDoc.data().username : generatedUsername,
+        username_lowercase: userDoc.exists() ? userDoc.data().username_lowercase : generatedUsername.toLowerCase(),
+        email: googleUser.email,
+        profileImageUrl: googleUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${googleUser.uid}`,
+        updatedAt: serverTimestamp(),
+        // नई आईडी के लिए बैलेंस
+        ...( !userDoc.exists() ? {
           createdAt: serverTimestamp(),
           bio: "A.snap Creator🎬",
           virtualBalance: 28,
           hasDeposited: false
-        });
-      }
+        } : {} )
+      }, { merge: true });
       
-      toast({ title: "Welcome! 🚀", description: "Account created successfully." });
+      toast({ title: "Welcome! 🚀", description: "Account created and Google data synced." });
       router.push('/');
     } catch (error: any) {
       console.error("Google signup error:", error);
@@ -83,20 +87,21 @@ export default function SignupPage() {
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+      const createdUser = userCredential.user;
       
-      // Default icon since manual photo upload is removed
-      const profileImageUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`;
+      // ईमेल वाले यूजर्स के लिए डिफ़ॉल्ट आइकॉन, जिसे वे बदल नहीं पाएंगे
+      const profileImageUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${createdUser.uid}`;
       const displayName = username; 
 
-      await setDoc(doc(firestore, "users", user.uid), {
-        id: user.uid,
+      await setDoc(doc(firestore, "users", createdUser.uid), {
+        id: createdUser.uid,
         name: displayName,
         username,
         username_lowercase: username.toLowerCase(),
-        email: user.email,
+        email: createdUser.email,
         profileImageUrl,
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
         bio: "A.snap Creator🎬",
         virtualBalance: 28,
         hasDeposited: false

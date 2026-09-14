@@ -86,6 +86,7 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
         </SheetHeader>
         
         <div className="p-6 space-y-8 overflow-y-auto h-full pb-32 scrollbar-hide">
+          {/* अभिषेक भाई, यहाँ साफ़ मैसेज डाल दिया है कि नाम और फोटो Google मैनेज कर रहा है */}
           <div className="bg-blue-600/10 border border-blue-500/20 p-5 rounded-[2rem] flex flex-col items-center text-center gap-4">
               <div className="p-3 bg-blue-500/20 rounded-2xl text-blue-400">
                 <ShieldCheck size={32} />

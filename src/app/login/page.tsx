@@ -56,26 +56,35 @@ function LoginForm() {
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      const user = result.user;
+      const googleUser = result.user;
       
-      const userDocRef = doc(firestore, "users", user.uid);
+      const userDocRef = doc(firestore, "users", googleUser.uid);
       const userDoc = await getDoc(userDocRef);
       
-      if (!userDoc.exists()) {
-        const username = user.email?.split('@')[0] || `user_${user.uid.slice(0, 5)}`;
-        await setDoc(userDocRef, {
-          id: user.uid,
-          name: user.displayName || username,
-          username: username,
-          username_lowercase: username.toLowerCase(),
-          email: user.email,
-          profileImageUrl: user.photoURL || `https://picsum.photos/seed/${user.uid}/400/400`,
+      // अभिषेक भाई, यहाँ हम 'merge: true' के साथ डेटा को ओवरराइट कर रहे हैं 
+      // ताकि पुरानी फोटो हट जाए और Google वाली फोटो लग जाए।
+      const username = googleUser.email?.split('@')[0] || `user_${googleUser.uid.slice(0, 5)}`;
+      
+      await setDoc(userDocRef, {
+        id: googleUser.uid,
+        name: googleUser.displayName || (userDoc.exists() ? userDoc.data().name : username),
+        // अगर पहले से यूजरनेम है तो वही रहने दो, वरना नया बनाओ
+        username: userDoc.exists() ? userDoc.data().username : username,
+        username_lowercase: userDoc.exists() ? userDoc.data().username_lowercase : username.toLowerCase(),
+        email: googleUser.email,
+        // जबरदस्ती Google वाली फोटो ही सेट होगी
+        profileImageUrl: googleUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${googleUser.uid}`,
+        updatedAt: serverTimestamp(),
+        // अगर नया अकाउंट है तो डिफ़ॉल्ट चीज़ें भी डाल दो
+        ...( !userDoc.exists() ? {
           createdAt: serverTimestamp(),
           bio: "A.snap Creator🎬",
-        });
-      }
+          virtualBalance: 28,
+          hasDeposited: false
+        } : {} )
+      }, { merge: true });
       
-      toast({ title: "Welcome Back! 👋", description: "Logged in successfully." });
+      toast({ title: "Welcome Back! 👋", description: "Google data synced successfully." });
       router.push('/');
     } catch (error: any) {
       console.error("Google login error:", error);
