@@ -45,7 +45,6 @@ function HomeContent() {
           }
 
           setIsInitializing(true);
-          // अभिषेक भाई, यहाँ ₹28 बोनस और डिपॉजिट स्टेटस (hasDeposited: false) सेट कर दिया है
           await setDoc(uRef, {
               id: user.uid,
               username: user.displayName || user.email?.split('@')[0] || `user_${user.uid.slice(0, 4)}`,
@@ -106,7 +105,7 @@ function HomeContent() {
                             </p>
                             <div className="flex items-baseline gap-1.5">
                                <span className="text-2xl font-black text-white/80">₹</span>
-                               <h2 className="text-4xl font-black tracking-tighter drop-shadow-2xl" style={{ fontStyle: 'normal' }}>
+                               <h2 className="text-3xl font-black tracking-tighter drop-shadow-2xl" style={{ fontStyle: 'normal' }}>
                                   {userProfile?.virtualBalance?.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) || '0.0'}
                                </h2>
                             </div>
@@ -147,32 +146,32 @@ function HomeContent() {
                 <div className="w-32 h-32 rounded-[2.5rem] flex items-center justify-center relative z-10 shadow-2xl overflow-hidden border-2 border-white/10">
                     <Logo className="w-full h-full scale-110" />
                 </div>
-                <div className="absolute -top-4 -right-4 text-yellow-400 animate-pulse">
-                   <Sparkles size={24} />
-                </div>
              </div>
              
-             <div className="space-y-3">
-               <div className="flex items-center justify-center gap-2 text-primary font-black uppercase tracking-[0.4em] text-[9px]">
-                  <Zap size={12} className="fill-primary" /> Instant Service
-               </div>
-               <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter leading-none italic text-white drop-shadow-2xl">
-                 FAST WITHDRAWAL
-               </h2>
+             <div className="space-y-2">
                <div className="pt-2 px-6">
-                  <h3 className="text-6xl md:text-7xl font-black italic uppercase tracking-normal animate-shimmer-text drop-shadow-[0_0_30px_rgba(255,51,102,0.5)] text-center px-4">
+                  <h3 className="text-5xl font-black italic uppercase tracking-normal animate-shimmer-text drop-shadow-[0_0_30px_rgba(255,51,102,0.5)] text-center px-6">
                     WinGo
                   </h3>
                </div>
+               <p className="text-[10px] text-primary font-black uppercase tracking-[0.4em]">Instant Service • Fast Payout</p>
              </div>
 
-             <Link href="/signup" className="w-full max-w-[280px] mt-4">
-                <button className="w-full bg-primary h-16 rounded-2xl text-white font-black uppercase text-lg shadow-[0_15px_40px_rgba(255,51,102,0.4)] active:scale-95 transition-all hover:bg-primary/90 flex items-center justify-center gap-3">
-                   GET STARTED <ArrowUpRight size={20} />
-                </button>
-             </Link>
+             <div className="w-full max-w-[320px] flex flex-col gap-4 mt-8">
+                <Link href="/signup">
+                   <button className="w-full bg-primary h-16 rounded-full text-white font-black uppercase text-xl shadow-[0_15px_40px_rgba(255,51,102,0.4)] active:scale-95 transition-all">
+                      Register
+                   </button>
+                </Link>
+                <Link href="/login?auth=true">
+                   <button className="w-full border-2 border-primary h-16 rounded-full bg-white/5 active:scale-95 transition-all flex items-center justify-center gap-1">
+                      <span className="text-white/60 font-bold text-sm">I have an account</span>
+                      <span className="text-primary font-black text-xl ml-1">Login</span>
+                   </button>
+                </Link>
+             </div>
 
-             <p className="text-[9px] text-white/40 font-bold uppercase tracking-widest opacity-60">
+             <p className="text-[8px] text-white/30 font-bold uppercase tracking-widest opacity-60">
                 Premium Virtual Gaming Protocol
              </p>
           </div>

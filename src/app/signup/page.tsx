@@ -12,9 +12,6 @@ import { useState, ChangeEvent } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-/**
- * Game Balls Decoration Component
- */
 function GameBallsHeader() {
     return (
         <div className="flex gap-2 justify-center mb-4">
@@ -35,7 +32,7 @@ export default function SignupPage() {
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [statusMessage, setStatusMessage] = useState('Create Account');
+  const [statusMessage, setStatusMessage] = useState('Register');
 
   const router = useRouter();
   const { auth, firestore } = useFirebase();
@@ -74,15 +71,11 @@ export default function SignupPage() {
         });
       }
       
-      toast({ title: "Welcome! 🚀", description: "Account created successfully with Google." });
+      toast({ title: "Welcome! 🚀", description: "Account created successfully." });
       router.push('/');
     } catch (error: any) {
       console.error("Google signup error:", error);
-      let errorMsg = error.message;
-      if (error.code === 'auth/operation-not-allowed') {
-        errorMsg = "Google Sign-in is not enabled in Firebase Console. Please enable it in Authentication > Sign-in method.";
-      }
-      toast({ title: "Google Signup Failed", description: errorMsg, variant: "destructive" });
+      toast({ title: "Signup Failed", description: error.message, variant: "destructive" });
     } finally {
       setIsGoogleLoading(false);
     }
@@ -90,152 +83,70 @@ export default function SignupPage() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth || !firestore) {
-      toast({ title: "Error", description: "Firebase not ready. Please try again.", variant: "destructive" });
-      return;
-    }
+    if (!auth || !firestore) return;
     if (password.length < 6) {
-      toast({ title: "Signup Failed", description: "Password must be at least 6 characters long.", variant: "destructive" });
+      toast({ title: "Signup Failed", description: "Password must be at least 6 characters.", variant: "destructive" });
       return;
     }
-
-    const cloudName = "dipz5jsls";
-    const uploadPreset = "video_upload";
 
     setIsLoading(true);
-    setStatusMessage('Creating account...');
+    setStatusMessage('Creating...');
 
-    let userCredential: UserCredential;
     try {
-      userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    } catch (error: any) {
-      console.error("Error creating auth user: ", error);
-      let errorMessage = "Could not create account. Please try again.";
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = "This email address is already in use.";
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = "Please enter a valid email address.";
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = "The password is too weak.";
-      }
-      toast({ title: "Signup Failed", description: errorMessage, variant: "destructive" });
-      setIsLoading(false);
-      setStatusMessage('Create Account');
-      return;
-    }
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      let profileImageUrl = `https://picsum.photos/seed/${user.uid}/400/400`;
 
-    const user = userCredential.user;
-    let profileImageUrl = `https://picsum.photos/seed/${user.uid}/400/400`;
-
-    if (imageFile) {
-      setStatusMessage('Uploading photo...');
-      const formData = new FormData();
-      formData.append('file', imageFile);
-      formData.append('upload_preset', uploadPreset);
-      try {
-        const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-            method: 'POST',
-            body: formData
-        });
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append('file', imageFile);
+        formData.append('upload_preset', "video_upload");
+        const response = await fetch(`https://api.cloudinary.com/v1_1/dipz5jsls/image/upload`, { method: 'POST', body: formData });
         const data = await response.json();
-        if (data.secure_url) {
-          profileImageUrl = data.secure_url;
-        } else {
-          throw new Error(data.error?.message || 'Cloudinary upload failed.');
-        }
-      } catch (uploadError: any) {
-        console.error('Cloudinary upload error:', uploadError);
-        toast({ title: "Signup Failed", description: `Photo upload failed: ${uploadError.message}. Profile not saved.`, variant: "destructive" });
-        setIsLoading(false);
-        setStatusMessage('Create Account');
-        return;
+        if (data.secure_url) profileImageUrl = data.secure_url;
       }
-    }
 
-    setStatusMessage('Saving profile...');
-    const userProfile = {
-      id: user.uid,
-      name,
-      username,
-      username_lowercase: username.toLowerCase(),
-      email: user.email,
-      profileImageUrl,
-      createdAt: serverTimestamp(),
-      bio: "A.snap Creator🎬",
-    };
-    const userDocRef = doc(firestore, "users", user.uid);
-
-    setDoc(userDocRef, userProfile)
-      .then(() => {
-        toast({ title: "Success", description: "Welcome to A.snap!" });
-        router.push('/');
-      })
-      .catch((serverError) => {
-        console.error("Firestore setDoc error: ", serverError);
-        const permissionError = new FirestorePermissionError({
-          path: userDocRef.path,
-          operation: 'create',
-          requestResourceData: userProfile,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        
-        toast({ title: "Signup Failed", description: "Failed to save profile due to a database error.", variant: "destructive" });
-        setIsLoading(false);
-        setStatusMessage('Create Account');
+      await setDoc(doc(firestore, "users", user.uid), {
+        id: user.uid,
+        name,
+        username,
+        username_lowercase: username.toLowerCase(),
+        email: user.email,
+        profileImageUrl,
+        createdAt: serverTimestamp(),
+        bio: "A.snap Creator🎬",
       });
+
+      toast({ title: "Success", description: "Welcome to A.snap!" });
+      router.push('/');
+    } catch (error: any) {
+      console.error("Signup error:", error);
+      toast({ title: "Signup Failed", description: error.message, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+      setStatusMessage('Register');
+    }
   };
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4 overflow-y-auto scrollbar-hide">
-      <div className="w-full max-w-sm space-y-6 text-center py-8">
+      <div className="w-full max-w-sm space-y-8 text-center py-8">
         <div className="space-y-2 px-4">
             <GameBallsHeader />
             <div className="px-6">
-                <h1 className="text-5xl font-black italic animate-shimmer-text tracking-normal drop-shadow-[0_0_20px_rgba(255,51,102,0.4)] px-4">
+                <h1 className="text-5xl font-black italic animate-shimmer-text tracking-normal drop-shadow-[0_0_20px_rgba(255,51,102,0.4)] px-6">
                     WinGo
                 </h1>
             </div>
-            <div className="flex items-center justify-center gap-2 text-primary font-black uppercase tracking-[0.3em] text-[10px] bg-primary/10 py-2 rounded-xl border border-primary/20 mt-4">
+            <div className="flex items-center justify-center gap-2 text-primary font-black uppercase tracking-[0.3em] text-[10px] bg-primary/10 py-2 rounded-full border border-primary/20 mt-4">
                 <Zap size={14} className="fill-primary" /> FAST WITHDRAWAL
             </div>
         </div>
 
-        <div className="pt-4 space-y-4">
-          <Button 
-            variant="outline" 
-            className="w-full h-14 text-base font-bold rounded-2xl border-border bg-secondary/20 hover:bg-secondary/40 transition-all flex items-center justify-center gap-3"
-            onClick={handleGoogleSignup}
-            disabled={isGoogleLoading || isLoading}
-          >
-            {isGoogleLoading ? (
-              <Loader2 className="animate-spin h-5 w-5" />
-            ) : (
-              <>
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                  <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                  <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
-                  <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                </svg>
-                Continue with Google
-              </>
-            )}
-          </Button>
-
-          <div className="relative py-2">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-border"></span>
-            </div>
-            <div className="relative flex justify-center text-[10px] uppercase">
-              <span className="bg-background px-4 text-muted-foreground font-bold tracking-widest">or create account</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-center">
+        <div className="flex justify-center pt-2">
             <div className="relative">
                 <label htmlFor="photo-upload" className="cursor-pointer">
-                    <Avatar className="h-24 w-24 border-2 border-dashed border-primary/50 hover:border-primary transition-colors bg-secondary/20">
+                    <Avatar className="h-24 w-24 border-2 border-dashed border-primary/50 bg-secondary/20">
                         <AvatarImage src={imagePreviewUrl} className="object-cover" />
                         <AvatarFallback className="bg-transparent">
                             <Camera className="h-8 w-8 text-primary opacity-50" />
@@ -246,59 +157,40 @@ export default function SignupPage() {
             </div>
         </div>
         
-        <form onSubmit={handleSignup} className="w-full space-y-3">
-          <Input 
-            type="email" 
-            placeholder="Email Address" 
-            className="h-12 bg-secondary/30 border-white/5 rounded-xl px-4" 
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            disabled={isLoading || isGoogleLoading}
-          />
-          <Input 
-            type="password" 
-            placeholder="Password (min. 6 characters)" 
-            className="h-12 bg-secondary/30 border-white/5 rounded-xl px-4" 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            disabled={isLoading || isGoogleLoading}
-          />
-          <Input 
-            type="text" 
-            placeholder="Full Name" 
-            className="h-12 bg-secondary/30 border-white/5 rounded-xl px-4" 
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            disabled={isLoading || isGoogleLoading}
-            />
-          <Input 
-            type="text" 
-            placeholder="Choose Username" 
-            className="h-12 bg-secondary/30 border-white/5 rounded-xl px-4" 
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            disabled={isLoading || isGoogleLoading}
-          />
-          <Button type="submit" className="w-full h-14 text-lg font-black uppercase rounded-2xl bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all mt-4" disabled={isLoading || isGoogleLoading}>
+        <form onSubmit={handleSignup} className="w-full space-y-4 px-2">
+          <div className="space-y-3">
+              <Input placeholder="Email Address" className="h-12 bg-secondary/30 border-white/5 rounded-xl px-6" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isLoading}/>
+              <Input type="password" placeholder="Password (min. 6 char)" className="h-12 bg-secondary/30 border-white/5 rounded-xl px-6" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={isLoading}/>
+              <Input placeholder="Full Name" className="h-12 bg-secondary/30 border-white/5 rounded-xl px-6" value={name} onChange={(e) => setName(e.target.value)} required disabled={isLoading}/>
+              <Input placeholder="Choose Username" className="h-12 bg-secondary/30 border-white/5 rounded-xl px-6" value={username} onChange={(e) => setUsername(e.target.value)} required disabled={isLoading}/>
+          </div>
+
+          <Button type="submit" className="w-full h-16 text-xl font-black uppercase rounded-full bg-primary text-white shadow-lg active:scale-95 transition-all mt-4" disabled={isLoading}>
             {isLoading ? <Loader2 className="animate-spin" /> : statusMessage}
           </Button>
         </form>
 
-        <div className="border-t border-border mt-6 pt-6">
-          <p className="text-sm text-muted-foreground font-medium">
-            Already have an account?{' '}
-            <Link href="/login?auth=true" className="font-black text-primary hover:underline underline-offset-4">
-              Log in
-            </Link>
-          </p>
-          <div className="flex items-center justify-center gap-2 pt-6 opacity-30">
-             <ShieldCheck size={14} className="text-primary" />
-             <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Secure Cloud Sync</span>
+        <div className="px-2 space-y-4">
+          <div className="relative py-2">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-white/5"></span>
+            </div>
+            <div className="relative flex justify-center text-[10px] uppercase">
+              <span className="bg-background px-4 text-muted-foreground font-bold tracking-[0.3em]">Already a member?</span>
+            </div>
           </div>
+
+          <Link href="/login?auth=true">
+              <button className="w-full border-2 border-primary h-16 rounded-full bg-white/5 active:scale-95 transition-all flex items-center justify-center gap-1">
+                  <span className="text-white/60 font-bold text-sm">I have an account</span>
+                  <span className="text-primary font-black text-xl ml-1">Login</span>
+              </button>
+          </Link>
+        </div>
+
+        <div className="pt-6 opacity-30 flex items-center justify-center gap-2">
+             <ShieldCheck size={14} className="text-primary" />
+             <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Secure Cloud System</span>
         </div>
       </div>
     </div>
