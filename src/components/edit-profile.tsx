@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect, ChangeEvent, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,7 +16,7 @@ import { useFirebase, useUser } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/models/user';
-import { Youtube, Instagram, Globe } from 'lucide-react';
+import { Youtube, Instagram, Info } from 'lucide-react';
 
 interface EditProfileSheetProps {
   open: boolean;
@@ -30,38 +29,20 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
   const { user } = useUser();
   const { toast } = useToast();
 
-  const [name, setName] = useState(userProfile?.name || '');
   const [username, setUsername] = useState(userProfile?.username || '');
   const [bio, setBio] = useState(userProfile?.bio || '');
   const [youtubeUrl, setYoutubeUrl] = useState(userProfile?.youtubeUrl || '');
   const [instagramUrl, setInstagramUrl] = useState(userProfile?.instagramUrl || '');
   const [isSaving, setIsSaving] = useState(false);
-  
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (userProfile && open) {
-      setName(userProfile.name || '');
       setUsername(userProfile.username || '');
       setBio(userProfile.bio || '');
       setYoutubeUrl(userProfile.youtubeUrl || '');
       setInstagramUrl(userProfile.instagramUrl || '');
-      setImagePreviewUrl(userProfile.profileImageUrl || '');
-      setImageFile(null);
     }
   }, [userProfile, open]);
-  
-  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setImageFile(file);
-      const localUrl = URL.createObjectURL(file);
-      setImagePreviewUrl(localUrl);
-    }
-  };
 
   const handleSaveChanges = async () => {
     if (!user || !firestore) return;
@@ -73,39 +54,14 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
     setIsSaving(true);
 
     try {
-      let profileImageUrl = userProfile?.profileImageUrl || `https://picsum.photos/seed/${user.uid}/400/400`;
-
-      if (imageFile) {
-        const cloudName = "dipz5jsls";
-        const uploadPreset = "video_upload";
-
-        const formData = new FormData();
-        formData.append('file', imageFile);
-        formData.append('upload_preset', uploadPreset);
-        
-        const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-            method: 'POST',
-            body: formData
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.secure_url) {
-            profileImageUrl = data.secure_url;
-        } else {
-            throw new Error(data.error?.message || "Upload failed");
-        }
-      }
-
       const userDocRef = doc(firestore, 'users', user.uid);
       await setDoc(userDocRef, {
-        name: name.trim(),
         username: username.trim(),
         username_lowercase: username.trim().toLowerCase(),
         bio: bio.trim(),
         youtubeUrl: youtubeUrl.trim(),
         instagramUrl: instagramUrl.trim(),
-        profileImageUrl,
+        updatedAt: serverTimestamp()
       }, { merge: true });
 
       toast({ title: 'Profile Saved! ✅' });
@@ -125,80 +81,72 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="rounded-t-3xl bg-background text-white border-white/10 p-0 overflow-hidden h-[90vh]">
-        <SheetHeader className="p-6 border-b border-white/5">
-          <SheetTitle className="text-center text-xl font-black italic uppercase">Edit Profile</SheetTitle>
+      <SheetContent side="bottom" className="rounded-t-[3rem] bg-background text-white border-none p-0 overflow-hidden h-[85vh]">
+        <SheetHeader className="p-6 border-b border-white/5 bg-secondary/20">
+          <SheetTitle className="text-center text-xl font-black italic uppercase tracking-tighter">Account Settings</SheetTitle>
         </SheetHeader>
         
-        <div className="p-6 space-y-8 overflow-y-auto h-full pb-32">
-          <div className="flex flex-col items-center gap-4">
-            <div className="relative group" onClick={() => fileInputRef.current?.click()}>
-                <Avatar className="h-32 w-32 border-4 border-primary shadow-lg cursor-pointer hover:scale-105 transition-transform">
-                  <AvatarImage src={imagePreviewUrl ?? userProfile?.profileImageUrl} className="object-cover" />
-                  <AvatarFallback className="text-2xl font-black">{userProfile?.name?.[0]}</AvatarFallback>
+        <div className="p-6 space-y-8 overflow-y-auto h-full pb-32 scrollbar-hide">
+          <div className="flex flex-col items-center gap-6">
+            <div className="relative group">
+                <Avatar className="h-32 w-32 border-4 border-primary shadow-[0_0_40px_rgba(255,51,102,0.2)]">
+                  <AvatarImage src={userProfile?.profileImageUrl} className="object-cover" />
+                  <AvatarFallback className="text-2xl font-black bg-secondary">{userProfile?.username?.[0]}</AvatarFallback>
                 </Avatar>
-                <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-[10px] font-black uppercase text-white">Change</span>
-                </div>
             </div>
             
-            <input 
-                type="file" 
-                className="hidden" 
-                ref={fileInputRef} 
-                onChange={handleFileSelect} 
-                accept="image/*"
-                disabled={isSaving}
-            />
+            <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-2xl flex items-start gap-3 max-w-sm">
+                <Info className="text-blue-400 shrink-0 mt-0.5" size={16} />
+                <p className="text-[10px] text-blue-300 font-bold leading-relaxed uppercase">
+                    नाम और फोटो सीधे Google से लिए जा रहे हैं। इन्हें बदलने के लिए Google Account सेटिंग्स में जाएँ।
+                </p>
+            </div>
           </div>
 
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Name</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} disabled={isSaving} className="h-12 bg-secondary/50 border-white/10 rounded-xl" />
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Account Username</Label>
+              <Input value={username} onChange={(e) => setUsername(e.target.value)} disabled={isSaving} className="h-14 bg-secondary/50 border-white/10 rounded-2xl px-6 font-bold" />
             </div>
+
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Username</Label>
-              <Input value={username} onChange={(e) => setUsername(e.target.value)} disabled={isSaving} className="h-12 bg-secondary/50 border-white/10 rounded-xl" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Bio</Label>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Channel Bio</Label>
               <Textarea 
                 value={bio} 
                 onChange={(e) => setBio(e.target.value)} 
                 placeholder="Tell us about yourself..."
-                className="min-h-[100px] bg-secondary/50 border-white/10 rounded-xl resize-none"
+                className="min-h-[120px] bg-secondary/50 border-white/10 rounded-2xl p-6 resize-none"
                 disabled={isSaving}
               />
             </div>
 
             <div className="space-y-4 pt-4 border-t border-white/5">
-               <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary">Social Links</h3>
+               <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary">Connected Links</h3>
                
                <div className="space-y-4">
                   <div className="space-y-2">
                     <Label className="text-[9px] font-bold uppercase text-muted-foreground flex items-center gap-2">
-                      <Youtube className="h-3 w-3 text-red-500" /> YouTube Channel URL
+                      <Youtube className="h-3 w-3 text-red-500" /> YouTube URL
                     </Label>
                     <Input 
                       value={youtubeUrl} 
                       onChange={(e) => setYoutubeUrl(e.target.value)} 
-                      placeholder="https://youtube.com/@yourchannel"
+                      placeholder="https://youtube.com/@channel"
                       disabled={isSaving} 
-                      className="h-12 bg-secondary/50 border-white/10 rounded-xl text-xs" 
+                      className="h-12 bg-secondary/50 border-white/10 rounded-xl px-4 text-xs" 
                     />
                   </div>
                   
                   <div className="space-y-2">
                     <Label className="text-[9px] font-bold uppercase text-muted-foreground flex items-center gap-2">
-                      <Instagram className="h-3 w-3 text-pink-500" /> Instagram Username
+                      <Instagram className="h-3 w-3 text-pink-500" /> Instagram User
                     </Label>
                     <Input 
                       value={instagramUrl} 
                       onChange={(e) => setInstagramUrl(e.target.value)} 
-                      placeholder="@yourusername"
+                      placeholder="@username"
                       disabled={isSaving} 
-                      className="h-12 bg-secondary/50 border-white/10 rounded-xl text-xs" 
+                      className="h-12 bg-secondary/50 border-white/10 rounded-xl px-4 text-xs" 
                     />
                   </div>
                </div>
@@ -206,15 +154,18 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
           </div>
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 p-6 bg-background border-t border-white/5 flex gap-4">
-          <Button variant="ghost" onClick={() => onOpenChange(false)} className="flex-1 h-14 rounded-2xl font-black uppercase" disabled={isSaving}>
+        <div className="absolute bottom-0 left-0 right-0 p-6 bg-background border-t border-white/5 flex gap-4 backdrop-blur-xl">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} className="flex-1 h-16 rounded-2xl font-black uppercase text-xs" disabled={isSaving}>
             Cancel
           </Button>
-          <Button onClick={handleSaveChanges} disabled={isSaving} className="flex-1 h-14 rounded-2xl font-black uppercase bg-primary">
-            {isSaving ? 'Saving...' : 'Save Changes'}
+          <Button onClick={handleSaveChanges} disabled={isSaving} className="flex-1 h-16 rounded-2xl font-black uppercase text-xs bg-primary shadow-lg shadow-primary/20">
+            {isSaving ? 'Updating...' : 'Save Changes'}
           </Button>
         </div>
       </SheetContent>
     </Sheet>
   );
 }
+
+// Fixed missing import for serverTimestamp
+import { serverTimestamp } from 'firebase/firestore';
