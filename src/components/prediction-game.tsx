@@ -82,7 +82,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   const [popup, setPopup] = useState<PopupData>({ 
     isOpen: false, isWin: false, amount: 0, period: '', result: null 
   });
-  const [popupTimer, setPopupTimer] = useState(3);
 
   const processedBetIdsRef = useRef<Set<string>>(new Set());
   const processedPeriodsRef = useRef<Set<string>>(new Set());
@@ -193,25 +192,14 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                 }
 
                 if (!shownPopupPeriodsRef.current.has(bet.period)) {
-                    if (isWin) {
-                        setPopup({ 
-                            isOpen: true, 
-                            isWin: true, 
-                            amount: winAmt, 
-                            period: bet.period, 
-                            result: { num: result.number, color: result.color, size: result.size } 
-                        });
-                        shownPopupPeriodsRef.current.add(bet.period);
-                    } else {
-                        setPopup({ 
-                            isOpen: true, 
-                            isWin: false, 
-                            amount: 0, 
-                            period: bet.period, 
-                            result: { num: result.number, color: result.color, size: result.size } 
-                        });
-                        shownPopupPeriodsRef.current.add(bet.period);
-                    }
+                    setPopup({ 
+                        isOpen: true, 
+                        isWin: isWin, 
+                        amount: winAmt, 
+                        period: bet.period, 
+                        result: { num: result.number, color: result.color, size: result.size } 
+                    });
+                    shownPopupPeriodsRef.current.add(bet.period);
                 }
             }
         });
@@ -228,19 +216,10 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
   useEffect(() => {
     if (popup.isOpen) {
-      setPopupTimer(3);
       const timerId = setTimeout(() => {
         setPopup(prev => ({ ...prev, isOpen: false }));
       }, 3000);
-      
-      const countdown = setInterval(() => {
-        setPopupTimer(prev => Math.max(0, prev - 1));
-      }, 1000);
-      
-      return () => {
-        clearTimeout(timerId);
-        clearInterval(countdown);
-      };
+      return () => clearTimeout(timerId);
     }
   }, [popup.isOpen]);
 
@@ -253,7 +232,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
   const handlePlaceBet = async () => {
     if (!user || !firestore || isBetting || selectedOption === null || !userProfile) return;
     if (userProfile.hasDeposited === false) {
-      toast({ variant: 'destructive', title: "Bet Locked! 🔒", description: "बेट लगाने के लिए पहले कम से कम एक बार रिचार्ज (Deposit) करें भाई। ✅" });
+      toast({ variant: 'destructive', title: "Bet Locked! 🔒", description: "बेट लगाने के लिए पहले रिचार्ज करें भाई।" });
       setIsBetPanelOpen(false);
       return;
     }
@@ -282,17 +261,18 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           <div className="bg-yellow-500/10 border border-yellow-500/30 p-4 rounded-2xl flex items-center gap-3 animate-pulse">
               <Lock className="text-yellow-500 h-5 w-5 shrink-0" />
               <p className="text-[10px] font-black text-yellow-500 uppercase leading-tight">
-                  Betting is locked! Recharge once to unlock your ₹28 bonus and start playing.
+                  Betting is locked! Recharge once to start playing.
               </p>
           </div>
       )}
 
-      <div className="bg-[#f95959] rounded-[2.5rem] p-6 text-white flex justify-between items-center shadow-xl relative overflow-hidden">
-        <div className="space-y-3 z-10">
+      {/* Timer Section - Improved spacing for mobile */}
+      <div className="bg-[#f95959] rounded-[2.5rem] py-6 px-4 text-white flex justify-between items-center shadow-xl relative overflow-hidden">
+        <div className="space-y-3 z-10 shrink-0">
             <div className="flex items-center gap-1.5"><Zap size={14} className="fill-white" /><p className="text-[9px] font-black uppercase tracking-[0.2em]">WinGo 30S</p></div>
-            <div className="flex gap-1.5">
+            <div className="flex gap-1">
                 {displayResults.slice(0, 5).map(res => (
-                    <div key={res.id} className={cn("w-7 h-7 rounded-full border border-white/20 flex items-center justify-center text-[10px] font-black shadow-md", res.color.includes('green') ? "bg-green-500" : "bg-red-500")} style={{ fontStyle: 'normal' }}>{res.number}</div>
+                    <div key={res.id} className={cn("w-6 h-6 rounded-full border border-white/20 flex items-center justify-center text-[9px] font-black shadow-md", res.color.includes('green') ? "bg-green-500" : "bg-red-500")} style={{ fontStyle: 'normal' }}>{res.number}</div>
                 ))}
             </div>
         </div>
@@ -300,10 +280,10 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
             <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-90 mb-2">{timeLeft <= 5 ? "Wait" : "Time Left"}</p>
             <div className="flex items-center justify-end">
                 {timeLeft <= 5 ? (
-                    <div className="h-12 flex items-center justify-center px-4 rounded-xl bg-white text-red-600 font-black text-lg shadow-xl animate-pulse uppercase">Wait</div>
+                    <div className="h-10 flex items-center justify-center px-4 rounded-xl bg-white text-red-600 font-black text-lg shadow-xl animate-pulse uppercase">Wait</div>
                 ) : (
                     ['0', '0', ':', (timeLeft < 10 ? '0' : timeLeft.toString()[0]), (timeLeft < 10 ? timeLeft.toString() : (timeLeft.toString()[1] || '0'))].map((char, i) => (
-                        <div key={i} className={cn("h-12 w-9 flex items-center justify-center rounded-xl bg-white text-[#f95959] font-black text-2xl shadow-xl mx-0.5", char === ':' && "bg-transparent text-white w-2 shadow-none")} style={{ fontStyle: 'normal' }}>{char}</div>
+                        <div key={i} className={cn("h-10 w-8 flex items-center justify-center rounded-lg bg-white text-[#f95959] font-black text-xl shadow-md mx-0.5", char === ':' && "bg-transparent text-white w-1.5 shadow-none mx-0")} style={{ fontStyle: 'normal' }}>{char}</div>
                     ))
                 )}
             </div>
@@ -341,7 +321,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                 <TabsTrigger value="my" className="rounded-none font-black text-[10px] uppercase data-[state=active]:bg-primary/20 data-[state=active]:text-primary">My Bets</TabsTrigger>
             </TabsList>
             <TabsContent value="results" className="m-0">
-                <div className="overflow-x-auto max-h-[700px] overflow-y-auto scrollbar-hide">
+                <div className="overflow-x-auto max-h-[1000px] overflow-y-auto scrollbar-hide">
                     <table className="w-full text-left border-collapse">
                         <thead className="bg-background/80 text-white/40 sticky top-0 z-10 backdrop-blur-md">
                             <tr className="text-[8px] font-black uppercase">
@@ -397,7 +377,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
       <Sheet open={isBetPanelOpen} onOpenChange={setIsBetPanelOpen}>
         <SheetContent side="bottom" className="h-[75vh] bg-background border-white/5 rounded-t-[2.5rem] p-0 overflow-hidden z-[1000] text-white outline-none">
-           <SheetHeader className="p-6 pb-2 flex flex-row items-center justify-between border-b border-white/5">
+           <SheetHeader className="p-6 pb-2 border-b border-white/5">
                 <SheetTitle className="text-xl font-black uppercase tracking-tighter text-white italic">PLACE BET</SheetTitle>
            </SheetHeader>
            <div className="p-6 space-y-6 overflow-y-auto h-full pb-24 scrollbar-hide">
@@ -434,7 +414,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       <Dialog open={popup.isOpen} onOpenChange={(open) => !open && setPopup(prev => ({ ...prev, isOpen: false }))}>
         <DialogContent className={cn(
             "max-w-[310px] p-0 border-none rounded-[3rem] overflow-hidden shadow-[0_20px_80px_rgba(0,0,0,0.6)] z-[2000] animate-in zoom-in duration-300", 
-            popup.isWin ? "bg-[#f95959]" : "bg-blue-600"
+            popup.isWin ? "bg-red-600" : "bg-blue-600"
         )}>
             <DialogHeader className="sr-only">
                 <DialogTitle>{popup.isWin ? 'WIN!' : 'LOSE'}</DialogTitle>
@@ -468,10 +448,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                 </div>
 
                 <div className="w-full pt-2">
-                    <div className={cn("h-2 rounded-full overflow-hidden", "bg-white/10")}>
-                        <div className={cn("h-full transition-all duration-1000 ease-linear", "bg-white")} style={{ width: `${(popupTimer / 3) * 100}%` }} />
-                    </div>
-                    <p className="text-[8px] font-black uppercase tracking-[0.5em] mt-4 opacity-40">Syncing in {popupTimer}s</p>
+                    <p className="text-[8px] font-black uppercase tracking-[0.5em] mt-4 opacity-40">Auto-closing in 3s</p>
                 </div>
             </div>
         </DialogContent>
