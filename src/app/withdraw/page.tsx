@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useFirebase, useUser, useDoc, useMemoFirebase } from '@/firebase';
-import { addDoc, collection, serverTimestamp, doc, increment, writeBatch } from 'firebase/firestore';
+import { useFirebase, useUser, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import { addDoc, collection, serverTimestamp, doc, increment, writeBatch, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Loader2, Landmark, ShieldCheck, Banknote, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Landmark, ShieldCheck, Banknote, AlertCircle, CheckCircle2, Info } from 'lucide-react';
 import { BottomNav } from "@/components/bottom-nav";
 import { cn } from '@/lib/utils';
 import type { UserProfile } from '@/models/user';
@@ -18,15 +18,32 @@ function WithdrawContent() {
     const { toast } = useToast();
     const router = useRouter();
 
-    const [amount, setAmount] = useState('110');
+    const [amount, setAmount] = useState('500');
     const [name, setName] = useState('');
     const [upiId, setUpiId] = useState('');
-    const [email, setEmail] = useState(user?.email || '');
+    const [email, setEmail] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
+    // Fetch user profile for balance
     const userRef = useMemoFirebase(() => 
         (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
     const { data: userProfile } = useDoc<UserProfile & { virtualBalance?: number }>(userRef);
+
+    // Fetch user withdrawal history to check if it's the first time
+    const userWithdrawsQuery = useMemoFirebase(() => 
+        (firestore && user) ? query(collection(firestore, 'withdraw_requests'), where('userId', '==', user.uid)) : null, 
+    [firestore, user]);
+    const { data: userWithdraws, isLoading: isHistoryLoading } = useCollection(userWithdrawsQuery);
+
+    const isFirstWithdraw = !userWithdraws || userWithdraws.length === 0;
+    const minLimit = isFirstWithdraw ? 500 : 110;
+
+    useEffect(() => {
+        if (user?.email) setEmail(user.email);
+        if (!isHistoryLoading) {
+            setAmount(minLimit.toString());
+        }
+    }, [user, isHistoryLoading, minLimit]);
 
     const handleWithdraw = async () => {
         const amt = parseInt(amount);
@@ -37,8 +54,14 @@ function WithdrawContent() {
             return;
         }
 
-        if (isNaN(amt) || amt < 110) {
-            toast({ variant: 'destructive', title: "Invalid Amount", description: "Minimum withdrawal is ₹110" });
+        if (isNaN(amt) || amt < minLimit) {
+            toast({ 
+                variant: 'destructive', 
+                title: "Invalid Amount", 
+                description: isFirstWithdraw 
+                    ? `भाई, पहली बार विड्रॉल कम से कम ₹500 का होना चाहिए।` 
+                    : `Minimum withdrawal is ₹${minLimit}` 
+            });
             return;
         }
 
@@ -61,6 +84,7 @@ function WithdrawContent() {
                 email: email.trim(),
                 amount: amt,
                 status: 'pending',
+                isFirstTime: isFirstWithdraw,
                 createdAt: serverTimestamp()
             });
 
@@ -83,6 +107,8 @@ function WithdrawContent() {
         }
     };
 
+    if (isHistoryLoading) return <div className="h-screen flex items-center justify-center bg-background"><Loader2 className="animate-spin text-primary" /></div>;
+
     return (
         <div className="min-h-screen bg-background text-foreground pb-24">
             <header className="p-5 bg-background/80 sticky top-0 z-50 flex items-center gap-4 border-b border-white/5 backdrop-blur-xl">
@@ -103,10 +129,21 @@ function WithdrawContent() {
                     <h2 className="text-4xl font-black text-white" style={{ fontStyle: 'normal' }}>₹{userProfile?.virtualBalance?.toFixed(1) || '0.0'}</h2>
                 </div>
 
+                {isFirstWithdraw && (
+                    <div className="bg-blue-600/10 border border-blue-500/20 p-4 rounded-2xl flex items-center gap-3 animate-pulse">
+                        <Info className="text-blue-400 h-5 w-5 shrink-0" />
+                        <p className="text-[10px] font-black text-blue-400 uppercase leading-tight">
+                            First Withdrawal Rule: Minimum ₹500 required for your first payout.
+                        </p>
+                    </div>
+                )}
+
                 <div className="bg-secondary/40 border border-white/5 p-6 rounded-[2.5rem] space-y-6">
                     <div className="space-y-4">
                         <div className="space-y-2">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-2">Withdrawal Amount (Min ₹110)</p>
+                            <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-2">
+                                Amount (Min ₹{minLimit})
+                            </p>
                             <div className="relative">
                                 <span className="absolute left-6 top-1/2 -translate-y-1/2 text-xl font-black text-white/20">₹</span>
                                 <Input
@@ -154,7 +191,7 @@ function WithdrawContent() {
                     <div className="p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-2xl flex items-start gap-3">
                         <AlertCircle className="text-yellow-500 shrink-0 mt-0.5" size={16} />
                         <p className="text-[10px] text-yellow-500/80 font-bold leading-relaxed uppercase">
-                            Warning: Incorrect UPI details will result in loss of funds. We are not responsible for wrong entries.
+                            Warning: Incorrect UPI details will result in loss of funds.
                         </p>
                     </div>
 
