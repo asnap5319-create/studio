@@ -94,7 +94,7 @@ export default function ProfilePage() {
             </header>
 
             <main className="w-full space-y-6 mt-6">
-                {/* Profile Card - Premium Redesign */}
+                {/* Profile Card */}
                 <div className="px-4">
                     <div className="bg-secondary/40 border border-border p-8 rounded-[2.5rem] relative overflow-hidden flex flex-col items-center text-center gap-4 shadow-inner">
                         <div className="absolute top-0 right-0 p-4 opacity-5 rotate-12">
@@ -165,7 +165,7 @@ export default function ProfilePage() {
                     </div>
                 )}
 
-                {/* History Grid - Optimized for User Clarity */}
+                {/* History Grid */}
                 <div className="px-4 grid grid-cols-2 gap-4">
                     <button 
                         onClick={() => setHistoryType('deposit')}
@@ -240,7 +240,7 @@ export default function ProfilePage() {
                 </SheetContent>
             </Sheet>
 
-            {/* History Sheet - Custom Status Display */}
+            {/* History Sheet */}
             <Sheet open={historyType !== null} onOpenChange={(open) => !open && setHistoryType(null)}>
                 <SheetContent side="bottom" className="h-[80vh] p-0 rounded-t-[3rem] overflow-hidden bg-background border-none shadow-2xl z-[200]">
                     <SheetHeader className="p-6 border-b border-white/5 bg-secondary/20">
@@ -328,3 +328,4 @@ export default function ProfilePage() {
         </div>
     );
 }
+
