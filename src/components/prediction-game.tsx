@@ -426,17 +426,17 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       <Dialog open={popup.isOpen} onOpenChange={(open) => !open && setPopup(prev => ({ ...prev, isOpen: false }))}>
         <DialogContent className={cn(
             "max-w-[310px] p-0 border-none rounded-[3rem] overflow-hidden shadow-[0_20px_80px_rgba(0,0,0,0.6)] z-[2000] animate-in zoom-in duration-300", 
-            popup.isWin ? "bg-yellow-400" : "bg-blue-600"
+            popup.isWin ? "bg-red-600" : "bg-blue-600"
         )}>
             <DialogHeader className="sr-only">
                 <DialogTitle>{popup.isWin ? "WIN" : "LOSS"}</DialogTitle>
             </DialogHeader>
-            <div className={cn("relative p-8 flex flex-col items-center text-center space-y-6 z-10", popup.isWin ? "text-black" : "text-white")}>
+            <div className={cn("relative p-8 flex flex-col items-center text-center space-y-6 z-10", "text-white")}>
                 <button onClick={() => setPopup(prev => ({ ...prev, isOpen: false }))} className="absolute top-6 right-6 p-2 bg-black/5 rounded-full hover:bg-black/10 transition-colors">
                     <X size={18} />
                 </button>
                 
-                <div className={cn("w-24 h-24 rounded-3xl flex items-center justify-center shadow-2xl rotate-3 transform transition-transform hover:rotate-0", popup.isWin ? "bg-black text-yellow-400" : "bg-white/10 text-white")}>
+                <div className={cn("w-24 h-24 rounded-3xl flex items-center justify-center shadow-2xl rotate-3 transform transition-transform hover:rotate-0", "bg-white/10 text-white")}>
                     {popup.isWin ? <Coins size={50} className="animate-pulse" /> : <Frown size={50} />}
                 </div>
 
@@ -449,7 +449,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                     </p>
                 </div>
 
-                <div className={cn("rounded-[2rem] p-5 w-full space-y-3 shadow-inner border", popup.isWin ? "bg-black/5 border-black/5" : "bg-white/10 border-white/5")}>
+                <div className={cn("rounded-[2rem] p-5 w-full space-y-3 shadow-inner border", "bg-white/10 border-white/5")}>
                     <p className="text-[8px] font-black uppercase tracking-widest opacity-40">Period: {popup.period.slice(-4)}</p>
                     <div className="flex items-center justify-center gap-4">
                         <div className={cn("w-12 h-12 rounded-full flex items-center justify-center font-black text-2xl border-4 shadow-lg", 
@@ -457,7 +457,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                             [1,3,7,9].includes(popup.result?.num || 0) ? "bg-green-600 border-white/20" : "bg-red-600 border-white/20")} style={{ fontStyle: 'normal' }}>
                             {popup.result?.num}
                         </div>
-                        <span className={cn("px-5 py-2 rounded-2xl text-xs font-black uppercase", popup.isWin ? "bg-black text-yellow-400" : "bg-white/20 text-white")}>
+                        <span className={cn("px-5 py-2 rounded-2xl text-xs font-black uppercase", "bg-white/20 text-white")}>
                             {popup.result?.size}
                         </span>
                     </div>
@@ -465,17 +465,17 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
                 {popup.isWin && (
                     <div className="space-y-1 animate-in slide-in-from-bottom-2">
-                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-black/50">Winning Amount</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/50">Winning Amount</p>
                         <div className="flex items-center justify-center gap-2">
-                            <Sparkles size={24} className="text-black" />
+                            <Sparkles size={24} className="text-white" />
                             <h3 className="text-5xl font-black tracking-tighter" style={{ fontStyle: 'normal' }}>₹{popup.amount?.toFixed(1) || '0.0'}</h3>
                         </div>
                     </div>
                 )}
 
                 <div className="w-full pt-2">
-                    <div className={cn("h-2 rounded-full overflow-hidden", popup.isWin ? "bg-black/10" : "bg-white/10")}>
-                        <div className={cn("h-full transition-all duration-1000 ease-linear", popup.isWin ? "bg-black" : "bg-white")} style={{ width: `${(popupTimer / 3) * 100}%` }} />
+                    <div className={cn("h-2 rounded-full overflow-hidden", "bg-white/10")}>
+                        <div className={cn("h-full transition-all duration-1000 ease-linear", "bg-white")} style={{ width: `${(popupTimer / 3) * 100}%` }} />
                     </div>
                     <p className="text-[8px] font-black uppercase tracking-[0.5em] mt-4 opacity-40">Syncing in {popupTimer}s</p>
                 </div>
