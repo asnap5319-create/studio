@@ -7,13 +7,25 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Loader2, CreditCard, Zap, Sparkles, CheckCircle2, Smartphone, Camera, Clock, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Loader2, CreditCard, Zap, Sparkles, CheckCircle2, Smartphone, Clock } from 'lucide-react';
 import { BottomNav } from "@/components/bottom-nav";
 import { cn } from '@/lib/utils';
 
 const PRESET_AMOUNTS = [100, 200, 300, 400, 500, 1000];
 const UPI_ID = "ak63315561338@okicici"; 
-const PAYEE_NAME = "Abhishek Kumar"; 
+
+const PAYEE_NAMES = [
+    "Abhishek Kumar",
+    "Ajay Kumar",
+    "Ravi Kumar",
+    "Aditya Singh",
+    "Vivek Sharma",
+    "Rahul Gupta",
+    "Manoj Yadav",
+    "Vikram Singh",
+    "Sandeep Mishra",
+    "Deepak Verma"
+];
 
 function DepositContent() {
     const { firestore } = useFirebase();
@@ -26,11 +38,12 @@ function DepositContent() {
     const [step, setStep] = useState<'select' | 'pay'>('select');
     const [isLoading, setIsLoading] = useState(false);
     const [timeLeft, setTimeLeft] = useState(540); // 9 minutes in seconds
+    const [selectedPayee, setSelectedPayee] = useState(PAYEE_NAMES[0]);
 
-    // अभिषेक भाई, यहाँ 500 वाले पर 450 चार्ज करने का लॉजिक है
+    // 500 वाले पर 10% छूट का लॉजिक
     const payableAmount = useMemo(() => {
         const amt = parseInt(amount) || 100;
-        if (amt === 500) return 450; // 10% discount logic
+        if (amt === 500) return 450; 
         return amt;
     }, [amount]);
 
@@ -53,9 +66,9 @@ function DepositContent() {
     };
 
     const qrCodeUrl = useMemo(() => {
-        const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(PAYEE_NAME)}&am=${payableAmount}&cu=INR&tn=Deposit%20to%20Asnap`;
+        const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(selectedPayee)}&am=${payableAmount}&cu=INR&tn=Deposit%20to%20Asnap`;
         return `https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(upiLink)}`;
-    }, [payableAmount]);
+    }, [payableAmount, selectedPayee]);
 
     const handleProceedToPay = () => {
         const amt = parseInt(amount);
@@ -63,11 +76,16 @@ function DepositContent() {
             toast({ variant: 'destructive', title: "Invalid Amount", description: "Minimum deposit is ₹100" });
             return;
         }
+        
+        // रैंडम नाम चुनें जब यूजर पे बटन दबाए
+        const randomIndex = Math.floor(Math.random() * PAYEE_NAMES.length);
+        setSelectedPayee(PAYEE_NAMES[randomIndex]);
+        
         setStep('pay');
     };
 
     const handleOpenUpiApp = () => {
-        const upiUrl = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(PAYEE_NAME)}&am=${payableAmount}&cu=INR&tn=Deposit%20to%20Asnap`;
+        const upiUrl = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(selectedPayee)}&am=${payableAmount}&cu=INR&tn=Deposit%20to%20Asnap`;
         window.location.href = upiUrl;
     };
 
@@ -76,12 +94,12 @@ function DepositContent() {
 
         setIsLoading(true);
         try {
-            // अभिषेक भाई, अब बिना UTR के भी सबमिट हो जाएगा, बस एडमिन को चेक करना होगा
             await addDoc(collection(firestore, 'deposit_requests'), {
                 userId: user.uid,
                 username: user.displayName || user.email?.split('@')[0] || "User",
-                amount: parseInt(amount), // यूजर को पूरा क्रेडिट मिलेगा (जैसे 500)
-                payableAmount: payableAmount, // एडमिन देख सकेगा कि उसे 450 मिलने थे
+                amount: parseInt(amount), 
+                payableAmount: payableAmount, 
+                payeeName: selectedPayee,
                 utr: utr.trim() || "NOT_PROVIDED",
                 status: 'pending',
                 createdAt: serverTimestamp()
@@ -181,7 +199,8 @@ function DepositContent() {
 
                         <div className="text-center space-y-1">
                              <h3 className="text-3xl font-black uppercase italic tracking-tighter">Scan & Pay</h3>
-                             <p className="text-sm font-black text-primary uppercase">Amount to Transfer: ₹{payableAmount}</p>
+                             <p className="text-sm font-black text-primary uppercase">Amount: ₹{payableAmount}</p>
+                             <p className="text-[10px] font-bold text-white/60 uppercase">To: {selectedPayee}</p>
                              {amount === '500' && <p className="text-[8px] font-bold text-green-500 uppercase">You selected ₹500, but pay only ₹450!</p>}
                         </div>
 
@@ -195,7 +214,7 @@ function DepositContent() {
 
                         <div className="bg-secondary/40 border border-white/5 p-5 rounded-[2rem] text-center space-y-3">
                              <p className="text-xs text-white/90 font-bold leading-relaxed italic">
-                                "भाई लोग, आप इस QR कोड का **स्क्रीनशॉट** ले लो या दूसरे फोन से **स्कैन** कर लो। PhonePe, GPay, Paytm कहीं से भी पैसे डाल सकते हैं।"
+                                "भाई लोग, आप इस QR कोड का **स्क्रीनशॉट** खींचकर या दूसरे फोन से **स्कैन** करके भी किसी भी ऐप (PhonePe, GPay, Paytm) से पैसे डाल सकते हैं।"
                              </p>
                         </div>
 
