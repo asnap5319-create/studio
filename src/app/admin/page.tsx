@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, doc, limit, writeBatch, serverTimestamp, increment, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Users, ArrowLeft, Search, ShieldCheck, Loader2, Play, Banknote, CheckCircle2, XCircle, Clock, Wallet, Zap, Lock } from 'lucide-react';
+import { ShieldAlert, Users, ArrowLeft, Search, ShieldCheck, Loader2, Play, Banknote, CheckCircle2, XCircle, Clock, Wallet, Zap, Lock, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -42,7 +42,6 @@ export default function AdminPage() {
     const { firestore } = useFirebase();
     const { toast } = useToast();
     const router = useRouter();
-    const [searchTerm, setSearchTerm] = useState('');
     const [hasMounted, setHasMounted] = useState(false);
 
     useEffect(() => { setHasMounted(true); }, []);
@@ -106,15 +105,45 @@ export default function AdminPage() {
 
     const handleApproveWithdraw = async (req: WithdrawRequest) => {
         if (!firestore || !isAdmin) return;
-        if (!confirm(`Mark ₹${req.amount} as PAID to ${req.holderName}?`)) return;
+        if (!confirm(`Mark ₹${req.amount} as PAID to ${req.holderName}? Make sure you have sent the money via UPI.`)) return;
 
         try {
             const reqRef = doc(firestore, 'withdraw_requests', req.id);
-            await updateDoc(reqRef, { status: 'approved' });
-            toast({ title: "Marked as Paid! 💸" });
+            await updateDoc(reqRef, { status: 'approved', updatedAt: serverTimestamp() });
+            toast({ title: "Success! 💸", description: "Withdraw marked as PAID." });
         } catch (e) {
             toast({ variant: 'destructive', title: "Error" });
         }
+    };
+
+    const handleRejectWithdraw = async (req: WithdrawRequest) => {
+        if (!firestore || !isAdmin) return;
+        if (!confirm(`Reject this withdraw of ₹${req.amount}? Money will be REFUNDED to user's balance.`)) return;
+
+        try {
+            const batch = writeBatch(firestore);
+            
+            // 1. Update request status to rejected
+            const reqRef = doc(firestore, 'withdraw_requests', req.id);
+            batch.update(reqRef, { status: 'rejected', updatedAt: serverTimestamp() });
+
+            // 2. Refund money back to user virtual balance
+            const userRef = doc(firestore, 'users', req.userId);
+            batch.update(userRef, { 
+                virtualBalance: increment(req.amount),
+                updatedAt: serverTimestamp()
+            });
+
+            await batch.commit();
+            toast({ title: "Rejected & Refunded! ❌", description: "Money sent back to user's game wallet." });
+        } catch (e) {
+            toast({ variant: 'destructive', title: "Error" });
+        }
+    };
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        toast({ title: "Copied! 📋", description: "UPI ID copied to clipboard." });
     };
 
     if (isUserLoading || !hasMounted) return <div className="flex h-screen items-center justify-center bg-background"><Loader2 className="animate-spin text-primary" /></div>;
@@ -180,18 +209,46 @@ export default function AdminPage() {
                 <TabsContent value="withdraws">
                     <div className="space-y-4">
                         {withdraws?.map(req => (
-                            <div key={req.id} className={cn("p-6 rounded-[2rem] border flex items-center justify-between gap-4", req.status === 'approved' ? "bg-blue-500/5 opacity-60" : "bg-secondary/40")}>
-                                <div className="flex-1 space-y-1">
-                                    <div className="flex items-center gap-2">
-                                        <p className="text-2xl font-black text-red-500">₹{req.amount}</p>
-                                        {req.status === 'approved' && <CheckCircle2 size={16} className="text-blue-500" />}
+                            <div key={req.id} className={cn("p-6 rounded-[2rem] border flex flex-col md:flex-row md:items-center justify-between gap-4", req.status === 'approved' ? "bg-blue-500/5 opacity-60" : req.status === 'rejected' ? "bg-red-500/5 opacity-60" : "bg-secondary/40")}>
+                                <div className="flex-1 space-y-2">
+                                    <div className="flex items-center gap-3">
+                                        <p className="text-3xl font-black text-red-500">₹{req.amount}</p>
+                                        {req.status === 'approved' && <CheckCircle2 size={20} className="text-blue-500" />}
+                                        {req.status === 'rejected' && <XCircle size={20} className="text-red-500" />}
                                     </div>
-                                    <p className="text-sm font-bold text-white">{req.holderName}</p>
-                                    <p className="text-[11px] font-black text-primary uppercase tracking-widest">{req.upiId}</p>
-                                    <p className="text-[8px] font-bold text-muted-foreground uppercase">{req.username}</p>
+                                    
+                                    <div className="space-y-1">
+                                        <p className="text-lg font-black text-white uppercase italic tracking-tight">{req.holderName}</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-sm font-black text-primary uppercase tracking-widest">{req.upiId}</p>
+                                            <button onClick={() => copyToClipboard(req.upiId)} className="p-1 hover:bg-white/10 rounded"><Copy size={12} /></button>
+                                        </div>
+                                        <p className="text-[10px] font-bold text-muted-foreground uppercase">Username: @{req.username}</p>
+                                    </div>
+
+                                    {req.status !== 'pending' && (
+                                        <p className={cn("text-[9px] font-black uppercase", req.status === 'approved' ? "text-blue-500" : "text-red-500")}>
+                                            Request {req.status}
+                                        </p>
+                                    )}
                                 </div>
+                                
                                 {req.status === 'pending' && (
-                                    <Button onClick={() => handleApproveWithdraw(req)} className="bg-blue-600 text-white font-black uppercase text-[10px] h-10 px-6 rounded-xl">Mark Paid</Button>
+                                    <div className="flex flex-col gap-2 shrink-0">
+                                        <Button 
+                                            onClick={() => handleApproveWithdraw(req)} 
+                                            className="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-[10px] h-12 px-8 rounded-xl shadow-lg"
+                                        >
+                                            <CheckCircle2 className="mr-2 h-4 w-4" /> Confirm & Mark Paid
+                                        </Button>
+                                        <Button 
+                                            onClick={() => handleRejectWithdraw(req)} 
+                                            variant="destructive" 
+                                            className="font-black uppercase text-[10px] h-12 px-8 rounded-xl"
+                                        >
+                                            <XCircle className="mr-2 h-4 w-4" /> Reject & Refund
+                                        </Button>
+                                    </div>
                                 )}
                             </div>
                         ))}
@@ -230,4 +287,3 @@ export default function AdminPage() {
         </div>
     );
 }
-

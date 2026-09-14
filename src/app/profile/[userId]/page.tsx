@@ -282,7 +282,7 @@ export default function ProfilePage() {
                                 withdraws.map((w: any) => (
                                     <div key={w.id} className="bg-secondary/40 p-5 rounded-3xl border border-white/5 flex items-center justify-between group hover:bg-secondary/60 transition-all">
                                         <div className="space-y-1">
-                                            <p className="text-2xl font-black text-red-500" style={{ fontStyle: 'normal' }}>-₹{w.amount}</p>
+                                            <p className={cn("text-2xl font-black", w.status === 'rejected' ? "text-muted-foreground line-through" : "text-red-500")} style={{ fontStyle: 'normal' }}>-₹{w.amount}</p>
                                             <p className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1.5">
                                                 <Clock size={10} /> {w.createdAt ? format(w.createdAt.toDate(), 'dd MMM, HH:mm') : 'Recently'}
                                             </p>
@@ -296,7 +296,7 @@ export default function ProfilePage() {
                                             {w.status === 'approved' ? (
                                                 <><Zap size={12} /> PAID</>
                                             ) : w.status === 'rejected' ? (
-                                                <><XCircle size={12} /> FAILED</>
+                                                <><XCircle size={12} /> REJECTED</>
                                             ) : (
                                                 <><Clock size={12} className="animate-pulse" /> PENDING</>
                                             )}
@@ -328,4 +328,3 @@ export default function ProfilePage() {
         </div>
     );
 }
-
