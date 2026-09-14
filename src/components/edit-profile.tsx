@@ -11,12 +11,11 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFirebase, useUser } from '@/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/models/user';
-import { Youtube, Instagram, Info } from 'lucide-react';
+import { Youtube, Instagram, Info, ShieldCheck } from 'lucide-react';
 
 interface EditProfileSheetProps {
   open: boolean;
@@ -83,24 +82,20 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="rounded-t-[3rem] bg-background text-white border-none p-0 overflow-hidden h-[85vh]">
         <SheetHeader className="p-6 border-b border-white/5 bg-secondary/20">
-          <SheetTitle className="text-center text-xl font-black italic uppercase tracking-tighter">Account Settings</SheetTitle>
+          <SheetTitle className="text-center text-xl font-black italic uppercase tracking-tighter text-white">Account Settings</SheetTitle>
         </SheetHeader>
         
         <div className="p-6 space-y-8 overflow-y-auto h-full pb-32 scrollbar-hide">
-          <div className="flex flex-col items-center gap-6">
-            <div className="relative group">
-                <Avatar className="h-32 w-32 border-4 border-primary shadow-[0_0_40px_rgba(255,51,102,0.2)]">
-                  <AvatarImage src={userProfile?.profileImageUrl} className="object-cover" />
-                  <AvatarFallback className="text-2xl font-black bg-secondary">{userProfile?.username?.[0]}</AvatarFallback>
-                </Avatar>
-            </div>
-            
-            <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-2xl flex items-start gap-3 max-w-sm">
-                <Info className="text-blue-400 shrink-0 mt-0.5" size={16} />
-                <p className="text-[10px] text-blue-300 font-bold leading-relaxed uppercase">
-                    नाम और फोटो सीधे Google से लिए जा रहे हैं। इन्हें बदलने के लिए Google Account सेटिंग्स में जाएँ।
+          <div className="bg-blue-600/10 border border-blue-500/20 p-5 rounded-[2rem] flex flex-col items-center text-center gap-4">
+              <div className="p-3 bg-blue-500/20 rounded-2xl text-blue-400">
+                <ShieldCheck size={32} />
+              </div>
+              <div className="space-y-1">
+                <h4 className="font-black uppercase italic text-sm tracking-tight">Identity Protected</h4>
+                <p className="text-[10px] text-blue-300 font-bold leading-relaxed uppercase opacity-70">
+                    Your Name and Profile Picture are managed automatically by Google Security.
                 </p>
-            </div>
+              </div>
           </div>
 
           <div className="space-y-6">
@@ -166,6 +161,3 @@ export function EditProfileSheet({ open, onOpenChange, userProfile }: EditProfil
     </Sheet>
   );
 }
-
-// Fixed missing import for serverTimestamp
-import { serverTimestamp } from 'firebase/firestore';

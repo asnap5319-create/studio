@@ -1,11 +1,10 @@
 'use client';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useFirebase } from "@/firebase";
 import { doc, serverTimestamp, setDoc, getDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { Loader2, ShieldCheck, Zap, User } from "lucide-react";
+import { Loader2, ShieldCheck, Zap } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -53,7 +52,7 @@ export default function SignupPage() {
           username: generatedUsername,
           username_lowercase: generatedUsername.toLowerCase(),
           email: user.email,
-          profileImageUrl: user.photoURL || `https://picsum.photos/seed/${user.uid}/400/400`,
+          profileImageUrl: user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`,
           createdAt: serverTimestamp(),
           bio: "A.snap Creator🎬",
           virtualBalance: 28,
@@ -86,9 +85,9 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
-      // Default profile info since photo upload is removed
-      const profileImageUrl = `https://picsum.photos/seed/${user.uid}/400/400`;
-      const displayName = username; // Default name to username if manual entry removed
+      // Default icon since manual photo upload is removed
+      const profileImageUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`;
+      const displayName = username; 
 
       await setDoc(doc(firestore, "users", user.uid), {
         id: user.uid,
@@ -128,18 +127,8 @@ export default function SignupPage() {
                 <Zap size={14} className="fill-primary" /> FAST WITHDRAWAL
             </div>
         </div>
-
-        <div className="flex justify-center pt-2">
-            <div className="relative">
-                <Avatar className="h-24 w-24 border-2 border-primary/20 bg-secondary/20 shadow-2xl">
-                    <AvatarFallback className="bg-transparent">
-                        <User className="h-10 w-10 text-primary/40" />
-                    </AvatarFallback>
-                </Avatar>
-            </div>
-        </div>
         
-        <form onSubmit={handleSignup} className="w-full space-y-4 px-2">
+        <form onSubmit={handleSignup} className="w-full space-y-4 px-2 pt-4">
           <div className="space-y-3">
               <Input placeholder="Email Address" className="h-14 bg-secondary/30 border-white/5 rounded-2xl px-6" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isLoading}/>
               <Input type="password" placeholder="Password (min. 6 char)" className="h-14 bg-secondary/30 border-white/5 rounded-2xl px-6" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={isLoading}/>
