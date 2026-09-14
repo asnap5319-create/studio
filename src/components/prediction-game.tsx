@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit, doc, setDoc, serverTimestamp, writeBatch, increment } from 'firebase/firestore';
-import { CheckCircle2, Loader2, X, Zap, BarChart3, Trophy, Frown, Coins, Lock } from 'lucide-react';
+import { CheckCircle2, Loader2, X, Zap, BarChart3, Trophy, Frown, Coins, Lock, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -192,12 +192,11 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                     batch.update(betRef, { status: 'loss' });
                 }
 
-                // Show popup ONLY for Loss as requested
-                if (!isWin && !shownPopupPeriodsRef.current.has(bet.period)) {
+                if (!shownPopupPeriodsRef.current.has(bet.period)) {
                     setPopup({ 
                         isOpen: true, 
-                        isWin: false, 
-                        amount: 0, 
+                        isWin: isWin, 
+                        amount: winAmt, 
                         period: bet.period, 
                         result: { num: result.number, color: result.color, size: result.size } 
                     });
@@ -218,13 +217,15 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
   useEffect(() => {
     if (popup.isOpen) {
+      setPopupTimer(3);
       const timerId = setTimeout(() => {
         setPopup(prev => ({ ...prev, isOpen: false }));
       }, 3000);
-      setPopupTimer(3);
+      
       const countdown = setInterval(() => {
         setPopupTimer(prev => Math.max(0, prev - 1));
       }, 1000);
+      
       return () => {
         clearTimeout(timerId);
         clearInterval(countdown);
@@ -423,36 +424,60 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       </Sheet>
 
       <Dialog open={popup.isOpen} onOpenChange={(open) => !open && setPopup(prev => ({ ...prev, isOpen: false }))}>
-        <DialogContent className={cn("max-w-[300px] p-0 border-none rounded-[2.5rem] overflow-hidden shadow-2xl z-[2000] animate-in zoom-in duration-300", popup.isWin ? "bg-red-600 animate-win-glow" : "bg-blue-600")}>
+        <DialogContent className={cn(
+            "max-w-[310px] p-0 border-none rounded-[3rem] overflow-hidden shadow-[0_20px_80px_rgba(0,0,0,0.6)] z-[2000] animate-in zoom-in duration-300", 
+            popup.isWin ? "bg-yellow-400" : "bg-blue-600"
+        )}>
             <DialogHeader className="sr-only">
-                <DialogTitle>Game Result</DialogTitle>
+                <DialogTitle>{popup.isWin ? "WIN" : "LOSS"}</DialogTitle>
             </DialogHeader>
-            {popup.isWin && <div className="absolute inset-0 animate-shimmer-overlay pointer-events-none z-0" />}
-            <div className="relative p-8 flex flex-col items-center text-center text-white space-y-6 z-10">
-                <button onClick={() => setPopup(prev => ({ ...prev, isOpen: false }))} className="absolute top-4 right-4 p-1.5 bg-white/10 rounded-full hover:bg-white/20 transition-colors"><X size={16} /></button>
-                <div className={cn("w-20 h-20 rounded-full flex items-center justify-center shadow-2xl", popup.isWin ? "bg-yellow-400 text-red-900" : "bg-white/10 text-white")}>
-                    {popup.isWin ? <Trophy size={40} /> : <Frown size={40} />}
+            <div className={cn("relative p-8 flex flex-col items-center text-center space-y-6 z-10", popup.isWin ? "text-black" : "text-white")}>
+                <button onClick={() => setPopup(prev => ({ ...prev, isOpen: false }))} className="absolute top-6 right-6 p-2 bg-black/5 rounded-full hover:bg-black/10 transition-colors">
+                    <X size={18} />
+                </button>
+                
+                <div className={cn("w-24 h-24 rounded-3xl flex items-center justify-center shadow-2xl rotate-3 transform transition-transform hover:rotate-0", popup.isWin ? "bg-black text-yellow-400" : "bg-white/10 text-white")}>
+                    {popup.isWin ? <Coins size={50} className="animate-pulse" /> : <Frown size={50} />}
                 </div>
+
                 <div className="space-y-1">
-                    <h2 className="text-5xl font-black uppercase tracking-tight">{popup.isWin ? "WIN!" : "LOSE"}</h2>
-                    <p className="text-[9px] font-black uppercase tracking-widest opacity-70">{popup.isWin ? "Congratulations" : "Better luck next time"}</p>
+                    <h2 className="text-5xl font-black uppercase tracking-tighter italic">
+                        {popup.isWin ? "YOU WON!" : "LOSE"}
+                    </h2>
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">
+                        {popup.isWin ? "Fantastic Performance" : "Try Again Next Round"}
+                    </p>
                 </div>
-                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 w-full space-y-3 shadow-inner border border-white/5">
-                    <p className="text-[8px] font-black uppercase tracking-widest opacity-60">Result: {popup.period.slice(-4)}</p>
-                    <div className="flex items-center justify-center gap-3">
-                        <div className={cn("w-11 h-11 rounded-full flex items-center justify-center font-black text-2xl border-2 border-white/20 shadow-lg", popup.result?.num === 0 || popup.result?.num === 5 ? "bg-purple-600" : [1,3,7,9].includes(popup.result?.num || 0) ? "bg-green-600" : "bg-red-600")} style={{ fontStyle: 'normal' }}>{popup.result?.num}</div>
-                        <span className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase bg-white/20">{popup.result?.size}</span>
+
+                <div className={cn("rounded-[2rem] p-5 w-full space-y-3 shadow-inner border", popup.isWin ? "bg-black/5 border-black/5" : "bg-white/10 border-white/5")}>
+                    <p className="text-[8px] font-black uppercase tracking-widest opacity-40">Period: {popup.period.slice(-4)}</p>
+                    <div className="flex items-center justify-center gap-4">
+                        <div className={cn("w-12 h-12 rounded-full flex items-center justify-center font-black text-2xl border-4 shadow-lg", 
+                            popup.result?.num === 0 || popup.result?.num === 5 ? "bg-purple-600 border-white/20" : 
+                            [1,3,7,9].includes(popup.result?.num || 0) ? "bg-green-600 border-white/20" : "bg-red-600 border-white/20")} style={{ fontStyle: 'normal' }}>
+                            {popup.result?.num}
+                        </div>
+                        <span className={cn("px-5 py-2 rounded-2xl text-xs font-black uppercase", popup.isWin ? "bg-black text-yellow-400" : "bg-white/20 text-white")}>
+                            {popup.result?.size}
+                        </span>
                     </div>
                 </div>
+
                 {popup.isWin && (
-                    <div className="space-y-1">
-                        <p className="text-[9px] font-black uppercase tracking-widest text-yellow-400">Winning</p>
-                        <div className="flex items-center justify-center gap-1.5"><Coins size={16} className="text-yellow-400" /><h3 className="text-4xl font-black" style={{ fontStyle: 'normal' }}>₹{popup.amount?.toFixed(1) || '0.0'}</h3></div>
+                    <div className="space-y-1 animate-in slide-in-from-bottom-2">
+                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-black/50">Winning Amount</p>
+                        <div className="flex items-center justify-center gap-2">
+                            <Sparkles size={24} className="text-black" />
+                            <h3 className="text-5xl font-black tracking-tighter" style={{ fontStyle: 'normal' }}>₹{popup.amount?.toFixed(1) || '0.0'}</h3>
+                        </div>
                     </div>
                 )}
+
                 <div className="w-full pt-2">
-                    <div className="h-1.5 bg-white/10 rounded-full overflow-hidden"><div className="h-full bg-white transition-all duration-1000 ease-linear" style={{ width: `${(popupTimer / 3) * 100}%` }} /></div>
-                    <p className="text-[7px] font-black uppercase tracking-widest mt-3 opacity-40">Closing in {popupTimer}s</p>
+                    <div className={cn("h-2 rounded-full overflow-hidden", popup.isWin ? "bg-black/10" : "bg-white/10")}>
+                        <div className={cn("h-full transition-all duration-1000 ease-linear", popup.isWin ? "bg-black" : "bg-white")} style={{ width: `${(popupTimer / 3) * 100}%` }} />
+                    </div>
+                    <p className="text-[8px] font-black uppercase tracking-[0.5em] mt-4 opacity-40">Syncing in {popupTimer}s</p>
                 </div>
             </div>
         </DialogContent>
