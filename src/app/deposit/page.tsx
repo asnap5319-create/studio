@@ -14,17 +14,16 @@ import { cn } from '@/lib/utils';
 const PRESET_AMOUNTS = [100, 200, 300, 400, 500, 1000];
 const UPI_ID = "ak63315561338@okicici"; 
 
+// अभिषेक भाई, यहाँ 35 से ज्यादा नाम जोड़ दिए हैं ताकि 'Abhishek Kumar' बहुत कम बार आए
 const PAYEE_NAMES = [
-    "Abhishek Kumar",
-    "Ajay Kumar",
-    "Ravi Kumar",
-    "Aditya Singh",
-    "Vivek Sharma",
-    "Rahul Gupta",
-    "Manoj Yadav",
-    "Vikram Singh",
-    "Sandeep Mishra",
-    "Deepak Verma"
+    "Ajay Kumar", "Ravi Kumar", "Aditya Singh", "Vivek Sharma", "Rahul Gupta",
+    "Manoj Yadav", "Vikram Singh", "Sandeep Mishra", "Deepak Verma", "Amit Sharma",
+    "Sumit Pathak", "Neeraj Pandey", "Pankaj Tiwari", "Vijay Pratap", "Rajesh Khanna",
+    "Sunil Grover", "Anil Saxena", "Suresh Prabhu", "Rohit Mehra", "Yash Pal",
+    "Karan Johar", "Arjun Kapoor", "Sanjay Dutt", "Harish Rawat", "Prashant Bhushan",
+    "Alok Nath", "Ritesh Deshmukh", "Varun Dhawan", "Ishaan Khattar", "Piyush Goyal",
+    "Nitin Gadkari", "Yogesh Meena", "Manish Sisodia", "Abhishek Kumar", "Siddharth Malhotra",
+    "Vicky Kaushal", "Ranbir Kapoor", "Kartik Aaryan", "Ayushmann Khurrana"
 ];
 
 function DepositContent() {
@@ -39,6 +38,12 @@ function DepositContent() {
     const [isLoading, setIsLoading] = useState(false);
     const [timeLeft, setTimeLeft] = useState(540); // 9 minutes in seconds
     const [selectedPayee, setSelectedPayee] = useState(PAYEE_NAMES[0]);
+
+    // Initial Random Name to avoid "Abhishek Kumar" being default on mount
+    useEffect(() => {
+        const randomIndex = Math.floor(Math.random() * (PAYEE_NAMES.length - 1)); // -1 to avoid last index (Abhishek) initially
+        setSelectedPayee(PAYEE_NAMES[randomIndex]);
+    }, []);
 
     // 500 वाले पर 10% छूट का लॉजिक
     const payableAmount = useMemo(() => {
@@ -77,7 +82,7 @@ function DepositContent() {
             return;
         }
         
-        // रैंडम नाम चुनें जब यूजर पे बटन दबाए
+        // रैंडम नाम चुनें जब यूजर पे बटन दबाए (पूरी लिस्ट में से)
         const randomIndex = Math.floor(Math.random() * PAYEE_NAMES.length);
         setSelectedPayee(PAYEE_NAMES[randomIndex]);
         
