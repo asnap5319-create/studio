@@ -193,14 +193,17 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                 }
 
                 if (!shownPopupPeriodsRef.current.has(bet.period)) {
-                    setPopup({ 
-                        isOpen: true, 
-                        isWin: isWin, 
-                        amount: winAmt, 
-                        period: bet.period, 
-                        result: { num: result.number, color: result.color, size: result.size } 
-                    });
-                    shownPopupPeriodsRef.current.add(bet.period);
+                    // Only show popup if it's a loss as requested
+                    if (!isWin) {
+                        setPopup({ 
+                            isOpen: true, 
+                            isWin: false, 
+                            amount: 0, 
+                            period: bet.period, 
+                            result: { num: result.number, color: result.color, size: result.size } 
+                        });
+                        shownPopupPeriodsRef.current.add(bet.period);
+                    }
                 }
             }
         });
@@ -388,9 +391,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
         <SheetContent side="bottom" className="h-[75vh] bg-background border-white/5 rounded-t-[2.5rem] p-0 overflow-hidden z-[1000] text-white outline-none">
            <SheetHeader className="p-6 pb-2 flex flex-row items-center justify-between border-b border-white/5">
                 <SheetTitle className="text-xl font-black uppercase tracking-tighter text-white italic">PLACE BET</SheetTitle>
-                <button onClick={() => setIsBetPanelOpen(false)} className="p-1.5 bg-white/5 rounded-full text-white/40 hover:text-white transition-colors">
-                    <X size={20} />
-                </button>
            </SheetHeader>
            <div className="p-6 space-y-6 overflow-y-auto h-full pb-24 scrollbar-hide">
               <div className="bg-secondary/60 p-6 rounded-3xl flex items-center justify-between border border-white/5 shadow-2xl relative overflow-hidden group">
@@ -426,26 +426,22 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
       <Dialog open={popup.isOpen} onOpenChange={(open) => !open && setPopup(prev => ({ ...prev, isOpen: false }))}>
         <DialogContent className={cn(
             "max-w-[310px] p-0 border-none rounded-[3rem] overflow-hidden shadow-[0_20px_80px_rgba(0,0,0,0.6)] z-[2000] animate-in zoom-in duration-300", 
-            popup.isWin ? "bg-red-600" : "bg-blue-600"
+            "bg-blue-600"
         )}>
             <DialogHeader className="sr-only">
-                <DialogTitle>{popup.isWin ? "WIN" : "LOSS"}</DialogTitle>
+                <DialogTitle>LOSE</DialogTitle>
             </DialogHeader>
             <div className={cn("relative p-8 flex flex-col items-center text-center space-y-6 z-10", "text-white")}>
-                <button onClick={() => setPopup(prev => ({ ...prev, isOpen: false }))} className="absolute top-6 right-6 p-2 bg-black/5 rounded-full hover:bg-black/10 transition-colors">
-                    <X size={18} />
-                </button>
-                
                 <div className={cn("w-24 h-24 rounded-3xl flex items-center justify-center shadow-2xl rotate-3 transform transition-transform hover:rotate-0", "bg-white/10 text-white")}>
-                    {popup.isWin ? <Coins size={50} className="animate-pulse" /> : <Frown size={50} />}
+                    <Frown size={50} />
                 </div>
 
                 <div className="space-y-1">
                     <h2 className="text-5xl font-black uppercase tracking-tighter italic">
-                        {popup.isWin ? "YOU WON!" : "LOSE"}
+                        LOSE
                     </h2>
                     <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">
-                        {popup.isWin ? "Fantastic Performance" : "Try Again Next Round"}
+                        Try Again Next Round
                     </p>
                 </div>
 
@@ -462,16 +458,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
                         </span>
                     </div>
                 </div>
-
-                {popup.isWin && (
-                    <div className="space-y-1 animate-in slide-in-from-bottom-2">
-                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/50">Winning Amount</p>
-                        <div className="flex items-center justify-center gap-2">
-                            <Sparkles size={24} className="text-white" />
-                            <h3 className="text-5xl font-black tracking-tighter" style={{ fontStyle: 'normal' }}>₹{popup.amount?.toFixed(1) || '0.0'}</h3>
-                        </div>
-                    </div>
-                )}
 
                 <div className="w-full pt-2">
                     <div className={cn("h-2 rounded-full overflow-hidden", "bg-white/10")}>
