@@ -124,9 +124,9 @@ function LoginForm() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm space-y-8 text-center">
-        <div className="space-y-3">
+        <div className="space-y-3 px-4">
             <GameBallsHeader />
-            <h1 className="text-6xl font-black italic animate-shimmer-text tracking-tighter drop-shadow-[0_0_20px_rgba(255,51,102,0.4)]">
+            <h1 className="text-6xl font-black italic animate-shimmer-text tracking-tight drop-shadow-[0_0_20px_rgba(255,51,102,0.4)] px-2">
                 WinGo
             </h1>
             <div className="flex items-center justify-center gap-2 text-primary font-black uppercase tracking-[0.3em] text-[10px] bg-primary/10 py-2 rounded-xl border border-primary/20">

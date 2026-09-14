@@ -81,7 +81,7 @@ function HomeContent() {
           <div className="w-10 h-10 rounded-xl overflow-hidden shadow-[0_5px_15px_rgba(255,51,102,0.3)]">
              <Logo className="w-full h-full" />
           </div>
-          <h1 className="text-2xl font-black tracking-tight uppercase italic text-white drop-shadow-md">WinGo</h1>
+          <h1 className="text-2xl font-black tracking-tight uppercase italic text-white drop-shadow-md px-1">WinGo</h1>
         </div>
         <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
           <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
@@ -159,8 +159,8 @@ function HomeContent() {
                <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter leading-none italic text-white drop-shadow-2xl">
                  FAST WITHDRAWAL
                </h2>
-               <div className="pt-2">
-                  <h3 className="text-6xl md:text-7xl font-black italic uppercase tracking-tighter animate-shimmer-text drop-shadow-[0_0_30px_rgba(255,51,102,0.5)]">
+               <div className="pt-2 px-4">
+                  <h3 className="text-6xl md:text-7xl font-black italic uppercase tracking-tight animate-shimmer-text drop-shadow-[0_0_30px_rgba(255,51,102,0.5)] text-center px-2">
                     WinGo
                   </h3>
                </div>
