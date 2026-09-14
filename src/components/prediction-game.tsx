@@ -266,7 +266,7 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
           </div>
       )}
 
-      {/* Timer Section - Improved spacing for mobile */}
+      {/* Timer Section */}
       <div className="bg-[#f95959] rounded-[2.5rem] py-6 px-4 text-white flex justify-between items-center shadow-xl relative overflow-hidden">
         <div className="space-y-3 z-10 shrink-0">
             <div className="flex items-center gap-1.5"><Zap size={14} className="fill-white" /><p className="text-[9px] font-black uppercase tracking-[0.2em]">WinGo 30S</p></div>
@@ -413,43 +413,58 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
       <Dialog open={popup.isOpen} onOpenChange={(open) => !open && setPopup(prev => ({ ...prev, isOpen: false }))}>
         <DialogContent className={cn(
-            "max-w-[310px] p-0 border-none rounded-[3rem] overflow-hidden shadow-[0_20px_80px_rgba(0,0,0,0.6)] z-[2000] animate-in zoom-in duration-300", 
+            "max-w-[320px] p-0 border-none rounded-[3rem] overflow-hidden shadow-[0_30px_90px_rgba(0,0,0,0.7)] z-[2000] animate-in zoom-in duration-300", 
             popup.isWin ? "bg-red-600" : "bg-blue-600"
         )}>
             <DialogHeader className="sr-only">
                 <DialogTitle>{popup.isWin ? 'WIN!' : 'LOSE'}</DialogTitle>
             </DialogHeader>
             <div className={cn("relative p-8 flex flex-col items-center text-center space-y-6 z-10", "text-white")}>
-                <div className={cn("w-24 h-24 rounded-3xl flex items-center justify-center shadow-2xl rotate-3 transform transition-transform hover:rotate-0", "bg-white/10 text-white")}>
-                    {popup.isWin ? <Coins size={50} className="animate-bounce" /> : <Frown size={50} />}
+                {/* Visual Icon */}
+                <div className={cn("w-24 h-24 rounded-[2.5rem] flex items-center justify-center shadow-2xl rotate-3 transform transition-transform", "bg-white/20 text-white")}>
+                    {popup.isWin ? <Coins size={60} className="animate-bounce" /> : <Frown size={60} />}
                 </div>
 
-                <div className="space-y-1">
-                    <h2 className="text-5xl font-black uppercase tracking-tighter italic">
-                        {popup.isWin ? 'WIN!' : 'LOSE'}
-                    </h2>
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">
-                        {popup.isWin ? `You Won ₹${popup.amount.toFixed(1)}` : 'Try Again Next Round'}
-                    </p>
+                {/* Main Message and Big Amount */}
+                <div className="space-y-4 w-full">
+                    <div className="space-y-0">
+                         <h2 className="text-6xl font-black uppercase tracking-tighter italic leading-none drop-shadow-2xl">
+                            {popup.isWin ? 'WIN!' : 'LOSE'}
+                        </h2>
+                        <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-50 mt-1">
+                            {popup.isWin ? 'Round Earnings' : 'Try Again Next Round'}
+                        </p>
+                    </div>
+
+                    {popup.isWin && (
+                        <div className="bg-white/15 py-6 rounded-[2.5rem] border border-white/10 shadow-inner animate-in zoom-in duration-500 delay-200">
+                            <div className="flex items-center justify-center gap-1">
+                                <span className="text-2xl font-black opacity-80 mt-2">₹</span>
+                                <span className="text-7xl font-black tracking-tighter drop-shadow-[0_4px_15px_rgba(0,0,0,0.3)]" style={{ fontStyle: 'normal' }}>
+                                    {popup.amount.toFixed(1)}
+                                </span>
+                            </div>
+                            <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mt-1">Credited to Balance ✅</p>
+                        </div>
+                    )}
                 </div>
 
+                {/* Round Details */}
                 <div className={cn("rounded-[2rem] p-5 w-full space-y-3 shadow-inner border", "bg-white/10 border-white/5")}>
                     <p className="text-[8px] font-black uppercase tracking-widest opacity-40">Period: {popup.period.slice(-4)}</p>
                     <div className="flex items-center justify-center gap-4">
-                        <div className={cn("w-12 h-12 rounded-full flex items-center justify-center font-black text-2xl border-4 shadow-lg", 
+                        <div className={cn("w-14 h-14 rounded-full flex items-center justify-center font-black text-3xl border-4 shadow-lg", 
                             popup.result?.num === 0 || popup.result?.num === 5 ? "bg-purple-600 border-white/20" : 
                             [1,3,7,9].includes(popup.result?.num || 0) ? "bg-green-600 border-white/20" : "bg-red-600 border-white/20")} style={{ fontStyle: 'normal' }}>
                             {popup.result?.num}
                         </div>
-                        <span className={cn("px-5 py-2 rounded-2xl text-xs font-black uppercase", "bg-white/20 text-white")}>
+                        <span className={cn("px-6 py-2 rounded-2xl text-sm font-black uppercase", "bg-white/20 text-white shadow-md")}>
                             {popup.result?.size}
                         </span>
                     </div>
                 </div>
 
-                <div className="w-full pt-2">
-                    <p className="text-[8px] font-black uppercase tracking-[0.5em] mt-4 opacity-40">Auto-closing in 3s</p>
-                </div>
+                <p className="text-[8px] font-black uppercase tracking-[0.5em] mt-4 opacity-40">Auto-closing in 3s</p>
             </div>
         </DialogContent>
       </Dialog>
