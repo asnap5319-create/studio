@@ -190,10 +190,12 @@ export default function SignupPage() {
       <div className="w-full max-w-sm space-y-6 text-center py-8">
         <div className="space-y-2 px-4">
             <GameBallsHeader />
-            <h1 className="text-6xl font-black italic animate-shimmer-text tracking-tight drop-shadow-[0_0_20px_rgba(255,51,102,0.4)] px-2">
-                WinGo
-            </h1>
-            <div className="flex items-center justify-center gap-2 text-primary font-black uppercase tracking-[0.3em] text-[10px] bg-primary/10 py-2 rounded-xl border border-primary/20">
+            <div className="px-6">
+                <h1 className="text-5xl font-black italic animate-shimmer-text tracking-normal drop-shadow-[0_0_20px_rgba(255,51,102,0.4)] px-4">
+                    WinGo
+                </h1>
+            </div>
+            <div className="flex items-center justify-center gap-2 text-primary font-black uppercase tracking-[0.3em] text-[10px] bg-primary/10 py-2 rounded-xl border border-primary/20 mt-4">
                 <Zap size={14} className="fill-primary" /> FAST WITHDRAWAL
             </div>
         </div>

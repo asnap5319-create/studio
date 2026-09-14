@@ -35,8 +35,8 @@ function SplashScreen() {
             <div className="absolute inset-0 border-2 border-white/10 rounded-[2.5rem] pointer-events-none" />
         </div>
         
-        <div className="mt-4 px-4">
-             <h2 className="text-6xl font-black italic tracking-tight animate-shimmer-text drop-shadow-[0_0_20px_rgba(255,51,102,0.4)] text-center">
+        <div className="mt-4 px-6">
+             <h2 className="text-5xl font-black italic tracking-normal animate-shimmer-text drop-shadow-[0_0_20px_rgba(255,51,102,0.4)] text-center px-4">
                 WinGo
              </h2>
         </div>
