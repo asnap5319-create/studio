@@ -8,7 +8,6 @@ import { FirebaseClientProvider } from "@/firebase/client-provider";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
 import { PwaInstallPrompt, Logo } from "@/components/pwa-install-prompt";
-import { NotificationPermissionPrompt } from "@/components/notification-permission-prompt";
 import { useFCM } from "@/hooks/use-fcm";
 
 /**
@@ -98,7 +97,6 @@ export default function RootLayout({
             <SplashScreen />
             {children}
             <PwaInstallPrompt />
-            <NotificationPermissionPrompt />
           </FCMHandler>
         </FirebaseClientProvider>
         <SpeedInsights />
