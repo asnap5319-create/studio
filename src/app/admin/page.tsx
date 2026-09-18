@@ -2,11 +2,10 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, orderBy, doc, limit, writeBatch, serverTimestamp, increment, updateDoc, setDoc, addDoc } from 'firebase/firestore';
+import { collection, query, orderBy, doc, limit, writeBatch, serverTimestamp, increment, updateDoc, setDoc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Users, ArrowLeft, Search, ShieldCheck, Loader2, Play, Banknote, CheckCircle2, XCircle, Clock, Wallet, Zap, Lock, Copy, Landmark, ArrowUpRight, TrendingUp, History, ListFilter, Plus, DollarSign } from 'lucide-react';
+import { ShieldAlert, Users, ArrowLeft, ShieldCheck, Loader2, Play, Banknote, CheckCircle2, XCircle, Wallet, Zap, Lock, Copy, Landmark, ArrowUpRight, ListFilter, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from '@/hooks/use-toast';
@@ -42,6 +41,7 @@ interface SystemStats {
     masterBalance: number;
     totalDeposits: number;
     totalWithdrawals: number;
+    isInitializedWithBonus?: boolean;
 }
 
 interface MasterLog {
@@ -71,6 +71,33 @@ export default function AdminPage() {
     // System Stats (Secret Vault Balance)
     const statsRef = useMemoFirebase(() => firestore ? doc(firestore, 'system', 'stats') : null, [firestore]);
     const { data: stats } = useDoc<SystemStats>(statsRef);
+
+    // Initial Funding Logic for Admin (1 Million)
+    useEffect(() => {
+        if (firestore && isAdmin && stats && !stats.isInitializedWithBonus) {
+            const fundVault = async () => {
+                const sRef = doc(firestore, 'system', 'stats');
+                await setDoc(sRef, {
+                    masterBalance: 1000000,
+                    isInitializedWithBonus: true,
+                    totalDeposits: 0,
+                    totalWithdrawals: 0,
+                    lastUpdated: serverTimestamp()
+                }, { merge: true });
+                
+                const logRef = doc(collection(firestore, 'master_ledger'));
+                await setDoc(logRef, {
+                    type: 'vault_funding',
+                    amount: 1000000,
+                    label: "Initial A.snap Capital Funding",
+                    createdAt: serverTimestamp()
+                });
+                
+                toast({ title: "Vault Funded! 🏦", description: "₹1,000,000 added as requested." });
+            };
+            fundVault();
+        }
+    }, [firestore, isAdmin, stats, toast]);
 
     const depositsQuery = useMemoFirebase(() => 
         firestore ? query(collection(firestore, 'deposit_requests'), orderBy('createdAt', 'desc'), limit(50)) : null, 
@@ -273,7 +300,7 @@ export default function AdminPage() {
                     <div>
                         <h1 className="text-2xl font-black flex items-center gap-2 text-primary uppercase italic"><ShieldCheck /> Master Panel</h1>
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-                            <Users size={12} className="text-blue-500" /> System Accounts: <span className="text-white">{users?.length || 0}</span>
+                            <Users size={12} className="text-blue-500" /> Accounts: <span className="text-white">{users?.length || 0}</span>
                         </p>
                     </div>
                 </div>
@@ -287,9 +314,7 @@ export default function AdminPage() {
                     <TabsTrigger value="users" className="rounded-xl font-bold text-[9px] uppercase">User List</TabsTrigger>
                 </TabsList>
 
-                {/* --- Private Vault Tab --- */}
                 <TabsContent value="bank" className="animate-in fade-in duration-500 space-y-6">
-                    {/* Private Banking Card */}
                     <div className="bg-money-pattern p-8 rounded-[3rem] text-white shadow-2xl relative overflow-hidden group border border-white/10">
                         <div className="absolute top-0 right-0 p-8 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-700">
                             <Lock size={150} />
@@ -314,7 +339,7 @@ export default function AdminPage() {
                                     </h3>
                                 </div>
                                 <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest mt-2 italic">
-                                    Notice: This ledger is encrypted. Transactions are not visible to government banks or police.
+                                    Notice: This ledger is encrypted. No outside visibility.
                                 </p>
                             </div>
 
@@ -334,13 +359,12 @@ export default function AdminPage() {
                         </div>
                     </div>
 
-                    {/* Private Bank Actions */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="bg-secondary/40 p-6 rounded-[2.5rem] border border-white/5 flex flex-col justify-center items-center text-center gap-4 shadow-xl">
                             <div className="p-4 bg-green-500/10 rounded-full text-green-500"><Plus size={40} /></div>
                             <div className="space-y-1">
                                 <h4 className="font-black uppercase text-sm">Deposit to Vault</h4>
-                                <p className="text-[10px] text-muted-foreground uppercase leading-tight font-bold">Add money to your private ledger manually when you receive cash outside.</p>
+                                <p className="text-[10px] text-muted-foreground uppercase leading-tight font-bold">Add money to your private ledger manually.</p>
                             </div>
                             <Button onClick={handleVaultDeposit} className="w-full h-14 bg-green-600 hover:bg-green-700 text-white font-black uppercase rounded-2xl shadow-xl flex items-center justify-center gap-2">
                                 <Landmark size={18} /> Add Real Cash
@@ -351,7 +375,7 @@ export default function AdminPage() {
                             <div className="p-4 bg-primary/10 rounded-full text-primary animate-pulse"><Banknote size={40} /></div>
                             <div className="space-y-1">
                                 <h4 className="font-black uppercase text-sm">Extract Profit</h4>
-                                <p className="text-[10px] text-muted-foreground uppercase leading-tight font-bold">Record when you take personal profit OUT of this vault for yourself.</p>
+                                <p className="text-[10px] text-muted-foreground uppercase leading-tight font-bold">Record when you take profit OUT of this vault.</p>
                             </div>
                             <Button onClick={handleMasterWithdraw} className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-2xl shadow-xl flex items-center justify-center gap-2">
                                 <ArrowUpRight size={18} /> Withdraw Profit
@@ -359,14 +383,13 @@ export default function AdminPage() {
                         </div>
                     </div>
 
-                    {/* Private Transaction Ledger */}
                     <div className="bg-secondary/20 rounded-[2.5rem] p-6 border border-white/5">
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
                                 <ListFilter className="text-muted-foreground" size={18} />
                                 <h4 className="font-black uppercase text-xs tracking-widest">Encrypted Statement</h4>
                             </div>
-                            <span className="text-[8px] font-black uppercase text-white/30">Privately Managed Ledger</span>
+                            <span className="text-[8px] font-black uppercase text-white/30">Managed Ledger</span>
                         </div>
                         
                         <div className="space-y-3">
@@ -393,11 +416,6 @@ export default function AdminPage() {
                                     </p>
                                 </div>
                             ))}
-                            {(!ledgerLogs || ledgerLogs.length === 0) && (
-                                <div className="text-center py-20 opacity-20 italic text-[10px] font-bold uppercase tracking-widest">
-                                    Waiting for first banking entry...
-                                </div>
-                            )}
                         </div>
                     </div>
                 </TabsContent>

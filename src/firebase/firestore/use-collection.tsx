@@ -62,10 +62,10 @@ export function useCollection<T = any>(
       },
       (err: FirestoreError) => {
         if (err.code === 'permission-denied') {
-            // Attempt to get path from CollectionReference or Query
+            // Robust path detection for error reporting
             const path = (memoizedTargetRefOrQuery as any).path || 
                          (memoizedTargetRefOrQuery as any)._query?.path?.segments?.join('/') ||
-                         'Collection Path';
+                         'Collection/Query Path';
             
             const contextualError = new FirestorePermissionError({
                 operation: 'list',
