@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc, limit, writeBatch, serverTimestamp, increment, setDoc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, ArrowLeft, ShieldCheck, Loader2, Landmark, CheckCircle2, Wallet, Zap, Lock, Copy, ArrowUpRight, ListFilter, Plus, Sparkles, Building2, Send, ReceiptText, Smartphone, History, CreditCard, Banknote, EyeOff, GlobeLock, UserPlus, Globe, ShieldQuestion, Download, Coins } from 'lucide-react';
+import { ShieldAlert, ArrowLeft, ShieldCheck, Loader2, Landmark, CheckCircle2, Wallet, Zap, Lock, Copy, ArrowUpRight, ListFilter, Plus, Sparkles, Building2, Send, ReceiptText, Smartphone, History, CreditCard, Banknote, EyeOff, GlobeLock, UserPlus, Globe, ShieldQuestion, Download, Coins, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { BottomNav } from "@/components/bottom-nav";
@@ -41,6 +41,11 @@ export default function AdminPage() {
     const [hasMounted, setHasMounted] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [processStep, setProcessStep] = useState<'idle' | 'encrypting' | 'routing' | 'node_sync' | 'success'>('idle');
+
+    // Shadow Banking Details (For User to Share)
+    const SHADOW_ACC = "ASNAP-7788-0001";
+    const SHADOW_IFSC = "SNAP0000001";
+    const ADMIN_REAL_UPI = "ak63315561338@okicici"; // IPPB or any real UPI
 
     // Transfer States
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -181,6 +186,11 @@ export default function AdminPage() {
         }
     };
 
+    const copyToClipboard = (text: string, label: string) => {
+        navigator.clipboard.writeText(text);
+        toast({ title: `${label} Copied! 📋` });
+    };
+
     if (isUserLoading || !hasMounted) return <div className="flex h-screen items-center justify-center bg-background"><Loader2 className="animate-spin text-primary" /></div>;
 
     if (!user || !isAdmin) {
@@ -194,14 +204,14 @@ export default function AdminPage() {
     }
 
     return (
-        <div className="min-h-screen bg-background text-foreground p-4 max-w-5xl mx-auto pb-24 select-none">
+        <div className="min-h-screen bg-background text-foreground p-4 max-w-5xl mx-auto pb-32 select-none">
             <header className="flex items-center justify-between mb-8 sticky top-0 bg-background/95 backdrop-blur-md z-30 py-4 border-b border-white/5">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-xl bg-white/5"><ArrowLeft /></Button>
                     <div>
                         <h1 className="text-2xl font-black flex items-center gap-2 text-primary uppercase italic tracking-tighter">Shadow Terminal</h1>
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-                            <GlobeLock size={12} className="text-blue-500" /> Standalone Banking Node
+                            <GlobeLock size={12} className="text-blue-500" /> Private Banking Protocol
                         </p>
                     </div>
                 </div>
@@ -230,7 +240,7 @@ export default function AdminPage() {
 
                         <div className="space-y-1">
                             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 flex items-center gap-2">
-                                <Sparkles size={14} className="text-yellow-400 animate-pulse" /> 1M Master Fund
+                                <Sparkles size={14} className="text-yellow-400 animate-pulse" /> Master Fund
                             </p>
                             <div className="flex items-baseline gap-2">
                                 <span className="text-2xl font-black">₹</span>
@@ -239,7 +249,7 @@ export default function AdminPage() {
                                 </h3>
                             </div>
                             <p className="text-[8px] text-white/40 uppercase font-bold tracking-widest mt-2 italic">
-                                "भाई, यह आपका पर्सनल फंड है। यहाँ से पैसा भेजो या दोस्त से लेकर जमा करो।"
+                                "भाई, यह आपका पर्सनल फंड है। यहाँ से पैसा भेजें या दोस्त से लेकर जमा करें।"
                             </p>
                         </div>
 
@@ -256,12 +266,52 @@ export default function AdminPage() {
                     </div>
                 </div>
 
+                {/* Shadow Identity Section (NEW) */}
+                <div className="bg-secondary/40 p-8 rounded-[3rem] border border-white/5 space-y-6">
+                    <div className="flex items-center gap-3">
+                         <div className="p-3 bg-primary/10 rounded-2xl text-primary"><Landmark size={24} /></div>
+                         <div>
+                            <h4 className="font-black uppercase italic text-sm">Your Shadow Identity</h4>
+                            <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest">Share this for Gaibi deposits</p>
+                         </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-5 bg-background/50 rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-background/80 transition-all cursor-pointer" onClick={() => copyToClipboard(SHADOW_ACC, "Acc Number")}>
+                            <div>
+                                <p className="text-[8px] font-black uppercase text-white/40 mb-1">Shadow Acc Number</p>
+                                <p className="text-lg font-mono font-black text-white">{SHADOW_ACC}</p>
+                            </div>
+                            <Copy size={16} className="text-white/20 group-hover:text-primary" />
+                        </div>
+                        <div className="p-5 bg-background/50 rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-background/80 transition-all cursor-pointer" onClick={() => copyToClipboard(SHADOW_IFSC, "IFSC Code")}>
+                            <div>
+                                <p className="text-[8px] font-black uppercase text-white/40 mb-1">Gaibi IFSC Code</p>
+                                <p className="text-lg font-mono font-black text-white">{SHADOW_IFSC}</p>
+                            </div>
+                            <Copy size={16} className="text-white/20 group-hover:text-primary" />
+                        </div>
+                    </div>
+
+                    <div className="bg-blue-600/10 border border-blue-500/20 p-5 rounded-2xl flex items-center gap-4">
+                        <div className="w-16 h-16 bg-white p-2 rounded-xl shrink-0 shadow-lg">
+                            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`upi://pay?pa=${ADMIN_REAL_UPI}&pn=A.snap%20Admin`)}`} className="w-full h-full" alt="UPI QR" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Vault Sync Protocol</p>
+                            <p className="text-xs text-white/70 font-medium leading-relaxed italic">
+                                "भाई, दोस्त से अपने असली अकाउंट (IPPB/etc) में पैसा मंगवाएं, फिर 'Confirm Deposit' बटन से उसे यहाँ 1M फंड में सिंक कर लें।"
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-secondary/40 p-8 rounded-[2.5rem] border border-white/5 flex flex-col justify-center items-center text-center gap-4 shadow-xl">
                         <div className="p-4 bg-green-500/10 rounded-full text-green-500"><Download size={40} /></div>
                         <h4 className="font-black uppercase text-sm">Receive Global Cash</h4>
                         <Button onClick={() => setIsDepositModalOpen(true)} className="w-full h-14 bg-green-600 hover:bg-green-700 font-black uppercase rounded-2xl flex items-center justify-center gap-2">
-                             <Plus size={18} /> Shadow Deposit
+                             <Plus size={18} /> Confirm Deposit
                         </Button>
                     </div>
 
@@ -269,7 +319,7 @@ export default function AdminPage() {
                         <div className="p-4 bg-primary/10 rounded-full text-primary animate-pulse"><UserPlus size={40} /></div>
                         <h4 className="font-black uppercase text-sm">Send to Any Account</h4>
                         <Button onClick={() => setIsTransferModalOpen(true)} className="w-full h-14 bg-primary hover:bg-primary/90 font-black uppercase rounded-2xl flex items-center justify-center gap-2">
-                            <Send size={18} /> Global Payout
+                            <Send size={18} /> Execute Payout
                         </Button>
                     </div>
                 </div>
@@ -421,9 +471,9 @@ export default function AdminPage() {
                         <>
                             <DialogHeader className="mb-6">
                                 <DialogTitle className="text-xl font-black uppercase italic tracking-tighter text-center flex items-center justify-center gap-3">
-                                    <Download className="text-green-500 animate-bounce" /> Receive Global Cash
+                                    <Download className="text-green-500 animate-bounce" /> Confirm Deposit
                                 </DialogTitle>
-                                <p className="text-[9px] text-center text-muted-foreground uppercase font-bold tracking-widest mt-1">Funding Private Shadow Vault</p>
+                                <p className="text-[9px] text-center text-muted-foreground uppercase font-bold tracking-widest mt-1">Updating Private Shadow Vault</p>
                             </DialogHeader>
 
                             <div className="space-y-4">
@@ -432,7 +482,7 @@ export default function AdminPage() {
                                     <Input placeholder="Dost Ka Name" value={senderName} onChange={e => setSenderName(e.target.value)} className="h-12 bg-secondary/50 border-white/10 rounded-xl px-4 font-bold" />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label className="text-[10px] font-black uppercase text-muted-foreground">Amount to Deposit</Label>
+                                    <Label className="text-[10px] font-black uppercase text-muted-foreground">Amount Received</Label>
                                     <div className="relative">
                                         <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-green-500">₹</span>
                                         <Input type="number" placeholder="0.00" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} className="h-14 pl-8 bg-secondary/50 border-white/10 rounded-xl text-lg font-black text-white" />
@@ -445,7 +495,7 @@ export default function AdminPage() {
                                     onClick={handleShadowDeposit} 
                                     className="w-full h-16 bg-green-600 hover:bg-green-700 text-white font-black uppercase rounded-2xl shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
                                 >
-                                    <ShieldCheck size={18} /> Execute Shadow Deposit
+                                    <ShieldCheck size={18} /> Execute Vault Sync
                                 </Button>
                             </DialogFooter>
                         </>
