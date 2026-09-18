@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc, limit, writeBatch, serverTimestamp, increment, setDoc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, ArrowLeft, ShieldCheck, Loader2, Landmark, CheckCircle2, Wallet, Zap, Lock, Copy, ArrowUpRight, ListFilter, Plus, Sparkles, Building2, Send, ReceiptText, Smartphone, History, CreditCard, Banknote, EyeOff, GlobeLock, UserPlus, Globe, ShieldQuestion, Download, Coins, QrCode } from 'lucide-react';
+import { ShieldAlert, ArrowLeft, ShieldCheck, Loader2, Landmark, CheckCircle2, Wallet, Zap, Lock, Copy, ArrowUpRight, Plus, Sparkles, Send, Download, Coins, QrCode, GlobeLock, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { BottomNav } from "@/components/bottom-nav";
@@ -42,10 +42,9 @@ export default function AdminPage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [processStep, setProcessStep] = useState<'idle' | 'encrypting' | 'routing' | 'node_sync' | 'success'>('idle');
 
-    // Shadow Banking Details (For User to Share)
+    // Shadow Banking Details (Fully Autonomous)
     const SHADOW_ACC = "ASNAP-7788-0001";
     const SHADOW_IFSC = "SNAP0000001";
-    const ADMIN_REAL_UPI = "ak63315561338@okicici"; // IPPB or any real UPI
 
     // Transfer States
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -96,7 +95,7 @@ export default function AdminPage() {
 
     const { data: ledgerLogs } = useCollection<MasterLog>(logsQuery);
 
-    const handleGaibiTransfer = async () => {
+    const handleShadowPayout = async () => {
         const amount = parseInt(payoutAmount);
         if (isNaN(amount) || amount <= 0) { toast({ variant: 'destructive', title: "Invalid Amount" }); return; }
         if (!payoutAccount || !payoutName) { toast({ variant: 'destructive', title: "Details Missing" }); return; }
@@ -125,8 +124,8 @@ export default function AdminPage() {
             batch.set(doc(collection(firestore!, 'master_ledger')), {
                 type: 'gaibi_transfer',
                 amount: amount,
-                label: `Outward: ${payoutName}`,
-                accountDetails: `${payoutAccount} | ${payoutIfsc || 'UPI'}`,
+                label: `Payout: ${payoutName}`,
+                accountDetails: `${payoutAccount} | ${payoutIfsc || 'INTERNAL'}`,
                 refNo: txId,
                 createdAt: serverTimestamp()
             });
@@ -142,10 +141,10 @@ export default function AdminPage() {
         }
     };
 
-    const handleShadowDeposit = async () => {
+    const handleDirectShadowDeposit = async () => {
         const amount = parseInt(depositAmount);
         if (isNaN(amount) || amount <= 0) { toast({ variant: 'destructive', title: "Invalid Amount" }); return; }
-        if (!senderName) { toast({ variant: 'destructive', title: "Sender Name Missing" }); return; }
+        if (!senderName) { toast({ variant: 'destructive', title: "Sender Identity Required" }); return; }
 
         setDepositType('deposit');
         setIsProcessing(true);
@@ -170,17 +169,17 @@ export default function AdminPage() {
             batch.set(doc(collection(firestore!, 'master_ledger')), {
                 type: 'shadow_deposit',
                 amount: amount,
-                label: `Inward: ${senderName}`,
+                label: `Direct Inbound: ${senderName}`,
                 refNo: txId,
                 createdAt: serverTimestamp()
             });
 
             await batch.commit();
             setProcessStep('success');
-            toast({ title: "Vault Funded Successfully! 🏦" });
+            toast({ title: "Autonomous Vault Funded! 🏦" });
         } catch (e) { 
             setProcessStep('idle');
-            toast({ variant: 'destructive', title: "Node Error" }); 
+            toast({ variant: 'destructive', title: "Node Sync Error" }); 
         } finally {
             setIsProcessing(false);
         }
@@ -209,20 +208,20 @@ export default function AdminPage() {
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-xl bg-white/5"><ArrowLeft /></Button>
                     <div>
-                        <h1 className="text-2xl font-black flex items-center gap-2 text-primary uppercase italic tracking-tighter">Shadow Terminal</h1>
+                        <h1 className="text-2xl font-black flex items-center gap-2 text-primary uppercase italic tracking-tighter">Private Terminal</h1>
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-                            <GlobeLock size={12} className="text-blue-500" /> Private Banking Protocol
+                            <GlobeLock size={12} className="text-blue-500" /> Autonomous Shadow Bank
                         </p>
                     </div>
                 </div>
                 <div className="bg-green-500/10 px-4 py-2 rounded-full border border-green-500/20 flex items-center gap-2">
                     <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-                    <p className="text-[10px] font-black text-green-500 uppercase">Encrypted</p>
+                    <p className="text-[10px] font-black text-green-500 uppercase">Off-The-Grid</p>
                 </div>
             </header>
 
             <main className="space-y-8">
-                {/* 1 Million Private Fund Card */}
+                {/* 1 Million Autonomous Fund Card */}
                 <div className="bg-money-pattern p-8 rounded-[3rem] text-white shadow-[0_25px_80px_rgba(0,0,0,0.8)] relative overflow-hidden group border border-white/10">
                     <div className="absolute top-0 right-0 p-8 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-700">
                         <Globe size={180} />
@@ -230,8 +229,8 @@ export default function AdminPage() {
                     <div className="relative z-10 space-y-8">
                         <div className="flex justify-between items-start">
                             <div className="space-y-1">
-                                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60">Autonomous Capital</p>
-                                <h2 className="text-2xl font-black italic tracking-tighter">ASNAP-GLOBAL-VAULT</h2>
+                                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60">Standalone Capital</p>
+                                <h2 className="text-2xl font-black italic tracking-tighter">ASNAP-PRIVATE-NODE</h2>
                             </div>
                             <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md border border-white/10">
                                 <Lock className="text-white w-6 h-6" />
@@ -240,7 +239,7 @@ export default function AdminPage() {
 
                         <div className="space-y-1">
                             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 flex items-center gap-2">
-                                <Sparkles size={14} className="text-yellow-400 animate-pulse" /> Master Fund
+                                <Sparkles size={14} className="text-yellow-400 animate-pulse" /> Vault Balance
                             </p>
                             <div className="flex items-baseline gap-2">
                                 <span className="text-2xl font-black">₹</span>
@@ -249,42 +248,42 @@ export default function AdminPage() {
                                 </h3>
                             </div>
                             <p className="text-[8px] text-white/40 uppercase font-bold tracking-widest mt-2 italic">
-                                "भाई, यह आपका पर्सनल फंड है। यहाँ से पैसा भेजें या दोस्त से लेकर जमा करें।"
+                                "अभिषेक भाई, यह पैसा सिर्फ आपकी तिजोरी में है। यहाँ से दोस्त को भेजें या उससे सीधे यहाँ मंगवाएं।"
                             </p>
                         </div>
 
                         <div className="grid grid-cols-2 gap-6 pt-4 border-t border-white/10">
                             <div className="space-y-1">
-                                <p className="text-[8px] font-black uppercase text-white/40">Vault Status</p>
-                                <p className="text-xs font-bold text-green-400">OFF-THE-GRID</p>
+                                <p className="text-[8px] font-black uppercase text-white/40">Encryption</p>
+                                <p className="text-xs font-bold text-green-400 uppercase">End-to-End Autonomous</p>
                             </div>
                             <div className="space-y-1 text-right">
-                                <p className="text-[8px] font-black uppercase text-white/40">Security</p>
-                                <p className="text-xs font-black uppercase text-blue-400 flex items-center justify-end gap-1.5"><Zap size={10} fill="currentColor" /> SHA-512</p>
+                                <p className="text-[8px] font-black uppercase text-white/40">Status</p>
+                                <p className="text-xs font-black uppercase text-blue-400 flex items-center justify-end gap-1.5"><Zap size={10} fill="currentColor" /> Active Node</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Shadow Identity Section (NEW) */}
+                {/* Shadow Destination Section (Updated for direct deposit) */}
                 <div className="bg-secondary/40 p-8 rounded-[3rem] border border-white/5 space-y-6">
                     <div className="flex items-center gap-3">
                          <div className="p-3 bg-primary/10 rounded-2xl text-primary"><Landmark size={24} /></div>
                          <div>
-                            <h4 className="font-black uppercase italic text-sm">Your Shadow Identity</h4>
-                            <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest">Share this for Gaibi deposits</p>
+                            <h4 className="font-black uppercase italic text-sm">Your Shadow Destination</h4>
+                            <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest">Provide this to دوست for direct inbound</p>
                          </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="p-5 bg-background/50 rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-background/80 transition-all cursor-pointer" onClick={() => copyToClipboard(SHADOW_ACC, "Acc Number")}>
+                        <div className="p-5 bg-background/50 rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-background/80 transition-all cursor-pointer" onClick={() => copyToClipboard(SHADOW_ACC, "Shadow Acc")}>
                             <div>
-                                <p className="text-[8px] font-black uppercase text-white/40 mb-1">Shadow Acc Number</p>
+                                <p className="text-[8px] font-black uppercase text-white/40 mb-1">Vault Account No.</p>
                                 <p className="text-lg font-mono font-black text-white">{SHADOW_ACC}</p>
                             </div>
                             <Copy size={16} className="text-white/20 group-hover:text-primary" />
                         </div>
-                        <div className="p-5 bg-background/50 rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-background/80 transition-all cursor-pointer" onClick={() => copyToClipboard(SHADOW_IFSC, "IFSC Code")}>
+                        <div className="p-5 bg-background/50 rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-background/80 transition-all cursor-pointer" onClick={() => copyToClipboard(SHADOW_IFSC, "Shadow IFSC")}>
                             <div>
                                 <p className="text-[8px] font-black uppercase text-white/40 mb-1">Gaibi IFSC Code</p>
                                 <p className="text-lg font-mono font-black text-white">{SHADOW_IFSC}</p>
@@ -294,13 +293,11 @@ export default function AdminPage() {
                     </div>
 
                     <div className="bg-blue-600/10 border border-blue-500/20 p-5 rounded-2xl flex items-center gap-4">
-                        <div className="w-16 h-16 bg-white p-2 rounded-xl shrink-0 shadow-lg">
-                            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`upi://pay?pa=${ADMIN_REAL_UPI}&pn=A.snap%20Admin`)}`} className="w-full h-full" alt="UPI QR" />
-                        </div>
+                        <div className="p-3 bg-blue-500/20 rounded-xl text-blue-400"><QrCode size={30} /></div>
                         <div>
-                            <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Vault Sync Protocol</p>
+                            <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Direct Inbound Sync</p>
                             <p className="text-xs text-white/70 font-medium leading-relaxed italic">
-                                "भाई, दोस्त से अपने असली अकाउंट (IPPB/etc) में पैसा मंगवाएं, फिर 'Confirm Deposit' बटन से उसे यहाँ 1M फंड में सिंक कर लें।"
+                                "भाई, जब दोस्त पैसा भेज दे, तो 'Direct Inbound Sync' बटन दबाकर उसे यहाँ 1M तिजोरी में जोड़ लें। पैसा सीधे यहीं जमा होगा।"
                             </p>
                         </div>
                     </div>
@@ -309,17 +306,17 @@ export default function AdminPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-secondary/40 p-8 rounded-[2.5rem] border border-white/5 flex flex-col justify-center items-center text-center gap-4 shadow-xl">
                         <div className="p-4 bg-green-500/10 rounded-full text-green-500"><Download size={40} /></div>
-                        <h4 className="font-black uppercase text-sm">Receive Global Cash</h4>
+                        <h4 className="font-black uppercase text-sm">Autonomous Inbound</h4>
                         <Button onClick={() => setIsDepositModalOpen(true)} className="w-full h-14 bg-green-600 hover:bg-green-700 font-black uppercase rounded-2xl flex items-center justify-center gap-2">
-                             <Plus size={18} /> Confirm Deposit
+                             <Plus size={18} /> Direct Inbound Sync
                         </Button>
                     </div>
 
                     <div className="bg-secondary/40 p-8 rounded-[2.5rem] border border-white/5 flex flex-col justify-center items-center text-center gap-4 shadow-xl">
-                        <div className="p-4 bg-primary/10 rounded-full text-primary animate-pulse"><UserPlus size={40} /></div>
-                        <h4 className="font-black uppercase text-sm">Send to Any Account</h4>
+                        <div className="p-4 bg-primary/10 rounded-full text-primary animate-pulse"><Send size={40} /></div>
+                        <h4 className="font-black uppercase text-sm">Off-Grid Payout</h4>
                         <Button onClick={() => setIsTransferModalOpen(true)} className="w-full h-14 bg-primary hover:bg-primary/90 font-black uppercase rounded-2xl flex items-center justify-center gap-2">
-                            <Send size={18} /> Execute Payout
+                            <ArrowUpRight size={18} /> Send to Any Bank
                         </Button>
                     </div>
                 </div>
@@ -327,8 +324,8 @@ export default function AdminPage() {
                 {/* Secret Passbook */}
                 <div className="bg-secondary/20 rounded-[2.5rem] p-6 border border-white/5">
                     <div className="flex items-center justify-between mb-6">
-                        <h4 className="font-black uppercase text-xs tracking-widest italic">Secret Ledger</h4>
-                        <span className="text-[8px] font-black uppercase text-white/30 tracking-[0.3em]">Vault Transactions</span>
+                        <h4 className="font-black uppercase text-xs tracking-widest italic">Encrypted Ledger</h4>
+                        <span className="text-[8px] font-black uppercase text-white/30 tracking-[0.3em]">Node Operations</span>
                     </div>
                     
                     <div className="space-y-3 max-h-[500px] overflow-y-auto scrollbar-hide pr-2">
@@ -340,7 +337,7 @@ export default function AdminPage() {
                                     </div>
                                     <div>
                                         <p className="text-xs font-bold text-white group-hover:text-primary transition-colors">{log.label}</p>
-                                        <p className="text-[8px] text-muted-foreground uppercase font-black font-mono">ID: {log.refNo || 'N/A'}</p>
+                                        <p className="text-[8px] text-muted-foreground uppercase font-black font-mono">NODE-ID: {log.refNo || 'N/A'}</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
@@ -355,33 +352,33 @@ export default function AdminPage() {
                 </div>
             </main>
 
-            {/* Global Payout Dialog */}
+            {/* Off-Grid Payout Dialog */}
             <Dialog open={isTransferModalOpen} onOpenChange={setIsTransferModalOpen}>
                 <DialogContent className="bg-background text-foreground border-white/10 rounded-[3rem] max-w-sm w-[95%] p-8 overflow-hidden shadow-[0_0_150px_rgba(0,0,0,0.9)] outline-none">
                     {processStep === 'idle' && (
                         <>
                             <DialogHeader className="mb-6">
                                 <DialogTitle className="text-xl font-black uppercase italic tracking-tighter text-center flex items-center justify-center gap-3">
-                                    <Globe className="text-primary animate-spin" /> Send Global Cash
+                                    <Globe className="text-primary animate-spin" /> Autonomous Payout
                                 </DialogTitle>
-                                <p className="text-[9px] text-center text-muted-foreground uppercase font-bold tracking-widest mt-1">Bypassing Standard Ledger Control</p>
+                                <p className="text-[9px] text-center text-muted-foreground uppercase font-bold tracking-widest mt-1">Bypassing Traditional Ledger Trace</p>
                             </DialogHeader>
 
                             <div className="space-y-4">
                                 <div className="space-y-1.5">
-                                    <Label className="text-[10px] font-black uppercase text-muted-foreground">Beneficiary Name</Label>
+                                    <Label className="text-[10px] font-black uppercase text-muted-foreground">Recipient Name</Label>
                                     <Input placeholder="Dost Ka Name" value={payoutName} onChange={e => setPayoutName(e.target.value)} className="h-12 bg-secondary/50 border-white/10 rounded-xl px-4 font-bold" />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label className="text-[10px] font-black uppercase text-muted-foreground">Account Number / UPI ID</Label>
-                                    <Input placeholder="Any Bank Acc / UPI" value={payoutAccount} onChange={e => setPayoutAccount(e.target.value)} className="h-12 bg-secondary/50 border-white/10 rounded-xl px-4 font-mono font-bold" />
+                                    <Label className="text-[10px] font-black uppercase text-muted-foreground">Any Bank Acc / UPI ID</Label>
+                                    <Input placeholder="Destination Account" value={payoutAccount} onChange={e => setPayoutAccount(e.target.value)} className="h-12 bg-secondary/50 border-white/10 rounded-xl px-4 font-mono font-bold" />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label className="text-[10px] font-black uppercase text-muted-foreground">Bank IFSC (Optional)</Label>
+                                    <Label className="text-[10px] font-black uppercase text-muted-foreground">IFSC Code (Optional)</Label>
                                     <Input placeholder="IFSC CODE" value={payoutIfsc} onChange={e => setPayoutIfsc(e.target.value.toUpperCase())} className="h-12 bg-secondary/50 border-white/10 rounded-xl px-4 font-mono font-bold" />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label className="text-[10px] font-black uppercase text-muted-foreground">Amount to Send</Label>
+                                    <Label className="text-[10px] font-black uppercase text-muted-foreground">Amount to Payout</Label>
                                     <div className="relative">
                                         <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-primary">₹</span>
                                         <Input type="number" placeholder="0.00" value={payoutAmount} onChange={e => setPayoutAmount(e.target.value)} className="h-14 pl-8 bg-secondary/50 border-white/10 rounded-xl text-lg font-black text-white" />
@@ -391,7 +388,7 @@ export default function AdminPage() {
 
                             <DialogFooter className="mt-8">
                                 <Button 
-                                    onClick={handleGaibiTransfer} 
+                                    onClick={handleShadowPayout} 
                                     className="w-full h-16 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-2xl shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
                                 >
                                     <ShieldCheck size={18} /> Execute Shadow Payout
@@ -409,12 +406,12 @@ export default function AdminPage() {
                             <div className="space-y-1">
                                 <h3 className="text-xl font-black uppercase italic tracking-tighter">
                                     {processStep === 'encrypting' ? 'Encrypting Path...' : 
-                                     processStep === 'routing' ? 'Routing Global Node...' : 'Syncing Shadow Ledger...'}
+                                     processStep === 'routing' ? 'Routing Shadow Node...' : 'Syncing Global Ledger...'}
                                 </h3>
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Bypassing Traditional Verification</p>
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Autonomous Trace Removal Active</p>
                             </div>
                             <div className="w-full bg-secondary/40 p-4 rounded-2xl border border-white/5 space-y-2">
-                                <p className="text-[8px] font-black uppercase text-white/40">Status: PROTECTED</p>
+                                <p className="text-[8px] font-black uppercase text-white/40">Node Status: PROTECTED</p>
                                 <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                                     <div className={cn("h-full bg-primary transition-all duration-[2000ms]", 
                                         processStep === 'routing' ? "w-[60%]" : processStep === 'node_sync' ? "w-[90%]" : "w-[30%]")} />
@@ -432,10 +429,10 @@ export default function AdminPage() {
                             
                             <div className="space-y-2">
                                 <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">
-                                    {depositType === 'deposit' ? 'Vault Funded!' : 'Shadow Success!'}
+                                    {depositType === 'deposit' ? 'Vault Updated!' : 'Payout Complete!'}
                                 </h3>
                                 <p className="text-xs text-muted-foreground font-bold uppercase">
-                                    {depositType === 'deposit' ? `₹${depositAmount} Received from ${senderName}` : `₹${payoutAmount} Sent to ${payoutName}.`}
+                                    {depositType === 'deposit' ? `₹${depositAmount} Inbound from ${senderName}` : `₹${payoutAmount} Dispatched to ${payoutName}.`}
                                 </p>
                             </div>
 
@@ -445,14 +442,14 @@ export default function AdminPage() {
                                     <span className="text-[10px] font-mono font-black text-primary">{lastTxId}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[8px] font-black uppercase text-white/40 tracking-widest">Origin Node</span>
-                                    <span className="text-[10px] font-black text-white/80 uppercase">GAIBI-VAULT-X1</span>
+                                    <span className="text-[8px] font-black uppercase text-white/40 tracking-widest">Target Node</span>
+                                    <span className="text-[10px] font-black text-white/80 uppercase">AUTONOMOUS-VAULT-X1</span>
                                 </div>
                             </div>
 
                             <div className="bg-blue-500/10 p-4 rounded-2xl border border-blue-500/20 w-full">
                                 <p className="text-[9px] text-blue-400 font-bold uppercase leading-tight italic">
-                                    {depositType === 'deposit' ? '"भाई, यह पैसा आपकी तिजोरी में सुरक्षित जुड़ गया है।"' : '"भाई, यह रसीद अपने दोस्त को भेज दो। पैसा फंड से कम हो गया है।"'}
+                                    {depositType === 'deposit' ? '"भाई, यह पैसा अब आपकी प्राइवेट तिजोरी में पूरी तरह सेफ है।"' : '"भाई, ट्रांजैक्शन सक्सेस है। हिसाब बुक में दर्ज हो गया है।"'}
                                 </p>
                             </div>
 
@@ -464,25 +461,25 @@ export default function AdminPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Shadow Deposit Dialog */}
+            {/* Direct Inbound Sync Dialog */}
             <Dialog open={isDepositModalOpen} onOpenChange={setIsDepositModalOpen}>
                 <DialogContent className="bg-background text-foreground border-white/10 rounded-[3rem] max-w-sm w-[95%] p-8 overflow-hidden shadow-[0_0_150px_rgba(0,128,0,0.4)] outline-none">
                     {processStep === 'idle' && (
                         <>
                             <DialogHeader className="mb-6">
                                 <DialogTitle className="text-xl font-black uppercase italic tracking-tighter text-center flex items-center justify-center gap-3">
-                                    <Download className="text-green-500 animate-bounce" /> Confirm Deposit
+                                    <Download className="text-green-500 animate-bounce" /> Direct Inbound Sync
                                 </DialogTitle>
-                                <p className="text-[9px] text-center text-muted-foreground uppercase font-bold tracking-widest mt-1">Updating Private Shadow Vault</p>
+                                <p className="text-[9px] text-center text-muted-foreground uppercase font-bold tracking-widest mt-1">Autonomous Deposit to Private Vault</p>
                             </DialogHeader>
 
                             <div className="space-y-4">
                                 <div className="space-y-1.5">
-                                    <Label className="text-[10px] font-black uppercase text-muted-foreground">Sender Name (Friend)</Label>
+                                    <Label className="text-[10px] font-black uppercase text-muted-foreground">Sender Identity (दोस्त)</Label>
                                     <Input placeholder="Dost Ka Name" value={senderName} onChange={e => setSenderName(e.target.value)} className="h-12 bg-secondary/50 border-white/10 rounded-xl px-4 font-bold" />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label className="text-[10px] font-black uppercase text-muted-foreground">Amount Received</Label>
+                                    <Label className="text-[10px] font-black uppercase text-muted-foreground">Inbound Amount</Label>
                                     <div className="relative">
                                         <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-green-500">₹</span>
                                         <Input type="number" placeholder="0.00" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} className="h-14 pl-8 bg-secondary/50 border-white/10 rounded-xl text-lg font-black text-white" />
@@ -492,10 +489,10 @@ export default function AdminPage() {
 
                             <DialogFooter className="mt-8">
                                 <Button 
-                                    onClick={handleShadowDeposit} 
+                                    onClick={handleDirectShadowDeposit} 
                                     className="w-full h-16 bg-green-600 hover:bg-green-700 text-white font-black uppercase rounded-2xl shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
                                 >
-                                    <ShieldCheck size={18} /> Execute Vault Sync
+                                    <ShieldCheck size={18} /> Sync Direct Inbound
                                 </Button>
                             </DialogFooter>
                         </>
@@ -510,12 +507,12 @@ export default function AdminPage() {
                             <div className="space-y-1">
                                 <h3 className="text-xl font-black uppercase italic tracking-tighter">
                                     {processStep === 'encrypting' ? 'Syncing Node...' : 
-                                     processStep === 'routing' ? 'Routing Shadow Path...' : 'Confirming Deposit...'}
+                                     processStep === 'routing' ? 'Routing Shadow Path...' : 'Confirming Inbound...'}
                                 </h3>
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Autonomous Ledger Inbound</p>
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Autonomous Ledger Inbound Active</p>
                             </div>
                             <div className="w-full bg-secondary/40 p-4 rounded-2xl border border-white/5 space-y-2">
-                                <p className="text-[8px] font-black uppercase text-white/40">Status: ENCRYPTED</p>
+                                <p className="text-[8px] font-black uppercase text-white/40">Node Status: ENCRYPTED</p>
                                 <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                                     <div className={cn("h-full bg-green-500 transition-all duration-[2000ms]", 
                                         processStep === 'routing' ? "w-[60%]" : processStep === 'node_sync' ? "w-[90%]" : "w-[30%]")} />
@@ -531,20 +528,20 @@ export default function AdminPage() {
                             </div>
                             
                             <div className="space-y-2">
-                                <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Deposit Confirmed!</h3>
+                                <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Vault Synced!</h3>
                                 <p className="text-xs text-muted-foreground font-bold uppercase">
-                                    ₹{depositAmount} Added to Vault from {senderName}.
+                                    ₹{depositAmount} Added directly from {senderName}.
                                 </p>
                             </div>
 
                             <div className="w-full bg-secondary/40 p-5 rounded-3xl border border-white/5 space-y-3">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[8px] font-black uppercase text-white/40 tracking-widest">Deposit ID</span>
+                                    <span className="text-[8px] font-black uppercase text-white/40 tracking-widest">Inbound ID</span>
                                     <span className="text-[10px] font-mono font-black text-green-500">{lastTxId}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[8px] font-black uppercase text-white/40 tracking-widest">Target Node</span>
-                                    <span className="text-[10px] font-black text-white/80 uppercase">ASNAP-VAULT-MAIN</span>
+                                    <span className="text-[8px] font-black uppercase text-white/40 tracking-widest">Node Destination</span>
+                                    <span className="text-[10px] font-black text-white/80 uppercase">VAULT-MAIN-ASNAP</span>
                                 </div>
                             </div>
 
