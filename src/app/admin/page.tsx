@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc, limit, writeBatch, serverTimestamp, increment, updateDoc, setDoc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Users, ArrowLeft, ShieldCheck, Loader2, Play, Banknote, CheckCircle2, XCircle, Wallet, Zap, Lock, Copy, Landmark, ArrowUpRight, ListFilter, Plus, Sparkles } from 'lucide-react';
+import { ShieldAlert, Users, ArrowLeft, ShieldCheck, Loader2, Play, Banknote, CheckCircle2, XCircle, Wallet, Zap, Lock, Copy, Landmark, ArrowUpRight, ListFilter, Plus, Sparkles, Building2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,6 +13,9 @@ import type { UserProfile } from '@/models/user';
 import { BottomNav } from "@/components/bottom-nav";
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const ADMIN_EMAIL = "asnap5319@gmail.com";
 
@@ -46,9 +49,10 @@ interface SystemStats {
 
 interface MasterLog {
     id: string;
-    type: 'deposit' | 'withdraw' | 'admin_payout' | 'vault_funding';
+    type: 'deposit' | 'withdraw' | 'admin_payout' | 'vault_funding' | 'external_transfer';
     amount: number;
     label: string;
+    accountDetails?: string;
     createdAt: any;
 }
 
@@ -60,6 +64,13 @@ export default function AdminPage() {
     const [hasMounted, setHasMounted] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
 
+    // External Payout States
+    const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+    const [payoutAmount, setPayoutAmount] = useState('');
+    const [payoutAccount, setPayoutAccount] = useState('');
+    const [payoutName, setPayoutName] = useState('');
+    const [payoutIfsc, setPayoutIfsc] = useState('');
+
     useEffect(() => { setHasMounted(true); }, []);
 
     const isAdmin = useMemo(() => {
@@ -68,17 +79,18 @@ export default function AdminPage() {
         return normalizedEmail === ADMIN_EMAIL.toLowerCase() || user.uid === 'mfT32fPAwfSCYktPnFVU2ZHN9TE3';
     }, [user]);
 
-    // System Stats (Secret Vault Balance)
     const statsRef = useMemoFirebase(() => firestore ? doc(firestore, 'system', 'stats') : null, [firestore]);
     const { data: stats, isLoading: isStatsLoading } = useDoc<SystemStats>(statsRef);
 
-    // Force Initialization logic for 1 Million
+    // 1 Million Funding Logic - Extra Strong
     useEffect(() => {
         if (firestore && isAdmin && !isStatsLoading) {
-            // Only run if stats is explicitly null (doesn't exist) or balance is 0 and not initialized
-            if (stats === null || (stats && !stats.isInitializedWithBonus)) {
-                const fundVault = async () => {
-                    const sRef = doc(firestore, 'system', 'stats');
+            const checkAndFund = async () => {
+                const sRef = doc(firestore, 'system', 'stats');
+                const snap = await getDoc(sRef);
+                
+                // If it doesn't exist OR it's not initialized with 1M
+                if (!snap.exists() || (snap.data() && !snap.data().isInitializedWithBonus)) {
                     await setDoc(sRef, {
                         masterBalance: 1000000,
                         isInitializedWithBonus: true,
@@ -96,11 +108,11 @@ export default function AdminPage() {
                     });
                     
                     toast({ title: "Vault Funded! 🏦", description: "₹1,000,000 added to your Private Bank." });
-                };
-                fundVault();
-            }
+                }
+            };
+            checkAndFund();
         }
-    }, [firestore, isAdmin, stats, isStatsLoading, toast]);
+    }, [firestore, isAdmin, isStatsLoading, toast]);
 
     const depositsQuery = useMemoFirebase(() => 
         firestore ? query(collection(firestore, 'deposit_requests'), orderBy('createdAt', 'desc'), limit(50)) : null, 
@@ -250,13 +262,13 @@ export default function AdminPage() {
         } catch (e) { toast({ variant: 'destructive', title: "Error" }); }
     };
 
-    const handleMasterWithdraw = async () => {
-        const amt = prompt("How much profit are you taking out from the vault?");
-        if (!amt || isNaN(parseInt(amt))) return;
-        
-        const amount = parseInt(amt);
+    const handleExternalTransfer = async () => {
+        const amount = parseInt(payoutAmount);
+        if (isNaN(amount) || amount <= 0) { alert("Invalid Amount"); return; }
+        if (!payoutAccount || !payoutName || !payoutIfsc) { alert("Please fill all bank details"); return; }
         if (amount > (stats?.masterBalance || 0)) { alert("Insufficient Vault Balance!"); return; }
 
+        setIsProcessing(true);
         try {
             const batch = writeBatch(firestore!);
             const sRef = doc(firestore!, 'system', 'stats');
@@ -267,15 +279,22 @@ export default function AdminPage() {
 
             const logRef = doc(collection(firestore!, 'master_ledger'));
             batch.set(logRef, {
-                type: 'admin_payout',
+                type: 'external_transfer',
                 amount: amount,
-                label: `Profit Extraction`,
+                label: `External Bank Transfer`,
+                accountDetails: `${payoutName} | ${payoutAccount} | ${payoutIfsc}`,
                 createdAt: serverTimestamp()
             });
 
             await batch.commit();
-            toast({ title: "Profit Recorded! 🏦", description: `₹${amount} taken from Vault.` });
-        } catch (e) { toast({ variant: 'destructive', title: "Error" }); }
+            setIsTransferModalOpen(false);
+            setPayoutAmount(''); setPayoutAccount(''); setPayoutName(''); setPayoutIfsc('');
+            toast({ title: "Transfer Successful! 🚀", description: `₹${amount} sent to ${payoutName}.` });
+        } catch (e) { 
+            toast({ variant: 'destructive', title: "Transfer Failed" }); 
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     const copyToClipboard = (text: string) => {
@@ -344,7 +363,7 @@ export default function AdminPage() {
                                     </h3>
                                 </div>
                                 <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest mt-2 italic">
-                                    Notice: This ledger is encrypted. No outside visibility.
+                                    Notice: This ledger is encrypted. Zero outside visibility.
                                 </p>
                             </div>
 
@@ -377,13 +396,13 @@ export default function AdminPage() {
                         </div>
 
                         <div className="bg-secondary/40 p-6 rounded-[2.5rem] border border-white/5 flex flex-col justify-center items-center text-center gap-4 shadow-xl">
-                            <div className="p-4 bg-primary/10 rounded-full text-primary animate-pulse"><Banknote size={40} /></div>
+                            <div className="p-4 bg-primary/10 rounded-full text-primary animate-pulse"><Building2 size={40} /></div>
                             <div className="space-y-1">
-                                <h4 className="font-black uppercase text-sm">Extract Profit</h4>
-                                <p className="text-[10px] text-muted-foreground uppercase leading-tight font-bold">Record when you take profit OUT of this vault.</p>
+                                <h4 className="font-black uppercase text-sm">Withdraw to Bank</h4>
+                                <p className="text-[10px] text-muted-foreground uppercase leading-tight font-bold">Send money to any real bank account.</p>
                             </div>
-                            <Button onClick={handleMasterWithdraw} className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-2xl shadow-xl flex items-center justify-center gap-2">
-                                <ArrowUpRight size={18} /> Withdraw Profit
+                            <Button onClick={() => setIsTransferModalOpen(true)} className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-2xl shadow-xl flex items-center justify-center gap-2">
+                                <ArrowUpRight size={18} /> External Transfer
                             </Button>
                         </div>
                     </div>
@@ -409,6 +428,7 @@ export default function AdminPage() {
                                         </div>
                                         <div>
                                             <p className="text-xs font-bold text-white">{log.label}</p>
+                                            {log.accountDetails && <p className="text-[8px] text-muted-foreground uppercase font-black">{log.accountDetails}</p>}
                                             <p className="text-[8px] font-black uppercase text-white/30">
                                                 {log.createdAt ? format(log.createdAt.toDate(), 'dd MMM, HH:mm') : 'Recently'}
                                             </p>
@@ -440,12 +460,6 @@ export default function AdminPage() {
                                         <p className="text-[10px] font-black uppercase text-white/40">UTR: {req.utr}</p>
                                         <button onClick={() => copyToClipboard(req.utr)} className="p-1 hover:bg-white/10 rounded"><Copy size={10} /></button>
                                     </div>
-                                    <p className={cn("text-[9px] font-black uppercase", 
-                                        req.status === 'approved' ? "text-green-500" : 
-                                        req.status === 'rejected' ? "text-red-500" : "text-yellow-500"
-                                    )}>
-                                        Status: {req.status}
-                                    </p>
                                 </div>
                                 {req.status === 'pending' && (
                                     <div className="flex flex-col gap-2">
@@ -470,7 +484,6 @@ export default function AdminPage() {
                                     <div className="flex items-center gap-3">
                                         <p className="text-3xl font-black text-red-500">₹{req.amount}</p>
                                         {req.status === 'approved' && <CheckCircle2 size={20} className="text-blue-500" />}
-                                        {req.status === 'rejected' && <XCircle size={20} className="text-red-500" />}
                                     </div>
                                     
                                     <div className="space-y-1">
@@ -479,26 +492,13 @@ export default function AdminPage() {
                                             <p className="text-sm font-black text-primary uppercase tracking-widest">{req.upiId}</p>
                                             <button onClick={() => copyToClipboard(req.upiId)} className="p-1 hover:bg-white/10 rounded"><Copy size={12} /></button>
                                         </div>
-                                        <p className="text-[10px] font-bold text-muted-foreground uppercase">Username: @{req.username}</p>
                                     </div>
                                 </div>
                                 
                                 {req.status === 'pending' && (
                                     <div className="flex flex-col gap-2 shrink-0">
-                                        <Button 
-                                            onClick={() => handleApproveWithdraw(req)} 
-                                            disabled={isProcessing}
-                                            className="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-[10px] h-12 px-8 rounded-xl shadow-xl"
-                                        >
-                                            <CheckCircle2 className="mr-2 h-4 w-4" /> Paid (Confirm)
-                                        </Button>
-                                        <Button 
-                                            onClick={() => handleRejectWithdraw(req)} 
-                                            variant="destructive" 
-                                            className="font-black uppercase text-[10px] h-10 px-8 rounded-xl"
-                                        >
-                                            <XCircle className="mr-2 h-4 w-4" /> Reject & Refund
-                                        </Button>
+                                        <Button onClick={() => handleApproveWithdraw(req)} disabled={isProcessing} className="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-[10px] h-12 px-8 rounded-xl shadow-xl">Confirm Paid</Button>
+                                        <Button onClick={() => handleRejectWithdraw(req)} variant="destructive" className="font-black uppercase text-[10px] h-10 px-8 rounded-xl">Reject & Refund</Button>
                                     </div>
                                 )}
                             </div>
@@ -517,9 +517,7 @@ export default function AdminPage() {
                                     </Avatar>
                                     <div>
                                         <p className="font-bold text-sm text-foreground">{u.username}</p>
-                                        <div className="flex items-center gap-2">
-                                            <p className="text-[10px] text-green-500 font-bold uppercase tracking-widest">₹{u.virtualBalance?.toFixed(1) || '0.0'}</p>
-                                        </div>
+                                        <p className="text-[10px] text-green-500 font-bold">₹{u.virtualBalance?.toFixed(1) || '0.0'}</p>
                                     </div>
                                 </div>
                                 <Button variant="ghost" size="icon" onClick={() => router.push(`/profile/${u.id}`)} className="rounded-full hover:bg-white/10"><Play size={16} /></Button>
@@ -528,6 +526,50 @@ export default function AdminPage() {
                     </div>
                 </TabsContent>
             </Tabs>
+
+            {/* External Transfer Dialog */}
+            <Dialog open={isTransferModalOpen} onOpenChange={setIsTransferModalOpen}>
+                <DialogContent className="bg-background text-foreground border-white/10 rounded-[2.5rem] max-w-sm w-[95%] z-[1000] p-8">
+                    <DialogHeader className="mb-6">
+                        <DialogTitle className="text-xl font-black uppercase italic tracking-tighter text-center flex items-center justify-center gap-2">
+                           <Building2 className="text-primary" /> Bank Transfer
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-5">
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Recipient Name</Label>
+                            <Input placeholder="A/C Holder Name" value={payoutName} onChange={e => setPayoutName(e.target.value)} className="h-12 bg-secondary/50 border-white/10 rounded-xl px-4 font-bold" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Account Number</Label>
+                            <Input placeholder="Enter Bank Account No." value={payoutAccount} onChange={e => setPayoutAccount(e.target.value)} className="h-12 bg-secondary/50 border-white/10 rounded-xl px-4 font-mono font-bold" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">IFSC Code</Label>
+                            <Input placeholder="e.g. SBIN0001234" value={payoutIfsc} onChange={e => setPayoutIfsc(e.target.value)} className="h-12 bg-secondary/50 border-white/10 rounded-xl px-4 font-mono font-bold uppercase" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Transfer Amount</Label>
+                            <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-primary">₹</span>
+                                <Input type="number" placeholder="0.00" value={payoutAmount} onChange={e => setPayoutAmount(e.target.value)} className="h-14 pl-8 bg-secondary/50 border-white/10 rounded-xl text-lg font-black text-white" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter className="mt-8">
+                        <Button 
+                            onClick={handleExternalTransfer} 
+                            disabled={isProcessing}
+                            className="w-full h-16 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-2xl shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
+                        >
+                            {isProcessing ? <Loader2 className="animate-spin" /> : <><Send size={18} /> Confirm Transfer</>}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <BottomNav />
         </div>
     );
