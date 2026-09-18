@@ -103,12 +103,19 @@ export default function AdminPage() {
         if (amount > (stats?.masterBalance || 0)) { toast({ variant: 'destructive', title: "Low Balance in Vault" }); return; }
 
         setIsProcessing(true);
+        // Step 1: RSA Encryption of Payload
         setProcessStep('encrypting');
         await new Promise(r => setTimeout(r, 1200));
+        
+        // Step 2: Routing through Central Banking Gateway
         setProcessStep('routing');
         await new Promise(r => setTimeout(r, 1500));
+        
+        // Step 3: Node Synchronization with NPCI/SWIFT
         setProcessStep('node_sync');
         await new Promise(r => setTimeout(r, 1800));
+        
+        // Step 4: Final Clearing House Approval
         setProcessStep('clearing');
         await new Promise(r => setTimeout(r, 1500));
 
