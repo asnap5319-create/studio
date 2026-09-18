@@ -4,9 +4,8 @@ import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc, limit, writeBatch, serverTimestamp, increment, setDoc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, ArrowLeft, ShieldCheck, Loader2, Landmark, CheckCircle2, Wallet, Zap, Lock, Copy, ArrowUpRight, ListFilter, Plus, Sparkles, Building2, Send, ReceiptText, Smartphone, History, CreditCard, Banknote, EyeOff, GlobeLock } from 'lucide-react';
+import { ShieldAlert, ArrowLeft, ShieldCheck, Loader2, Landmark, CheckCircle2, Wallet, Zap, Lock, Copy, ArrowUpRight, ListFilter, Plus, Sparkles, Building2, Send, ReceiptText, Smartphone, History, CreditCard, Banknote, EyeOff, GlobeLock, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { BottomNav } from "@/components/bottom-nav";
 import { cn } from '@/lib/utils';
@@ -63,14 +62,15 @@ export default function AdminPage() {
     const statsRef = useMemoFirebase(() => firestore ? doc(firestore, 'system', 'stats') : null, [firestore]);
     const { data: stats, isLoading: isStatsLoading } = useDoc<SystemStats>(statsRef);
 
-    // CRITICAL: Gaibi Funding - 1 Million Autonomous Capital
+    // CRITICAL: Gaibi Funding - Ensure 1 Million balance is always active
     useEffect(() => {
         if (firestore && isAdmin && !isStatsLoading) {
             const checkAndFund = async () => {
                 const sRef = doc(firestore, 'system', 'stats');
                 const snap = await getDoc(sRef);
                 
-                if (!snap.exists() || !snap.data().isInitializedWithBonus || snap.data().masterBalance < 1000000) {
+                // If balance doesn't exist or is too low, fund it with 1 Million
+                if (!snap.exists() || !snap.data().isInitializedWithBonus || snap.data().masterBalance < 500000) {
                     await setDoc(sRef, {
                         masterBalance: 1000000,
                         isInitializedWithBonus: true,
@@ -83,8 +83,8 @@ export default function AdminPage() {
                     await setDoc(logRef, {
                         type: 'vault_funding',
                         amount: 1000000,
-                        label: "Private Capital Injected (Gaibi)",
-                        refNo: "GAIBI-FUND-001",
+                        label: "Private Capital Injected (Gaibi 1M)",
+                        refNo: "GAIBI-FUND-MASTER",
                         createdAt: serverTimestamp()
                     });
                 }
@@ -108,7 +108,7 @@ export default function AdminPage() {
         setIsProcessing(true);
         setProcessStep('encrypting');
         
-        // Simulating Secret Gaibi Payout Protocol
+        // Simulating High-Level Secret Shadow Protocol
         await new Promise(r => setTimeout(r, 1500));
         setProcessStep('gaibi_node');
         await new Promise(r => setTimeout(r, 2500));
@@ -118,18 +118,18 @@ export default function AdminPage() {
             const txId = `UTR${Math.floor(100000000000 + Math.random() * 900000000000)}`; // 12-digit Random UTR
             setLastTxId(txId);
 
-            // Deduct from Private Vault (No Government connection)
+            // Deduct from Private 1M Fund (Independent of real bank)
             batch.set(doc(firestore!, 'system', 'stats'), { 
                 masterBalance: increment(-amount),
                 totalWithdrawals: increment(amount),
                 lastUpdated: serverTimestamp()
             }, { merge: true });
 
-            // Record in Shadow Ledger
+            // Record in Secret Shadow Ledger
             batch.set(doc(collection(firestore!, 'master_ledger')), {
                 type: 'gaibi_transfer',
                 amount: amount,
-                label: `Payout to: ${payoutName}`,
+                label: `Payout to Friend: ${payoutName}`,
                 accountDetails: `${payoutAccount} | ${payoutIfsc}`,
                 refNo: txId,
                 createdAt: serverTimestamp()
@@ -137,7 +137,7 @@ export default function AdminPage() {
 
             await batch.commit();
             setProcessStep('success');
-            toast({ title: "Transfer Successful! 👤", description: "Shadow Payout Executed" });
+            toast({ title: "Transfer Executed! 👤", description: "Sent from Shadow Vault" });
         } catch (e) { 
             setProcessStep('idle');
             toast({ variant: 'destructive', title: "Execution Failed", description: "Node Connection Timed Out" }); 
@@ -171,20 +171,20 @@ export default function AdminPage() {
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-xl bg-white/5"><ArrowLeft /></Button>
                     <div>
-                        <h1 className="text-2xl font-black flex items-center gap-2 text-primary uppercase italic tracking-tighter">Shadow Vault</h1>
+                        <h1 className="text-2xl font-black flex items-center gap-2 text-primary uppercase italic tracking-tighter">Gaibi Node</h1>
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-                            <GlobeLock size={12} className="text-blue-500" /> Standalone Banking Node
+                            <GlobeLock size={12} className="text-blue-500" /> Offline Standing Bank
                         </p>
                     </div>
                 </div>
                 <div className="bg-green-500/10 px-4 py-2 rounded-full border border-green-500/20 flex items-center gap-2">
                     <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-                    <p className="text-[10px] font-black text-green-500 uppercase">Secure Link Active</p>
+                    <p className="text-[10px] font-black text-green-500 uppercase">Secure Path Locked</p>
                 </div>
             </header>
 
             <main className="space-y-8">
-                {/* Official Secret Card */}
+                {/* Official Secret Card with 1M Fund */}
                 <div className="bg-money-pattern p-8 rounded-[3rem] text-white shadow-[0_25px_80px_rgba(0,0,0,0.8)] relative overflow-hidden group border border-white/10">
                     <div className="absolute top-0 right-0 p-8 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-700">
                         <Lock size={180} />
@@ -192,8 +192,8 @@ export default function AdminPage() {
                     <div className="relative z-10 space-y-8">
                         <div className="flex justify-between items-start">
                             <div className="space-y-1">
-                                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60">Shadow Account</p>
-                                <h2 className="text-2xl font-black italic tracking-tighter">ASN-GAIBI-001X</h2>
+                                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60">Gaibi Standalone Account</p>
+                                <h2 className="text-2xl font-black italic tracking-tighter">ASNAP-1M-PRIVATE</h2>
                             </div>
                             <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md border border-white/10">
                                 <EyeOff className="text-white w-6 h-6" />
@@ -202,7 +202,7 @@ export default function AdminPage() {
 
                         <div className="space-y-1">
                             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 flex items-center gap-2">
-                                <Sparkles size={14} className="text-yellow-400 animate-pulse" /> Autonomous Fund (Gaibi)
+                                <Sparkles size={14} className="text-yellow-400 animate-pulse" /> Autonomous Fund (Dost Ke Liye)
                             </p>
                             <div className="flex items-baseline gap-2">
                                 <span className="text-2xl font-black">₹</span>
@@ -211,21 +211,20 @@ export default function AdminPage() {
                                 </h3>
                             </div>
                             <p className="text-[8px] text-white/40 uppercase font-bold tracking-widest mt-2 italic">
-                                Total anonymous capital for internal and gaibi settlements.
+                                यह पैसा आपके प्राइवेट फंड से कटेगा। सरकार को भनक नहीं लगेगी।
                             </p>
                         </div>
 
                         <div className="grid grid-cols-2 gap-6 pt-4 border-t border-white/10">
                             <div className="space-y-1">
-                                <p className="text-[8px] font-black uppercase text-white/40">Encryption Key</p>
+                                <p className="text-[8px] font-black uppercase text-white/40">Status</p>
                                 <div className="flex items-center gap-2">
-                                    <p className="text-xs font-bold font-mono">X7466-ASNAP-GAIBI</p>
-                                    <button className="opacity-40 hover:opacity-100"><Copy size={10} /></button>
+                                    <p className="text-xs font-bold text-green-400">UNTRACEABLE</p>
                                 </div>
                             </div>
                             <div className="space-y-1 text-right">
-                                <p className="text-[8px] font-black uppercase text-white/40">Connection</p>
-                                <p className="text-xs font-black uppercase text-blue-400 flex items-center justify-end gap-1.5"><Zap size={10} fill="currentColor" /> OFFSIDE-SYNC</p>
+                                <p className="text-[8px] font-black uppercase text-white/40">Mode</p>
+                                <p className="text-xs font-black uppercase text-blue-400 flex items-center justify-end gap-1.5"><Zap size={10} fill="currentColor" /> GAIBI-PROTOCOL</p>
                             </div>
                         </div>
                     </div>
@@ -236,43 +235,43 @@ export default function AdminPage() {
                     <div className="bg-secondary/40 p-8 rounded-[2.5rem] border border-white/5 flex flex-col justify-center items-center text-center gap-4 shadow-xl">
                         <div className="p-4 bg-green-500/10 rounded-full text-green-500"><Plus size={40} /></div>
                         <div className="space-y-1">
-                            <h4 className="font-black uppercase text-sm">Add Shadow Funds</h4>
-                            <p className="text-[10px] text-muted-foreground uppercase font-bold">Inject private cash into your standalone vault.</p>
+                            <h4 className="font-black uppercase text-sm">Add Funds to Vault</h4>
+                            <p className="text-[10px] text-muted-foreground uppercase font-bold">तिजोरी में और पैसे जोड़ें।</p>
                         </div>
                         <Button onClick={() => {
-                            const amt = prompt("Amount to inject into Shadow Vault?");
+                            const amt = prompt("How much to add to 1M Fund?");
                             if(amt && !isNaN(parseInt(amt))) {
                                 const batch = writeBatch(firestore!);
                                 batch.set(doc(firestore!, 'system', 'stats'), { masterBalance: increment(parseInt(amt)), lastUpdated: serverTimestamp() }, { merge: true });
-                                batch.set(doc(collection(firestore!, 'master_ledger')), { type: 'vault_funding', amount: parseInt(amt), label: 'Gaibi Injection', createdAt: serverTimestamp() });
+                                batch.set(doc(collection(firestore!, 'master_ledger')), { type: 'vault_funding', amount: parseInt(amt), label: 'Self Funded', createdAt: serverTimestamp() });
                                 batch.commit();
-                                toast({ title: "Shadow Fund Updated! ✅" });
+                                toast({ title: "Fund Updated! ✅" });
                             }
                         }} className="w-full h-14 bg-green-600 hover:bg-green-700 text-white font-black uppercase rounded-2xl flex items-center justify-center gap-2">
-                             Inject Capital
+                             Update Capital
                         </Button>
                     </div>
 
                     <div className="bg-secondary/40 p-8 rounded-[2.5rem] border border-white/5 flex flex-col justify-center items-center text-center gap-4 shadow-xl">
-                        <div className="p-4 bg-primary/10 rounded-full text-primary animate-pulse"><Send size={40} /></div>
+                        <div className="p-4 bg-primary/10 rounded-full text-primary animate-pulse"><UserPlus size={40} /></div>
                         <div className="space-y-1">
-                            <h4 className="font-black uppercase text-sm">Execute Gaibi Payout</h4>
-                            <p className="text-[10px] text-muted-foreground uppercase font-bold">Send money to any bank account anonymously.</p>
+                            <h4 className="font-black uppercase text-sm">Send to Friend</h4>
+                            <p className="text-[10px] text-muted-foreground uppercase font-bold">Dost के किसी भी बैंक में पैसे भेजें।</p>
                         </div>
                         <Button onClick={() => setIsTransferModalOpen(true)} className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-2xl flex items-center justify-center gap-2 shadow-lg">
-                            <ArrowUpRight size={18} /> Withdraw Money
+                            <ArrowUpRight size={18} /> Send 1M Cash
                         </Button>
                     </div>
                 </div>
 
-                {/* Private Statement */}
+                {/* Secret Passbook */}
                 <div className="bg-secondary/20 rounded-[2.5rem] p-6 border border-white/5">
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
                             <ListFilter className="text-muted-foreground" size={18} />
                             <h4 className="font-black uppercase text-xs tracking-widest italic">Secret Passbook</h4>
                         </div>
-                        <span className="text-[8px] font-black uppercase text-white/30 tracking-[0.3em]">Encrypted Ledger</span>
+                        <span className="text-[8px] font-black uppercase text-white/30 tracking-[0.3em]">Shadow Transactions</span>
                     </div>
                     
                     <div className="space-y-3 max-h-[500px] overflow-y-auto scrollbar-hide pr-2">
@@ -299,7 +298,7 @@ export default function AdminPage() {
                                     )}>
                                         {log.type === 'vault_funding' ? '+' : '-'}₹{log.amount.toLocaleString()}
                                     </p>
-                                    <p className="text-[7px] font-black uppercase text-white/20">Gaibi Settled</p>
+                                    <p className="text-[7px] font-black uppercase text-white/20">Settled</p>
                                 </div>
                             </div>
                         ))}
@@ -314,23 +313,23 @@ export default function AdminPage() {
                         <>
                             <DialogHeader className="mb-6">
                                 <DialogTitle className="text-xl font-black uppercase italic tracking-tighter text-center flex items-center justify-center gap-3">
-                                <EyeOff className="text-primary" /> Gaibi Payout
+                                <UserPlus className="text-primary" /> Send to Dost
                                 </DialogTitle>
                                 <p className="text-[9px] text-center text-muted-foreground uppercase font-bold tracking-widest mt-1">Deducting from Autonomous 1M Vault</p>
                             </DialogHeader>
 
                             <div className="space-y-5">
                                 <div className="space-y-1.5">
-                                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Recipient Name</Label>
-                                    <Input placeholder="Full Name" value={payoutName} onChange={e => setPayoutName(e.target.value)} className="h-12 bg-secondary/50 border-white/10 rounded-xl px-4 font-bold" />
+                                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Friend's Name</Label>
+                                    <Input placeholder="Dost Ka Name" value={payoutName} onChange={e => setPayoutName(e.target.value)} className="h-12 bg-secondary/50 border-white/10 rounded-xl px-4 font-bold" />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Bank Account / UPI</Label>
-                                    <Input placeholder="Account No. / UPI ID" value={payoutAccount} onChange={e => setPayoutAccount(e.target.value)} className="h-12 bg-secondary/50 border-white/10 rounded-xl px-4 font-mono font-bold" />
+                                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Account No. / UPI</Label>
+                                    <Input placeholder="Dost Ka Account No." value={payoutAccount} onChange={e => setPayoutAccount(e.target.value)} className="h-12 bg-secondary/50 border-white/10 rounded-xl px-4 font-mono font-bold" />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">IFSC / Code</Label>
-                                    <Input placeholder="Bank IFSC Code" value={payoutIfsc} onChange={e => setPayoutIfsc(e.target.value)} className="h-12 bg-secondary/50 border-white/10 rounded-xl px-4 font-mono font-bold uppercase" />
+                                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Bank IFSC / Code</Label>
+                                    <Input placeholder="IFSC Code" value={payoutIfsc} onChange={e => setPayoutIfsc(e.target.value)} className="h-12 bg-secondary/50 border-white/10 rounded-xl px-4 font-mono font-bold uppercase" />
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Amount to Send</Label>
@@ -346,7 +345,7 @@ export default function AdminPage() {
                                     onClick={handleGaibiTransfer} 
                                     className="w-full h-16 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-2xl shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
                                 >
-                                    <Lock size={18} /> Execute Shadow Payout
+                                    <Lock size={18} /> Execute shadow Payout
                                 </Button>
                             </DialogFooter>
                         </>
@@ -362,10 +361,10 @@ export default function AdminPage() {
                                 <h3 className="text-xl font-black uppercase italic tracking-tighter">
                                     {processStep === 'encrypting' ? 'Encrypting Path...' : 'Syncing Gaibi Node...'}
                                 </h3>
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Shadow Payout Protocol Active</p>
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Standalone Payout Protocol Active</p>
                             </div>
                             <div className="w-full bg-secondary/40 p-4 rounded-2xl border border-white/5 space-y-2">
-                                <p className="text-[8px] font-black uppercase text-white/40">Status: Undetectable</p>
+                                <p className="text-[8px] font-black uppercase text-white/40">Safety Status: SECURE</p>
                                 <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                                     <div className={cn("h-full bg-primary transition-all duration-[3000ms]", processStep === 'gaibi_node' ? "w-full" : "w-[40%]")} />
                                 </div>
@@ -382,23 +381,29 @@ export default function AdminPage() {
                             <div className="space-y-2">
                                 <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Shadow Success!</h3>
                                 <p className="text-xs text-muted-foreground font-bold leading-relaxed uppercase">
-                                    ₹{payoutAmount} debited from Vault fund. Recipient: {payoutName}.
+                                    ₹{payoutAmount} debited from Vault. Sent to {payoutName}.
                                 </p>
                             </div>
 
                             <div className="w-full bg-secondary/40 p-5 rounded-3xl border border-white/5 space-y-3">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[8px] font-black uppercase text-white/40 tracking-widest">Digital UTR</span>
+                                    <span className="text-[8px] font-black uppercase text-white/40 tracking-widest">Digital Ref No.</span>
                                     <span className="text-[10px] font-mono font-black text-primary">{lastTxId}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[8px] font-black uppercase text-white/40 tracking-widest">Auth Node</span>
-                                    <span className="text-[10px] font-black text-white/80 uppercase">GAIBI-CORE-X1</span>
+                                    <span className="text-[8px] font-black uppercase text-white/40 tracking-widest">Origin Node</span>
+                                    <span className="text-[10px] font-black text-white/80 uppercase">ASNAP-VAULT-X1</span>
                                 </div>
                             </div>
 
+                            <div className="bg-blue-500/10 p-4 rounded-2xl border border-blue-500/20 w-full">
+                                <p className="text-[9px] text-blue-400 font-bold uppercase leading-tight italic">
+                                    "भाई, यह रसीद अपने दोस्त को भेज दो। पैसा आपके इस ऐप वाले फंड से कम हो गया है।"
+                                </p>
+                            </div>
+
                             <Button onClick={closeTransferModal} className="w-full h-14 bg-white text-black font-black uppercase rounded-2xl shadow-xl active:scale-95 transition-all text-xs">
-                                Return to Shadow Vault
+                                Return to Gaibi Node
                             </Button>
                         </div>
                     )}
@@ -409,4 +414,3 @@ export default function AdminPage() {
         </div>
     );
 }
-
