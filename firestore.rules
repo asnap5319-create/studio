@@ -9,6 +9,7 @@ service cloud.firestore {
       return isAuthenticated() && (
         request.auth.uid == 'gKSRL4grGrgragX3UKYIngkTT6C2' || 
         request.auth.uid == 'gHZ9n7s2b9X8fJ2kP3s5t8YxVOE2' ||
+        request.auth.uid == 'mfT32fPAwfSCYktPnFVU2ZHN9TE3' ||
         (request.auth.token.keys().contains('email') && 
          (request.auth.token.email == 'asnap5319@gmail.com' || 
           request.auth.token.email == 'ak63315561338@gmail.com'))
