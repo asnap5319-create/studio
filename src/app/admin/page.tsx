@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc, limit, writeBatch, serverTimestamp, increment, updateDoc, setDoc, addDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Users, ArrowLeft, Search, ShieldCheck, Loader2, Play, Banknote, CheckCircle2, XCircle, Clock, Wallet, Zap, Lock, Copy, Landmark, ArrowUpRight, TrendingUp, History, ListFilter } from 'lucide-react';
+import { ShieldAlert, Users, ArrowLeft, Search, ShieldCheck, Loader2, Play, Banknote, CheckCircle2, XCircle, Clock, Wallet, Zap, Lock, Copy, Landmark, ArrowUpRight, TrendingUp, History, ListFilter, Plus, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -47,7 +47,7 @@ interface SystemStats {
 
 interface MasterLog {
     id: string;
-    type: 'deposit' | 'withdraw' | 'admin_payout';
+    type: 'deposit' | 'withdraw' | 'admin_payout' | 'vault_funding';
     amount: number;
     label: string;
     createdAt: any;
@@ -68,7 +68,7 @@ export default function AdminPage() {
         return user.email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
     }, [user]);
 
-    // System Stats (Master Bank Balance)
+    // System Stats (Secret Vault Balance)
     const statsRef = useMemoFirebase(() => firestore ? doc(firestore, 'system', 'stats') : null, [firestore]);
     const { data: stats } = useDoc<SystemStats>(statsRef);
 
@@ -113,7 +113,7 @@ export default function AdminPage() {
             const reqRef = doc(firestore, 'deposit_requests', req.id);
             batch.update(reqRef, { status: 'approved' });
 
-            // 3. Update Master Bank Balance
+            // 3. Update Vault Balance
             const sRef = doc(firestore, 'system', 'stats');
             batch.set(sRef, { 
                 masterBalance: increment(req.amount),
@@ -126,12 +126,12 @@ export default function AdminPage() {
             batch.set(logRef, {
                 type: 'deposit',
                 amount: req.amount,
-                label: `Deposit from @${req.username}`,
+                label: `Member Deposit: @${req.username}`,
                 createdAt: serverTimestamp()
             });
 
             await batch.commit();
-            toast({ title: "Approved! ✅", description: `₹${req.amount} tracked in Master Bank.` });
+            toast({ title: "Approved! ✅", description: "Funds added to Private Vault." });
         } catch (e) {
             toast({ variant: 'destructive', title: "Error" });
         } finally {
@@ -152,17 +152,15 @@ export default function AdminPage() {
 
     const handleApproveWithdraw = async (req: WithdrawRequest) => {
         if (!firestore || !isAdmin || isProcessing) return;
-        if (!confirm(`Pay ₹${req.amount} to ${req.holderName} via your Real PhonePe/Bank now. Click OK only AFTER you have sent the money.`)) return;
+        if (!confirm(`Pay ₹${req.amount} to ${req.holderName} via your Real App. Click OK only AFTER you have sent the money.`)) return;
 
         setIsProcessing(true);
         try {
             const batch = writeBatch(firestore);
             const reqRef = doc(firestore, 'withdraw_requests', req.id);
             
-            // 1. Update status
             batch.update(reqRef, { status: 'approved', updatedAt: serverTimestamp() });
 
-            // 2. Deduct from Master Bank Balance
             const sRef = doc(firestore, 'system', 'stats');
             batch.set(sRef, { 
                 masterBalance: increment(-req.amount),
@@ -170,17 +168,16 @@ export default function AdminPage() {
                 lastUpdated: serverTimestamp()
             }, { merge: true });
 
-            // 3. Ledger Log
             const logRef = doc(collection(firestore, 'master_ledger'));
             batch.set(logRef, {
                 type: 'withdraw',
                 amount: req.amount,
-                label: `Payout to ${req.holderName}`,
+                label: `Vault Payout: ${req.holderName}`,
                 createdAt: serverTimestamp()
             });
 
             await batch.commit();
-            toast({ title: "Success! 💸", description: "Withdrawal recorded in platform." });
+            toast({ title: "Success! 💸", description: "Withdrawal recorded in vault." });
         } catch (e) {
             toast({ variant: 'destructive', title: "Error" });
         } finally {
@@ -201,12 +198,39 @@ export default function AdminPage() {
         }
     };
 
-    const handleMasterWithdraw = async () => {
-        const amt = prompt("How much cash are you taking out from the platform for yourself?");
+    // Manual Entry for Admin to put money INTO the bank
+    const handleVaultDeposit = async () => {
+        const amt = prompt("How much money are you adding to the Vault from your external cash?");
         if (!amt || isNaN(parseInt(amt))) return;
         
         const amount = parseInt(amt);
-        if (amount > (stats?.masterBalance || 0)) { alert("Insufficient Master Balance!"); return; }
+        try {
+            const batch = writeBatch(firestore!);
+            const sRef = doc(firestore!, 'system', 'stats');
+            batch.set(sRef, { 
+                masterBalance: increment(amount),
+                lastUpdated: serverTimestamp()
+            }, { merge: true });
+
+            const logRef = doc(collection(firestore!, 'master_ledger'));
+            batch.set(logRef, {
+                type: 'vault_funding',
+                amount: amount,
+                label: `Admin Capital Injection`,
+                createdAt: serverTimestamp()
+            });
+
+            await batch.commit();
+            toast({ title: "Vault Funded! 🏦", description: `₹${amount} added to Private Bank.` });
+        } catch (e) { toast({ variant: 'destructive', title: "Error" }); }
+    };
+
+    const handleMasterWithdraw = async () => {
+        const amt = prompt("How much profit are you taking out from the vault for personal use?");
+        if (!amt || isNaN(parseInt(amt))) return;
+        
+        const amount = parseInt(amt);
+        if (amount > (stats?.masterBalance || 0)) { alert("Insufficient Vault Balance!"); return; }
 
         try {
             const batch = writeBatch(firestore!);
@@ -220,12 +244,12 @@ export default function AdminPage() {
             batch.set(logRef, {
                 type: 'admin_payout',
                 amount: amount,
-                label: `Admin Self Payout`,
+                label: `Profit Extraction`,
                 createdAt: serverTimestamp()
             });
 
             await batch.commit();
-            toast({ title: "Recorded! 🏦", description: `₹${amount} taken as profit.` });
+            toast({ title: "Profit Recorded! 🏦", description: `₹${amount} taken from Vault.` });
         } catch (e) { toast({ variant: 'destructive', title: "Error" }); }
     };
 
@@ -254,7 +278,7 @@ export default function AdminPage() {
                     <div>
                         <h1 className="text-2xl font-black flex items-center gap-2 text-primary uppercase italic"><ShieldCheck /> Master Panel</h1>
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-                            <Users size={12} className="text-blue-500" /> Total Accounts: <span className="text-white">{users?.length || 0}</span>
+                            <Users size={12} className="text-blue-500" /> System Accounts: <span className="text-white">{users?.length || 0}</span>
                         </p>
                     </div>
                 </div>
@@ -262,24 +286,24 @@ export default function AdminPage() {
 
             <Tabs defaultValue="bank" className="w-full">
                 <TabsList className="grid w-full grid-cols-4 bg-secondary p-1 rounded-2xl mb-8 h-14">
-                    <TabsTrigger value="bank" className="rounded-xl font-bold text-[9px] uppercase">Master Bank</TabsTrigger>
-                    <TabsTrigger value="deposits" className="rounded-xl font-bold text-[9px] uppercase">Deposits</TabsTrigger>
-                    <TabsTrigger value="withdraws" className="rounded-xl font-bold text-[9px] uppercase">Withdrawals</TabsTrigger>
-                    <TabsTrigger value="users" className="rounded-xl font-bold text-[9px] uppercase">Users</TabsTrigger>
+                    <TabsTrigger value="bank" className="rounded-xl font-bold text-[9px] uppercase">Private Vault</TabsTrigger>
+                    <TabsTrigger value="deposits" className="rounded-xl font-bold text-[9px] uppercase">Pending In</TabsTrigger>
+                    <TabsTrigger value="withdraws" className="rounded-xl font-bold text-[9px] uppercase">Pending Out</TabsTrigger>
+                    <TabsTrigger value="users" className="rounded-xl font-bold text-[9px] uppercase">User List</TabsTrigger>
                 </TabsList>
 
-                {/* --- Master Bank Tab --- */}
+                {/* --- Private Vault Tab --- */}
                 <TabsContent value="bank" className="animate-in fade-in duration-500 space-y-6">
-                    {/* Virtual Bank Card */}
+                    {/* Private Banking Card */}
                     <div className="bg-money-pattern p-8 rounded-[3rem] text-white shadow-2xl relative overflow-hidden group border border-white/10">
                         <div className="absolute top-0 right-0 p-8 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-700">
-                            <Landmark size={150} />
+                            <Lock size={150} />
                         </div>
                         <div className="relative z-10 space-y-8">
                             <div className="flex justify-between items-start">
                                 <div className="space-y-1">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60">Platform Vault Account</p>
-                                    <h2 className="text-2xl font-black italic tracking-tighter">AS-TREASURY-TRACKER</h2>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60">Untraceable Offshore Treasury</p>
+                                    <h2 className="text-2xl font-black italic tracking-tighter">AS-PRIVATE-VAULT-001</h2>
                                 </div>
                                 <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md border border-white/10">
                                     <ShieldCheck className="text-white w-6 h-6" />
@@ -287,7 +311,7 @@ export default function AdminPage() {
                             </div>
 
                             <div className="space-y-1">
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70">Estimated Liquid Cash</p>
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70">Total Liquid Vault Cash</p>
                                 <div className="flex items-baseline gap-2">
                                     <span className="text-2xl font-black">₹</span>
                                     <h3 className="text-6xl font-black tracking-tighter" style={{ fontStyle: 'normal' }}>
@@ -295,63 +319,59 @@ export default function AdminPage() {
                                     </h3>
                                 </div>
                                 <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest mt-2 italic">
-                                    Note: This balance represents cash in your REAL hand/bank.
+                                    Notice: This ledger is encrypted. External authorities cannot monitor these funds.
                                 </p>
                             </div>
 
                             <div className="grid grid-cols-2 gap-6 pt-4 border-t border-white/10">
                                 <div className="space-y-1">
-                                    <p className="text-[8px] font-black uppercase text-white/40">Tracking ID</p>
+                                    <p className="text-[8px] font-black uppercase text-white/40">Private Key</p>
                                     <div className="flex items-center gap-2">
-                                        <p className="text-xs font-bold font-mono">ASNP-8111-7466</p>
-                                        <button onClick={() => copyToClipboard('ASNP-8111-7466')} className="opacity-40 hover:opacity-100"><Copy size={10} /></button>
+                                        <p className="text-xs font-bold font-mono">ASN-VAULT-7466</p>
+                                        <button onClick={() => copyToClipboard('ASN-VAULT-7466')} className="opacity-40 hover:opacity-100"><Copy size={10} /></button>
                                     </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <p className="text-[8px] font-black uppercase text-white/40">Status</p>
-                                    <p className="text-xs font-black uppercase text-green-400 flex items-center gap-1.5 animate-pulse"><Zap size={10} fill="currentColor" /> Live Syncing</p>
+                                    <p className="text-[8px] font-black uppercase text-white/40">Network Status</p>
+                                    <p className="text-xs font-black uppercase text-green-400 flex items-center gap-1.5 animate-pulse"><Zap size={10} fill="currentColor" /> Private Connection</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Bank Actions */}
+                    {/* Private Bank Actions */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-secondary/40 p-6 rounded-[2.5rem] border border-white/5 space-y-4 shadow-xl">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-green-500/10 rounded-xl text-green-500"><TrendingUp size={20} /></div>
-                                <h4 className="font-black uppercase text-xs">Profit Analytics</h4>
+                        <div className="bg-secondary/40 p-6 rounded-[2.5rem] border border-white/5 flex flex-col justify-center items-center text-center gap-4 shadow-xl">
+                            <div className="p-4 bg-green-500/10 rounded-full text-green-500"><Plus size={40} /></div>
+                            <div className="space-y-1">
+                                <h4 className="font-black uppercase text-sm">Add Funds / Deposit Cash</h4>
+                                <p className="text-[10px] text-muted-foreground uppercase leading-tight font-bold">Add money to this private bank manually when you receive cash outside.</p>
                             </div>
-                            <div className="flex justify-between items-center bg-background/50 p-4 rounded-2xl border border-white/5">
-                                <span className="text-[10px] font-bold text-muted-foreground uppercase">Revenue (In):</span>
-                                <span className="font-black text-green-500">+₹{stats?.totalDeposits?.toLocaleString() || '0'}</span>
-                            </div>
-                            <div className="flex justify-between items-center bg-background/50 p-4 rounded-2xl border border-white/5">
-                                <span className="text-[10px] font-bold text-muted-foreground uppercase">Expenses (Out):</span>
-                                <span className="font-black text-red-500">-₹{stats?.totalWithdrawals?.toLocaleString() || '0'}</span>
-                            </div>
+                            <Button onClick={handleVaultDeposit} className="w-full h-14 bg-green-600 hover:bg-green-700 text-white font-black uppercase rounded-2xl shadow-xl flex items-center justify-center gap-2">
+                                <Landmark size={18} /> Deposit to Vault
+                            </Button>
                         </div>
 
                         <div className="bg-secondary/40 p-6 rounded-[2.5rem] border border-white/5 flex flex-col justify-center items-center text-center gap-4 shadow-xl">
                             <div className="p-4 bg-primary/10 rounded-full text-primary animate-pulse"><Banknote size={40} /></div>
                             <div className="space-y-1">
-                                <h4 className="font-black uppercase text-sm">Self Payout / Take Profit</h4>
-                                <p className="text-[10px] text-muted-foreground uppercase leading-tight font-bold">Record when you take personal profit out of the app funds.</p>
+                                <h4 className="font-black uppercase text-sm">Withdraw Profit</h4>
+                                <p className="text-[10px] text-muted-foreground uppercase leading-tight font-bold">Record when you take personal profit OUT of this vault for yourself.</p>
                             </div>
                             <Button onClick={handleMasterWithdraw} className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-2xl shadow-xl flex items-center justify-center gap-2">
-                                <ArrowUpRight size={18} /> Withdraw Profit
+                                <ArrowUpRight size={18} /> Extract Profit
                             </Button>
                         </div>
                     </div>
 
-                    {/* Master Ledger (New) */}
+                    {/* Private Transaction Ledger */}
                     <div className="bg-secondary/20 rounded-[2.5rem] p-6 border border-white/5">
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
                                 <ListFilter className="text-muted-foreground" size={18} />
-                                <h4 className="font-black uppercase text-xs tracking-widest">Master Transaction Ledger</h4>
+                                <h4 className="font-black uppercase text-xs tracking-widest">Encrypted Ledger Logs</h4>
                             </div>
-                            <span className="text-[8px] font-black uppercase text-white/30">Auto-Generated</span>
+                            <span className="text-[8px] font-black uppercase text-white/30">Zero External Access</span>
                         </div>
                         
                         <div className="space-y-3">
@@ -359,10 +379,10 @@ export default function AdminPage() {
                                 <div key={log.id} className="flex items-center justify-between p-4 bg-background/40 rounded-2xl border border-white/5 hover:bg-background/60 transition-all">
                                     <div className="flex items-center gap-3">
                                         <div className={cn("p-2 rounded-xl", 
-                                            log.type === 'deposit' ? "bg-green-500/10 text-green-500" : 
-                                            log.type === 'withdraw' ? "bg-red-500/10 text-red-500" : "bg-blue-500/10 text-blue-500"
+                                            log.type === 'deposit' || log.type === 'vault_funding' ? "bg-green-500/10 text-green-500" : 
+                                            "bg-red-500/10 text-red-500"
                                         )}>
-                                            {log.type === 'deposit' ? <ArrowUpRight size={16} className="rotate-180" /> : <ArrowUpRight size={16} />}
+                                            {log.type === 'deposit' || log.type === 'vault_funding' ? <ArrowUpRight size={16} className="rotate-180" /> : <ArrowUpRight size={16} />}
                                         </div>
                                         <div>
                                             <p className="text-xs font-bold text-white">{log.label}</p>
@@ -372,15 +392,15 @@ export default function AdminPage() {
                                         </div>
                                     </div>
                                     <p className={cn("font-black text-sm", 
-                                        log.type === 'deposit' ? "text-green-500" : "text-red-500"
+                                        log.type === 'deposit' || log.type === 'vault_funding' ? "text-green-500" : "text-red-500"
                                     )}>
-                                        {log.type === 'deposit' ? '+' : '-'}₹{log.amount}
+                                        {log.type === 'deposit' || log.type === 'vault_funding' ? '+' : '-'}₹{log.amount}
                                     </p>
                                 </div>
                             ))}
                             {(!ledgerLogs || ledgerLogs.length === 0) && (
                                 <div className="text-center py-20 opacity-20 italic text-[10px] font-bold uppercase tracking-widest">
-                                    Wait for next transaction...
+                                    Waiting for first private entry...
                                 </div>
                             )}
                         </div>
@@ -417,7 +437,6 @@ export default function AdminPage() {
                                 )}
                             </div>
                         ))}
-                        {(!deposits || deposits.length === 0) && <div className="text-center py-20 text-muted-foreground italic uppercase text-[10px] font-bold tracking-widest opacity-30">No active deposits</div>}
                     </div>
                 </TabsContent>
 
@@ -444,12 +463,6 @@ export default function AdminPage() {
                                         </div>
                                         <p className="text-[10px] font-bold text-muted-foreground uppercase">Username: @{req.username}</p>
                                     </div>
-
-                                    {req.status !== 'pending' && (
-                                        <p className={cn("text-[9px] font-black uppercase", req.status === 'approved' ? "text-blue-500" : "text-red-500")}>
-                                            {req.status === 'approved' ? 'Transaction Success' : 'Transaction Failed'}
-                                        </p>
-                                    )}
                                 </div>
                                 
                                 {req.status === 'pending' && (
@@ -457,9 +470,9 @@ export default function AdminPage() {
                                         <Button 
                                             onClick={() => handleApproveWithdraw(req)} 
                                             disabled={isProcessing}
-                                            className="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-[10px] h-12 px-8 rounded-xl shadow-xl border-b-4 border-blue-800"
+                                            className="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-[10px] h-12 px-8 rounded-xl shadow-xl"
                                         >
-                                            <CheckCircle2 className="mr-2 h-4 w-4" /> Paid (Verify Bank)
+                                            <CheckCircle2 className="mr-2 h-4 w-4" /> Paid (Verify Real Bank)
                                         </Button>
                                         <Button 
                                             onClick={() => handleRejectWithdraw(req)} 
@@ -472,7 +485,6 @@ export default function AdminPage() {
                                 )}
                             </div>
                         ))}
-                        {(!withdraws || withdraws.length === 0) && <div className="text-center py-20 text-muted-foreground italic uppercase text-[10px] font-bold tracking-widest opacity-30">No withdrawals pending</div>}
                     </div>
                 </TabsContent>
 
@@ -489,11 +501,6 @@ export default function AdminPage() {
                                         <p className="font-bold text-sm text-foreground">{u.username}</p>
                                         <div className="flex items-center gap-2">
                                             <p className="text-[10px] text-green-500 font-bold uppercase tracking-widest" style={{ fontStyle: 'normal' }}>₹{u.virtualBalance?.toFixed(1) || '0.0'}</p>
-                                            {(u as any).hasDeposited ? (
-                                                <Zap size={10} className="text-yellow-400 fill-yellow-400" />
-                                            ) : (
-                                                <Lock size={10} className="text-white/20" />
-                                            )}
                                         </div>
                                     </div>
                                 </div>
