@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc, limit, writeBatch, serverTimestamp, increment, updateDoc, setDoc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Users, ArrowLeft, ShieldCheck, Loader2, Play, Banknote, CheckCircle2, XCircle, Wallet, Zap, Lock, Copy, Landmark, ArrowUpRight, ListFilter, Plus } from 'lucide-react';
+import { ShieldAlert, Users, ArrowLeft, ShieldCheck, Loader2, Play, Banknote, CheckCircle2, XCircle, Wallet, Zap, Lock, Copy, Landmark, ArrowUpRight, ListFilter, Plus, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -70,34 +70,37 @@ export default function AdminPage() {
 
     // System Stats (Secret Vault Balance)
     const statsRef = useMemoFirebase(() => firestore ? doc(firestore, 'system', 'stats') : null, [firestore]);
-    const { data: stats } = useDoc<SystemStats>(statsRef);
+    const { data: stats, isLoading: isStatsLoading } = useDoc<SystemStats>(statsRef);
 
-    // Initial Funding Logic for Admin (1 Million)
+    // Force Initialization logic for 1 Million
     useEffect(() => {
-        if (firestore && isAdmin && stats && !stats.isInitializedWithBonus) {
-            const fundVault = async () => {
-                const sRef = doc(firestore, 'system', 'stats');
-                await setDoc(sRef, {
-                    masterBalance: 1000000,
-                    isInitializedWithBonus: true,
-                    totalDeposits: 0,
-                    totalWithdrawals: 0,
-                    lastUpdated: serverTimestamp()
-                }, { merge: true });
-                
-                const logRef = doc(collection(firestore, 'master_ledger'));
-                await setDoc(logRef, {
-                    type: 'vault_funding',
-                    amount: 1000000,
-                    label: "Initial A.snap Capital Funding",
-                    createdAt: serverTimestamp()
-                });
-                
-                toast({ title: "Vault Funded! 🏦", description: "₹1,000,000 added as requested." });
-            };
-            fundVault();
+        if (firestore && isAdmin && !isStatsLoading) {
+            // Only run if stats is explicitly null (doesn't exist) or balance is 0 and not initialized
+            if (stats === null || (stats && !stats.isInitializedWithBonus)) {
+                const fundVault = async () => {
+                    const sRef = doc(firestore, 'system', 'stats');
+                    await setDoc(sRef, {
+                        masterBalance: 1000000,
+                        isInitializedWithBonus: true,
+                        totalDeposits: 0,
+                        totalWithdrawals: 0,
+                        lastUpdated: serverTimestamp()
+                    }, { merge: true });
+                    
+                    const logRef = doc(collection(firestore, 'master_ledger'));
+                    await setDoc(logRef, {
+                        type: 'vault_funding',
+                        amount: 1000000,
+                        label: "Master Capital Injection (1M)",
+                        createdAt: serverTimestamp()
+                    });
+                    
+                    toast({ title: "Vault Funded! 🏦", description: "₹1,000,000 added to your Private Bank." });
+                };
+                fundVault();
+            }
         }
-    }, [firestore, isAdmin, stats, toast]);
+    }, [firestore, isAdmin, stats, isStatsLoading, toast]);
 
     const depositsQuery = useMemoFirebase(() => 
         firestore ? query(collection(firestore, 'deposit_requests'), orderBy('createdAt', 'desc'), limit(50)) : null, 
@@ -331,10 +334,12 @@ export default function AdminPage() {
                             </div>
 
                             <div className="space-y-1">
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70">Vault Cash Balance</p>
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 flex items-center gap-2">
+                                   <Sparkles size={14} className="text-yellow-400 animate-pulse" /> Vault Cash Balance
+                                </p>
                                 <div className="flex items-baseline gap-2">
                                     <span className="text-2xl font-black">₹</span>
-                                    <h3 className="text-6xl font-black tracking-tighter">
+                                    <h3 className="text-6xl font-black tracking-tighter drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)]">
                                         {stats?.masterBalance?.toLocaleString() || '0'}
                                     </h3>
                                 </div>
@@ -412,7 +417,7 @@ export default function AdminPage() {
                                     <p className={cn("font-black text-sm", 
                                         log.type === 'deposit' || log.type === 'vault_funding' ? "text-green-500" : "text-red-500"
                                     )}>
-                                        {log.type === 'deposit' || log.type === 'vault_funding' ? '+' : '-'}₹{log.amount}
+                                        {log.type === 'deposit' || log.type === 'vault_funding' ? '+' : '-'}₹{log.amount.toLocaleString()}
                                     </p>
                                 </div>
                             ))}
