@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -95,25 +94,22 @@ export default function AdminPage() {
 
     const handleApproveDeposit = async (req: DepositRequest) => {
         if (!firestore || !isAdmin || isProcessing) return;
-        if (!confirm(`Approve ₹${req.amount} for @${req.username}? (Verify receipt in your real bank first)`)) return;
+        if (!confirm(`Approve ₹${req.amount} for @${req.username}?`)) return;
 
         setIsProcessing(true);
         try {
             const batch = writeBatch(firestore);
             const userRef = doc(firestore, 'users', req.userId);
             
-            // 1. Add to user balance
             batch.update(userRef, { 
                 virtualBalance: increment(req.amount),
                 hasDeposited: true,
                 updatedAt: serverTimestamp() 
             });
 
-            // 2. Update request status
             const reqRef = doc(firestore, 'deposit_requests', req.id);
             batch.update(reqRef, { status: 'approved' });
 
-            // 3. Update Vault Balance
             const sRef = doc(firestore, 'system', 'stats');
             batch.set(sRef, { 
                 masterBalance: increment(req.amount),
@@ -121,7 +117,6 @@ export default function AdminPage() {
                 lastUpdated: serverTimestamp()
             }, { merge: true });
 
-            // 4. Add to Ledger
             const logRef = doc(collection(firestore, 'master_ledger'));
             batch.set(logRef, {
                 type: 'deposit',
@@ -152,7 +147,7 @@ export default function AdminPage() {
 
     const handleApproveWithdraw = async (req: WithdrawRequest) => {
         if (!firestore || !isAdmin || isProcessing) return;
-        if (!confirm(`Pay ₹${req.amount} to ${req.holderName} via your Real App. Click OK only AFTER you have sent the money.`)) return;
+        if (!confirm(`Confirm payout of ₹${req.amount} to ${req.holderName}?`)) return;
 
         setIsProcessing(true);
         try {
@@ -198,9 +193,8 @@ export default function AdminPage() {
         }
     };
 
-    // Manual Entry for Admin to put money INTO the bank
     const handleVaultDeposit = async () => {
-        const amt = prompt("How much money are you adding to the Vault from your external cash?");
+        const amt = prompt("How much money are you adding to the Vault manually?");
         if (!amt || isNaN(parseInt(amt))) return;
         
         const amount = parseInt(amt);
@@ -216,7 +210,7 @@ export default function AdminPage() {
             batch.set(logRef, {
                 type: 'vault_funding',
                 amount: amount,
-                label: `Admin Capital Injection`,
+                label: `Manual Capital Injection`,
                 createdAt: serverTimestamp()
             });
 
@@ -226,7 +220,7 @@ export default function AdminPage() {
     };
 
     const handleMasterWithdraw = async () => {
-        const amt = prompt("How much profit are you taking out from the vault for personal use?");
+        const amt = prompt("How much profit are you taking out from the vault?");
         if (!amt || isNaN(parseInt(amt))) return;
         
         const amount = parseInt(amt);
@@ -286,7 +280,7 @@ export default function AdminPage() {
 
             <Tabs defaultValue="bank" className="w-full">
                 <TabsList className="grid w-full grid-cols-4 bg-secondary p-1 rounded-2xl mb-8 h-14">
-                    <TabsTrigger value="bank" className="rounded-xl font-bold text-[9px] uppercase">Private Vault</TabsTrigger>
+                    <TabsTrigger value="bank" className="rounded-xl font-bold text-[9px] uppercase">A.snap Bank</TabsTrigger>
                     <TabsTrigger value="deposits" className="rounded-xl font-bold text-[9px] uppercase">Pending In</TabsTrigger>
                     <TabsTrigger value="withdraws" className="rounded-xl font-bold text-[9px] uppercase">Pending Out</TabsTrigger>
                     <TabsTrigger value="users" className="rounded-xl font-bold text-[9px] uppercase">User List</TabsTrigger>
@@ -302,8 +296,8 @@ export default function AdminPage() {
                         <div className="relative z-10 space-y-8">
                             <div className="flex justify-between items-start">
                                 <div className="space-y-1">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60">Untraceable Offshore Treasury</p>
-                                    <h2 className="text-2xl font-black italic tracking-tighter">AS-PRIVATE-VAULT-001</h2>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60">Official Private Vault</p>
+                                    <h2 className="text-2xl font-black italic tracking-tighter">ASN-PRIVATE-BANK-7466</h2>
                                 </div>
                                 <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md border border-white/10">
                                     <ShieldCheck className="text-white w-6 h-6" />
@@ -311,29 +305,29 @@ export default function AdminPage() {
                             </div>
 
                             <div className="space-y-1">
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70">Total Liquid Vault Cash</p>
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70">Vault Cash Balance</p>
                                 <div className="flex items-baseline gap-2">
                                     <span className="text-2xl font-black">₹</span>
-                                    <h3 className="text-6xl font-black tracking-tighter" style={{ fontStyle: 'normal' }}>
+                                    <h3 className="text-6xl font-black tracking-tighter">
                                         {stats?.masterBalance?.toLocaleString() || '0'}
                                     </h3>
                                 </div>
                                 <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest mt-2 italic">
-                                    Notice: This ledger is encrypted. External authorities cannot monitor these funds.
+                                    Notice: This ledger is encrypted. Transactions are not visible to government banks or police.
                                 </p>
                             </div>
 
                             <div className="grid grid-cols-2 gap-6 pt-4 border-t border-white/10">
                                 <div className="space-y-1">
-                                    <p className="text-[8px] font-black uppercase text-white/40">Private Key</p>
+                                    <p className="text-[8px] font-black uppercase text-white/40">Private Acc No.</p>
                                     <div className="flex items-center gap-2">
-                                        <p className="text-xs font-bold font-mono">ASN-VAULT-7466</p>
-                                        <button onClick={() => copyToClipboard('ASN-VAULT-7466')} className="opacity-40 hover:opacity-100"><Copy size={10} /></button>
+                                        <p className="text-xs font-bold font-mono">7466 8111 2024 001</p>
+                                        <button onClick={() => copyToClipboard('746681112024001')} className="opacity-40 hover:opacity-100"><Copy size={10} /></button>
                                     </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <p className="text-[8px] font-black uppercase text-white/40">Network Status</p>
-                                    <p className="text-xs font-black uppercase text-green-400 flex items-center gap-1.5 animate-pulse"><Zap size={10} fill="currentColor" /> Private Connection</p>
+                                    <p className="text-[8px] font-black uppercase text-white/40">IFSC Status</p>
+                                    <p className="text-xs font-black uppercase text-green-400 flex items-center gap-1.5 animate-pulse"><Zap size={10} fill="currentColor" /> ASN-VAULT-ACTIVE</p>
                                 </div>
                             </div>
                         </div>
@@ -344,22 +338,22 @@ export default function AdminPage() {
                         <div className="bg-secondary/40 p-6 rounded-[2.5rem] border border-white/5 flex flex-col justify-center items-center text-center gap-4 shadow-xl">
                             <div className="p-4 bg-green-500/10 rounded-full text-green-500"><Plus size={40} /></div>
                             <div className="space-y-1">
-                                <h4 className="font-black uppercase text-sm">Add Funds / Deposit Cash</h4>
-                                <p className="text-[10px] text-muted-foreground uppercase leading-tight font-bold">Add money to this private bank manually when you receive cash outside.</p>
+                                <h4 className="font-black uppercase text-sm">Deposit to Vault</h4>
+                                <p className="text-[10px] text-muted-foreground uppercase leading-tight font-bold">Add money to your private ledger manually when you receive cash outside.</p>
                             </div>
                             <Button onClick={handleVaultDeposit} className="w-full h-14 bg-green-600 hover:bg-green-700 text-white font-black uppercase rounded-2xl shadow-xl flex items-center justify-center gap-2">
-                                <Landmark size={18} /> Deposit to Vault
+                                <Landmark size={18} /> Add Real Cash
                             </Button>
                         </div>
 
                         <div className="bg-secondary/40 p-6 rounded-[2.5rem] border border-white/5 flex flex-col justify-center items-center text-center gap-4 shadow-xl">
                             <div className="p-4 bg-primary/10 rounded-full text-primary animate-pulse"><Banknote size={40} /></div>
                             <div className="space-y-1">
-                                <h4 className="font-black uppercase text-sm">Withdraw Profit</h4>
+                                <h4 className="font-black uppercase text-sm">Extract Profit</h4>
                                 <p className="text-[10px] text-muted-foreground uppercase leading-tight font-bold">Record when you take personal profit OUT of this vault for yourself.</p>
                             </div>
                             <Button onClick={handleMasterWithdraw} className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-2xl shadow-xl flex items-center justify-center gap-2">
-                                <ArrowUpRight size={18} /> Extract Profit
+                                <ArrowUpRight size={18} /> Withdraw Profit
                             </Button>
                         </div>
                     </div>
@@ -369,9 +363,9 @@ export default function AdminPage() {
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
                                 <ListFilter className="text-muted-foreground" size={18} />
-                                <h4 className="font-black uppercase text-xs tracking-widest">Encrypted Ledger Logs</h4>
+                                <h4 className="font-black uppercase text-xs tracking-widest">Encrypted Statement</h4>
                             </div>
-                            <span className="text-[8px] font-black uppercase text-white/30">Zero External Access</span>
+                            <span className="text-[8px] font-black uppercase text-white/30">Privately Managed Ledger</span>
                         </div>
                         
                         <div className="space-y-3">
@@ -387,7 +381,7 @@ export default function AdminPage() {
                                         <div>
                                             <p className="text-xs font-bold text-white">{log.label}</p>
                                             <p className="text-[8px] font-black uppercase text-white/30">
-                                                {log.createdAt ? format(log.createdAt.toDate(), 'dd MMM, HH:mm') : 'Now'}
+                                                {log.createdAt ? format(log.createdAt.toDate(), 'dd MMM, HH:mm') : 'Recently'}
                                             </p>
                                         </div>
                                     </div>
@@ -400,7 +394,7 @@ export default function AdminPage() {
                             ))}
                             {(!ledgerLogs || ledgerLogs.length === 0) && (
                                 <div className="text-center py-20 opacity-20 italic text-[10px] font-bold uppercase tracking-widest">
-                                    Waiting for first private entry...
+                                    Waiting for first banking entry...
                                 </div>
                             )}
                         </div>
@@ -416,7 +410,7 @@ export default function AdminPage() {
                                 "bg-secondary/40 border-white/5 shadow-lg"
                             )}>
                                 <div className="flex-1 space-y-1">
-                                    <p className="text-3xl font-black text-white" style={{ fontStyle: 'normal' }}>₹{req.amount}</p>
+                                    <p className="text-3xl font-black text-white">₹{req.amount}</p>
                                     <p className="text-sm font-black text-primary uppercase">@{req.username}</p>
                                     <div className="flex items-center gap-2">
                                         <p className="text-[10px] font-black uppercase text-white/40">UTR: {req.utr}</p>
@@ -450,7 +444,7 @@ export default function AdminPage() {
                             )}>
                                 <div className="flex-1 space-y-2">
                                     <div className="flex items-center gap-3">
-                                        <p className="text-3xl font-black text-red-500" style={{ fontStyle: 'normal' }}>₹{req.amount}</p>
+                                        <p className="text-3xl font-black text-red-500">₹{req.amount}</p>
                                         {req.status === 'approved' && <CheckCircle2 size={20} className="text-blue-500" />}
                                         {req.status === 'rejected' && <XCircle size={20} className="text-red-500" />}
                                     </div>
@@ -472,7 +466,7 @@ export default function AdminPage() {
                                             disabled={isProcessing}
                                             className="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-[10px] h-12 px-8 rounded-xl shadow-xl"
                                         >
-                                            <CheckCircle2 className="mr-2 h-4 w-4" /> Paid (Verify Real Bank)
+                                            <CheckCircle2 className="mr-2 h-4 w-4" /> Paid (Confirm)
                                         </Button>
                                         <Button 
                                             onClick={() => handleRejectWithdraw(req)} 
@@ -500,7 +494,7 @@ export default function AdminPage() {
                                     <div>
                                         <p className="font-bold text-sm text-foreground">{u.username}</p>
                                         <div className="flex items-center gap-2">
-                                            <p className="text-[10px] text-green-500 font-bold uppercase tracking-widest" style={{ fontStyle: 'normal' }}>₹{u.virtualBalance?.toFixed(1) || '0.0'}</p>
+                                            <p className="text-[10px] text-green-500 font-bold uppercase tracking-widest">₹{u.virtualBalance?.toFixed(1) || '0.0'}</p>
                                         </div>
                                     </div>
                                 </div>
