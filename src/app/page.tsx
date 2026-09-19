@@ -46,11 +46,12 @@ function HomeContent() {
           }
 
           setIsInitializing(true);
+          // अभिषेक भाई, यहाँ बोनस ₹70 कर दिया गया है
           await setDoc(uRef, {
               id: user.uid,
               username: user.displayName || user.email?.split('@')[0] || `user_${user.uid.slice(0, 4)}`,
               email: user.email || '',
-              virtualBalance: 28, 
+              virtualBalance: 70, 
               hasDeposited: false,
               updatedAt: serverTimestamp()
           }, { merge: true });

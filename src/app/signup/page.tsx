@@ -1,3 +1,4 @@
+
 'use client';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,7 +45,6 @@ export default function SignupPage() {
       const userDocRef = doc(firestore, "users", googleUser.uid);
       const userDoc = await getDoc(userDocRef);
       
-      // अभिषेक भाई, साइनअप में भी हम Google वाली फोटो और नाम को 'Overwrite' करेंगे
       const generatedUsername = googleUser.email?.split('@')[0] || `user_${googleUser.uid.slice(0, 5)}`;
       
       await setDoc(userDocRef, {
@@ -55,11 +55,11 @@ export default function SignupPage() {
         email: googleUser.email,
         profileImageUrl: googleUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${googleUser.uid}`,
         updatedAt: serverTimestamp(),
-        // नई आईडी के लिए बैलेंस
         ...( !userDoc.exists() ? {
           createdAt: serverTimestamp(),
           bio: "A.snap Creator🎬",
-          virtualBalance: 28,
+          // अभिषेक भाई, ₹70 बोनस फिक्स कर दिया है
+          virtualBalance: 70,
           hasDeposited: false
         } : {} )
       }, { merge: true });
@@ -89,7 +89,6 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const createdUser = userCredential.user;
       
-      // ईमेल वाले यूजर्स के लिए डिफ़ॉल्ट आइकॉन, जिसे वे बदल नहीं पाएंगे
       const profileImageUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${createdUser.uid}`;
       const displayName = username; 
 
@@ -103,7 +102,8 @@ export default function SignupPage() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         bio: "A.snap Creator🎬",
-        virtualBalance: 28,
+        // अभिषेक भाई, ₹70 बोनस
+        virtualBalance: 70,
         hasDeposited: false
       });
 

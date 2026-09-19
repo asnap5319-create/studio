@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -231,11 +232,10 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
   const handlePlaceBet = async () => {
     if (!user || !firestore || isBetting || selectedOption === null || !userProfile) return;
-    if (userProfile.hasDeposited === false) {
-      toast({ variant: 'destructive', title: "Bet Locked! 🔒", description: "बेट लगाने के लिए पहले रिचार्ज करें भाई।" });
-      setIsBetPanelOpen(false);
-      return;
-    }
+    
+    // अभिषेक भाई, अब बिना डिपॉजिट के भी खेल सकेंगे। 
+    // सिर्फ बैलेंस चेक होगा।
+    
     const amountNum = parseInt(betAmount);
     if (isNaN(amountNum) || amountNum < 1) { toast({ variant: 'destructive', title: "Invalid Amount" }); return; }
     const finalAmount = amountNum * multiplier;
@@ -257,15 +257,6 @@ export function PredictionGame({ userProfile }: { userProfile: any }) {
 
   return (
     <div className="space-y-6 select-none pb-24 w-full px-4">
-      {userProfile?.hasDeposited === false && (
-          <div className="bg-yellow-500/10 border border-yellow-500/30 p-4 rounded-2xl flex items-center gap-3 animate-pulse">
-              <Lock className="text-yellow-500 h-5 w-5 shrink-0" />
-              <p className="text-[10px] font-black text-yellow-500 uppercase leading-tight">
-                  Betting is locked! Recharge once to start playing.
-              </p>
-          </div>
-      )}
-
       {/* Timer Section */}
       <div className="bg-[#f95959] rounded-[2.5rem] py-6 px-4 text-white flex justify-between items-center shadow-xl relative overflow-hidden">
         <div className="space-y-3 z-10 shrink-0">
