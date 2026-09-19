@@ -72,8 +72,8 @@ function DepositContent() {
     };
 
     const qrCodeUrl = useMemo(() => {
-        // Professional transaction note: Recharge Asnap
-        const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(selectedPayee)}&am=${payableAmount}&cu=INR&tn=Recharge%20Asnap`;
+        // Use a discreet note
+        const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(selectedPayee)}&am=${payableAmount}&cu=INR&tn=Friend`;
         return `https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(upiLink)}`;
     }, [payableAmount, selectedPayee]);
 
@@ -89,7 +89,7 @@ function DepositContent() {
     };
 
     const handleOpenUpiApp = () => {
-        const upiUrl = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(selectedPayee)}&am=${payableAmount}&cu=INR&tn=Recharge%20Asnap`;
+        const upiUrl = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(selectedPayee)}&am=${payableAmount}&cu=INR&tn=Personal`;
         window.location.href = upiUrl;
     };
 

