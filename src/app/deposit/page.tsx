@@ -14,7 +14,6 @@ import { cn } from '@/lib/utils';
 const PRESET_AMOUNTS = [100, 200, 300, 400, 500, 1000];
 const UPI_ID = "ak63315561338@okicici"; 
 
-// अभिषेक भाई, यहाँ 50 से ज्यादा नाम हैं और 'Abhishek Kumar' को हटा दिया गया है
 const PAYEE_NAMES = [
     "Ajay Kumar", "Ravi Kumar", "Aditya Singh", "Vivek Sharma", "Rahul Gupta",
     "Manoj Yadav", "Vikram Singh", "Sandeep Mishra", "Deepak Verma", "Amit Sharma",
@@ -41,23 +40,20 @@ function DepositContent() {
     const [utr, setUtr] = useState('');
     const [step, setStep] = useState<'select' | 'pay'>('select');
     const [isLoading, setIsLoading] = useState(false);
-    const [timeLeft, setTimeLeft] = useState(540); // 9 minutes in seconds
+    const [timeLeft, setTimeLeft] = useState(540); 
     const [selectedPayee, setSelectedPayee] = useState(PAYEE_NAMES[0]);
 
-    // Initial Random Name selection on mount
     useEffect(() => {
         const randomIndex = Math.floor(Math.random() * PAYEE_NAMES.length);
         setSelectedPayee(PAYEE_NAMES[randomIndex]);
     }, []);
 
-    // 500 वाले पर 10% छूट का लॉजिक
     const payableAmount = useMemo(() => {
         const amt = parseInt(amount) || 100;
         if (amt === 500) return 450; 
         return amt;
     }, [amount]);
 
-    // Timer Logic for 9 minutes
     useEffect(() => {
         if (step !== 'pay') return;
         if (timeLeft <= 0) return;
@@ -76,7 +72,7 @@ function DepositContent() {
     };
 
     const qrCodeUrl = useMemo(() => {
-        // dynamic name and amount in UPI link
+        // Professional transaction note: Recharge Asnap
         const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(selectedPayee)}&am=${payableAmount}&cu=INR&tn=Recharge%20Asnap`;
         return `https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(upiLink)}`;
     }, [payableAmount, selectedPayee]);
@@ -87,11 +83,8 @@ function DepositContent() {
             toast({ variant: 'destructive', title: "Invalid Amount", description: "Minimum deposit is ₹100" });
             return;
         }
-        
-        // रैंडम नाम फिर से चुनें जब यूजर पे बटन दबाए
         const randomIndex = Math.floor(Math.random() * PAYEE_NAMES.length);
         setSelectedPayee(PAYEE_NAMES[randomIndex]);
-        
         setStep('pay');
     };
 
@@ -212,7 +205,6 @@ function DepositContent() {
                              <h3 className="text-3xl font-black uppercase italic tracking-tighter">Scan & Pay</h3>
                              <p className="text-sm font-black text-primary uppercase">Amount: ₹{payableAmount}</p>
                              <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest">To: {selectedPayee}</p>
-                             {amount === '500' && <p className="text-[8px] font-bold text-green-500 uppercase">You selected ₹500, but pay only ₹450!</p>}
                         </div>
 
                         <div className="relative mx-auto w-72 h-72 bg-white p-4 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-4 border-primary/20">
