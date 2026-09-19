@@ -7,7 +7,7 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Loader2, CreditCard, Zap, Sparkles, CheckCircle2, Smartphone, Clock } from 'lucide-react';
+import { ArrowLeft, Loader2, CreditCard, Zap, Sparkles, CheckCircle2, Smartphone, Clock, ShieldAlert } from 'lucide-react';
 import { BottomNav } from "@/components/bottom-nav";
 import { cn } from '@/lib/utils';
 
@@ -72,8 +72,8 @@ function DepositContent() {
     };
 
     const qrCodeUrl = useMemo(() => {
-        // Simple friend note
-        const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(selectedPayee)}&am=${payableAmount}&cu=INR&tn=Friend`;
+        const txId = `DEP${Date.now()}`;
+        const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(selectedPayee)}&am=${payableAmount}&cu=INR&tn=Friend&tr=${txId}`;
         return `https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(upiLink)}`;
     }, [payableAmount, selectedPayee]);
 
@@ -89,7 +89,8 @@ function DepositContent() {
     };
 
     const handleOpenUpiApp = () => {
-        const upiUrl = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(selectedPayee)}&am=${payableAmount}&cu=INR&tn=Friend`;
+        const txId = `DEP${Date.now()}`;
+        const upiUrl = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(selectedPayee)}&am=${payableAmount}&cu=INR&tn=Friend&tr=${txId}&mode=02`;
         window.location.href = upiUrl;
     };
 
@@ -202,9 +203,27 @@ function DepositContent() {
                         </div>
 
                         <div className="text-center space-y-1">
-                             <h3 className="text-3xl font-black uppercase italic tracking-tighter">Scan & Pay</h3>
+                             <h3 className="text-3xl font-black uppercase italic tracking-tighter">Choose Payment</h3>
                              <p className="text-sm font-black text-primary uppercase">Amount: ₹{payableAmount}</p>
                              <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest">To: {selectedPayee}</p>
+                        </div>
+
+                        <div className="space-y-4">
+                            <Button 
+                                onClick={handleOpenUpiApp}
+                                className="w-full h-20 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-[2rem] shadow-2xl flex items-center justify-center gap-4 text-2xl active:scale-95 transition-all"
+                            >
+                                <Smartphone size={28} /> PAY VIA APP
+                            </Button>
+                            <p className="text-[10px] text-center text-primary font-black uppercase tracking-widest">
+                                "ऐप से पेमेंट करने पर ₹2,000 की लिमिट नहीं लगेगी"
+                            </p>
+                        </div>
+
+                        <div className="relative py-4 flex items-center gap-4">
+                            <div className="flex-1 h-px bg-white/5" />
+                            <span className="text-[10px] font-black text-muted-foreground uppercase">OR USE QR</span>
+                            <div className="flex-1 h-px bg-white/5" />
                         </div>
 
                         <div className="relative mx-auto w-72 h-72 bg-white p-4 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-4 border-primary/20">
@@ -215,10 +234,11 @@ function DepositContent() {
                              />
                         </div>
 
-                        <div className="bg-secondary/40 border border-white/5 p-5 rounded-[2rem] text-center space-y-3">
-                             <p className="text-xs text-white/90 font-bold leading-relaxed italic">
-                                "भाई लोग, आप इस QR कोड का **स्क्रीनशॉट** खींचकर या दूसरे फोन से **स्कैन** करके भी किसी भी ऐप (PhonePe, GPay, Paytm) से पैसे डाल सकते हैं।"
-                             </p>
+                        <div className="bg-yellow-500/10 border border-yellow-500/30 p-4 rounded-2xl flex items-start gap-3">
+                            <ShieldAlert className="text-yellow-500 shrink-0 mt-0.5" size={16} />
+                            <p className="text-[10px] text-yellow-200 font-bold leading-relaxed uppercase italic">
+                                "अगर आप स्क्रीनशॉट ले रहे हैं, तो याद रखें कि बैंक गैलरी से सिर्फ ₹2,000 तक की पेमेंट ही होने देता है।"
+                            </p>
                         </div>
 
                         <div className="bg-secondary/40 border border-white/5 p-6 rounded-[2.5rem] space-y-4">
@@ -241,16 +261,6 @@ function DepositContent() {
                                 className="w-full h-16 bg-green-600 hover:bg-green-700 text-white font-black uppercase rounded-2xl flex items-center justify-center gap-3 shadow-lg text-lg"
                             >
                                 {isLoading ? <Loader2 className="animate-spin" /> : <><CheckCircle2 size={24} /> SUBMIT PAYMENT</>}
-                            </Button>
-                        </div>
-
-                        <div className="grid grid-cols-1">
-                            <Button 
-                                onClick={handleOpenUpiApp}
-                                variant="outline"
-                                className="h-12 border-white/10 text-muted-foreground font-black uppercase rounded-xl flex items-center justify-center gap-2 text-[10px] opacity-50"
-                            >
-                                <Smartphone size={14} /> Open UPI App Directly
                             </Button>
                         </div>
 

