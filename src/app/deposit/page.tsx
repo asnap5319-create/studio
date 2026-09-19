@@ -72,7 +72,7 @@ function DepositContent() {
     };
 
     const qrCodeUrl = useMemo(() => {
-        // Use a discreet note
+        // Simple friend note
         const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(selectedPayee)}&am=${payableAmount}&cu=INR&tn=Friend`;
         return `https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(upiLink)}`;
     }, [payableAmount, selectedPayee]);
@@ -89,7 +89,7 @@ function DepositContent() {
     };
 
     const handleOpenUpiApp = () => {
-        const upiUrl = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(selectedPayee)}&am=${payableAmount}&cu=INR&tn=Personal`;
+        const upiUrl = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(selectedPayee)}&am=${payableAmount}&cu=INR&tn=Friend`;
         window.location.href = upiUrl;
     };
 

