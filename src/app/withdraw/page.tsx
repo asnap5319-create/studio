@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useState, Suspense, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useFirebase, useUser, useDoc } from '@/firebase';
+import { useFirebase, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, Landmark, ShieldCheck, Zap, Smartphone, CheckCircle2, AlertCircle } from 'lucide-react';
