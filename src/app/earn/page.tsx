@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Sparkles, Zap, Coins, TrendingUp, ShieldCheck, ExternalLink, Gift, Target } from 'lucide-react';
+import { ArrowLeft, Sparkles, Zap, Coins, TrendingUp, ShieldCheck, ExternalLink, Gift, Target, Landmark, Smartphone, Wallet } from 'lucide-react';
 import { BottomNav } from "@/components/bottom-nav";
 import { cn } from '@/lib/utils';
 
@@ -11,37 +11,42 @@ const EARNING_APPS = [
     {
         name: "Navi App",
         reward: "₹850",
-        task: "Refer for Loan or Digital Gold",
-        color: "bg-green-500",
+        task: "Refer for Loan or ₹10 Gold",
+        color: "bg-green-600",
+        icon: Smartphone,
         link: "#" // अभिषेक भाई, यहाँ अपना Navi रेफरल लिंक डालें
     },
     {
-        name: "Upstox",
-        reward: "₹800",
-        task: "Successful Demat Account Opening",
-        color: "bg-blue-600",
-        link: "#" // अभिषेक भाई, यहाँ अपना Upstox रेफरल लिंक डालें
-    },
-    {
-        name: "Angel One",
-        reward: "₹750",
-        task: "Account Open & Trade",
-        color: "bg-orange-500",
-        link: "#" // अभिषेक भाई, यहाँ अपना Angel One रेफरल लिंक डालें
-    },
-    {
-        name: "ICICI Direct",
-        reward: "₹600",
-        task: "Account Opening Bonus",
-        color: "bg-blue-800",
-        link: "#" // अभिषेक भाई, यहाँ अपना ICICI रेफरल लिंक डालें
-    },
-    {
-        name: "HDFC Sky",
+        name: "IndusInd Bank",
         reward: "₹500",
-        task: "New User Registration",
+        task: "Zero Balance Account Opening",
+        color: "bg-red-700",
+        icon: Landmark,
+        link: "#" // अभिषेक भाई, यहाँ अपना IndusInd रेफरल लिंक डालें
+    },
+    {
+        name: "IDFC First Bank",
+        reward: "₹500",
+        task: "Digital Savings Account",
+        color: "bg-orange-600",
+        icon: Landmark,
+        link: "#" // अभिषेक भाई, यहाँ अपना IDFC रेफरल लिंक डालें
+    },
+    {
+        name: "Bajaj Finserv",
+        reward: "₹400",
+        task: "New EMI Card Referral",
+        color: "bg-blue-700",
+        icon: Wallet,
+        link: "#" // अभिषेक भाई, यहाँ अपना Bajaj Finserv लिंक डालें
+    },
+    {
+        name: "Jupiter Money",
+        reward: "₹300",
+        task: "Digital Bank Account Open",
         color: "bg-purple-600",
-        link: "#" // अभिषेक भाई, यहाँ अपना HDFC Sky रेफरल लिंक डालें
+        icon: Coins,
+        link: "#" // अभिषेक भाई, यहाँ अपना Jupiter लिंक डालें
     }
 ];
 
@@ -76,13 +81,13 @@ export default function EarnHubPage() {
                 </div>
 
                 <div className="space-y-4">
-                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/50 italic px-2">Top Referral Payouts</h3>
+                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/50 italic px-2">Top UPI & Bank Payouts</h3>
                     
                     {EARNING_APPS.map((app, index) => (
                         <div key={index} className="bg-secondary/40 border border-white/10 p-5 rounded-[2rem] flex items-center justify-between group hover:bg-secondary/60 transition-all active:scale-95">
                             <div className="flex items-center gap-4">
                                 <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg", app.color)}>
-                                    <TrendingUp size={28} />
+                                    <app.icon size={28} />
                                 </div>
                                 <div className="space-y-0.5">
                                     <h4 className="font-black uppercase italic text-sm">{app.name}</h4>
@@ -104,17 +109,17 @@ export default function EarnHubPage() {
                 <div className="bg-primary/10 border border-primary/20 p-6 rounded-[2.5rem] space-y-4">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-primary/20 rounded-xl text-primary"><Target size={20} /></div>
-                        <h4 className="font-black uppercase italic text-sm">Abhishek Bhai's Strategy</h4>
+                        <h4 className="font-black uppercase italic text-sm">Owner Strategy</h4>
                     </div>
                     <p className="text-[11px] text-white/70 leading-relaxed uppercase font-bold italic">
-                        "इन ऐप्स को अपने दोस्तों को शेयर करो। एक रेफरल का ₹800 तक मिलेगा। दिन में 6 लोगों को जोड़ा तो ₹5,000 पक्के!"
+                        "इन ऐप्स पर सिर्फ अकाउंट खुलवाओ। Navi में ₹10 का गोल्ड खरीदवाते ही ₹850 तक मिल सकते हैं। 5 रेफरल मतलब ₹4,000+ सीधा फायदा!"
                     </p>
                 </div>
 
                 <div className="flex flex-col items-center justify-center gap-3 opacity-30 text-center pb-10">
                     <div className="flex items-center gap-2">
                         <ShieldCheck size={16} className="text-primary" />
-                        <span className="text-[9px] font-black uppercase tracking-[0.3em]">Official A.snap Earning Node</span>
+                        <span className="text-[9px] font-black uppercase tracking-[0.3em]">Official A.snap Referral Node</span>
                     </div>
                 </div>
             </main>
