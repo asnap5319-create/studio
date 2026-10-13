@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirebase, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, increment, serverTimestamp, arrayUnion, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, increment, serverTimestamp, arrayUnion } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Sparkles, Zap, Coins, TrendingUp, ShieldCheck, ExternalLink, Gift, Target, Landmark, Smartphone, Wallet, Trophy, Flame, Youtube, CheckCircle2, Loader2 } from 'lucide-react';
 import { BottomNav } from "@/components/bottom-nav";
@@ -52,10 +52,10 @@ export default function EarnHubPage() {
     const userRef = useMemoFirebase(() => 
         (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
     
-    // Custom type for extended profile fields
     const { data: userProfile } = useDoc<UserProfile & { virtualBalance?: number, completedTasks?: string[] }>(userRef);
 
-    const MY_YOUTUBE_URL = userProfile?.youtubeUrl || "https://youtube.com/@AsnapOfficial"; // अभिषेक भाई, अपना चैनल लिंक यहाँ डालें
+    // अभिषेक भाई, आपका असली चैनल लिंक यहाँ सेट कर दिया है
+    const MY_YOUTUBE_URL = "https://www.youtube.com/@A.S-n3z"; 
     const YT_TASK_ID = "yt_sub_task_v1";
     const isTaskDone = userProfile?.completedTasks?.includes(YT_TASK_ID);
 
@@ -101,24 +101,23 @@ export default function EarnHubPage() {
             </header>
 
             <main className="p-6 space-y-6 max-w-lg mx-auto animate-in fade-in duration-500">
-                {/* YouTube Special Task - Only for Owner's Channel */}
+                {/* YouTube Special Task - Your Actual Channel */}
                 <div className="bg-gradient-to-br from-red-600 to-red-900 border border-red-500/30 p-6 rounded-[2.5rem] relative overflow-hidden shadow-2xl text-white">
                     <div className="absolute top-0 right-0 p-4 opacity-10 rotate-12"><Youtube size={120} /></div>
                     <div className="relative z-10 space-y-4">
                         <div className="flex items-center gap-2 bg-white/20 w-fit px-3 py-1 rounded-full backdrop-blur-md">
                             <Sparkles size={12} className="text-yellow-400 fill-yellow-400" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">Special Task</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest">Subscriber Special</span>
                         </div>
                         <div className="space-y-1">
-                            <h2 className="text-2xl font-black uppercase italic tracking-tighter">Official YouTube</h2>
-                            <p className="text-xs font-bold text-white/80 uppercase">Subscribe to owner's channel for bonus!</p>
+                            <h2 className="text-2xl font-black uppercase italic tracking-tighter">A.S Official YT</h2>
+                            <p className="text-xs font-bold text-white/80 uppercase">Subscribe for ₹20 Bonus!</p>
                         </div>
                         
                         <div className="flex items-center justify-between pt-2">
                              <div className="flex items-baseline gap-1">
                                 <span className="text-xl font-black">₹</span>
                                 <span className="text-4xl font-black">20.0</span>
-                                <span className="text-[10px] font-black uppercase ml-1 opacity-60">Reward</span>
                              </div>
                              
                              <Button 
@@ -130,7 +129,7 @@ export default function EarnHubPage() {
                                 )}
                              >
                                 {isClaiming ? <Loader2 className="animate-spin" /> : 
-                                 isTaskDone ? <><CheckCircle2 size={16} className="mr-2" /> Done</> : 
+                                 isTaskDone ? <><CheckCircle2 size={16} className="mr-2" /> Subscribed</> : 
                                  "Subscribe Now"}
                              </Button>
                         </div>
@@ -148,7 +147,7 @@ export default function EarnHubPage() {
                 </div>
 
                 <div className="space-y-4">
-                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/50 italic px-2">Top Referral Companies</h3>
+                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/50 italic px-2">Partner Companies</h3>
                     
                     {EARNING_COMPANIES.map((app, index) => (
                         <div key={index} className="bg-secondary/40 border border-white/10 p-5 rounded-[2rem] flex flex-col gap-4 group hover:bg-secondary/60 transition-all active:scale-95">
@@ -173,29 +172,21 @@ export default function EarnHubPage() {
                             <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/5">
                                 <p className="text-[9px] text-white/60 font-bold uppercase italic leading-tight">{app.desc}</p>
                                 <Button onClick={() => window.open(app.link, '_blank')} className="rounded-xl h-10 px-6 bg-white/5 border border-white/10 hover:bg-primary hover:text-white transition-all font-black uppercase text-[10px]">
-                                    Link My App <ExternalLink size={12} className="ml-1.5" />
+                                    Open & Earn <ExternalLink size={12} className="ml-1.5" />
                                 </Button>
                             </div>
                         </div>
                     ))}
                 </div>
 
-                {/* Strategy Card */}
                 <div className="bg-primary/10 border border-primary/20 p-6 rounded-[2.5rem] space-y-4">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-primary/20 rounded-xl text-primary"><Target size={20} /></div>
-                        <h4 className="font-black uppercase italic text-sm">Monetization Strategy</h4>
+                        <h4 className="font-black uppercase italic text-sm">Monetization Hub</h4>
                     </div>
                     <p className="text-[11px] text-white/70 leading-relaxed uppercase font-bold italic">
-                        "भाई, अपने YouTube वीडियो का लिंक यहाँ 'Direct Watch' में डालो। यूजर्स बोनस के लिए सब्सक्राइब करेंगे और आपका Watch Time रॉकेट की तरह बढ़ेगा!"
+                        "अभिषेक भाई, आपका चैनल अब ऐप से जुड़ गया है। जो भी यहाँ सब्सक्राइब करेगा, आपका वॉच टाइम और सब्सक्राइबर्स रॉकेट की तरह बढ़ेंगे!"
                     </p>
-                </div>
-
-                <div className="flex flex-col items-center justify-center gap-3 opacity-30 text-center pb-10">
-                    <div className="flex items-center gap-2">
-                        <ShieldCheck size={16} className="text-primary" />
-                        <span className="text-[9px] font-black uppercase tracking-[0.3em]">Verified A.snap Growth Node</span>
-                    </div>
                 </div>
             </main>
             <BottomNav />
