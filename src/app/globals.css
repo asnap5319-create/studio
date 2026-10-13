@@ -1,10 +1,10 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* अभिषेक भाई, अब यहाँ असली 'हल्का काला' (7%) बैकग्राउंड पक्का कर दिया है */
     --background: 0 0% 7%;
     --foreground: 0 0% 98%;
 
@@ -51,20 +51,17 @@
 
 @layer utilities {
   .bg-money-pattern {
-    /* अभिषेक भाई, अब यह हरे से 'हल्का नीला' (Sky Blue) हो गया है */
     background-color: #3b82f6; 
     background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ctext x='2' y='14' fill='rgba(255,255,255,0.12)' font-family='Arial' font-size='10' font-weight='bold'%3E₹%3C/text%3E%3Ctext x='12' y='20' fill='rgba(255,255,255,0.08)' font-family='Arial' font-size='8'%3E$%3C/text%3E%3C/svg%3E");
     background-repeat: repeat;
   }
 
-  /* Game Specific Colors */
   .bg-prediction-green { background-color: #4ade80; }
   .bg-prediction-red { background-color: #f87171; }
   .bg-prediction-violet { background-color: #a78bfa; }
   .bg-prediction-big { background-color: #fbbf24; }
   .bg-prediction-small { background-color: #60a5fa; }
 
-  /* Shining Text Effect */
   .animate-shimmer-text {
     background: linear-gradient(
       to right,
@@ -82,26 +79,22 @@
     animation: shimmer 2.5s linear infinite;
   }
 
-  /* Floating Animation - अभिषेक भाई, यह गेंद को तैराएगा */
   .animate-float {
     animation: float 3s ease-in-out infinite;
   }
 
-  /* Win Glow Animation - अभिषेक भाई, यह जीतने पर पॉपअप को चमकाएगा */
   .animate-win-glow {
     animation: win-glow 1.5s ease-in-out infinite alternate;
   }
 
-  /* Shining Overlay Effect */
-  .animate-shimmer-overlay {
-    background: linear-gradient(
-      to right,
-      transparent 0%,
-      rgba(255, 255, 255, 0.3) 50%,
-      transparent 100%
-    );
-    background-size: 200% 100%;
-    animation: shimmer-sweep 2s infinite;
+  .animate-heart-pop {
+    animation: heart-pop 0.8s ease-out forwards;
+  }
+
+  @keyframes heart-pop {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(1); opacity: 0; }
   }
 
   @keyframes shimmer-sweep {
@@ -132,7 +125,6 @@
   }
 }
 
-/* Custom Scrollbar Hide */
 .scrollbar-hide::-webkit-scrollbar {
     display: none;
 }

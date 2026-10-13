@@ -1,6 +1,7 @@
+
 "use client";
 
-import { Home, CircleUser, TrendingUp } from "lucide-react";
+import { Home, CircleUser, TrendingUp, Play, PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,8 @@ import type { UserProfile } from "@/models/user";
 
 const navItems = [
   { href: "/", label: "Game", icon: Home },
+  { href: "/reels", label: "Reels", icon: Play },
+  { href: "/create", label: "Add", icon: PlusCircle },
   { href: "/earn", label: "Earn", icon: TrendingUp },
   { href: "/profile", label: "Account", icon: CircleUser },
 ];
@@ -29,20 +32,21 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 z-50 w-full border-t border-white/5 bg-background/95 backdrop-blur-xl shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
-      <div className="grid h-16 grid-cols-3 max-w-lg mx-auto">
+      <div className="grid h-16 grid-cols-5 max-w-lg mx-auto">
         {navItems.map((item) => {
-          const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+          const isActive = item.href === "/" ? pathname === "/" : pathname === item.href;
           const isProfile = item.href === "/profile";
+          const isCreate = item.href === "/create";
 
           return (
             <Link
               key={item.href}
               href={item.href}
-              className="inline-flex flex-col items-center justify-center px-2 hover:bg-white/5 group"
+              className="inline-flex flex-col items-center justify-center px-1 hover:bg-white/5 group"
             >
               {isProfile && user && userProfile?.profileImageUrl ? (
                 <div className={cn(
-                  "w-8 h-8 rounded-full overflow-hidden border-2 transition-all duration-300",
+                  "w-7 h-7 rounded-full overflow-hidden border-2 transition-all duration-300",
                   isActive ? "border-primary scale-110 shadow-[0_0_15px_rgba(255,51,102,0.6)]" : "border-transparent opacity-60"
                 )}>
                     <Avatar className="w-full h-full">
@@ -55,13 +59,14 @@ export function BottomNav() {
               ) : (
                 <item.icon
                   className={cn(
-                    "w-6 h-6 transition-all duration-300",
+                    "w-5 h-5 transition-all duration-300",
+                    isCreate ? "text-primary w-7 h-7" : "",
                     isActive ? "text-primary scale-110 drop-shadow-[0_0_10px_rgba(255,51,102,0.4)]" : "text-white/40 group-hover:text-white"
                   )}
                 />
               )}
               <span className={cn(
-                "text-[9px] font-black uppercase mt-1 tracking-widest transition-colors",
+                "text-[8px] font-black uppercase mt-1 tracking-widest transition-colors",
                 isActive ? "text-primary" : "text-white/30"
               )}>
                 {item.label}
