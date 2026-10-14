@@ -28,8 +28,9 @@ export default function PremiumPage() {
     const UPI_ID = "ak63315561338@okicici";
 
     const qrCodeUrl = useMemo(() => {
-        // Abhishek bhai, this URI tells the bank app it's a mandate (purpose=11)
-        const upiLink = `upi://pay?pa=${UPI_ID}&pn=ASnapVIP&am=1.00&cu=INR&tn=VIP_Trial_Mandate_Active_Then_599&tr=VIP${Date.now()}&mode=02&purpose=11`;
+        // Abhishek bhai, updated to ₹5 as requested. 
+        // purpose=11 and tn=Mandate are hints for AutoPay setup.
+        const upiLink = `upi://pay?pa=${UPI_ID}&pn=ASnapVIP&am=5.00&cu=INR&tn=VIP_Trial_Mandate_Active_Then_599&tr=VIP${Date.now()}&mode=02&purpose=11`;
         return `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(upiLink)}&bgcolor=ffffff`;
     }, []);
 
@@ -52,7 +53,7 @@ export default function PremiumPage() {
 
                 toast({
                     title: "VIP Activated! ⚡",
-                    description: "भाई, पेमेंट कन्फर्म हो गई है। कल रात 12 बजे ₹599 आपके अकाउंट में आ जाएंगे।"
+                    description: "भाई, पेमेंट कन्फर्म हो गई है। ₹5 कट चुके हैं, कल रात 12 बजे ₹599 का ऑटो-पे चालू हो जाएगा।"
                 });
                 router.push('/');
             } catch (e) {
@@ -96,10 +97,10 @@ export default function PremiumPage() {
                                 </div>
                                 <div className="space-y-1">
                                     <div className="flex items-baseline gap-2">
-                                        <span className="text-6xl font-black italic tracking-tighter">₹1</span>
+                                        <span className="text-6xl font-black italic tracking-tighter">₹5</span>
                                         <span className="text-sm font-bold uppercase opacity-80">START TRIAL</span>
                                     </div>
-                                    <p className="text-xs font-bold text-yellow-100 uppercase opacity-60">Pay ₹1 now, then ₹599 monthly</p>
+                                    <p className="text-xs font-bold text-yellow-100 uppercase opacity-60">Pay ₹5 now, then ₹599 monthly</p>
                                 </div>
                             </div>
                         </div>
@@ -118,14 +119,14 @@ export default function PremiumPage() {
                             disabled={userProfile?.isVip}
                             className="w-full h-20 bg-yellow-500 hover:bg-yellow-600 text-black font-black uppercase rounded-[2rem] shadow-2xl flex items-center justify-center gap-4 text-2xl active:scale-95 transition-all"
                         >
-                            {userProfile?.isVip ? <><CheckCircle2 size={28} /> VIP ACTIVE</> : <><QrCode size={28} /> PAY ₹1 & START</>}
+                            {userProfile?.isVip ? <><CheckCircle2 size={28} /> VIP ACTIVE</> : <><QrCode size={28} /> PAY ₹5 & START</>}
                         </Button>
                     </>
                 ) : (
                     <div className="space-y-8 animate-in zoom-in duration-500">
                         <div className="text-center space-y-2">
                              <h3 className="text-3xl font-black uppercase italic tracking-tighter">Scan & Activate</h3>
-                             <p className="text-sm font-bold text-primary uppercase">Amount: ₹1.00</p>
+                             <p className="text-sm font-bold text-primary uppercase">Amount: ₹5.00</p>
                         </div>
 
                         <div className="bg-white p-6 rounded-[3rem] shadow-[0_25px_60px_rgba(0,0,0,0.8)] mx-auto w-72 h-72 border-8 border-primary/20 relative">
@@ -141,7 +142,7 @@ export default function PremiumPage() {
                                 <h4 className="font-black uppercase italic text-sm text-blue-400">Important Step</h4>
                             </div>
                             <p className="text-[12px] text-blue-100 font-bold leading-relaxed uppercase italic">
-                                "अभिषेक भाई, क्यूआर का स्क्रीनशॉट लेकर किसी भी ऐप से पेमेंट कर दो। पेमेंट होते ही ऑटो-पे एक्टिव हो जाएगा।"
+                                "अभिषेक भाई, क्यूआर का स्क्रीनशॉट लेकर किसी भी ऐप से ₹5 पे कर दो। ₹599 का ऑटो-पे तुरंत एक्टिव हो जाएगा।"
                             </p>
                         </div>
 
@@ -149,7 +150,7 @@ export default function PremiumPage() {
                             <AlertTriangle className="text-yellow-500 shrink-0 mt-0.5" size={16} />
                             <div className="space-y-1">
                                 <p className="text-[10px] text-white font-black uppercase">Permanent QR Node</p>
-                                <p className="text-[8px] text-white/40 font-medium uppercase">No Expiry • Pay from any phone • Mandate Active</p>
+                                <p className="text-[8px] text-white/40 font-medium uppercase">No Expiry • Mandatory AutoPay Link Enabled</p>
                             </div>
                         </div>
 

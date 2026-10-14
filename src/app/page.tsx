@@ -102,7 +102,7 @@ function HomeContent() {
       <main className="w-full space-y-6 pt-4">
         {user ? (
           <>
-            {/* VIP Trial Banner - For new IDs */}
+            {/* VIP Trial Banner - Updated to ₹5 */}
             {!userProfile?.isVip && (
               <div className="px-4">
                  <Link href="/premium">
@@ -114,7 +114,7 @@ function HomeContent() {
                             <div className="bg-white/20 p-3 rounded-2xl text-white backdrop-blur-md shadow-xl border border-white/10"><Crown size={24} /></div>
                             <div className="space-y-0.5">
                                 <p className="text-[10px] font-black uppercase text-yellow-300 tracking-[0.2em] animate-pulse">Special Offer Today</p>
-                                <p className="text-sm font-black uppercase text-white tracking-tighter italic">Activate VIP Trial for ₹1</p>
+                                <p className="text-sm font-black uppercase text-white tracking-tighter italic">Activate VIP Trial for ₹5</p>
                                 <p className="text-[8px] font-bold text-white/60 uppercase tracking-widest flex items-center gap-1">
                                    <AlertCircle size={10} /> AUTO-PAY ₹599 STARTS TOMORROW
                                 </p>
