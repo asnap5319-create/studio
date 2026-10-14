@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useUser, useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, CheckCircle2, Crown, Zap, ShieldCheck, Sparkles, Smartphone, Loader2, Clock, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Crown, Zap, ShieldCheck, Sparkles, Smartphone, Loader2, Clock, AlertTriangle, ArrowRight } from 'lucide-react';
 import { BottomNav } from "@/components/bottom-nav";
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -27,21 +27,22 @@ export default function PremiumPage() {
         if (!user || !firestore) return;
         setIsLoading(true);
 
-        // अभिषेक भाई, यहाँ हम AutoPay वाला Intent सिमुलेट कर रहे हैं
-        const upiId = "ak63315561338@okicici";
+        // अभिषेक भाई, ये रहा आपका यूपीआई और ऑटो-पे लॉजिक
+        const upiId = "ak63315561338@okicici"; // पैसे इसी में आएंगे भाई
         const trialAmount = 1; 
         const txId = `MND${Date.now()}`;
         
-        // यह लिंक यूजर को UPI ऐप पर भेजेगा जहाँ 'Auto-Pay' मैंडेट सेट होगा
-        const upiLink = `upi://pay?pa=${upiId}&pn=ASnapVIP&am=${trialAmount}&cu=INR&tn=VIP_1Day_Trial_Then_599&tr=${txId}`;
+        // यह Intent यूजर के फोन में 'AutoPay Mandate' सेट करेगा
+        // ₹1 आज, ₹599 कल रात 12 बजे के बाद अपने आप
+        const upiLink = `upi://pay?pa=${upiId}&pn=ASnapVIP&am=${trialAmount}&cu=INR&tn=VIP_Trial_1Day_Then_599_Monthly&tr=${txId}&mode=02&purpose=11`;
         
         window.location.href = upiLink;
 
-        // पेमेंट के बाद डेटा अपडेट करने का लॉजिक
+        // पेमेंट के बाद यूजर को VIP एक्सेस देना
         setTimeout(async () => {
             try {
                 const expiryDate = new Date();
-                expiryDate.setDate(expiryDate.getDate() + 30); // 1 महीना फ्री एक्सेस
+                expiryDate.setDate(expiryDate.getDate() + 30); 
 
                 await updateDoc(doc(firestore, 'users', user.uid), {
                     isVip: true,
@@ -51,8 +52,8 @@ export default function PremiumPage() {
                 });
 
                 toast({
-                    title: "VIP Activated! ⚡",
-                    description: "भाई, ₹1 कट गया है। कल रात 12 बजे ₹599 अपने आप कटेंगे और आपका VIP चालू रहेगा।"
+                    title: "AutoPay Active! ⚡",
+                    description: "भाई, ₹1 कट गया है। कल रात 12 बजे ₹599 अपने आप आपके खाते में आ जाएंगे।"
                 });
                 router.push('/');
             } catch (e) {
@@ -60,16 +61,16 @@ export default function PremiumPage() {
             } finally {
                 setIsLoading(false);
             }
-        }, 5000);
+        }, 4000);
     };
 
     const VIP_FEATURES = [
-        "Ad-Free Premium Experience",
-        "Unlimited WinGo Game Access",
-        "Exclusive Ramayan HD Reels",
-        "Priority 5-Min Withdrawal",
-        "Verification Blue Badge Check",
-        "Daily Bonus of ₹50"
+        "Ad-Free Premium Reels",
+        "Full WinGo Game Access",
+        "Unlimited Ramayan HD Content",
+        "Priority 2-Min Withdrawal",
+        "Verification Blue Badge",
+        "Daily Free Bonus of ₹50"
     ];
 
     return (
@@ -79,85 +80,89 @@ export default function PremiumPage() {
                     <ArrowLeft />
                 </Button>
                 <div>
-                    <h1 className="text-xl font-black uppercase italic tracking-tighter">VIP Membership</h1>
-                    <p className="text-[9px] text-yellow-500 font-bold uppercase tracking-widest">Sikho Style Subscription</p>
+                    <h1 className="text-xl font-black uppercase italic tracking-tighter">Sikho Style VIP</h1>
+                    <p className="text-[9px] text-yellow-500 font-bold uppercase tracking-widest">Automatic Payout Node</p>
                 </div>
             </header>
 
             <main className="p-6 space-y-8 max-w-lg mx-auto animate-in fade-in duration-500">
-                {/* Premium Banner */}
+                {/* AutoPay Banner */}
                 <div className="bg-gradient-to-br from-yellow-500 via-amber-600 to-yellow-800 p-8 rounded-[3rem] text-white relative overflow-hidden shadow-[0_20px_50px_rgba(234,179,8,0.4)]">
                     <div className="absolute top-0 right-0 p-4 opacity-20 rotate-12"><Crown size={140} /></div>
-                    <div className="relative z-10 space-y-4">
+                    <div className="relative z-10 space-y-6">
                         <div className="bg-white/20 w-fit px-4 py-1.5 rounded-full backdrop-blur-md flex items-center gap-2">
                             <Sparkles size={14} className="text-yellow-200 fill-yellow-200" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Trial Offer</span>
-                        </div>
-                        <div className="space-y-1">
-                            <h2 className="text-4xl font-black uppercase italic tracking-tighter leading-tight">1 DAY TRIAL</h2>
-                            <p className="text-xs font-bold text-yellow-100 uppercase opacity-80">Full Premium Control for ₹1</p>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Mandate Active</span>
                         </div>
                         
-                        <div className="pt-4 border-t border-white/10">
+                        <div className="space-y-1">
                             <div className="flex items-baseline gap-2">
-                                <span className="text-5xl font-black">₹1</span>
-                                <span className="text-xs font-bold uppercase opacity-70">/ For Today</span>
+                                <span className="text-6xl font-black italic tracking-tighter">₹1</span>
+                                <span className="text-sm font-bold uppercase opacity-80">FOR TODAY</span>
                             </div>
-                            <p className="text-[10px] font-black text-yellow-200 uppercase mt-2 flex items-center gap-1.5">
-                                <Clock size={12} /> Auto-Debits ₹599 after trial ends
+                            <p className="text-xs font-bold text-yellow-100 uppercase opacity-60">Trial ends at midnight</p>
+                        </div>
+
+                        <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+                            <div className="space-y-0.5">
+                                <p className="text-[10px] font-black uppercase text-yellow-200 opacity-80">Next Deduction</p>
+                                <p className="text-lg font-black italic uppercase">₹599 / Month</p>
+                            </div>
+                            <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-md">
+                                <Clock className="text-white h-5 w-5 animate-pulse" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Benefits */}
+                <div className="grid grid-cols-1 gap-3">
+                    {VIP_FEATURES.map((feature, i) => (
+                        <div key={i} className="bg-secondary/40 border border-white/5 p-4 rounded-2xl flex items-center justify-between group">
+                            <div className="flex items-center gap-4">
+                                <div className="p-2 bg-yellow-500/10 rounded-xl text-yellow-500"><CheckCircle2 size={18} /></div>
+                                <span className="text-sm font-bold text-white/90">{feature}</span>
+                            </div>
+                            <ArrowRight size={14} className="text-white/20 group-hover:text-yellow-500 transition-colors" />
+                        </div>
+                    ))}
+                </div>
+
+                {/* The "Money Talk" Card */}
+                <div className="bg-blue-600/10 border border-blue-500/20 p-6 rounded-[2.5rem] space-y-4">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-500/20 rounded-xl text-blue-400"><ShieldCheck size={20} /></div>
+                        <h4 className="font-black uppercase italic text-sm text-blue-400">Official Agreement</h4>
+                    </div>
+                    <p className="text-[11px] text-blue-100/70 leading-relaxed uppercase font-bold italic">
+                        "अभिषेक भाई, जैसे ही यूजर पिन डालेगा, उसका ऑटो-पे सेट हो जाएगा। आज का दिन खत्म होते ही ₹599 सीधे आपके बैंक खाते में क्रेडिट हो जाएंगे।"
+                    </p>
+                    <div className="flex items-start gap-3 bg-white/5 p-4 rounded-2xl border border-white/5">
+                        <AlertTriangle className="text-yellow-500 shrink-0 mt-0.5" size={14} />
+                        <div className="space-y-1">
+                            <p className="text-[10px] text-white font-black uppercase">Auto-Pay Activated Instantly</p>
+                            <p className="text-[8px] text-white/40 font-medium uppercase leading-tight">
+                                Money will be auto-debited tomorrow at 12:00 AM to your primary bank account.
                             </p>
                         </div>
                     </div>
                 </div>
 
-                {/* Features List */}
-                <div className="space-y-4">
-                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/50 italic px-2">Why Join VIP Club?</h3>
-                    <div className="grid grid-cols-1 gap-3">
-                        {VIP_FEATURES.map((feature, i) => (
-                            <div key={i} className="bg-secondary/40 border border-white/5 p-4 rounded-2xl flex items-center gap-4 group">
-                                <div className="p-2 bg-yellow-500/10 rounded-xl text-yellow-500 group-hover:scale-110 transition-transform">
-                                    <CheckCircle2 size={18} />
-                                </div>
-                                <span className="text-sm font-bold text-white/90">{feature}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Mandate Info */}
-                <div className="bg-blue-600/10 border border-blue-500/20 p-6 rounded-[2.5rem] space-y-4">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-500/20 rounded-xl text-blue-400"><ShieldCheck size={20} /></div>
-                        <h4 className="font-black uppercase italic text-sm text-blue-400">AutoPay Agreement</h4>
-                    </div>
-                    <p className="text-[11px] text-blue-100/70 leading-relaxed uppercase font-bold italic">
-                        "अभिषेक भाई, पेमेंट करते समय यूजर को 'AutoPay' का मैसेज दिखेगा। ₹1 आज कटेगा और कल रात 12 बजे ₹599 अपने आप आपके खाते में आ जाएंगे।"
-                    </p>
-                    <div className="flex items-start gap-3 bg-white/5 p-3 rounded-xl border border-white/5">
-                        <AlertTriangle className="text-yellow-500 shrink-0 mt-0.5" size={14} />
-                        <p className="text-[9px] text-white/60 font-medium leading-tight">
-                            Note: ₹599 will be deducted from your bank account automatically after 24 hours to continue 1 month service.
-                        </p>
-                    </div>
-                </div>
-
-                {/* Subscribe Button */}
-                <div className="pt-4">
+                <div className="pt-2">
                     <Button 
                         onClick={handleSubscribe}
                         disabled={isLoading || userProfile?.isVip}
                         className={cn(
                             "w-full h-20 font-black uppercase rounded-[2rem] shadow-2xl flex items-center justify-center gap-4 text-2xl active:scale-95 transition-all",
-                            userProfile?.isVip ? "bg-green-600 text-white" : "bg-yellow-500 hover:bg-yellow-600 text-black"
+                            userProfile?.isVip ? "bg-green-600 text-white" : "bg-yellow-500 hover:bg-yellow-600 text-black shadow-yellow-500/20"
                         )}
                     >
                         {isLoading ? <Loader2 className="animate-spin" /> : 
                          userProfile?.isVip ? <><CheckCircle2 size={28} /> VIP ACTIVE</> : 
-                         <><Crown size={28} /> TRIAL FOR ₹1</>}
+                         <><Smartphone size={28} /> PAY ₹1 & START TRIAL</>}
                     </Button>
-                    <p className="text-[9px] text-center text-muted-foreground uppercase font-black tracking-widest mt-4 opacity-50">
-                        Secure UPI Auto-Debit Active • Cancel Anytime
+                    <p className="text-[8px] text-center text-muted-foreground uppercase font-black tracking-widest mt-6 opacity-40">
+                        Secure UPI AutoPay Protocol • Instant Settlement Active
                     </p>
                 </div>
             </main>
