@@ -1,7 +1,7 @@
 
 "use client";
 
-import { Home, CircleUser, TrendingUp, Play, PlusCircle } from "lucide-react";
+import { Home, CircleUser, TrendingUp, Play, PlusCircle, Crown } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -13,7 +13,7 @@ import type { UserProfile } from "@/models/user";
 const navItems = [
   { href: "/", label: "Game", icon: Home },
   { href: "/reels", label: "Reels", icon: Play },
-  { href: "/create", label: "Add", icon: PlusCircle },
+  { href: "/premium", label: "VIP", icon: Crown },
   { href: "/earn", label: "Earn", icon: TrendingUp },
   { href: "/profile", label: "Account", icon: CircleUser },
 ];
@@ -36,7 +36,7 @@ export function BottomNav() {
         {navItems.map((item) => {
           const isActive = item.href === "/" ? pathname === "/" : pathname === item.href;
           const isProfile = item.href === "/profile";
-          const isCreate = item.href === "/create";
+          const isVip = item.href === "/premium";
 
           return (
             <Link
@@ -60,14 +60,14 @@ export function BottomNav() {
                 <item.icon
                   className={cn(
                     "w-5 h-5 transition-all duration-300",
-                    isCreate ? "text-primary w-7 h-7" : "",
-                    isActive ? "text-primary scale-110 drop-shadow-[0_0_10px_rgba(255,51,102,0.4)]" : "text-white/40 group-hover:text-white"
+                    isVip ? "text-yellow-500 w-6 h-6 animate-pulse" : "",
+                    isActive ? (isVip ? "text-yellow-500 scale-110" : "text-primary scale-110 drop-shadow-[0_0_10px_rgba(255,51,102,0.4)]") : "text-white/40 group-hover:text-white"
                   )}
                 />
               )}
               <span className={cn(
                 "text-[8px] font-black uppercase mt-1 tracking-widest transition-colors",
-                isActive ? "text-primary" : "text-white/30"
+                isActive ? (isVip ? "text-yellow-500" : "text-primary") : "text-white/30"
               )}>
                 {item.label}
               </span>

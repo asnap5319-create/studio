@@ -3,7 +3,7 @@
 
 import { useUser, useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
-import { Loader2, Wallet, PlusCircle, ArrowUpRight, TrendingUp, Sparkles, Zap } from 'lucide-react';
+import { Loader2, Wallet, PlusCircle, ArrowUpRight, TrendingUp, Sparkles, Zap, Crown } from 'lucide-react';
 import { BottomNav } from "@/components/bottom-nav";
 import { PredictionGame } from '@/components/prediction-game';
 import { Suspense, useEffect, useState, useRef } from 'react';
@@ -27,7 +27,7 @@ function HomeContent() {
     [firestore, user]
   );
   
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile & { virtualBalance?: number, hasDeposited?: boolean }>(userRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile & { virtualBalance?: number, hasDeposited?: boolean, isVip?: boolean }>(userRef);
 
   useEffect(() => {
     const initializeUser = async () => {
@@ -46,13 +46,13 @@ function HomeContent() {
           }
 
           setIsInitializing(true);
-          // अभिषेक भाई, यहाँ बोनस ₹70 कर दिया गया है
           await setDoc(uRef, {
               id: user.uid,
               username: user.displayName || user.email?.split('@')[0] || `user_${user.uid.slice(0, 4)}`,
               email: user.email || '',
               virtualBalance: 70, 
               hasDeposited: false,
+              isVip: false,
               updatedAt: serverTimestamp()
           }, { merge: true });
           
@@ -84,15 +84,42 @@ function HomeContent() {
           </div>
           <h1 className="text-2xl font-black tracking-tight uppercase italic text-white drop-shadow-md px-2">WinGo</h1>
         </div>
-        <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
-          <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
-          <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Server Live</span>
+        <div className="flex items-center gap-2">
+          {!userProfile?.isVip && (
+             <Link href="/premium">
+                <div className="bg-yellow-500/10 p-2 rounded-lg border border-yellow-500/20 text-yellow-500 animate-pulse">
+                    <Crown size={18} />
+                </div>
+             </Link>
+          )}
+          <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
+            <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Server Live</span>
+          </div>
         </div>
       </header>
 
       <main className="w-full space-y-6 pt-4">
         {user ? (
           <>
+            {/* VIP CTA for non-VIPs */}
+            {!userProfile?.isVip && (
+              <div className="px-4">
+                 <Link href="/premium">
+                    <div className="bg-gradient-to-r from-yellow-600 to-amber-700 p-4 rounded-2xl flex items-center justify-between shadow-xl">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-white/20 p-2 rounded-xl text-white"><Crown size={20} /></div>
+                            <div>
+                                <p className="text-xs font-black uppercase text-white tracking-tighter">Get VIP Trial for ₹1</p>
+                                <p className="text-[8px] font-bold text-yellow-200 uppercase tracking-widest">Join Sikho style subscription</p>
+                            </div>
+                        </div>
+                        <ArrowUpRight size={16} className="text-white/60" />
+                    </div>
+                 </Link>
+              </div>
+            )}
+
             <div className="w-full px-4">
                 <div className="bg-money-pattern p-5 rounded-[2rem] shadow-2xl text-white relative overflow-hidden group border border-white/10">
                    <div className="absolute top-0 right-0 p-6 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-700">
