@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useFirebase, useDoc, useMemoFirebase } from '@/firebase';
@@ -85,13 +84,11 @@ function HomeContent() {
           <h1 className="text-2xl font-black tracking-tight uppercase italic text-white drop-shadow-md px-2">WinGo</h1>
         </div>
         <div className="flex items-center gap-2">
-          {!userProfile?.isVip && (
-             <Link href="/premium">
-                <div className="bg-yellow-500/10 p-2 rounded-lg border border-yellow-500/20 text-yellow-500 animate-bounce">
-                    <Crown size={18} />
-                </div>
-             </Link>
-          )}
+          <Link href="/premium">
+            <div className="bg-yellow-500/10 p-2 rounded-lg border border-yellow-500/20 text-yellow-500 animate-bounce">
+                <Crown size={18} />
+            </div>
+          </Link>
           <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
             <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
             <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Server Live</span>
@@ -102,31 +99,29 @@ function HomeContent() {
       <main className="w-full space-y-6 pt-4">
         {user ? (
           <>
-            {/* VIP Trial Banner - Updated to ₹5 */}
-            {!userProfile?.isVip && (
-              <div className="px-4">
-                 <Link href="/premium">
-                    <div className="bg-gradient-to-r from-yellow-600 via-amber-700 to-yellow-900 p-5 rounded-[2rem] flex items-center justify-between shadow-[0_15px_40px_rgba(217,119,6,0.3)] relative overflow-hidden group border border-white/10">
-                        <div className="absolute top-0 right-0 p-4 opacity-10 rotate-12 group-hover:scale-125 transition-transform duration-700">
-                             <Zap size={80} />
-                        </div>
-                        <div className="flex items-center gap-4 relative z-10">
-                            <div className="bg-white/20 p-3 rounded-2xl text-white backdrop-blur-md shadow-xl border border-white/10"><Crown size={24} /></div>
-                            <div className="space-y-0.5">
-                                <p className="text-[10px] font-black uppercase text-yellow-300 tracking-[0.2em] animate-pulse">Special Offer Today</p>
-                                <p className="text-sm font-black uppercase text-white tracking-tighter italic">Activate VIP Trial for ₹5</p>
-                                <p className="text-[8px] font-bold text-white/60 uppercase tracking-widest flex items-center gap-1">
-                                   <AlertCircle size={10} /> AUTO-PAY ₹599 STARTS TOMORROW
-                                </p>
-                            </div>
-                        </div>
-                        <div className="bg-white text-yellow-700 p-2 rounded-xl shadow-2xl relative z-10">
-                             <ArrowUpRight size={20} />
-                        </div>
-                    </div>
-                 </Link>
-              </div>
-            )}
+            {/* VIP Trial Banner - Always visible for quick access */}
+            <div className="px-4">
+               <Link href="/premium">
+                  <div className="bg-gradient-to-r from-yellow-600 via-amber-700 to-yellow-900 p-5 rounded-[2rem] flex items-center justify-between shadow-[0_15px_40px_rgba(217,119,6,0.3)] relative overflow-hidden group border border-white/10">
+                      <div className="absolute top-0 right-0 p-4 opacity-10 rotate-12 group-hover:scale-125 transition-transform duration-700">
+                           <Zap size={80} />
+                      </div>
+                      <div className="flex items-center gap-4 relative z-10">
+                          <div className="bg-white/20 p-3 rounded-2xl text-white backdrop-blur-md shadow-xl border border-white/10"><Crown size={24} /></div>
+                          <div className="space-y-0.5">
+                              <p className="text-[10px] font-black uppercase text-yellow-300 tracking-[0.2em] animate-pulse">Special Offer Today</p>
+                              <p className="text-sm font-black uppercase text-white tracking-tighter italic">Activate VIP Trial for ₹5</p>
+                              <p className="text-[8px] font-bold text-white/60 uppercase tracking-widest flex items-center gap-1">
+                                 <AlertCircle size={10} /> AUTO-PAY ₹599 STARTS TOMORROW
+                              </p>
+                          </div>
+                      </div>
+                      <div className="bg-white text-yellow-700 p-2 rounded-xl shadow-2xl relative z-10">
+                           <ArrowUpRight size={20} />
+                      </div>
+                  </div>
+               </Link>
+            </div>
 
             <div className="w-full px-4">
                 <div className="bg-money-pattern p-5 rounded-[2rem] shadow-2xl text-white relative overflow-hidden group border border-white/10">

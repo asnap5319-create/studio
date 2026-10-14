@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -28,8 +27,7 @@ export default function PremiumPage() {
     const UPI_ID = "ak63315561338@okicici";
 
     const qrCodeUrl = useMemo(() => {
-        // Abhishek bhai, updated to ₹5 as requested. 
-        // purpose=11 and tn=Mandate are hints for AutoPay setup.
+        // अभिषेक भाई, ₹5 का पेमेंट और ऑटो-पे लिंक सेट है।
         const upiLink = `upi://pay?pa=${UPI_ID}&pn=ASnapVIP&am=5.00&cu=INR&tn=VIP_Trial_Mandate_Active_Then_599&tr=VIP${Date.now()}&mode=02&purpose=11`;
         return `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(upiLink)}&bgcolor=ffffff`;
     }, []);
@@ -116,10 +114,9 @@ export default function PremiumPage() {
 
                         <Button 
                             onClick={() => setShowQR(true)}
-                            disabled={userProfile?.isVip}
                             className="w-full h-20 bg-yellow-500 hover:bg-yellow-600 text-black font-black uppercase rounded-[2rem] shadow-2xl flex items-center justify-center gap-4 text-2xl active:scale-95 transition-all"
                         >
-                            {userProfile?.isVip ? <><CheckCircle2 size={28} /> VIP ACTIVE</> : <><QrCode size={28} /> PAY ₹5 & START</>}
+                            <QrCode size={28} /> PAY ₹5 & START
                         </Button>
                     </>
                 ) : (
